@@ -65,6 +65,46 @@ export class ChatService {
   }
 
   // Telegram webhook update'ini qayta ishlash
+  // ── Sozlamalar → Chatlar va messenjerlar (amoCRM): javob shablonlari va "Беседы" qoidasi ──
+  private static readonly SETTINGS_KEY = 'chat_settings';
+  async getChatSettings() {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: ChatService.SETTINGS_KEY } });
+    let v: any = {};
+    try { v = JSON.parse(row?.value || '{}'); } catch { /* */ }
+    return {
+      templates: Array.isArray(v.templates) ? v.templates : [],
+      // always — 24 soat jim bo'lgandan keyin yangi suhbat yangi bitimda; no_active — faol bitim bo'lmasa yangi (standart); no_leads — hech bitim bo'lmasa
+      conversationRule: ['always', 'no_active', 'no_leads'].includes(v.conversationRule) ? v.conversationRule : 'no_active',
+    };
+  }
+  async saveChatSettings(body: any) {
+    const cur = await this.getChatSettings();
+    const next = { ...cur };
+    if (Array.isArray(body?.templates)) {
+      next.templates = body.templates.slice(0, 200).map((x: any, i: number) => ({
+        id: String(x?.id || `t${Date.now()}${i}`).slice(0, 40),
+        name: String(x?.name || '').trim().slice(0, 120),
+        active: x?.active !== false,
+        text: String(x?.text || '').slice(0, 4000),
+      })).filter((x: any) => x.name && x.text);
+    }
+    if (['always', 'no_active', 'no_leads'].includes(body?.conversationRule)) next.conversationRule = body.conversationRule;
+    const value = JSON.stringify(next);
+    await this.prisma.appSetting.upsert({ where: { key: ChatService.SETTINGS_KEY }, update: { value }, create: { key: ChatService.SETTINGS_KEY, value } });
+    return next;
+  }
+  /** Mavjud bitimni shu suhbat uchun qayta ishlatish mumkinmi ("Беседы" qoidasi bo'yicha). */
+  private async reuseLead(lead: { id: string; stage: string; wonAt: Date | null; lostAt: Date | null } | null, lastAt?: Date | null) {
+    if (!lead) return false;
+    const { conversationRule } = await this.getChatSettings();
+    if (conversationRule === 'no_leads') return true;
+    const st = await this.prisma.crmStage.findUnique({ where: { key: lead.stage } }).catch(() => null);
+    const open = !lead.wonAt && !lead.lostAt && (!st || st.kind === 'open');
+    if (!open) return false;
+    if (conversationRule === 'always' && lastAt && Date.now() - lastAt.getTime() > 24 * 3600000) return false;
+    return true;
+  }
+
   async handleTelegramUpdate(update: any, secret?: string) {
     // Telegram sozlanmagan bo'lsa yoki (TELEGRAM_WEBHOOK_SECRET berilgan bo'lsa) maxfiy sarlavha mos kelmasa — e'tibor bermaymiz
     if (!this.tg.enabled()) return { ok: true, skipped: true };
@@ -78,7 +118,11 @@ export class ChatService {
     const from = msg.from || {};
     const name = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || chat.title || 'Telegram foydalanuvchi';
 
-    let lead = await this.prisma.lead.findFirst({ where: { telegramChatId: chatId } });
+    let lead = await this.prisma.lead.findFirst({ where: { telegramChatId: chatId }, orderBy: { createdAt: 'desc' } });
+    if (lead) {
+      const last = await this.prisma.message.findFirst({ where: { leadId: lead.id }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
+      if (!(await this.reuseLead(lead, last?.createdAt))) lead = null;
+    }
     let isNew = false;
     if (!lead) {
       // Dublikat qoidalari: (Telegram'da telefon/email yo'q — custom maydon moslig'i uchun faqat nom bilan chaqiriladi)
@@ -196,14 +240,10 @@ export class ChatService {
   // ── Instagram / Facebook Messenger: kiruvchi xabar va izoh (FacebookService chaqiradi) ──
   /** Mavjud OCHIQ lid (shu kanal + yuboruvchi bo'yicha) yoki yangi saralanmagan lid. */
   private async findOrCreateSocialLead(channel: SocialChannel, threadId: string, name: string, source: string) {
-    const prev = await this.prisma.message.findFirst({ where: { channel, threadId }, orderBy: { createdAt: 'desc' }, select: { leadId: true } });
+    const prev = await this.prisma.message.findFirst({ where: { channel, threadId }, orderBy: { createdAt: 'desc' }, select: { leadId: true, createdAt: true } });
     if (prev) {
       const lead = await this.prisma.lead.findUnique({ where: { id: prev.leadId } });
-      if (lead) {
-        const st = await this.prisma.crmStage.findUnique({ where: { key: lead.stage } }).catch(() => null);
-        const open = !lead.wonAt && !lead.lostAt && (!st || st.kind === 'open');
-        if (open) return { lead, isNew: false };
-      }
+      if (lead && (await this.reuseLead(lead, prev.createdAt))) return { lead, isNew: false };
     }
     const place = await this.pset.place(null, null);
     const lead = await this.prisma.lead.create({

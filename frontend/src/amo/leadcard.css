@@ -213,3 +213,9 @@ a.ac-field__link:hover { color: var(--palette-link-primary); }
 .ac-chatblock { margin: 8px 0; padding: 10px 14px 8px; border: 1px solid var(--palette-border-primary); border-radius: 4px; background: var(--palette-background-primary); box-shadow: 0 3px 0 -1px var(--palette-background-primary), 0 3px 0 0 var(--palette-border-primary); }
 .ac-chatblock__head { display: flex; align-items: center; justify-content: center; gap: 6px; font: 700 13px var(--font-main); color: var(--palette-text-secondary-dark); margin-bottom: 6px; }
 .ac-chatblock__foot { display: flex; justify-content: flex-end; gap: 14px; margin-top: 6px; font-size: 13px; color: #7fb245; }
+
+/* Javob shablonlari tanlagichi (composer pastida o'ngda) */
+.ac-tplpick { position: relative; margin-left: auto; }
+.ac-tplpick__btn { width: 30px; height: 30px; border: 0; background: none; color: var(--palette-text-secondary-dark); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.ac-tplpick__btn:hover { color: var(--palette-text-primary); }
+.ac-tplpick__menu { position: absolute; right: 0; bottom: 100%; margin-bottom: 6px; min-width: 240px; max-height: 280px; overflow-y: auto; z-index: 60; }

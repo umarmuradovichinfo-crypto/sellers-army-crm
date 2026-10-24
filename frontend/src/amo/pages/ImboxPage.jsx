@@ -6,7 +6,7 @@ import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
 import { feedDate, dmy, hm, relDay } from '../format'
 import { useT } from '../i18n'
-import { SysLine, CallNote, TaskNote, NoteItem, MsgGroup, PersonAvatar, convNum } from './LeadCard'
+import { SysLine, CallNote, TaskNote, NoteItem, MsgGroup, PersonAvatar, convNum, TemplatePicker } from './LeadCard'
 import '../i18n/imbox.ru.js'
 import '../leadcard.css'
 import '../imbox.css'
@@ -170,6 +170,7 @@ function Composer({ lead, canChat, channel, comment, onSent }) {
         <div className="ac-compose__foot" onClick={(e) => e.stopPropagation()}>
           <button className="ac-btn ac-btn--blue ac-btn--plain" style={{ height: 34, lineHeight: '32px', padding: '0 14px' }} disabled={busy} onClick={send}>{t('Yuborish')}</button>
           <button className="ac-btn ac-btn--plain" style={{ height: 34, border: 0, background: 'transparent' }} onClick={() => { setText(''); setFocus(false) }}>{t('Bekor qilish')}</button>
+          {mode === 'chat' && <TemplatePicker onPick={(x) => { setText(x); ref.current?.focus() }} />}
         </div>
       )}
     </div>

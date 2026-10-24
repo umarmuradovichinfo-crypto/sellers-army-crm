@@ -103,6 +103,8 @@ addRu({
   'Bitim': 'Сделка',
   'Bitim nomi': 'Название сделки',
   'Suhbat': 'Беседа',
+  'Javob shablonlari': 'Шаблоны ответов',
+  "Shablonlar yo'q — Sozlamalar → Chatlar": 'Шаблонов нет — Настройки → Чаты',
   'izohlar': 'комментарии',
   "Vazifa yo'q": 'Нет задач',
   'Kontakt ismi': 'Имя контакта',

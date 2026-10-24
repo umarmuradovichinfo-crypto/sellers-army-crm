@@ -153,6 +153,9 @@ export const crmService = {
   // ── Suhbat (Telegram / omnichannel) ──
   chatStatus: () => mockOr(() => api.get('/crm/chat-status'), { telegram: false }),
   // Ish stoli chat vidjetlari: o'rtacha javob vaqti, uzoq javob kutayotganlar
+  // Chat sozlamalari: { templates:[{id,name,active,text}], conversationRule }
+  chatSettings: () => api.get('/crm/chat-settings'),
+  saveChatSettings: (payload) => api.put('/crm/chat-settings', payload),
   chatStats: (params) => api.get(`/crm/chat-stats${qs(params)}`),
   conversations: () => mockOr(() => api.get('/crm/conversations'), { conversations: [] }),
   leadMessages: (id) => mockOr(() => api.get(`/crm/leads/${id}/messages`), { messages: [], canReply: false }),

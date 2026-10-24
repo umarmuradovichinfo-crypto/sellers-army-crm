@@ -110,7 +110,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 26. [ ] (25-banddan keyin) Har bir qurilma ekraniga moslashish: avval amoCRM turli o'lchamlarda (desktop 1920/1440/1280,
     planshet 1024/768, telefon 414/375) qanday moslashishi ko'riladi (menyu, voronka ustunlari, kartochka, jadval, modallar),
     so'ng bizniki xuddi shunday qilinadi va har o'lchamda test qilinadi
-22. [ ] Sozlamalar → Chatlar va messenjerlar: amoCRM kabi "Javob shablonlari" (nom, tur, matn; chatda tanlash) va imBox/notif switch'lari
+22. [x] Sozlamalar → Chatlar va messenjerlar: "Javob shablonlari" (nom, holat, matn; chat composer'da tanlash) va "Беседы" qoidasi (yangi bitim qachon ochiladi) — imBox/notif switch'lari keraksiz (imBox doim yoqiq)
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

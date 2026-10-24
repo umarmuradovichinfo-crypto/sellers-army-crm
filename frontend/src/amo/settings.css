@@ -122,3 +122,12 @@
 
 .ac-set-groups { display: flex; flex-direction: column; }
 .ac-set-group { display: flex; justify-content: space-between; height: 38px; align-items: center; border-bottom: 1px solid var(--palette-border-primary); font-size: 15px; }
+
+.ac-set-tpl { width: 100%; margin-top: 10px; }
+.ac-set-tpl a { color: var(--palette-link-primary); cursor: pointer; }
+.ac-set-tpl__text { max-width: 420px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-set-addlink { display: inline-block; margin-top: 10px; color: var(--palette-link-primary); cursor: pointer; font-size: 14px; }
+.ac-set-tplform { display: flex; flex-direction: column; gap: 8px; max-width: 520px; margin-top: 12px; }
+.ac-set-tplform textarea { height: auto; padding: 6px 8px; resize: vertical; }
+.ac-set-radio { display: flex; align-items: flex-start; gap: 10px; margin: 8px 0; font-size: 15px; color: var(--palette-text-primary); cursor: pointer; }
+.ac-set-radio input { margin-top: 3px; }

@@ -152,11 +152,45 @@ function GeneralSection() {
 // ── Chatlar va messenjerlar: ulanish holati ──
 function ChatsSection() {
   const t = useT()
+  const { can } = useAuth()
+  const canManage = can('settings.roles.manage')
   const { data, loading } = useApi(() => crmService.chatStatus(), [], 'settings:chat-status', 60000)
+  const cs = useApi(() => crmService.chatSettings(), [], 'settings:chat-settings')
+  const [form, setForm] = useState(null)
+  const [base, setBase] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+  const [edit, setEdit] = useState(null) // shablon tahrirlash: { id?, name, text, active }
+  useEffect(() => { if (cs.data) { setForm(cs.data); setBase(cs.data) } }, [cs.data])
   const on = !!data?.telegram
+  const dirty = form && base && JSON.stringify(form) !== JSON.stringify(base)
+  const save = async () => {
+    setBusy(true); setMsg(null)
+    try { const r = await crmService.saveChatSettings(form); setForm(r); setBase(r); setMsg({ ok: true, m: t('Saqlandi') }); setTimeout(() => setMsg(null), 2500) }
+    catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) } finally { setBusy(false) }
+  }
+  const putTpl = () => {
+    if (!edit?.name?.trim() || !edit?.text?.trim()) return
+    setForm((f) => {
+      const list = [...(f.templates || [])]
+      const i = list.findIndex((x) => x.id === edit.id)
+      const item = { id: edit.id || `t${Date.now()}`, name: edit.name.trim(), text: edit.text, active: edit.active !== false }
+      if (i >= 0) list[i] = item; else list.push(item)
+      return { ...f, templates: list }
+    })
+    setEdit(null)
+  }
+  const RULES = [
+    ['always', "Har doim yangi bitimda suhbat yaratish"],
+    ['no_active', "Mijozda faol bitim bo'lmasa, yangi bitimda suhbat yaratish"],
+    ['no_leads', "Mijozda faol ham, yopilgan ham bitim bo'lmasagina yangi bitimda suhbat yaratish"],
+  ]
   return (
     <>
-      <Head />
+      <Head>
+        {msg && <span className={msg.ok ? 'ac-set-saved' : 'ac-set-err'} style={msg.ok ? undefined : { margin: '0 14px 0 0' }}>{msg.m}</span>}
+        {canManage && <button className={`ac-set-save ${dirty ? 'on' : ''}`} disabled={busy || !dirty} onClick={save}>{t('card§Saqlash')}</button>}
+      </Head>
       <div className="ac-set-body">
         <div className="ac-set-block">
           <h2 className="ac-set-block__title">{t('Chatlar va messenjerlar')}</h2>
@@ -172,6 +206,47 @@ function ChatsSection() {
             </div>
           )}
           {!on && !loading && <div className="ac-set-note" style={{ marginTop: 6 }}>{t("Telegram sozlanmagan: serverda TELEGRAM_BOT_TOKEN qo'shilgach mijozlar bilan yozishasiz.")}</div>}
+        </div>
+
+        <div className="ac-set-block">
+          <h2 className="ac-set-block__title">{t('Javob shablonlari')}</h2>
+          <div className="ac-set-block__desc">{t("Javob shablonlarini oldindan yaratib, mijozlar bilan yozishmada ishlatishingiz mumkin. Qo'shilgach, shablonlar chatlarda tanlash uchun mavjud bo'ladi")}</div>
+          <table className="ac-table ac-set-tpl">
+            <thead><tr><th>{t('Nomi')}</th><th>{t('Holat')}</th><th>{t('Shablon turi')}</th><th>{t('Javob matni')}</th><th /></tr></thead>
+            <tbody>
+              {(form?.templates || []).map((x) => (
+                <tr key={x.id}>
+                  <td><a onClick={() => canManage && setEdit({ ...x })}>{x.name}</a></td>
+                  <td><span className={`ac-switch ${x.active !== false ? 'on' : ''}`} onClick={() => canManage && setForm((f) => ({ ...f, templates: f.templates.map((y) => (y.id === x.id ? { ...y, active: y.active === false } : y)) }))} /></td>
+                  <td>{t('Matn')}</td>
+                  <td className="ac-set-tpl__text" title={x.text}>{x.text}</td>
+                  <td>{canManage && <button className="ac-top__dots" title={t("O'chirish")} onClick={() => setForm((f) => ({ ...f, templates: f.templates.filter((y) => y.id !== x.id) }))}><Ico name="trash" size={13} /></button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {canManage && !edit && <a className="ac-set-addlink" onClick={() => setEdit({ name: '', text: '', active: true })}>+ {t("Yangi shablon qo'shish")}</a>}
+          {edit && (
+            <div className="ac-set-tplform">
+              <input className="ac-input" placeholder={t('Nomi')} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
+              <textarea className="ac-input" rows={3} placeholder={t('Javob matni')} value={edit.text} onChange={(e) => setEdit({ ...edit, text: e.target.value })} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="ac-btn ac-btn--blue" disabled={!edit.name.trim() || !edit.text.trim()} onClick={putTpl}>{t('Tayyor')}</button>
+                <button className="ac-btn ac-btn--plain" onClick={() => setEdit(null)}>{t('Bekor qilish')}</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="ac-set-block">
+          <h2 className="ac-set-block__title">{t('Suhbatlar')}</h2>
+          <div className="ac-set-block__desc">{t("Mijoz chatga yozganda tizim ochiq suhbatni topib, xabarni unga qo'shadi. Yangi suhbat yaratish qoidasini sozlang:")}</div>
+          {RULES.map(([k, l]) => (
+            <label key={k} className="ac-set-radio">
+              <input type="radio" name="conv-rule" checked={form?.conversationRule === k} disabled={!canManage} onChange={() => setForm((f) => ({ ...f, conversationRule: k }))} />
+              <span>{t(l)}</span>
+            </label>
+          ))}
         </div>
       </div>
     </>

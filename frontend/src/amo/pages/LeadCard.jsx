@@ -397,6 +397,35 @@ export function convNum(id) {
 const CHAN_TITLE = { instagram: 'Instagram', facebook: 'Facebook Messenger', telegram: 'Telegram', whatsapp: 'WhatsApp' }
 
 // amoCRM: ketma-ket chat xabarlari bitta "suhbat bloki"da — tepada kanal, pastda "Беседа № A1234"
+// Chat composer: "Javob shablonlari" (Sozlamalar → Chatlar) — tanlansa matn maydoniga qo'yiladi
+export function TemplatePicker({ onPick }) {
+  const t = useT()
+  const [open, setOpen] = useState(false)
+  const [list, setList] = useState(null)
+  const ref = useRef(null)
+  useOutside(ref, () => setOpen(false), open)
+  const toggle = () => {
+    setOpen((v) => !v)
+    if (!list) crmService.chatSettings().then((r) => setList((r.templates || []).filter((x) => x.active !== false))).catch(() => setList([]))
+  }
+  return (
+    <span className="ac-tplpick" ref={ref}>
+      <button type="button" className="ac-tplpick__btn" title={t('Javob shablonlari')} onClick={toggle}><Ico name="list" size={16} /></button>
+      {open && (
+        <div className="ac-menu ac-tplpick__menu">
+          {list === null && <div className="ac-menu__item"><span className="ac-spinner" /></div>}
+          {list && list.length === 0 && <div className="ac-menu__item ac-muted">{t("Shablonlar yo'q — Sozlamalar → Chatlar")}</div>}
+          {(list || []).map((x) => (
+            <button key={x.id} className="ac-menu__item" title={x.text} onClick={() => { onPick(x.text); setOpen(false) }}>
+              <span className="grow">{x.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  )
+}
+
 export function MsgGroup({ msgs, leadId }) {
   const t = useT()
   const ch = msgs[0]?.channel || 'telegram'
@@ -529,6 +558,7 @@ function Composer({ lead, canChat, members, onSent, modeReq }) {
         <div className="ac-compose__foot" onClick={(e) => e.stopPropagation()}>
           <button className="ac-btn ac-btn--blue ac-btn--plain" style={{ height: 34, lineHeight: '32px', padding: '0 14px' }} disabled={busy} onClick={send}>{t(mode === 'task' ? "Qo'yish" : mode === 'chat' ? 'Yuborish' : 'Yuborish')}</button>
           <button className="ac-btn ac-btn--plain" style={{ height: 34, border: 0, background: 'transparent' }} onClick={() => { setText(''); setFocus(false) }}>{t('Bekor qilish')}</button>
+          {mode === 'chat' && <TemplatePicker onPick={(x) => { setText(x); ref.current?.focus() }} />}
         </div>
       )}
     </div>

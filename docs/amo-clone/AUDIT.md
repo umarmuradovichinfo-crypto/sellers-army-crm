@@ -91,3 +91,10 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 |---|--------|-----------|-------|
 | 1 | "…": Лог авторизаций (sana, foydalanuvchi, IP, brauzer, natija) | yo'q, kirishlar yozilmasdi | qo'shildi (crm_activities type=auth, GET /auth/log) |
 | 2 | "…": Настройка групп | faqat foydalanuvchi oynasida | qo'shildi (guruhlar ro'yxati + yangi guruh) |
+
+## 11. Sozlamalar → Chatlar va messenjerlar
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | "Шаблоны ответов": nom, holat, tur, matn; chatda tanlanadi | yo'q | qo'shildi (/crm/chat-settings, composer'da shablon tugmasi) |
+| 2 | "Беседы": yangi suhbat qachon yangi bitimda (har doim / faol bitim bo'lmasa — standart / umuman bitim bo'lmasa) | Telegram har doim eski bitimga, Instagram/Messenger faqat ochiqqa | tuzatildi (bitta qoida barcha kanallar uchun) |
+| 3 | Список ботов, Онлайн чаты, Сокращать ссылки, Типовые вопросы, NPS | — | bizda avtomatlashtirish (Digital Pipeline) bor; qolganlari amoCRM'ning pullik xizmatlari |
