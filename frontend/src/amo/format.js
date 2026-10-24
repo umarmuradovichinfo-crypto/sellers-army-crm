@@ -78,3 +78,14 @@ export function feedDateFull(d, t = (s) => s) {
   const r = relDay(d)
   return `${r ? t(r) : dmy(d)} ${hmsms(d)}`
 }
+
+// Telefonni amoCRM kabi ko'rsatish: "+998 93 307 77 07", "93 307 77 07", "+7 999 123-45-67"; boshqasi o'zgarmaydi
+export function phoneFmt(p) {
+  if (!p) return ''
+  const s = String(p).trim()
+  const d = s.replace(/\D/g, '')
+  if (d.length === 12 && d.startsWith('998')) return `+998 ${d.slice(3, 5)} ${d.slice(5, 8)} ${d.slice(8, 10)} ${d.slice(10)}`
+  if (d.length === 9 && !s.startsWith('+')) return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7)}`
+  if (d.length === 11 && d.startsWith('7') && (s.startsWith('+') || s.startsWith('7'))) return `+7 ${d.slice(1, 4)} ${d.slice(4, 7)}-${d.slice(7, 9)}-${d.slice(9)}`
+  return s
+}

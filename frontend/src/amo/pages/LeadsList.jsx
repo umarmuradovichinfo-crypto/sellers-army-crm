@@ -5,7 +5,7 @@ import { crmService } from '../../services/crm.service'
 import { useApi } from '../../lib/useApi'
 import TopBar from '../TopBar'
 import { Ico } from '../AmoIcons'
-import { money, dmy } from '../format'
+import { money, dmy, phoneFmt } from '../format'
 import LeadsFilter from '../LeadsFilter'
 import FieldsModal from '../FieldsModal'
 import BulkBar from '../BulkBar'
@@ -127,7 +127,7 @@ export default function LeadsList() {
       )
       case 'contact': return <td key={c.key}>{l.contactName ? <span className="u" style={{ cursor: 'pointer' }} onClick={() => navigate(`/contacts/detail/${l.contactId}`)}>{l.contactName}</span> : ''}</td>
       case 'company': return <td key={c.key}>{l.companyName || ''}</td>
-      case 'phone': return <td key={c.key}>{(l.contactPhone || l.phone) ? <a className="u" href={`tel:${l.contactPhone || l.phone}`}>{l.contactPhone || l.phone}</a> : ''}</td>
+      case 'phone': return <td key={c.key}>{(l.contactPhone || l.phone) ? <a className="u" href={`tel:${l.contactPhone || l.phone}`}>{phoneFmt(l.contactPhone || l.phone)}</a> : ''}</td>
       case 'email': return <td key={c.key}>{l.email || l.contactEmail || ''}</td>
       case 'stage': return <td key={c.key}>{l.stageName}</td>
       case 'budget': return <td key={c.key}>{l.value ? money(l.value) : ''}</td>

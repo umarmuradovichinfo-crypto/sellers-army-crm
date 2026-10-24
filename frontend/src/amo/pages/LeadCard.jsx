@@ -6,7 +6,7 @@ import { crmService } from '../../services/crm.service'
 import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
-import { feedDate, feedDateFull, dmy, relDay, currency } from '../format'
+import { feedDate, feedDateFull, dmy, relDay, currency, phoneFmt } from '../format'
 import { useT } from '../i18n'
 import { tagStyle } from '../tagColors'
 import '../i18n/leadcard.ru.js'
@@ -133,7 +133,7 @@ function ContactItem({ contact, isMain, canMain, onUnlink, onMain, onChange }) {
           {contact.phone && !phoneEdit ? (
             <span className="ac-field__phone">
               <span className="ac-field__plusmini" title={t("Telefon qo'shish")} onClick={() => setPhoneEdit(true)}><Ico name="plus" size={8} /></span>
-              <a className="ac-field__link" href={`tel:${String(contact.phone).replace(/[^\d+]/g, '')}`}>{contact.phone}</a>
+              <a className="ac-field__link" href={`tel:${String(contact.phone).replace(/[^\d+]/g, '')}`}>{phoneFmt(contact.phone)}</a>
               <span className="ac-field__pen" onClick={() => setPhoneEdit(true)}><Ico name="edit" size={12} /></span>
             </span>
           ) : (
@@ -218,7 +218,7 @@ function CompanyBlock({ company, name }) {
         ]} />}
       </div>
       <div className="ac-linked__fields">
-        <FieldRow label={t('Ish tel.')}>{val(company?.phone, company?.phone && `tel:${company.phone.replace(/[^\d+]/g, '')}`)}</FieldRow>
+        <FieldRow label={t('Ish tel.')}>{val(company?.phone && phoneFmt(company.phone), company?.phone && `tel:${company.phone.replace(/[^\d+]/g, '')}`)}</FieldRow>
         <FieldRow label={t('Email ish.')}>{val(company?.email, company?.email && `mailto:${company.email}`)}</FieldRow>
         <FieldRow label="Web">{val(company?.website, company?.website && (/^https?:/.test(company.website) ? company.website : `https://${company.website}`))}</FieldRow>
       </div>

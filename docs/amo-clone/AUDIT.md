@@ -34,3 +34,10 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 |---|--------|-----------|-------|
 | 1 | Filtr: presetlar (Только мои задачи — standart, Просроченные, Выполненные, Все задачи, Удаленные) + sana, Все типы, Воронки/этапы, Не завершенные, Ответственные, Авторы | filtr paneli yo'q edi, hammaning vazifalari ko'rinardi | tuzatildi ("Удаленные" — vazifalar soft-delete qilinmaydi, rejada) |
 | 2 | "…": Управление типами задач, Экспорт, Синхронизировать | "bajarilganlarni ko'rsatish" | Eksport qo'shildi; turlarni boshqarish va kalendar sinxronizatsiyasi rejada |
+
+## 4. Ro'yxatlar → kontaktlar/kompaniyalar
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | Ustun "НАИМЕНОВАНИЕ", standart tartib — eng yangisi tepada (strelkasiz) | "НАЗВАНИЕ ▲", nom bo'yicha | tuzatildi |
+| 2 | Kontakt oldida belgi yo'q, kompaniyada belgi | kontaktda nuqta | tuzatildi |
+| 3 | Telefon formatlangan "+998 93 307 77 07" (ro'yxat, kartochka, voronka, bitim kartochkasi) | xom raqam | tuzatildi (format.js phoneFmt) |

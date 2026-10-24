@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../lib/useApi'
 import TopBar from '../TopBar'
 import { Ico } from '../AmoIcons'
-import { money, cardDate } from '../format'
+import { money, cardDate, phoneFmt } from '../format'
 import LeadsFilter from '../LeadsFilter'
 import FieldsModal from '../FieldsModal'
 import BulkBar from '../BulkBar'
@@ -61,7 +61,7 @@ function LeadCard({ lead, onOpen, onPointerDown, dragging, fields, bulk, selecte
   // Qo'shimcha qatorlar kartochka sozlamasidagi tartibda
   const lines = fields.map((k) => {
     if (k === 'company') return lead.company
-    if (k === 'phone') return lead.contactPhone || lead.phone
+    if (k === 'phone') return phoneFmt(lead.contactPhone || lead.phone)
     if (k === 'email') return lead.email
     if (k === 'source') return lead.source
     if (k === 'assignee') return lead.assigneeName
@@ -113,7 +113,7 @@ function UnsortedCard({ lead, fields = [], onAccept, onReject, onOpen }) {
       [t('Bitim nomi'), lead.n],
       ...answers.map(([k, v]) => [label(k), v === true ? t('Ha') : String(v)]),
       lead.contactName && [t('Kontakt ismi'), lead.contactName],
-      (lead.contactPhone || lead.phone) && [t('Telefon'), lead.contactPhone || lead.phone],
+      (lead.contactPhone || lead.phone) && [t('Telefon'), phoneFmt(lead.contactPhone || lead.phone)],
       lead.company && [t('Kompaniya nomi'), lead.company],
     ].filter(Boolean)
     return (
@@ -141,7 +141,7 @@ function UnsortedCard({ lead, fields = [], onAccept, onReject, onOpen }) {
           <span className="ac-card__date">{cardDate(lead.createdAt, t)}</span>
         </div>
         <div className="ac-card__name" onClick={() => onOpen(lead)}>{lead.n}</div>
-        <span className="ac-card__msg">{lead.formName ? `${t('Forma')}: ${lead.formName}` : lead.phone || t("Yangi so'rov")}</span>
+        <span className="ac-card__msg">{lead.formName ? `${t('Forma')}: ${lead.formName}` : phoneFmt(lead.phone) || t("Yangi so'rov")}</span>
       </div>
       <div className="ac-card__accept">
         <button className="ac-btn ac-btn--green ac-btn--sm" onClick={() => onAccept(lead)}><Ico name="check" size={12} /> {t('Qabul qilish')}</button>

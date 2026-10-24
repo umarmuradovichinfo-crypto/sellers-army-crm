@@ -6,6 +6,7 @@ import { crmService } from '../../services/crm.service'
 import { useApi } from '../../lib/useApi'
 import TopBar, { useOutside } from '../TopBar'
 import { Ico } from '../AmoIcons'
+import { phoneFmt } from '../format'
 import { useT, usePlural } from '../i18n'
 import '../i18n/lists.ru'
 import '../leads.css'
@@ -13,7 +14,7 @@ import '../lists.css'
 
 const PAGE = 50
 const EMPTY = { preset: 'all', name: '', phone: '', email: '', assigneeId: '', period: '' }
-const SORT_KEY = { name: 'name', companyName: 'companyName', phone: 'phone', assignee: 'assignee', email: 'email' }
+const SORT_KEY = { createdAt: 'createdAt', name: 'name', companyName: 'companyName', phone: 'phone', assignee: 'assignee', email: 'email' }
 
 function ListFilter({ value, members, onApply }) {
   const [f, setF] = useState(value)
@@ -88,7 +89,8 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
   const [search, setSearch] = useState('')
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState(EMPTY)
-  const [sort, setSort] = useState({ key: 'name', dir: 1 })
+  // amoCRM: standart — eng yangisi tepada (strelkasiz)
+  const [sort, setSort] = useState({ key: 'createdAt', dir: -1 })
   const [list, setList] = useState({ rows: [], next: null, total: 0, loading: true, error: '' })
   // Tanlash: sel — qo'lda belgilanganlar (kind:id); allMode — filtrga mos HAMMA yozuvlar (barcha sahifalar), excluded — undan olib tashlanganlar
   const [sel, setSel] = useState(() => new Set())
@@ -191,7 +193,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000)
   }
 
-  const cols = [['name', 'Nomi'], ['companyName', 'Kompaniya'], ['phone', 'Telefon'], ['assignee', "Mas'ul"], ['email', 'Email']]
+  const cols = [['name', 'Nomlanish'], ['companyName', 'Kompaniya'], ['phone', 'Telefon'], ['assignee', "Mas'ul"], ['email', 'Email']]
 
   return (
     <div className="ac-lists">
@@ -225,11 +227,11 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
               <tr key={r.key} className={isOn(r.key) ? 'selected' : ''}>
                 <td className="ac-chk"><input type="checkbox" className="ac-check" checked={isOn(r.key)} onChange={() => toggle(r.key)} /></td>
                 <td className="name">
-                  {r.kind === 'company' ? <Ico name="company" size={14} className="ico" /> : <span className="ac-dot" />}
+                  {r.kind === 'company' && <Ico name="company" size={14} className="ico" />}
                   <a onClick={() => open(r)}>{r.name}</a>
                 </td>
                 <td>{r.companyName && <span className="u">{r.companyName}</span>}</td>
-                <td>{r.phone && <span className="u">{r.phone}</span>}</td>
+                <td>{r.phone && <a className="u" href={`tel:${String(r.phone).replace(/[^\d+]/g, '')}`}>{phoneFmt(r.phone)}</a>}</td>
                 <td>{r.assignee}</td>
                 <td>{r.email}</td>
               </tr>

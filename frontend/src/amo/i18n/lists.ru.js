@@ -27,4 +27,5 @@ addRu({
   'Butun vaqt uchun': 'За все время',
   "O'chirib bo'lmadi": 'Не удалось удалить',
   'Xatolik yuz berdi': 'Произошла ошибка',
+  'Nomlanish': 'Наименование',
 })
