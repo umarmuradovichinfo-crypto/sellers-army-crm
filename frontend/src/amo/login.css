@@ -1,0 +1,41 @@
+/* Kirish sahifasi (amoCRM uslubi) */
+.ac-login {
+  position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  overflow: auto; padding: 24px 16px; font-family: var(--font-main); color: var(--palette-text-primary);
+  background:
+    radial-gradient(ellipse 40% 55% at 12% 30%, rgba(4, 30, 32, .85), transparent 70%),
+    radial-gradient(ellipse 30% 40% at 20% 75%, rgba(6, 45, 40, .8), transparent 70%),
+    linear-gradient(118deg, transparent 52%, rgba(255, 255, 255, .45) 55.5%, rgba(255, 255, 255, .1) 57%, transparent 60%),
+    linear-gradient(115deg, #0a2f4a 0%, #0f4a6e 24%, #1b6f8f 40%, #3a97a8 52%, #8fc0c4 60%, #cbb9a2 70%, #e3d3bf 100%);
+}
+.ac-login__card {
+  width: 400px; max-width: 100%; box-sizing: border-box; padding: 32px 30px 28px;
+  background: var(--palette-background-primary); border-radius: 6px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
+  animation: ac-login-in .3s ease;
+}
+@keyframes ac-login-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.ac-login__brand { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 22px; }
+.ac-login__logo { max-width: 180px; max-height: 56px; object-fit: contain; }
+.ac-login__name { font: 700 20px var(--font-caption); letter-spacing: .3px; }
+.ac-login__title { margin: 0 0 4px; text-align: center; font: 700 22px var(--font-main); }
+.ac-login__sub { text-align: center; margin-bottom: 18px; font-size: 14px; color: var(--palette-text-secondary-dark); }
+.ac-login__field { margin-bottom: 14px; }
+.ac-login__lbl { display: block; margin-bottom: 5px; font-size: 13px; color: var(--palette-text-secondary-dark); }
+.ac-login .ac-input { height: 40px; font-size: 15px; box-sizing: border-box; }
+.ac-login__remember { display: flex; align-items: center; gap: 8px; margin: 4px 0 18px; font-size: 14px; cursor: pointer; user-select: none; }
+.ac-login__remember .ac-check { flex: none; }
+.ac-login__err {
+  margin: 0 0 14px; padding: 8px 10px; border-radius: 4px; font-size: 13px;
+  color: var(--palette-meta-badge-color-red); background: var(--palette-info-bubble-error-background);
+  border: 1px solid var(--palette-info-bubble-error-border);
+}
+.ac-login__submit { width: 100%; height: 44px; font-size: 14px; gap: 10px; }
+.ac-login__submit .ac-spinner { width: 14px; height: 14px; border-color: #fff; border-right-color: transparent; border-bottom-color: transparent; }
+.ac-login__lang { display: flex; gap: 6px; margin-top: 18px; }
+.ac-login__lang button {
+  background: rgba(255, 255, 255, .12); color: #fff; border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 4px; padding: 5px 12px; font: 13px var(--font-main); cursor: pointer; transition: background .2s;
+}
+.ac-login__lang button:hover { background: rgba(255, 255, 255, .25); }
+.ac-login__lang button.is-active { background: #fff; color: #153043; border-color: #fff; }
