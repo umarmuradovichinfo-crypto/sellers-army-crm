@@ -58,12 +58,12 @@ export function StatsEvents({ members }) {
                     <td>{e.actorName || '—'}</td>
                     <td className="obj">{t(obj)}</td>
                     <td>{e.leadName || '—'}</td>
-                    <td>{t(label)}</td>
-                    <td />
+                    <td>{t(label)}{e.fieldLabel ? <span className="ac-muted"> «{t(e.fieldLabel)}»</span> : null}</td>
+                    <td title={e.from || ''}>{e.fieldLabel ? (e.from || '—') : ''}</td>
                     <td title={e.text}>
                       {e.type === 'call'
                         ? <span className="ac-stats-ev__play">{e.text}<Ico name="play" size={16} className="ico" /><Ico name="download" size={16} className="ico" /></span>
-                        : e.text}
+                        : e.fieldLabel ? (e.to || '—') : e.text}
                     </td>
                   </tr>
                 )

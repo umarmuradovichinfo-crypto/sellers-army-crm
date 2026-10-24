@@ -70,6 +70,10 @@ function fmtSum(v: number): string {
   if (v >= 1_000) return Math.round(v / 1_000) + ' ming';
   return String(v);
 }
+// Voqealar jurnali uchun aniq summa (amoCRM: '7 501 000'), yaxlitlamasdan
+function fmtExact(v: number): string {
+  return String(Math.round(Number(v) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
 
 function toDate(v?: string | null): Date | null {
   if (!v) return null;
@@ -487,15 +491,14 @@ export class CrmService {
     const existing = (await this.prisma.lead.findUnique({ where: { id } })) as LeadRow | null;
     if (!existing) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
     const data: Record<string, unknown> = {};
-    const changes: string[] = [];
-    if (dto.name !== undefined && dto.name !== existing.name) { data.name = dto.name; changes.push('ism'); }
+    if (dto.name !== undefined && dto.name !== existing.name) { data.name = dto.name; }
     if (dto.phone !== undefined) data.phone = dto.phone || null;
     if ((dto as any).email !== undefined) data.email = (dto as any).email || null;
     if (dto.company !== undefined) data.company = dto.company || null;
     if ((dto as any).companyId !== undefined) data.companyId = (dto as any).companyId || null;
     if ((dto as any).contactId !== undefined) data.contactId = (dto as any).contactId || null;
-    if (dto.source !== undefined && dto.source !== existing.source) { data.source = dto.source || null; changes.push('manba'); }
-    if (dto.value !== undefined && Number(dto.value) !== existing.value) { data.value = Number(dto.value) || 0; changes.push('byudjet'); }
+    if (dto.source !== undefined && dto.source !== existing.source) { data.source = dto.source || null; }
+    if (dto.value !== undefined && Number(dto.value) !== existing.value) { data.value = Number(dto.value) || 0; }
     if ((dto as any).items !== undefined) {
       const items = Array.isArray((dto as any).items) ? (dto as any).items : [];
       data.itemsJson = JSON.stringify(items);
@@ -530,14 +533,37 @@ export class CrmService {
 
     const l = (await this.prisma.lead.update({ where: { id }, data })) as LeadRow;
 
-    if (changes.length) await this.activity.record(id, 'updated', { actorId: user?.id, actorName: user?.name, text: `O'zgartirildi: ${changes.join(', ')}` });
+    // amoCRM: har bir o'zgargan maydon alohida voqea — "Для поля «X» установлено значение «Y»" (oldingi qiymat bilan)
+    const fmtV = (v: unknown) => (v == null || v === '' ? '' : Array.isArray(v) ? v.join(', ') : typeof v === 'boolean' ? (v ? 'Ha' : "Yo'q") : String(v));
+    const fieldChanges: { field: string; label: string; from: string; to: string }[] = [];
+    if (data.name !== undefined && existing.name !== l.name) fieldChanges.push({ field: 'name', label: 'Nomi', from: existing.name, to: l.name });
+    if (dto.source !== undefined && (existing.source || '') !== (l.source || '')) fieldChanges.push({ field: 'source', label: 'Manba', from: existing.source || '', to: l.source || '' });
+    if (data.value !== undefined && existing.value !== l.value) fieldChanges.push({ field: 'value', label: 'Byudjet', from: fmtExact(existing.value), to: fmtExact(l.value) });
+    if ((dto as any).custom !== undefined) {
+      const before = parse<Record<string, unknown>>(existing.customJson, {});
+      const after = parse<Record<string, unknown>>(l.customJson, {});
+      const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter((k) => !k.startsWith('_') && fmtV(before[k]) !== fmtV(after[k]));
+      if (keys.length) {
+        const defs = await this.prisma.crmField.findMany({ where: { entity: 'lead', key: { in: keys } }, select: { key: true, label: true } });
+        const lbl = new Map(defs.map((d) => [d.key, d.label]));
+        for (const k of keys) fieldChanges.push({ field: k, label: lbl.get(k) || k, from: fmtV(before[k]), to: fmtV(after[k]) });
+      }
+    }
+    for (const c of fieldChanges)
+      await this.activity.record(id, 'field', { actorId: user?.id, actorName: user?.name, text: `«${c.label}»: ${c.to || '—'}`, data: c });
+    if (dto.tags !== undefined) {
+      const a = parse<string[]>(existing.tagsJson, []), b = parse<string[]>(l.tagsJson, []);
+      if (a.join('|') !== b.join('|')) await this.activity.record(id, 'tag', { actorId: user?.id, actorName: user?.name, text: `Teglar: ${b.join(', ') || '—'}`, data: { field: 'tags', label: 'Teglar', from: a.join(', '), to: b.join(', ') } });
+    }
     if (assigneeChanged) {
-      await this.activity.record(id, 'assignee', { actorId: user?.id, actorName: user?.name, text: `Mas'ul o'zgardi` });
+      const nm = await this.userMap([existing.assigneeId, l.assigneeId]);
+      const from = existing.assigneeId ? nm.get(existing.assigneeId) || '' : '', to = l.assigneeId ? nm.get(l.assigneeId) || '' : '';
+      await this.activity.record(id, 'assignee', { actorId: user?.id, actorName: user?.name, text: `Mas'ul: ${to || '—'}`, data: { field: 'assignee', label: "Mas'ul", from, to } });
       if (l.assigneeId) await this.notif.notify(l.assigneeId, `Sizga lid biriktirildi: ${l.name}`, { type: 'lead', link: `/leads/detail/${id}` });
     }
     if (stageChanged) {
       const st = await this.prisma.crmStage.findUnique({ where: { key: l.stage } });
-      await this.recordStageActivity(id, l, st?.kind || 'open', user);
+      await this.recordStageActivity(id, l, st?.kind || 'open', user, existing.stage);
       await this.automation.fire('stage_enter', id, { actorName: user?.name });
     }
     if (assigneeChanged) await this.automation.fire('assignee_changed', id, { actorName: user?.name });
@@ -572,11 +598,12 @@ export class CrmService {
     else { data.wonAt = null; data.lostAt = null; }
   }
 
-  private async recordStageActivity(id: string, lead: LeadRow, kind: string, user?: AuthUser) {
+  private async recordStageActivity(id: string, lead: LeadRow, kind: string, user?: AuthUser, fromStage?: string) {
     const st = await this.prisma.crmStage.findUnique({ where: { key: lead.stage } });
     const stageName = st?.name || lead.stage;
-    // data.to — analitika (sotuv tahlili: bosqichga yetganlar va bosqichdagi vaqt) uchun bosqich kaliti
-    const data = { to: lead.stage };
+    const prev = fromStage ? await this.prisma.crmStage.findUnique({ where: { key: fromStage }, select: { name: true } }) : null;
+    // data.to — analitika (sotuv tahlili: bosqichga yetganlar va bosqichdagi vaqt) uchun bosqich kaliti; fromName/toName — voqealar ro'yxati
+    const data = { to: lead.stage, from: fromStage || null, fromName: prev?.name || '', toName: stageName };
     if (kind === 'won') await this.activity.record(id, 'won', { actorId: user?.id, actorName: user?.name, text: `🏆 Sotuv yopildi: ${fmtSum(lead.value)} so'm`, data });
     else if (kind === 'lost') await this.activity.record(id, 'lost', { actorId: user?.id, actorName: user?.name, text: `Yo'qotildi${lead.lostReason ? ` — ${lead.lostReason}` : ''}`, data });
     else await this.activity.record(id, 'stage', { actorId: user?.id, actorName: user?.name, text: `Bosqich: ${stageName}`, data });
@@ -689,7 +716,7 @@ export class CrmService {
 
     if (changed) {
       const fresh = (await this.prisma.lead.findUnique({ where: { id } })) as LeadRow;
-      await this.recordStageActivity(id, fresh, target.kind, user);
+      await this.recordStageActivity(id, fresh, target.kind, user, before.stage);
       await this.automation.fire('stage_enter', id, { actorName: user?.name });
     }
     return { id, stageId: stageKey };

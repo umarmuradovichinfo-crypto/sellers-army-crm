@@ -393,6 +393,15 @@ export class CrmAnalyticsService {
         leadId: r.leadId,
         leadName: r.leadId ? leadName.get(r.leadId) || null : null,
         createdAt: r.createdAt.toISOString(),
+        // "Значение до / после": maydon/mas'ul/teg/bosqich o'zgarishlarida
+        ...(() => {
+          try {
+            const d = JSON.parse(r.dataJson || '{}');
+            if (d.fromName !== undefined || d.toName !== undefined) return { from: d.fromName || '', to: d.toName || '', fieldLabel: 'Bosqich' };
+            if (d.label) return { from: d.from ?? '', to: d.to ?? '', fieldLabel: d.label };
+          } catch { /* */ }
+          return {};
+        })(),
       })),
       byType: byTypeRaw
         .map((g) => ({ type: g.type, count: g._count._all }))

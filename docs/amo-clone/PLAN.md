@@ -40,7 +40,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 6. [x] imBox: suhbatlar ro'yxati + chat lentasi
 7. [x] Analitika: sotuv tahlili, umumiy hisobot, xodimlar hisoboti, voqealar ro'yxati, qo'ng'iroqlar, maqsadlar
    - [x] Tuzatish: sotuv tahlilida o'rtacha davomiylik "11k." chiqyapti (avgDays birligi), tor ekranda bloklar ustma-ust
-   - [ ] Voqealar: "qiymat oldin/keyin" uchun backend activity'da before/after saqlash
+   - [x] Voqealar: "qiymat oldin/keyin" uchun backend activity'da before/after saqlash
 8. [x] Ish stoli: vidjetlar, davr tanlagich, voronka statistikasi
 9. [x] Sozlamalar: [x] umumiy (til tanlash), foydalanuvchilar, chatlar, xavfsizlik; [x] Market/Integratsiyalar (OnlinePBX, Facebook, Telegram, formalar); [x] voronka sozlash (bitim manbalari, digital pipeline); [x] maydonlar sozlash (/settings/fields/leads)
    - [x] Integratsiyalar: "O'rnatilganlar" tabi ulangan integratsiyalarni ko'rsatadi (holat tekshiruvi bor)
