@@ -114,4 +114,9 @@ addRu({
   'Vazifalar': 'Задачи',
   'Bosqichlar': 'Статусы',
   'Butun vaqt uchun': 'За все время',
+  'Dublikatlarni topish va birlashtirish': 'Найти и объединить дубли',
+  'Dublikat emas': 'Не дубль',
+  "Ehtimoliy dublikatlarni tekshiring va saqlamoqchi bo'lgan ma'lumotlarni tanlang. Birlashtirish natijasini o'ngda ko'rishingiz mumkin.": 'Проверьте возможные дубли и выберите данные, которые хотите сохранить. Результат объединения можно посмотреть справа.',
+  'Hammasini bekor qilish': 'Отменить всё',
+  'dup§dan': 'из',
 })

@@ -149,3 +149,12 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
 - Kontaktlar ro'yxatining «…» menyusiga ham «Импорт» qo'shildi (amoCRM'da bor edi, bizda yo'q edi).
 - Xato: o'zimizning namuna faylimiz sarlavhalari («Kontakt: ism», «Kontakt: telefon») ruscha interfeysda avtomatik moslanmasdi → asl nom bilan ham solishtiriladi.
 - Qilinmagan: «Импорт из Google таблиц» (Google OAuth integratsiyasi kerak) va «Посмотреть импортированные файлы» (import tarixi) — keyingi bosqich.
+
+## 19. Dublikatlarni qidirish
+- amoCRM: «…» → «Поиск дублей» — modal «Найти и объединить дубли · 1 из N»: guruhlar birma-bir; har bitim ustunida har maydon uchun
+  radio («Выбрать всё», «Перейти в карточку»), teglar belgilanadi, o'ngda natija («Отменить всё»); yuqorida «Отменить / Не дубль / Объединить».
+  Bizda alohida sahifa (telefon/email/nom tablari, faqat «asosiy» tanlash) edi → amoCRM kabi modal qilindi (telefon+email+nom birga).
+- Backend: birlashtirishda tanlangan qiymatlar (nom, mas'ul, byudjet, bosqich, teglar, qo'shimcha maydonlar) qo'llanadi;
+  «Yaratilgan sana» tanlovi — qaysi bitim saqlanishi. «Не дубль» ro'yxati saqlanadi (guruh qayta chiqmaydi).
+- Xato tuzatildi: birlashtirishda chat xabarlari va o'chirilgan vazifalar arxivi ko'chirilmasdi (o'chirilgan bitimda qolib ketardi);
+  boshqa bitimlarning kontaktlari endi asosiy bitimga qo'shimcha kontakt sifatida o'tadi.

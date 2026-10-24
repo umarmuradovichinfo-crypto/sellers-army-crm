@@ -16,7 +16,6 @@ import ListsPage from './amo/pages/ListsPage'
 import LeadCard from './amo/pages/LeadCard'
 import TasksPage from './amo/pages/TasksPage'
 import LeadsList from './amo/pages/LeadsList'
-import LeadsDuplicates from './amo/pages/LeadsDuplicates'
 import StatsPage from './amo/pages/StatsPage'
 import ImboxPage from './amo/pages/ImboxPage'
 import DashboardPage from './amo/pages/DashboardPage'
@@ -47,7 +46,7 @@ function CrmShell() {
           <Route path="/leads/detail/:id" element={<LeadCard />} />
           <Route path="/leads/add" element={<LeadCard />} />
           <Route path="/leads/list" element={<LeadsList />} />
-          <Route path="/leads/duplicates" element={<LeadsDuplicates />} />
+          <Route path="/leads/duplicates" element={<Navigate to="/leads/list" replace />} />
           <Route path="/leads/import" element={<ImportPage entity="leads" />} />
           <Route path="/leads/*" element={<Navigate to="/leads/pipeline" replace />} />
           <Route path="/imbox" element={<ImboxPage />} />

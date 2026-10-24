@@ -18,6 +18,7 @@ import '../i18n/leadcard.ru.js'
 import '../i18n/leadsfilter.ru.js'
 import '../leads.css'
 import { ImportModal } from './ImportPage'
+import DuplicatesModal from '../DuplicatesModal'
 
 const PAGE = 50
 
@@ -278,6 +279,7 @@ export default function LeadsPipeline() {
   const { pipelineId = '' } = useParams()
   const navigate = useNavigate()
   const [importOpen, setImportOpen] = useState(false)
+  const [dupOpen, setDupOpen] = useState(false)
   const { user } = useAuth()
   const t = useT()
   const plural = usePlural()
@@ -414,6 +416,7 @@ export default function LeadsPipeline() {
   return (
     <div className="ac-pipeline">
       {importOpen && <ImportModal entity="leads" onClose={() => setImportOpen(false)} />}
+      {dupOpen && <DuplicatesModal onClose={() => setDupOpen(false)} onMerged={reload} />}
       <TopBar
         title={pipeName}
         switcher={<ViewSwitch mode="pipeline" />}
@@ -428,7 +431,7 @@ export default function LeadsPipeline() {
           { label: t('Import'), icon: 'download', onClick: () => setImportOpen(true) },
           { label: t('Eksport'), icon: 'excel', onClick: () => downloadLeadsCsv({ ...filterParams, pipelineId: pipelineId || 'main', unsorted: '0' }).catch((e) => window.alert(e?.message || t('Xatolik yuz berdi'))) },
           { label: t("Kartochka ko'rinishi"), icon: 'edit', onClick: () => setCardModal(true) },
-          { label: t('Dublikatlarni qidirish'), icon: 'search', onClick: () => navigate('/leads/duplicates') },
+          { label: t('Dublikatlarni qidirish'), icon: 'search', onClick: () => setDupOpen(true) },
           { label: t('Ommaviy amallar'), icon: 'check', switch: bulk, onClick: () => { setBulk((v) => !v); setSel(new Set()) } },
           sortMenuItem(t, sort, Q.setSort),
           { label: t('Avto-yangilash'), switch: autoRefresh, onClick: () => setAutoRefresh((v) => { localStorage.setItem('amo_autorefresh', v ? '0' : '1'); return !v }) },

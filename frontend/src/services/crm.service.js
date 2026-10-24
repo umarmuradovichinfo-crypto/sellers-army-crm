@@ -45,7 +45,7 @@ export const crmService = {
   listLeads: (params) => mockOr(() => api.get(`/crm/leads${qs(params)}`), { leads: [], total: 0, totalSum: 0, nextCursor: null }),
   // bulk(ids, action, value) yoki bulk(null, action, value, { all: true, filter, excludeIds }) — "barchasini belgilash"
   bulk: (ids, action, value, extra) => mockOr(() => api.post('/crm/leads/bulk', { ids: ids || undefined, action, value, ...extra }), { ok: true, affected: 0 }),
-  mergeLeads: (keepId, mergeIds) => mockOr(() => api.post('/crm/leads/merge', { keepId, mergeIds }), { ok: true }),
+  mergeLeads: (keepId, mergeIds, pick) => mockOr(() => api.post('/crm/leads/merge', { keepId, mergeIds, pick }), { ok: true }),
   checkDuplicate: (phone, email, excludeId) => mockOr(() => api.get(`/crm/leads-check${qs({ phone, email, excludeId })}`), { duplicates: [] }),
   importLeads: (rows) => mockOr(() => api.post('/crm/leads-import', { rows }), { ok: true, created: 0, skipped: 0 }),
   exportUrl: (params) => `/crm/leads-export${qs(params)}`,

@@ -218,3 +218,30 @@
 
 /* Faqat 2 ustunli filtr (vazifalar): panel maydonlar ustuni bilan tugaydi */
 .ac-filter:has(> .ac-filter__col--fields:last-child) { right: auto; width: auto; }
+
+/* amoCRM "Найти и объединить дубли" modali (~880px): ustunlar (har bitim) + o'ngda natija */
+.ac-dupm { width: 880px; max-width: calc(100vw - 32px); padding: 26px 30px 30px; }
+.ac-dupm__head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.ac-dupm__head .ac-modal__title { margin: 0; font-weight: 400; }
+.ac-dupm__head .grow { flex: 1; }
+.ac-dupm__cancel { background: none; border: 0; cursor: pointer; font: 700 12px var(--font-main); color: var(--palette-text-secondary-dark); margin-right: 6px; }
+.ac-dupm__cancel:hover { color: var(--palette-text-primary); }
+.ac-dupm__hint { margin: 0 0 16px; max-width: 580px; font-size: 14px; line-height: 21px; color: var(--palette-text-secondary-dark); }
+.ac-dupm__empty { padding: 40px 0; text-align: center; color: var(--palette-text-secondary-dark); }
+.ac-dupm__body { display: flex; gap: 0; }
+.ac-dupm__cols { flex: 1; min-width: 0; display: flex; overflow-x: auto; background: var(--palette-background-default); }
+.ac-dupm__col { flex: 0 0 263px; padding: 12px 28px 16px; }
+.ac-dupm__links { display: flex; gap: 14px; font-size: 13px; margin-bottom: 10px; }
+.ac-dupm__links a { color: var(--palette-text-secondary-dark); cursor: pointer; }
+.ac-dupm__links a:first-child { color: var(--palette-link-primary); }
+.ac-dupm__row { min-height: 56px; display: flex; align-items: center; border-bottom: 1px solid var(--palette-border-primary); font-size: 14px; }
+.ac-dupm__row--tags { flex-wrap: wrap; gap: 6px; padding: 10px 0; }
+.ac-dupm__cell { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; word-break: break-word; }
+.ac-dupm__cell input { margin-top: 3px; accent-color: var(--palette-link-primary); }
+.ac-dupm__tag { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.ac-dupm__res { flex: 0 0 250px; padding: 12px 0 0 22px; font-size: 14px; }
+.ac-dupm__res > .ac-dupm__links { color: var(--palette-text-secondary-dark); cursor: pointer; display: block; }
+.ac-dupm__res-row { margin-bottom: 16px; word-break: break-word; }
+.ac-dupm__res-cap { font-size: 13px; color: var(--palette-text-secondary-dark); margin-bottom: 2px; }
+.ac-dupm__tags { display: flex; flex-wrap: wrap; gap: 4px; }
+@media (max-width: 760px) { .ac-dupm__body { flex-direction: column; } .ac-dupm__res { padding: 16px 0 0; } .ac-dupm__head { flex-wrap: wrap; } }

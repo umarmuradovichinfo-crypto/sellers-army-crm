@@ -64,6 +64,10 @@ function digits(p?: string | null): string {
   return (p || '').replace(/\D/g, '');
 }
 
+// "Не дубль" imzosi: guruh a'zolari (tartibsiz)
+const dupSig = (ids: string[]) => [...ids].sort().join(',');
+export interface MergePick { name?: string; assignee?: string; value?: string; stage?: string; tags?: string[]; custom?: Record<string, string> }
+
 function fmtSum(v: number): string {
   v = Number(v) || 0;
   if (v >= 1_000_000_000) return (v / 1_000_000_000).toFixed(1).replace(/\.0$/, '') + ' mlrd';
@@ -953,6 +957,9 @@ export class CrmService {
         SELECT ${key} AS k, array_agg(l.id ORDER BY l."createdAt", l.id) AS ids, count(*)::int AS c
         FROM leads l WHERE l.unsorted = FALSE AND ${key} IS NOT NULL AND ${valid} GROUP BY 1 HAVING count(*) > 1
       ) g ORDER BY g.c DESC, g.k LIMIT 200`);
+    const ignored = new Set(await this.dupIgnored());
+    const live = groups.filter((g) => !ignored.has(dupSig(g.ids)));
+    groups.length = 0; groups.push(...live);
     const rows = await this.rowsByIds(groups.flatMap((g) => g.ids));
     const rowById = new Map(rows.map((r) => [r.id, r]));
     const stages = await this.prisma.crmStage.findMany({ select: { key: true, name: true } });
@@ -966,14 +973,30 @@ export class CrmService {
         count: g.c,
         leads: g.ids.map((id) => rowById.get(id)).filter(Boolean).map((l) => ({
           id: l!.id, name: l!.name, phone: l!.phone, email: l!.email, value: l!.value, source: l!.source,
+          stage: l!.stage, pipelineId: l!.pipelineId || null, assigneeId: l!.assigneeId || null,
           stageName: stName.get(l!.stage) || l!.stage, assigneeName: l!.assigneeId ? names.get(l!.assigneeId) || null : null,
-          tags: parse<string[]>(l!.tagsJson, []), createdAt: l!.createdAt.toISOString(),
+          tags: parse<string[]>(l!.tagsJson, []), custom: parse<Record<string, unknown>>(l!.customJson, {}), createdAt: l!.createdAt.toISOString(),
         })),
       })),
     };
   }
 
-  async mergeLeads(keepId: string, mergeIds: string[], user?: AuthUser) {
+  // amoCRM "Не дубль": bu guruh qayta ko'rsatilmaydi (a'zolar to'plami bo'yicha)
+  private async dupIgnored(): Promise<string[]> {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: 'dup_ignored' } });
+    return parse<string[]>(row?.value || null, []);
+  }
+  async ignoreDuplicates(ids: string[]) {
+    const list = (ids || []).filter(Boolean);
+    if (list.length < 2) throw new BadRequestException({ error: 'NO_IDS', message: 'Kamida ikki bitim kerak' });
+    const all = [...new Set([...(await this.dupIgnored()), dupSig(list)])].slice(-5000);
+    const value = JSON.stringify(all);
+    await this.prisma.appSetting.upsert({ where: { key: 'dup_ignored' }, create: { key: 'dup_ignored', value }, update: { value } });
+    return { ok: true };
+  }
+
+  /** pick — amoCRM "Найти и объединить дубли" oynasida har maydon uchun tanlangan qiymatlar (natija kartochkasi). */
+  async mergeLeads(keepId: string, mergeIds: string[], user?: AuthUser, pick?: MergePick) {
     const keep = (await this.prisma.lead.findUnique({ where: { id: keepId } })) as LeadRow | null;
     if (!keep) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Asosiy lid topilmadi' });
     const ids = (mergeIds || []).filter((id) => id && id !== keepId);
@@ -984,6 +1007,18 @@ export class CrmService {
     await this.prisma.leadTask.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
     await this.prisma.activity.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
     await this.prisma.callLog.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
+    await this.prisma.message.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
+    await this.prisma.deletedTask.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
+    // kontaktlar: boshqa bitimlarning asosiy va qo'shimcha kontaktlari asosiy bitimga qo'shimcha kontakt bo'ladi
+    const extra = await this.prisma.leadContact.findMany({ where: { leadId: { in: ids } }, select: { contactId: true } });
+    const have = new Set([keep.contactId, ...(await this.prisma.leadContact.findMany({ where: { leadId: keepId }, select: { contactId: true } })).map((x) => x.contactId)].filter(Boolean) as string[]);
+    let mainContact = keep.contactId;
+    for (const cid of [...others.map((o) => o.contactId), ...extra.map((x) => x.contactId)]) {
+      if (!cid || have.has(cid)) continue;
+      have.add(cid);
+      if (!mainContact) { mainContact = cid; continue; }
+      await this.prisma.leadContact.create({ data: { leadId: keepId, contactId: cid } }).catch(() => undefined);
+    }
 
     // bo'sh maydonlarni to'ldiramiz + teglar/izohlarni birlashtiramiz
     const data: Record<string, unknown> = {};
@@ -1002,6 +1037,28 @@ export class CrmService {
     }
     data.tagsJson = JSON.stringify([...tags]);
     data.notesJson = JSON.stringify(notes.sort((a, b) => (b.at || '').localeCompare(a.at || '')).slice(0, 100));
+    if (mainContact !== keep.contactId) data.contactId = mainContact;
+    // foydalanuvchi tanlagan qiymatlar (faqat birlashtirilayotgan bitimlardagi qiymatlardan)
+    if (pick) {
+      const all = [keep, ...others];
+      const from = (id?: string) => all.find((x) => x.id === id);
+      const src = (k: keyof MergePick) => from(pick[k] as string | undefined);
+      if (src('name')) data.name = src('name')!.name;
+      if (src('assignee')) data.assigneeId = src('assignee')!.assigneeId;
+      if (src('value')) data.value = src('value')!.value;
+      if (src('stage')) { data.stage = src('stage')!.stage; data.pipelineId = src('stage')!.pipelineId; }
+      if (Array.isArray(pick.tags)) data.tagsJson = JSON.stringify(pick.tags.filter((t) => tags.has(t)));
+      if (pick.custom && typeof pick.custom === 'object') {
+        const custom = parse<Record<string, unknown>>(keep.customJson, {});
+        for (const [fk, id] of Object.entries(pick.custom)) {
+          const o = from(id);
+          if (!o) continue;
+          const v = parse<Record<string, unknown>>(o.customJson, {})[fk];
+          if (v === undefined || v === null || v === '') delete custom[fk]; else custom[fk] = v;
+        }
+        data.customJson = JSON.stringify(custom);
+      }
+    }
     await this.prisma.lead.update({ where: { id: keepId }, data });
 
     await this.prisma.lead.deleteMany({ where: { id: { in: ids } } });

@@ -14,7 +14,7 @@ import {
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
-import { CrmService } from './crm.service';
+import { CrmService, type MergePick } from './crm.service';
 import {
   AddNoteDto,
   BulkDto,
@@ -88,8 +88,12 @@ export class CrmController {
     return this.crm.bulk(dto, user);
   }
   @Post('leads/merge')
-  merge(@Body() dto: { keepId: string; mergeIds: string[] }, @CurrentUser() user: AuthUser) {
-    return this.crm.mergeLeads(dto.keepId, dto.mergeIds || [], user);
+  merge(@Body() dto: { keepId: string; mergeIds: string[]; pick?: MergePick }, @CurrentUser() user: AuthUser) {
+    return this.crm.mergeLeads(dto.keepId, dto.mergeIds || [], user, dto.pick);
+  }
+  @Post('leads-duplicates/ignore')
+  ignoreDuplicates(@Body() dto: { ids?: string[] }) {
+    return this.crm.ignoreDuplicates(dto?.ids || []);
   }
   @Get('unsorted')
   unsorted(@Query() q: Record<string, string>, @CurrentUser('id') userId?: string) {
