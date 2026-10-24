@@ -4,7 +4,6 @@ Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + q
 
 ## Ochiq
 - [ ] [Analitika/Sotuv tahlili] Tor ekranda (≤800px) bloklar ustma-ust — /stats/pipeline
-- [ ] [Market] "O'rnatilganlar" tabi bo'sh, ulangan integratsiyalar ko'rinmaydi — /amo-market
 - [ ] [Analitika/Voqealar] "Qiymat oldin" ustuni bo'sh — backend activity before/after saqlamaydi
 - [ ] [Ro'yxatlar] Kontakt/kompaniyada mas'ul (assigneeId) va teglar yo'q; ro'yxat 200 ta bilan cheklangan
 - [ ] [Bildirishnomalar] Panel ochilganda avtomatik o'qilgan qilinmaydi (amoCRM qiladi) — tekshirish kerak
@@ -24,7 +23,15 @@ Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + q
 - [ ] [Backend] Ro'yxatlar 200/500 ta bilan cheklangan — server tomonida sahifalash kerak; kontakt kartochkasi lentasi uchun contactId filtri
 - [ ] [Bitim kartochkasi] TaskNote natijani Enter bilan yuborganda trim qilmaydi
 
+- [ ] [Xavfsizlik] Webhook trigger ichki tarmoq manzillariga ham yuboradi (SSRF) — localhost/private IP'larni bloklash kerak
+- [ ] [Xavfsizlik] Parol o'zgarganda eski refresh tokenlar bekor qilinmaydi (auth moduli)
+- [ ] [Analitika] Sotuv tahlilida har bosqich "Yo'qotilgan" qatori 0 — bosqichlar tarixi saqlanmaydi (Activity before/after bilan bir ildiz)
+- [ ] [Market/Formalar] Forma muharriri bosqichlarni faqat asosiy voronkadan oladi
+- [ ] [Analitika] Davr chegaralari UTC/server vaqtida — akkaunt mintaqasiga moslash
+
 ## Tuzatilgan
+- [x] [Analitika/Sozlamalar/Market/Voronka sozlash/Ish stoli QA] 36 ta xato (batafsil: qa/analitika-sozlamalar.md) — keshdagi filtr natijalari, menejer filtri, ruxsatlar (sotuvchi o'z parolini /settings/me/password orqali), bosqich o'chirilganda bitimlar yo'qolishi, trigger xatolari, maydon validatsiyasi va h.k.
+- [x] [Market] "O'rnatilganlar" bo'sh edi — demo bazada integratsiya ulanmagani sababli; ulangan integratsiya ko'rinadi (tasdiqlandi)
 - [x] [Umumiy] Sana/vaqt akkaunt vaqt mintaqasida, sana/vaqt formati va valyuta Umumiy sozlamalardan (format.js setFormatPrefs)
 - [x] [Vazifalar/Ro'yxatlar/Kartochkalar/imBox QA] 37 ta xato (batafsil: qa/vazifalar-royxatlar.md)
 - [x] [Bitimlar QA] 18 ta xato (batafsil: qa/bitimlar.md) — lenta prefiks takrori, byudjet chegarasi, noto'g'ri sana 500, bosqich o'zgarganda voronka moslashuvi, ikki marta bosish, xato xabarlari va h.k.

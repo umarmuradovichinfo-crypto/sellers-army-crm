@@ -78,11 +78,11 @@ function FilterPanel({ open, filter, setFilter, fields, pipelines, members }) {
           )}
         </>
       )}
-      {fields.includes('pipeline') && (
+      {(fields.includes('pipeline') || fields.includes('pipeline1')) && (
         <>
           <div className="ac-stats-fpanel__label">{t('Voronka')}</div>
-          <select className="ac-select" value={filter.pipelineId} onChange={(e) => set({ pipelineId: e.target.value })}>
-            <option value="">{t('Barcha voronkalar')}</option>
+          <select className="ac-select" value={filter.pipelineId || (fields.includes('pipeline1') ? 'main' : '')} onChange={(e) => set({ pipelineId: e.target.value })}>
+            {fields.includes('pipeline') && <option value="">{t('Barcha voronkalar')}</option>}
             <option value="main">{t('Asosiy voronka')}</option>
             {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>

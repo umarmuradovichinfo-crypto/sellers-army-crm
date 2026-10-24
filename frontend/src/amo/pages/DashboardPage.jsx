@@ -31,7 +31,11 @@ function rangeOf(preset, custom) {
     return { from: iso(s), to: iso(e) }
   }
   if (preset === 'month') return { from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso(new Date(now.getFullYear(), now.getMonth() + 1, 0)) }
-  if (preset === 'range') return { from: custom.from || undefined, to: custom.to || undefined }
+  if (preset === 'range') {
+    let from = custom.from || undefined, to = custom.to || undefined
+    if (from && to && from > to) [from, to] = [to, from] // teskari kiritilgan davr
+    return { from, to }
+  }
   return {}
 }
 
@@ -110,8 +114,15 @@ export default function DashboardPage() {
   const accountName = general?.general?.accountName || 'Sellers Army'
 
   const { data: pipe, loading } = useApi(() => crmService.getPipeline(pipelineId || undefined), [pipelineId])
-  const { data: an } = useApi(() => crmService.analytics({ ...range, pipelineId: pipelineId || undefined }), [range.from, range.to, pipelineId])
-  const { data: calls } = useApi(() => crmService.analyticsCalls(range), [range.from, range.to])
+  const mineId = scope === 'mine' ? user?.id : undefined
+  const { data: an } = useApi(() => crmService.analytics({ ...range, pipelineId: pipelineId || 'main', userIds: mineId }), [range.from, range.to, pipelineId, mineId])
+  const { data: callsAll } = useApi(() => crmService.analyticsCalls(range), [range.from, range.to])
+  const calls = useMemo(() => {
+    if (!mineId || !callsAll) return callsAll
+    const r = (callsAll.byEmployee || []).find((e) => e.id === mineId)
+    if (!r) return { total: 0, inbound: 0, outbound: 0, missed: 0, avgDuration: 0 }
+    return { total: r.count, inbound: r.inCount, outbound: r.outCount, missed: r.missed, avgDuration: r.avgDur }
+  }, [callsAll, mineId])
   const { data: taskData } = useApi(() => crmService.listTasks({ status: 'open' }), [])
   const { data: memberData } = useApi(() => crmService.listMembers(), [])
 

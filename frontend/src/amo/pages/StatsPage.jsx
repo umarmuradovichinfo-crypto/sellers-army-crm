@@ -55,8 +55,9 @@ function SalesPipeline({ filter, params }) {
   const t = useT()
   const [tab, setTab] = useState('closed')
   const [mode, setMode] = useState('count')
-  const cur = useApi(() => crmService.analytics({ pipelineId: params.pipelineId }), [params.pipelineId], 'stats-cur')
-  const per = useApi(() => crmService.analytics(params), [JSON.stringify(params)], 'stats-per')
+  const pipelineId = params.pipelineId || 'main' // sotuv tahlili bitta voronka bo'yicha (aralash bosqichlar bo'lmasin)
+  const cur = useApi(() => crmService.analytics({ pipelineId }), [pipelineId], null)
+  const per = useApi(() => crmService.analytics({ ...params, pipelineId }), [JSON.stringify(params), pipelineId], null)
   if (!cur.data || !per.data) return <Spin />
   const funnel = cur.data.funnel || []
   const pf = per.data.funnel || []
@@ -197,9 +198,9 @@ function Consolidated({ filter, params }) {
     return { from: iso(new Date(d.getTime() - back * 86400000)), to: iso(d) }
   }, [filter, params.from, params.to, gran])
   const userIds = filter.userIds.join(',') || undefined
-  const tl = useApi(() => crmService.analyticsTimeline({ ...range, pipelineId: params.pipelineId, granularity: gran === 'week' ? 'week' : 'day', userIds }), [JSON.stringify(range), params.pipelineId, gran, userIds], 'stats-tl')
-  const ov = useApi(() => crmService.analytics({ ...params, userIds }), [JSON.stringify(params), userIds], 'stats-cons')
-  const emp = useApi(() => crmService.analyticsEmployees(params), [JSON.stringify(params)], 'stats-cons-emp')
+  const tl = useApi(() => crmService.analyticsTimeline({ ...range, pipelineId: params.pipelineId, granularity: gran === 'week' ? 'week' : 'day', userIds }), [JSON.stringify(range), params.pipelineId, gran, userIds], null)
+  const ov = useApi(() => crmService.analytics({ ...params, userIds }), [JSON.stringify(params), userIds], null)
+  const emp = useApi(() => crmService.analyticsEmployees(params), [JSON.stringify(params)], null)
   const buckets = useMemo(() => {
     const b = tl.data?.buckets || []
     if (gran !== 'month') return b
@@ -260,7 +261,7 @@ function Consolidated({ filter, params }) {
 function ByActivities({ filter, params }) {
   const t = useT()
   const navigate = useNavigate()
-  const { data } = useApi(() => crmService.analyticsEmployees(params), [JSON.stringify(params)], 'stats-emp')
+  const { data } = useApi(() => crmService.analyticsEmployees(params), [JSON.stringify(params)], null)
   if (!data) return <Spin />
   const rows = byUsers(Array.isArray(data) ? data : (data.rows || []), filter)
   return (
@@ -288,7 +289,7 @@ function ByActivities({ filter, params }) {
 
 /* ── Sahifa ── */
 const SECTIONS = {
-  pipeline: { title: 'Sotuv tahlili', fields: ['period', 'pipeline'], preset: 'month' },
+  pipeline: { title: 'Sotuv tahlili', fields: ['period', 'pipeline1'], preset: 'month' },
   consolidated: { title: 'Umumiy hisobot', fields: ['period', 'pipeline', 'users'], preset: 'all' },
   by_activities: { title: "Barcha xodimlar bo'yicha hisobot", fields: ['period', 'users'], preset: 'week' },
   events: { title: '', fields: [], preset: 'all' },
@@ -304,7 +305,7 @@ export default function StatsPage({ section = 'pipeline' }) {
 function StatsInner({ section, cfg }) {
   const t = useT()
   const [filter, setFilter] = useState(() => defaultFilter(cfg.preset))
-  const params = useParams(filter, cfg.fields.includes('pipeline'))
+  const params = useParams(filter, cfg.fields.includes('pipeline') || cfg.fields.includes('pipeline1'))
   const pipes = useApi(() => crmService.listPipelines(), [], 'stats-pipes')
   const mem = useApi(() => crmService.listMembers(), [], 'stats-members')
   const pipelines = pipes.data?.pipelines || []

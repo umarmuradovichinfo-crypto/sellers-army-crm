@@ -33,7 +33,7 @@ export function StatsEvents({ members }) {
   const [sp] = useSearchParams()
   const userId = sp.get('user') || undefined
   const [q, setQ] = useState('')
-  const { data } = useApi(() => crmService.analyticsEvents({ limit: 300, userId }), [userId], 'stats-events')
+  const { data } = useApi(() => crmService.analyticsEvents({ limit: 300, userId }), [userId], null)
   const items = useMemo(() => {
     const all = data?.items || []
     const s = q.trim().toLowerCase()
@@ -81,7 +81,7 @@ export function StatsEvents({ members }) {
 export function StatsCalls({ filter, params }) {
   const t = useT()
   const [mode, setMode] = useState('count')
-  const { data } = useApi(() => crmService.analyticsCalls({ from: params.from, to: params.to }), [params.from, params.to], 'stats-calls')
+  const { data } = useApi(() => crmService.analyticsCalls({ from: params.from, to: params.to }), [params.from, params.to], null)
   if (!data) return <Spin />
   const rows = byUsers(data.byEmployee || [], filter).map((r) => {
     const inV = mode === 'count' ? (r.inCount ?? 0) : (r.inDur ?? 0)
@@ -166,7 +166,7 @@ export function StatsGoals({ filter, members, settingsOpen, onCloseSettings }) {
   const [mode, setMode] = useState('sum')
   const metric = mode === 'sum' ? 'revenue' : 'count'
   const period = localMonth()
-  const { data, reload } = useApi(() => crmService.listGoals(period), [period], 'stats-goals')
+  const { data, reload } = useApi(() => crmService.listGoals(period), [period], null)
   if (!data) return <Spin />
   const goals = (data.goals || []).filter((g) => g.metric === metric)
   const mem = byUsers(members.length ? members : (data.members || []), filter)

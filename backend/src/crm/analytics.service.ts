@@ -34,7 +34,7 @@ export class CrmAnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async overview(params: { from?: string; to?: string; pipelineId?: string; userIds?: string }) {
-    const where: Record<string, any> = {};
+    const where: Record<string, any> = { unsorted: false }; // «Saralanmagan» arizalar hali bitim emas (voronka bilan bir xil)
     if (params.from || params.to) {
       where.createdAt = {};
       const f = parseFrom(params.from);
@@ -265,7 +265,7 @@ export class CrmAnalyticsService {
     const week = params.granularity === 'week';
     const pv = pipeVal(params.pipelineId);
     const uids = userList(params.userIds);
-    const pipeWhere: Record<string, any> = {};
+    const pipeWhere: Record<string, any> = { unsorted: false };
     if (pv !== undefined) pipeWhere.pipelineId = pv;
     if (uids.length) pipeWhere.assigneeId = { in: uids };
 
@@ -309,7 +309,7 @@ export class CrmAnalyticsService {
 
   // ── Chuqur sotuvchi hisoboti (lid + qo'ng'iroq + vazifa) ──
   async employees(params: { from?: string; to?: string; pipelineId?: string }) {
-    const leadWhere: Record<string, any> = { ...this.range('createdAt', params.from, params.to) };
+    const leadWhere: Record<string, any> = { unsorted: false, ...this.range('createdAt', params.from, params.to) };
     const pv = pipeVal(params.pipelineId);
     if (pv !== undefined) leadWhere.pipelineId = pv;
 

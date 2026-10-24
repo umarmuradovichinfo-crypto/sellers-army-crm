@@ -28,12 +28,12 @@ export default function IntegrationsForms({ stages = [], members = [], onStatus 
 
   const toggle = async (f) => {
     setItems((xs) => xs.map((x) => (x.id === f.id ? { ...x, active: !x.active } : x)))
-    try { await crmService.updateForm(f.id, { active: !f.active }) } catch { load() }
+    try { await crmService.updateForm(f.id, { active: !f.active }) } catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }); load() }
   }
   const remove = async (f) => {
     if (!window.confirm(`"${f.title}" — ${t("o'chirilsinmi?")}`)) return
     setItems((xs) => xs.filter((x) => x.id !== f.id))
-    try { await crmService.deleteForm(f.id) } catch { /* */ }
+    try { await crmService.deleteForm(f.id) } catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) }
     load()
   }
   const copy = async (f) => {
@@ -86,7 +86,10 @@ function Editor({ initial, stages, members, onCancel, onSaved }) {
   const move = (i, d) => setForm((p) => { const a = [...p.fields]; const j = i + d; if (j < 0 || j >= a.length) return p; [a[i], a[j]] = [a[j], a[i]]; return { ...p, fields: a } })
 
   const save = async () => {
+    if (busy) return
     if (!form.title.trim()) { setErr(t('Forma nomini kiriting')); return }
+    if (form.fields.length === 0) { setErr(t("Kamida bitta maydon qo'shing")); return }
+    if (form.fields.some((x) => CHOICE.includes(x.type) && !(x.options || []).length)) { setErr(t('Tanlov maydonlari uchun variantlarni kiriting')); return }
     const fields = form.fields.map((x) => ({ ...x, key: x.key || slugify(x.label) || 'maydon', label: x.label || x.key }))
     setBusy(true); setErr(null)
     try {

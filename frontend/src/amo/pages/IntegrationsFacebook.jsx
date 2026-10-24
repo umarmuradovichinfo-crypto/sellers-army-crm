@@ -1,6 +1,7 @@
 // Facebook / Instagram Lead Ads — OAuth, sahifa → forma → maydonlarni moslash → yo'nalish (mantiq: eski FacebookSettingsView).
 import React, { useEffect, useState } from 'react'
 import { facebookService } from '../../services/facebook.service'
+import { crmService } from '../../services/crm.service'
 import { useT } from '../i18n'
 
 const STEPS = ['Sahifa', 'Forma', 'Maydonlar', "Yo'nalish"]
@@ -44,12 +45,16 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
   }
   const remove = async (m) => {
     if (!window.confirm(`"${m.formName}" — ${t('uzilsinmi?')}`)) return
-    await facebookService.deleteMapping(m.id)
-    setMappings((ms) => ms.filter((x) => x.id !== m.id))
+    try {
+      await facebookService.deleteMapping(m.id)
+      setMappings((ms) => ms.filter((x) => x.id !== m.id))
+    } catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) }
   }
   const toggle = async (m) => {
-    const r = await facebookService.saveMapping({ ...m, fieldMap: safeParse(m.fieldMapJson), active: !(m.active !== false) })
-    setMappings((ms) => ms.map((x) => (x.id === m.id ? r.mapping : x)))
+    try {
+      const r = await facebookService.saveMapping({ ...m, fieldMap: safeParse(m.fieldMapJson), active: !(m.active !== false) })
+      setMappings((ms) => ms.map((x) => (x.id === m.id ? r.mapping : x)))
+    } catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) }
   }
 
   if (cfg === null) return msg ? <div className="ac-int-msg err">{msg.m}</div> : <div className="ac-spinner" />
@@ -117,6 +122,19 @@ function Wizard({ cfg, existing, stages, members, pipelines, initial, onCancel, 
   const [source, setSource] = useState(initial?.source || 'Facebook')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
+
+  const [pStages, setPStages] = useState(stages)
+  useEffect(() => {
+    // tanlangan voronkaning bosqichlari (asosiy voronkaniki emas)
+    let alive = true
+    crmService.getPipeline(pipelineId || undefined).then((r) => {
+      if (!alive) return
+      const list = (r.stages || []).filter((x) => x.kind === 'open').map((x) => ({ id: x.id ?? x.key, name: x.name }))
+      setPStages(list)
+      setStageKey((k) => (k && !list.some((x) => x.id === k) ? '' : k))
+    }).catch(() => { if (alive) setPStages(pipelineId ? [] : stages) })
+    return () => { alive = false }
+  }, [pipelineId]) // eslint-disable-line
 
   const page = cfg.pages.find((p) => p.id === pageId) || cfg.pages[0]
   const used = new Set(existing.filter((m) => !initial || m.formId !== initial.formId).map((m) => m.formId))
@@ -204,7 +222,7 @@ function Wizard({ cfg, existing, stages, members, pipelines, initial, onCancel, 
             )}
             <div className="ac-int-field"><label>{t('Bosqich')}</label>
               <select className="ac-select" value={stageKey} onChange={(e) => setStageKey(e.target.value)}>
-                <option value="">{t('Saralanmagan')}</option>{stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                <option value="">{t('Saralanmagan')}</option>{pStages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select></div>
             <div className="ac-int-field"><label>{t("Mas'ul")}</label>
               <select className="ac-select" value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>

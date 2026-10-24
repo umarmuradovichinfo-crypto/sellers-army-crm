@@ -165,4 +165,6 @@ addRu({
   "Maydon qo'shish": 'Добавить поле',
   'Qisqa javob': 'Короткий ответ', 'Paragraf': 'Абзац', 'Raqam': 'Число', 'Sana': 'Дата',
   'Bitta tanlov': 'Один из списка', 'Belgilash (checkbox)': 'Флажки (несколько)', "Ochiluvchi ro'yxat": 'Выпадающий список',
+  "Kamida bitta maydon qo'shing": 'Добавьте хотя бы одно поле',
+  'Tanlov maydonlari uchun variantlarni kiriting': 'Укажите варианты для полей выбора',
 })

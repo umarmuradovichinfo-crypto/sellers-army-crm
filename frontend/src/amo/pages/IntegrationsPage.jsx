@@ -37,6 +37,7 @@ export default function IntegrationsPage() {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(null)
   const [status, setStatus] = useState({})
+  const [ready, setReady] = useState(false)
   const setOn = (k) => (v) => setStatus((s) => (s[k] === !!v ? s : { ...s, [k]: !!v }))
 
   const pipe = useApi(() => crmService.getPipeline(), [], 'amo:int:pipeline')
@@ -47,11 +48,15 @@ export default function IntegrationsPage() {
 
   // Boshlang'ich holatlar (O'rnatilganlar tabi uchun)
   useEffect(() => {
-    const safe = (p, fn) => p.then(fn).catch(() => {})
-    safe(crmService.getPbxConfig(), (c) => setOn('pbx')(c.enabled))
-    safe(facebookService.getConfig(), (c) => setOn('facebook')(c.enabled && c.pages.length > 0))
-    safe(crmService.chatStatus(), (c) => setOn('telegram')(c.telegram))
-    safe(crmService.listForms(), (r) => setOn('forms')((r.forms || []).length > 0))
+    let alive = true
+    const safe = (p, fn) => p.then((r) => { if (alive) fn(r) }).catch(() => {})
+    Promise.all([
+      safe(crmService.getPbxConfig(), (c) => setOn('pbx')(!!c.enabled)),
+      safe(facebookService.getConfig(), (c) => setOn('facebook')(!!c.enabled && (c.pages || []).length > 0)),
+      safe(crmService.chatStatus(), (c) => setOn('telegram')(!!c.telegram)),
+      safe(crmService.listForms(), (r) => setOn('forms')((r.forms || []).length > 0)),
+    ]).then(() => { if (alive) setReady(true) })
+    return () => { alive = false }
   }, []) // eslint-disable-line
 
   const shown = useMemo(() => {
@@ -68,7 +73,9 @@ export default function IntegrationsPage() {
       </div>
       <div className="ac-int-body">
         <h2 className="ac-int-section">{t(TABS.find((x) => x.key === tab).label)}</h2>
-        {shown.length === 0 ? (
+        {tab === 'installed' && !ready && shown.length === 0 ? (
+          <div className="ac-int-empty"><div className="ac-spinner" /></div>
+        ) : shown.length === 0 ? (
           <div className="ac-int-empty">{tab === 'installed' ? t("Hali integratsiya o'rnatilmagan") : t('Hech narsa topilmadi')}</div>
         ) : (
           <div className="ac-int-grid">
