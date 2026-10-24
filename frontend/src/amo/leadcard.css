@@ -237,3 +237,11 @@ a.ac-field__link:hover { color: var(--palette-link-primary); }
 .ac-cfs__row.off { opacity: 0.5; }
 .ac-cfs__row .nm { width: 40%; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--palette-text-primary); }
 .ac-cfs__row .sm { flex: 1; color: var(--palette-text-secondary-dark); }
+
+/* Vazifa sanasi (amoCRM: "31.10.2026" tugmasi + tezkor variantlar) */
+.ac-duepick { position: relative; display: inline-flex; }
+.ac-duepick__btn { height: 26px; padding: 0 6px; border: 1px solid var(--palette-border-default); border-radius: 3px; background: transparent; color: var(--palette-text-primary); font: 15px var(--font-main); cursor: pointer; }
+.ac-duepick__btn:hover { border-color: var(--palette-link-primary); }
+.ac-duepick__pop { position: absolute; left: 0; bottom: 100%; margin-bottom: 6px; min-width: 220px; z-index: 60; }
+.ac-duepick__exact { display: flex; gap: 6px; padding: 8px 12px 6px; border-top: 1px solid var(--palette-border-primary); }
+.ac-duepick__exact input { height: 30px; border: 1px solid var(--palette-border-default); border-radius: 3px; background: transparent; color: var(--palette-text-primary); font: 13px var(--font-main); padding: 0 6px; }

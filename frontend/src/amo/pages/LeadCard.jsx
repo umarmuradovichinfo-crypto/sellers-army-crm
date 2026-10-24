@@ -591,7 +591,8 @@ function Composer({ lead, canChat, members, onSent, modeReq }) {
         </span>
         {mode === 'task' ? (
           <div className="ac-compose__task" onClick={(e) => e.stopPropagation()}>
-            <input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} />
+            <span>{t("vazifa§")}</span>
+            <DueDatePicker value={due} onChange={setDue} />
             <span>{t('uchun')}</span>
             <select value={assignee} onChange={(e) => setAssignee(e.target.value)}>
               {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -616,6 +617,42 @@ function Composer({ lead, canChat, members, onSent, modeReq }) {
         </div>
       )}
     </div>
+  )
+}
+
+// amoCRM vazifa sanasi: "31.10.2026 12:00" tugmasi; ochilganda tezkor variantlar, sana va vaqt
+function DueDatePicker({ value, onChange }) {
+  const t = useT()
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useOutside(ref, () => setOpen(false), open)
+  const d = value ? new Date(value) : null
+  const p = (n) => String(n).padStart(2, '0')
+  const label = d && !isNaN(d) ? `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}` : t('Sana')
+  const keepTime = (base) => { const x = new Date(base); const h = d && !isNaN(d) ? d : null; x.setHours(h ? h.getHours() : 12, h ? h.getMinutes() : 0, 0, 0); return x }
+  const quick = [
+    ['Bugun', () => new Date()],
+    ['Ertaga', () => { const x = new Date(); x.setDate(x.getDate() + 1); return x }],
+    ['Shu hafta oxirida', () => { const x = new Date(); x.setDate(x.getDate() + ((7 - x.getDay()) % 7 || 7) - 2); return x }],
+    ['Bir haftadan keyin', () => { const x = new Date(); x.setDate(x.getDate() + 7); return x }],
+    ['Bir oydan keyin', () => { const x = new Date(); x.setMonth(x.getMonth() + 1); return x }],
+    ['Bir yildan keyin', () => { const x = new Date(); x.setFullYear(x.getFullYear() + 1); return x }],
+  ]
+  const datePart = value ? value.slice(0, 10) : ''
+  const timePart = value ? value.slice(11, 16) : '12:00'
+  return (
+    <span className="ac-duepick" ref={ref}>
+      <button type="button" className="ac-duepick__btn" onClick={() => setOpen((v) => !v)}>{label}</button>
+      {open && (
+        <div className="ac-menu ac-duepick__pop">
+          {quick.map(([l, fn]) => <button key={l} className="ac-menu__item" onClick={() => { onChange(toLocalInput(keepTime(fn()))); setOpen(false) }}>{t(l)}</button>)}
+          <div className="ac-duepick__exact">
+            <input type="date" value={datePart} onChange={(e) => e.target.value && onChange(`${e.target.value}T${timePart}`)} />
+            <input type="time" value={timePart} onChange={(e) => datePart && onChange(`${datePart}T${e.target.value || '12:00'}`)} />
+          </div>
+        </div>
+      )}
+    </span>
   )
 }
 

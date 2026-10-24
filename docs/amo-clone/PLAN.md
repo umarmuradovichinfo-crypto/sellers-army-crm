@@ -28,24 +28,24 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 
 1. [x] Asos: rang tokenlari (yorug'/qorong'i), PT Sans shriftlari, tugma/input/checkbox/switch
 2. [x] Qobiq: chap menyu, Bitimlar flyout, akkaunt paneli, bildirishnomalar paneli, amoCRM URL'lari
-3. [~] Bitimlar
+3. [x] Bitimlar
    - [x] Voronka: ustunlar, kartalar, saralanmagan, tez qo'shish, drag-and-drop, yopish zonalari, yo'qotish sababi
    - [x] Filtr paneli (presetlar, xususiyatlar, teglar)
    - [x] Lid kartasi (/leads/detail/:id): chap maydonlar paneli, status dropdown, tablar, lenta, composer (chat/eslatma/vazifa), "…" menyu
    - [x] Yangi bitim (/leads/add)
    - [x] Ro'yxat ko'rinishi (/leads/list): jadval, ommaviy amallar
-   - [ ] Import sahifasi ("…" menyudan)
+   - [x] Import sahifasi ("…" menyudan)
 4. [x] Vazifalar: kun/hafta/oy, ro'yxat, kalendar, vazifa qo'shish oynasi
-5. [~] Ro'yxatlar: [x] kontaktlar/kompaniyalar jadvali; [ ] kontakt/kompaniya kartochkasi (/contacts/detail, /companies/detail, /contacts/add); [ ] backend: kontakt/kompaniyaga assigneeId va teglar, bulk endpoint, 200 ta limitni olib tashlash (sahifalash), import sahifasi
-6. [ ] imBox: suhbatlar ro'yxati + chat lentasi
+5. [x] Ro'yxatlar: [x] kontaktlar/kompaniyalar jadvali; [x] kontakt/kompaniya kartochkasi (/contacts/detail, /companies/detail, /contacts/add); [x] backend: kontakt/kompaniyaga assigneeId va teglar, bulk endpoint, 200 ta limitni olib tashlash (sahifalash), import sahifasi
+6. [x] imBox: suhbatlar ro'yxati + chat lentasi
 7. [x] Analitika: sotuv tahlili, umumiy hisobot, xodimlar hisoboti, voqealar ro'yxati, qo'ng'iroqlar, maqsadlar
-   - [ ] Tuzatish: sotuv tahlilida o'rtacha davomiylik "11k." chiqyapti (avgDays birligi), tor ekranda bloklar ustma-ust
+   - [x] Tuzatish: sotuv tahlilida o'rtacha davomiylik "11k." chiqyapti (avgDays birligi), tor ekranda bloklar ustma-ust
    - [ ] Voqealar: "qiymat oldin/keyin" uchun backend activity'da before/after saqlash
-8. [ ] Ish stoli: vidjetlar, davr tanlagich, voronka statistikasi
-9. [~] Sozlamalar: [x] umumiy (til tanlash), foydalanuvchilar, chatlar, xavfsizlik; [x] Market/Integratsiyalar (OnlinePBX, Facebook, Telegram, formalar); [ ] voronka sozlash (bitim manbalari, digital pipeline); [ ] maydonlar sozlash (/settings/fields/leads)
+8. [x] Ish stoli: vidjetlar, davr tanlagich, voronka statistikasi
+9. [x] Sozlamalar: [x] umumiy (til tanlash), foydalanuvchilar, chatlar, xavfsizlik; [x] Market/Integratsiyalar (OnlinePBX, Facebook, Telegram, formalar); [x] voronka sozlash (bitim manbalari, digital pipeline); [x] maydonlar sozlash (/settings/fields/leads)
    - [x] Integratsiyalar: "O'rnatilganlar" tabi ulangan integratsiyalarni ko'rsatadi (holat tekshiruvi bor)
-   - [ ] O'z parolini o'zgartirish uchun /settings/me/password (joriy parol tekshiruvi bilan)
-   - [ ] Umumiy sozlamalardagi sana/vaqt/valyuta formatlarini format.js ishlatishi
+   - [x] O'z parolini o'zgartirish uchun /settings/me/password (joriy parol tekshiruvi bilan)
+   - [x] Umumiy sozlamalardagi sana/vaqt/valyuta formatlarini format.js ishlatishi
 10. [x] Eski kodni tozalash: 14 ta ishlatilmaydigan fayl (CRM.jsx, Settings.jsx, components/crm/*, FormBuilder), eski CSS 55KB→12KB (faqat Login/LeadForm/CallWidget/Dialog ishlatadigan qoidalar qoldi)
     - [x] Login sahifasi va CallWidget (telefoniya, dial-pad bilan) amoCRM uslubida
 11. [ ] Yakuniy to'liq test va diagnostika: butun tizim, barcha bo'limlar o'zaro bog'liqligi (bitim → kontakt → vazifa → analitika), xatolar ro'yxati va tuzatish
@@ -56,7 +56,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 14. [x] Voronka sozlamalari (Digital Pipeline) amoCRM'dagi BARCHA funksiyalari bilan: manbalar, saralanmagan, dublikat qoidalari,
     har bosqich uchun barcha trigger/amal turlari, bosqich tavsiflari (podskazki), yo'qotish sabablari va h.k. — avval amoCRM'dan
     to'liq ro'yxat olinadi; umumiy sozlamalar ham 1:1
-15. [ ] Integratsiyalar amoCRM mantiqi bilan 1:1 (amoCRM'da qanday ulansa — xuddi shunday):
+15. [x] Integratsiyalar amoCRM mantiqi bilan 1:1 (amoCRM'da qanday ulansa — xuddi shunday):
     - Facebook Lead Ads: Meta OAuth → sahifa → formalar → maydon moslash → voronka/bosqich/mas'ul/teglar → lidlar real vaqtda (webhook),
       dublikat qoidalari, manba sifatida voronka sozlamalarida ko'rinishi
     - Instagram: Direct va izohlar (Meta Graph API, webhook) → imBox suhbatlari, saralanmaganga lid, javob yozish, manba kartochkasi
@@ -68,8 +68,8 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     ARXITEKTURA: CRM har mijozga alohida o'rnatiladi → vendor'ning BITTA markaziy Meta ilovasi + markaziy
     "Meta Connector" xizmati (connector/). Har yangi mijoz hech narsa sozlamasdan bitta tugma bilan ulaydi (amoCRM kabi):
     OAuth va webhook connector orqali, sahifa tokenlari va lid hodisalari imzolangan so'rov bilan mijoz CRM'iga uzatiladi.
-    [~] Facebook Lead Ads — connector + bir tugma (ishlanmoqda)
-    [ ] Instagram Direct/izohlar va Messenger — xuddi shu connector orqali
+    [x] Facebook Lead Ads — connector + bir tugma (ishladi, formalar sahifa ostida, voronka/bosqich tanlanadi)
+    [x] Instagram Direct/izohlar va Messenger — xuddi shu connector orqali
 16. [ ] amoCRM akkauntini Chrome orqali TO'LIQ ko'rib chiqish (har bo'lim, har oyna, har menyu, har tugma, hover/ochilish holatlari,
     sozlamalarning har bir sahifasi) — FEATURES.md'ga ro'yxat; bizda yo'q/boshqacha bo'lgan har bir narsa amoCRM'dagi mantiq,
     dizayn, joylashuv va ko'rinish bilan 1:1 qo'shiladi; so'ng hammasi qayta test qilinadi (faqat ko'rish, akkauntda hech narsa o'zgartirilmaydi)
@@ -78,11 +78,11 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 18. [x] Tarmoq nazoratchisi / offline rejim: /health ping, GET retry, yozuvlar navbati (Idempotency-Key), banner, PWA app-shell
 19. [x] Bitimlar filtrlari/saralash/statistika amoCRM bilan 1:1 (FILTERS-SPEC.md) — 256 ta tekshiruv psql bilan mos (qa/filtrlar.md)
     - [ ] Analitika sahifasiga ham to'liq filtr paneli (backend tayyor)
-20. [~] Meta Connector Railway'da (sellers-army-crm-production.up.railway.app) — FB_APP_SECRET foydalanuvchi kiritadi
+20. [x] Meta Connector Railway'da (sellers-army-crm-production.up.railway.app) — FB_APP_SECRET foydalanuvchi kiritadi
 
 21. [x] Instagram Direct/izohlar + Facebook Messenger connector orqali (bir tugma) → imBox; Meta obunalari ok
 23. [x] CRM'ni Railway'ga joylash (HTTPS, Postgres): https://crm-production-5e25.up.railway.app (servis `crm`, branch amo-clone)
-    - [ ] Foydalanuvchi birinchi admin yaratadi va "Facebook bilan ulash"ni haqiqiy sahifa bilan sinaydi
+    - [x] Foydalanuvchi birinchi admin yaratadi va "Facebook bilan ulash"ni haqiqiy sahifa bilan sinaydi
 24. [~] Lid kartochkasi amoCRM bilan 1:1: akkauntdan har bir detal (sarlavha, teglar, status, tablar, maydonlar tartibi va ko'rinishi,
     kontakt/kompaniya bloklari, lenta turlari, composer rejimlari, "…" menyu, pastki panel, hover/tahrirlash holatlari) olinadi;
     yetishmaganlari qo'shiladi, amoCRM'da yo'q ortiqcha narsalar olib tashlanadi; so'ng test
@@ -96,7 +96,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     - [x] Uzun lenta yozuvi bir qatorda, "⌄" bilan yoyiladi
     - [ ] Lenta qatorining o'ng tomonida obyekt havolasi (kontakt nomi) — kontakt voqealari lentaga tushganda
     - [x] Vazifa turi ikonkalari
-    - [ ] Composer'da sana tanlagich amoCRM uslubida ("31.10.2026" maydon + kalendar popup)
+    - [x] Composer'da sana tanlagich amoCRM uslubida ("31.10.2026" tugmasi, tezkor variantlar, sana+vaqt)
 25. [~] (USTUVOR, foydalanuvchi so'rovi 24.10) amoCRM'ni qaytadan to'liq ko'rib chiqish va CRM'ni har bo'lim bo'yicha
     1:1 solishtirish: joylashuv, dizayn, funksiya, mantiq; har bir farq/xato docs/amo-clone/AUDIT.md ga yoziladi va tuzatiladi.
     Tartib: qobiq/menyu → Bitimlar voronka → ro'yxat → kartochka → Vazifalar → Ro'yxatlar (kontakt/kompaniya + kartochkalar)
