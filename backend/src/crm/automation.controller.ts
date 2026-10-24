@@ -1,0 +1,16 @@
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { AutomationService } from './automation.service';
+
+@Controller('crm/automations')
+@RequirePermissions('crm.automation')
+export class AutomationController {
+  constructor(private readonly s: AutomationService) {}
+
+  @Get() list() { return this.s.list(); }
+  @Post() create(@Body() dto: any, @CurrentUser('id') userId: string) { return this.s.create(dto, userId); }
+  @Put(':id') update(@Param('id') id: string, @Body() dto: any) { return this.s.update(id, dto); }
+  @Delete(':id') remove(@Param('id') id: string) { return this.s.remove(id); }
+}

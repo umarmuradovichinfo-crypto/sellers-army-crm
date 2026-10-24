@@ -1,0 +1,423 @@
+// Sellers Army CRM backend — Prisma 7 (cjs klient, NestJS uchun)
+// Datasource url: prisma.config.ts (DATABASE_URL)
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model Role {
+  id       String  @id @default(cuid())
+  key      String  @unique // 'super_admin', 'sotuvchi', 'traffic'
+  name     String // ko'rinadigan nom
+  isSystem Boolean @default(false)
+
+  permissions RolePermission[]
+  users       User[]
+
+  createdAt DateTime @default(now())
+}
+
+model Permission {
+  id  String @id @default(cuid())
+  key String @unique // 'dashboard.view', 'crm.view', 'settings.roles.manage' ...
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+model User {
+  id           String  @id @default(cuid())
+  name         String
+  email        String  @unique
+  passwordHash String
+  roleId       String
+  role         Role    @relation(fields: [roleId], references: [id])
+  avatar       String?
+  isActive     Boolean @default(true)
+  extension    String? // OnlinePBX ichki raqami (click-to-call shu raqamdan)
+  sipPassword  String? // OnlinePBX SIP paroli (brauzer WebRTC-telefoni registratsiyasi uchun)
+
+  refreshTokens RefreshToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([roleId])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String // refresh token hash (rotatsiya)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// CRM — sotuv voronkasi (amoCRM uslubi)
+// ─────────────────────────────────────────────
+model CrmPipeline {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int      @default(0)
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("crm_pipelines")
+}
+
+model CrmStage {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  name       String
+  color      String   @default("#3F77DD")
+  kind       String   @default("open") // open | won | lost
+  order      Int      @default(0)
+  isSystem   Boolean  @default(false)
+  pipelineId String? // qaysi voronka (null = standart)
+  createdAt  DateTime @default(now())
+
+  @@index([order])
+  @@index([pipelineId])
+  @@map("crm_stages")
+}
+
+model Lead {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String?
+  email        String?
+  company      String?
+  companyId    String? // bog'langan Company entitisi
+  contactId    String? // asosiy Contact
+  source       String? // Instagram | Meta Ads | Telegram | Tavsiya | Sayt ...
+  value        Int      @default(0) // byudjet (so'm)
+  pipelineId   String? // qaysi voronka (null = standart)
+  stage        String   @default("new") // CrmStage.key
+  queue        Int      @default(0)
+  assigneeId   String? // mas'ul sotuvchi
+  tagsJson     String   @default("[]")
+  customJson   String   @default("{}") // maxsus maydonlar qiymatlari
+  itemsJson    String   @default("[]") // mahsulot pozitsiyalari [{productId,name,price,qty}]
+  unsorted     Boolean  @default(false) // saralanmagan (formadan kelgan, qabul qilinmagan)
+  formId       String? // qaysi lead-capture formadan keldi
+  hot          Boolean  @default(false)
+  nextTask     String? // keyingi qadam (matn)
+  nextTaskDate DateTime?
+  notesJson    String   @default("[]") // [{text, at, by}]
+  telegramChatId String? // Telegram suhbat ID (2 tomonlama yozishuv uchun)
+  lostReason   String? // yo'qotish sababi (lost bosqichda)
+  wonAt        DateTime? // sotuv yopilgan payt
+  lostAt       DateTime? // yo'qotilgan payt
+  lastActivityAt DateTime? // oxirgi faoliyat
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tasks LeadTask[]
+
+  @@index([stage])
+  @@index([pipelineId])
+  @@index([assigneeId])
+  @@index([companyId])
+  @@map("leads")
+}
+
+// OnlinePBX qo'ng'iroqlar jurnali (CRM telefoniya integratsiyasi)
+model CallLog {
+  id         String    @id @default(cuid())
+  leadId     String? // mos kelgan lid (telefon bo'yicha topiladi)
+  userId     String? // operator (ichki raqam egasi)
+  phone      String // mijoz raqami
+  direction  String    @default("out") // in | out
+  status     String    @default("ringing") // ringing | answered | completed | missed | failed
+  durationSec Int      @default(0)
+  recordUrl  String? // audio yozuv havolasi
+  externalId String? // OnlinePBX call uuid
+  handled    Boolean   @default(false) // kiruvchi oyna ko'rsatildimi
+  startedAt  DateTime  @default(now())
+
+  @@index([leadId])
+  @@index([direction, status])
+  @@index([startedAt])
+  @@map("call_logs")
+}
+
+// Lid vazifalari (zadacha) — amoCRM uslubi. Sotuvchi asosan shular bilan ishlaydi.
+model LeadTask {
+  id          String    @id @default(cuid())
+  leadId      String
+  lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  title       String
+  type        String    @default("task") // call | meeting | message | task
+  dueDate     DateTime?
+  done        Boolean   @default(false)
+  doneAt      DateTime?
+  result      String? // bajarilish natijasi (amoCRM kabi)
+  assigneeId  String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  @@index([leadId])
+  @@index([done])
+  @@index([dueDate])
+  @@map("lead_tasks")
+}
+
+// Maxsus maydonlar (lead/contact/company uchun)
+model CrmField {
+  id          String   @id @default(cuid())
+  entity      String   @default("lead") // lead | contact | company
+  key         String // slug (customJson kaliti)
+  label       String
+  type        String   @default("text") // text|textarea|number|select|multiselect|date|url|checkbox|phone|email
+  optionsJson String   @default("[]") // select/multiselect variantlari
+  required    Boolean  @default(false)
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  groupName   String   @default("") // amoCRM uslubidagi maydon guruhi (bo'lim nomi)
+  createdAt   DateTime @default(now())
+
+  @@unique([entity, key])
+  @@index([entity])
+  @@map("crm_fields")
+}
+
+// Avtomatlashtirish (Digital Pipeline) — bosqichga kirganda ishga tushadigan qoidalar
+model Automation {
+  id             String   @id @default(cuid())
+  name           String
+  pipelineId     String?
+  trigger        String   @default("stage_enter") // stage_enter | lead_created | tag_added | no_task
+  stageKey       String? // stage_enter uchun
+  conditionsJson String   @default("[]") // [{field, op, value}]
+  actionsJson    String   @default("[]") // [{type, ...params}]
+  active         Boolean  @default(true)
+  order          Int      @default(0)
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([trigger])
+  @@map("crm_automations")
+}
+
+// Faoliyat tarixi (timeline + audit log)
+model Activity {
+  id        String   @id @default(cuid())
+  leadId    String?
+  type      String // created|updated|stage|note|task_created|task_done|call|field|won|lost|assignee|tag|automation|email
+  actorId   String?
+  actorName String?
+  text      String?
+  dataJson  String   @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@index([createdAt])
+  @@map("crm_activities")
+}
+
+// Yo'qotish sabablari
+model LostReason {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("crm_lost_reasons")
+}
+
+// Teglar katalogi (rang + takliflar)
+model CrmTag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#3F77DD")
+  createdAt DateTime @default(now())
+
+  @@map("crm_tags")
+}
+
+// In-app bildirishnomalar
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   @default("info") // info | task | lead | mention | automation
+  text      String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// Saqlangan filtrlar (foydalanuvchi ko'rinishlari)
+model SavedFilter {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  paramsJson String   @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@map("crm_saved_filters")
+}
+
+// Kompaniya entitisi
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String?
+  email       String?
+  website     String?
+  customJson  String   @default("{}")
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("crm_companies")
+}
+
+// Kontakt entitisi
+model Contact {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String?
+  email       String?
+  position    String?
+  companyId   String?
+  customJson  String   @default("{}")
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
+  @@map("crm_contacts")
+}
+
+// Lead-capture web forma (ommaviy havola orqali to'ldiriladi -> lid yaratadi)
+// ─────────────────────────────────────────────
+// Facebook Lead Ads integratsiyasi (amoCRM logikasi)
+// ─────────────────────────────────────────────
+model FbLeadForm {
+  id           String   @id @default(cuid())
+  formId       String   @unique // Facebook leadgen form id
+  formName     String
+  pageId       String
+  pageName     String   @default("")
+  destination  String   @default("crm") // crm | hr
+  pipelineId   String? // CRM: qaysi voronka
+  stageKey     String? // CRM: boshlang'ich bosqich
+  assigneeId   String? // CRM: avto mas'ul
+  position     String? // HR: lavozim
+  source       String   @default("Facebook")
+  active       Boolean  @default(true)
+  fieldMapJson String   @default("{}") // FB maydon -> lead maydoni
+  createdAt    DateTime @default(now())
+
+  @@map("fb_lead_forms")
+}
+
+model FbProcessedLead {
+  id        String   @id @default(cuid())
+  leadgenId String   @unique // FB leadgen_id — takroriy webhookni oldini oladi
+  formId    String?
+  createdAt DateTime @default(now())
+
+  @@map("fb_processed_leads")
+}
+
+model CrmForm {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String?
+  fieldsJson  String   @default("[]") // [{key,label,type,required,options,...}]
+  settingsJson String  @default("{}") // {themeColor, confirmationMessage, progressBar}
+  pipelineId  String?
+  stageKey    String? // yangi lid qaysi bosqichga tushadi
+  assigneeId  String? // avto mas'ul
+  source      String? // manba belgisi (masalan "Sayt formasi")
+  active      Boolean  @default(true)
+  submissions Int      @default(0)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("crm_forms")
+}
+
+// Suhbat xabarlari (omnichannel — hozircha Telegram). Lid kartochkasida ko'rinadi.
+model Message {
+  id         String   @id @default(cuid())
+  leadId     String
+  channel    String   @default("telegram") // telegram | whatsapp | instagram ...
+  direction  String   @default("in") // in | out
+  text       String
+  senderName String?
+  externalId String? // kanal xabar id
+  createdAt  DateTime @default(now())
+
+  @@index([leadId])
+  @@index([createdAt])
+  @@map("crm_messages")
+}
+
+// Sotuv rejasi / maqsadlar (oylik, hodim yoki jamoa bo'yicha)
+model SalesGoal {
+  id        String   @id @default(cuid())
+  userId    String? // null = butun jamoa
+  period    String // YYYY-MM
+  metric    String   @default("revenue") // revenue | count
+  target    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, period, metric])
+  @@index([period])
+  @@map("crm_sales_goals")
+}
+
+// Umumiy ilova sozlamalari (key-value)
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+// Mahsulot / kurs katalogi
+model Product {
+  id        String   @id @default(cuid())
+  name      String
+  sku       String?
+  price     Int      @default(0)
+  active    Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("crm_products")
+}

@@ -1,0 +1,251 @@
+/* ============================================================
+   Responsive — telefon / planshet / laptop / desktop
+   styles.css O'ZGARTIRILMAYDI; barcha moslashuv shu yerda (qo'shimcha).
+   ============================================================ */
+
+/* Menyu (hamburger) tugmasi — barcha o'lchamda ko'rinadi (yopib-ochish) */
+.hamb {
+  display: inline-flex;
+  flex: 0 0 38px;
+}
+.hamb-i,
+.hamb-i::before,
+.hamb-i::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ink);
+}
+.hamb-i {
+  position: relative;
+}
+.hamb-i::before,
+.hamb-i::after {
+  content: '';
+  position: absolute;
+  left: 0;
+}
+.hamb-i::before {
+  top: -6px;
+}
+.hamb-i::after {
+  top: 6px;
+}
+
+.sb-overlay {
+  display: none;
+}
+
+/* ───────────── Desktop/laptop: sidebar yig'iladi (collapse) ─────────────
+   Hamburger bosilganda .app.collapsed bo'ladi → sidebar 0 ga siqiladi,
+   kontent to'liq enga yoyiladi. Mobil'ga (≤900px) ta'sir qilmaydi. */
+@media (min-width: 901px) {
+  /* Silliq ochilib-yopilish */
+  .sb {
+    overflow-x: hidden;
+    transition: width 0.24s ease, flex-basis 0.24s ease;
+  }
+  .navlabel {
+    white-space: nowrap;
+  }
+  /* Yig'ilgan (mini) holat — rail aynan ikonkagacha (64px), yozuvlar yashirin */
+  .app.collapsed .sb {
+    width: 64px;
+    flex-basis: 64px;
+    min-width: 0;
+  }
+  .app.collapsed .navlabel {
+    display: none;
+  }
+  /* Bo'lim sarlavhalari display:none — kengligini saqlamaydi (gorizontal scroll yo'q) */
+  .app.collapsed .navsec {
+    display: none;
+  }
+  /* Gorizontal scrollbar chiqmasligi uchun */
+  .app.collapsed .nav,
+  .app.collapsed .sbfoot {
+    overflow-x: hidden;
+  }
+  .app.collapsed .sblogo img {
+    opacity: 0;
+  }
+  .app.collapsed .roleSel,
+  .app.collapsed .un,
+  .app.collapsed .ur {
+    display: none;
+  }
+  .app.collapsed .userbox {
+    justify-content: center;
+  }
+}
+
+/* ===== iOS PWA (standalone) — status bar / notch / home indicator safe-area =====
+   Topbar status bar ostiga kirmasin: tepa padding = notch balandligi,
+   topbar balandligi shunga mos o'sadi. env() oddiy brauzerda 0 (desktop'ga ta'sirsiz). */
+.top {
+  padding-top: env(safe-area-inset-top, 0px);
+  height: calc(64px + env(safe-area-inset-top, 0px));
+  flex-basis: calc(64px + env(safe-area-inset-top, 0px));
+}
+@supports (padding: max(0px)) {
+  .canvas {
+    padding-left: max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
+    padding-bottom: max(40px, calc(20px + env(safe-area-inset-bottom)));
+  }
+}
+
+/* ───────────── Planshet va kichikroq laptop (≤1024px) ───────────── */
+@media (max-width: 1024px) {
+  .g4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ───────────── Mobil/planshet: sidebar → drawer (≤900px) ───────────── */
+@media (max-width: 900px) {
+  .sb {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 80;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: 2px 0 24px rgba(0, 0, 0, 0.25);
+  }
+  .sb.open {
+    transform: translateX(0);
+  }
+  .sb-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 75;
+    background: rgba(20, 20, 22, 0.45);
+    animation: sbfade 0.15s ease;
+  }
+  @keyframes sbfade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .hamb {
+    display: inline-flex;
+  }
+  .top {
+    padding: env(safe-area-inset-top, 0px) 14px 0;
+    gap: 10px;
+  }
+  .search {
+    display: none;
+  }
+  .canvas {
+    padding: 16px 14px 36px;
+  }
+  .g3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ───────────── Telefon (≤560px) ───────────── */
+@media (max-width: 560px) {
+  .g2,
+  .g3,
+  .g4 {
+    grid-template-columns: 1fr;
+  }
+  .top {
+    height: calc(58px + env(safe-area-inset-top, 0px));
+    flex-basis: calc(58px + env(safe-area-inset-top, 0px));
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding: env(safe-area-inset-top, 0px) 12px 0;
+  }
+  .ttl {
+    font-size: 17px;
+  }
+  .canvas {
+    padding: 14px 12px 32px;
+  }
+  .pghead {
+    gap: 10px;
+  }
+  .pgttl {
+    font-size: 18px;
+  }
+  .card {
+    padding: 14px;
+    border-radius: 14px;
+  }
+  /* Jadvallar kesilmasin — kartochka ichida gorizontal scroll */
+  .card {
+    overflow-x: auto;
+  }
+  /* Kanban ustunlari ekranga mos (swipe qulay) */
+  .kcol {
+    flex: 0 0 80vw;
+    width: 80vw;
+    max-width: 300px;
+  }
+  .kcards {
+    min-height: 40vh;
+  }
+  /* HR/Cheklist drawer/modal to'liq enlikка yaqin */
+  .hr-drawer {
+    width: 100%;
+  }
+  /* Topbardagi ortiqcha ikonkalardan birini yashirib joy bo'shatish shart emas */
+}
+
+/* ============================================================
+   Login sahifasi — mobil/desktop (input ustiga tugma chiqib
+   qolish muammosi tuzatildi: to'g'ri input + scroll qilinadigan ildiz)
+   ============================================================ */
+.login-root {
+  height: auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: auto;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink2);
+  padding: 24px 16px;
+}
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 28px;
+  overflow: visible;
+}
+.login-lbl {
+  font-weight: 700;
+  display: block;
+  margin-bottom: 6px;
+}
+.login-in {
+  margin-bottom: 14px;
+  background: #fff;
+}
+.login-in:last-of-type {
+  margin-bottom: 18px;
+}
+.login-err {
+  color: var(--dang);
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.login-btn {
+  width: 100%;
+  justify-content: center;
+}
+@media (max-width: 560px) {
+  .login-card {
+    padding: 22px;
+  }
+}

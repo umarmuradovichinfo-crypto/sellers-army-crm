@@ -1,0 +1,119 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Res,
+} from '@nestjs/common';
+import type { Response } from 'express';
+
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthUser } from '../common/decorators/current-user.decorator';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { CallsService } from './calls.service';
+import { ClickCallDto, ExtensionDto } from './dto/calls.dto';
+
+@Controller('crm')
+@RequirePermissions('crm.view')
+export class CallsController {
+  constructor(private readonly calls: CallsService) {}
+
+  @Post('leads/:id/call')
+  call(@Param('id') id: string, @Body() dto: ClickCallDto, @CurrentUser() user: AuthUser) {
+    return this.calls.clickToCall(user, id, dto.from);
+  }
+
+  @Get('leads/:id/calls')
+  leadCalls(@Param('id') id: string) {
+    return this.calls.leadCalls(id);
+  }
+
+  // Barcha qo'ng'iroqlar ro'yxati (CRM "Qo'ng'iroqlar" bo'limi)
+  @Get('calls')
+  listCalls(@Query('filter') filter?: string, @Query('limit') limit?: string) {
+    return this.calls.listCalls({ filter, limit: limit ? Number(limit) : undefined });
+  }
+
+  // OnlinePBX tarixidan qo'ng'iroq/yozuvlarni qo'lda sinxronlash (so'nggi 7 kun)
+  @Post('calls/sync')
+  syncCalls() {
+    return this.calls.syncHistory({ force: true, days: 7 });
+  }
+
+  // Qo'ng'iroq yozuvi — server orqali (chatda ijro; tashqi havolaga o'tkazmaydi)
+  @Get('calls/:id/recording')
+  async recording(@Param('id') id: string, @Res() res: Response) {
+    const rec = await this.calls.getRecording(id);
+    res.setHeader('Content-Type', rec.contentType);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.setHeader('Content-Length', String(rec.buffer.length));
+    res.end(rec.buffer);
+  }
+
+  @Post('calls/dial')
+  dial(@Body() dto: { to?: string }, @CurrentUser() user: AuthUser) {
+    return this.calls.dial(user, dto?.to || '');
+  }
+
+  // Softphone rejim: MicroSIP o'zi teradi — biz faqat log yozamiz (yozuv webhookdan)
+  @Post('calls/soft-log')
+  softLog(@Body() dto: { leadId?: string; to?: string }, @CurrentUser() user: AuthUser) {
+    return this.calls.softLog(user, { leadId: dto?.leadId, to: dto?.to });
+  }
+
+  @Get('calls/incoming')
+  incoming() {
+    return this.calls.incoming();
+  }
+
+  @Post('calls/:id/dismiss')
+  dismiss(@Param('id') id: string) {
+    return this.calls.dismissIncoming(id);
+  }
+
+  // Operator ichki raqami (har sotuvchi o'ziniki)
+  @Get('my-extension')
+  myExt(@CurrentUser() user: AuthUser) {
+    return this.calls.getMyExtension(user);
+  }
+
+  // Brauzer WebRTC-telefoni (JsSIP) sozlamasi — operator o'ziniki
+  @Get('webrtc/config')
+  webrtcConfig(@CurrentUser() user: AuthUser) {
+    return this.calls.getWebrtcConfig(user);
+  }
+  @Get('lead-by-phone')
+  leadByPhone(@Query('phone') phone: string) {
+    return this.calls.leadByPhonePublic(phone || '');
+  }
+  @Put('webrtc/config')
+  saveWebrtc(@Body() dto: { extension?: string; sipPassword?: string }, @CurrentUser() user: AuthUser) {
+    return this.calls.saveWebrtcConfig(user, dto);
+  }
+  @Put('my-extension')
+  setExt(@Body() dto: ExtensionDto, @CurrentUser() user: AuthUser) {
+    return this.calls.setMyExtension(user, dto.extension);
+  }
+
+  // ── OnlinePBX ulanish sozlamalari (faqat admin — crm.settings) ──
+  @Get('pbx/config')
+  @RequirePermissions('crm.settings')
+  pbxConfig() {
+    return this.calls.getConfig();
+  }
+
+  @Put('pbx/config')
+  @RequirePermissions('crm.settings')
+  savePbxConfig(@Body() dto: { domain?: string; apiKey?: string; defaultExt?: string; webhookSecret?: string; callMode?: string; dialScheme?: string }) {
+    return this.calls.saveConfig(dto);
+  }
+
+  @Post('pbx/test')
+  @RequirePermissions('crm.settings')
+  testPbx() {
+    return this.calls.testConnection();
+  }
+}

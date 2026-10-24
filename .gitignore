@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+**/src/generated/
+.DS_Store
+*.pem
+*.tsbuildinfo
+npm-debug.log*
+
+# lokal
+.smoke-server.log
+*.log
+pgdata/

@@ -1,0 +1,99 @@
+// ====== Autentifikatsiya va RBAC konteksti ======
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
+import { api, tokenStore, refreshStore, setSession, clearSession, USE_MOCKS } from '../lib/apiClient'
+import { permsForRole, ROLES } from '../config/permissions'
+import { invalidateCache } from '../lib/useApi'
+
+const AuthContext = createContext(null)
+
+// MOCK rejim uchun standart foydalanuvchi
+const MOCK_USER = {
+  id: 'u1', name: 'Demo Admin', initials: 'DA',
+  email: 'demo@example.com', role: 'super_admin',
+}
+
+// Foydalanuvchini keshda saqlash — sahifa yangilanganda/tarmoq sekin bo'lganda
+// login CHIQMASLIGI uchun darrov ko'rsatamiz, keyin fonda /auth/me bilan tekshiramiz.
+const USER_KEY = 'sa_user'
+function readCachedUser() { try { const s = localStorage.getItem(USER_KEY); return s ? JSON.parse(s) : null } catch { return null } }
+function writeCachedUser(d) { try { localStorage.setItem(USER_KEY, JSON.stringify({ user: d.user, permissions: d.permissions || [] })) } catch { /* */ } }
+function clearCachedUser() { try { localStorage.removeItem(USER_KEY) } catch { /* */ } }
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null)
+  const [permissions, setPermissions] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  // Ilk yuklashda joriy foydalanuvchini olish
+  useEffect(() => {
+    let alive = true
+    async function boot() {
+      if (USE_MOCKS) {
+        if (alive) { setUser(MOCK_USER); setPermissions(permsForRole(MOCK_USER.role)); setLoading(false) }
+        return
+      }
+      // Access token bo'lmasa ham, refresh token bo'lsa — /auth/me ichida refresh orqali tiklanadi.
+      const token = tokenStore.get()
+      const rt = refreshStore.get()
+      if (!token && !rt) { setLoading(false); return }
+      // Keshdagi foydalanuvchini DARROV ko'rsatamiz — sahifa yangilansa/tarmoq sekin bo'lsa login chiqmaydi.
+      const cached = readCachedUser()
+      if (cached && cached.user && alive) { setUser(cached.user); setPermissions(cached.permissions || []); setLoading(false) }
+      try {
+        const me = await api.get('/auth/me') // -> { user, permissions } (401 bo'lsa ichida refresh)
+        if (alive) { setUser(me.user); setPermissions(me.permissions || []); writeCachedUser(me) }
+      } catch {
+        // Yaroqsiz token bo'lsa — apiClient ichida 'sa:unauthorized' chiqib logout bo'ladi.
+        // Vaqtinchalik xato (tarmoq/503) bo'lsa — keshdagi foydalanuvchi qoladi, LOGIN CHIQMAYDI.
+      }
+      finally { if (alive) setLoading(false) }
+    }
+    boot()
+    return () => { alive = false }
+  }, [])
+
+  // Refresh token yaroqsiz bo'lganda (haqiqiy sessiya tugashi) — tizimdan chiqarish
+  useEffect(() => {
+    const h = () => { clearCachedUser(); setUser(null); setPermissions([]) }
+    window.addEventListener('sa:unauthorized', h)
+    return () => window.removeEventListener('sa:unauthorized', h)
+  }, [])
+
+  const login = useCallback(async (email, password) => {
+    if (USE_MOCKS) { setUser(MOCK_USER); setPermissions(permsForRole(MOCK_USER.role)); return }
+    const res = await api.post('/auth/login', { email, password }) // -> { token, refreshToken, user, permissions }
+    invalidateCache() // boshqa foydalanuvchi keshini ko'rsatmaslik uchun tozalaymiz
+    setSession({ token: res.token, refreshToken: res.refreshToken })
+    setUser(res.user); setPermissions(res.permissions || [])
+    writeCachedUser(res)
+  }, [])
+
+  const logout = useCallback(async () => {
+    if (!USE_MOCKS) { try { await api.post('/auth/logout') } catch {} }
+    invalidateCache() // keshni tozalab, keyingi foydalanuvchiga sirqib o'tmasin
+    clearCachedUser()
+    clearSession(); setUser(null); setPermissions([])
+  }, [])
+
+  // MOCK/DEMO: rolni almashtirish (backendsiz RBAC'ni ko'rsatish uchun).
+  // Haqiqiy tizimda rol backend tomonidan beriladi — bu faqat demo.
+  const switchRole = useCallback((roleId) => {
+    setUser((u) => ({ ...(u || MOCK_USER), role: roleId }))
+    setPermissions(permsForRole(roleId))
+  }, [])
+
+  const can = useCallback((perm) => !perm || permissions.includes(perm), [permissions])
+
+  const value = useMemo(() => ({
+    user, permissions, loading, login, logout, switchRole, can,
+    roleLabel: ROLES.find((r) => r.id === user?.role)?.label || '',
+  }), [user, permissions, loading, login, logout, switchRole, can])
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth AuthProvider ichida ishlatilishi kerak')
+  return ctx
+}

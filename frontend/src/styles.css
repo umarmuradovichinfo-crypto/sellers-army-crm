@@ -1,0 +1,636 @@
+/* ============================================================
+   Sellers Army CRM — dizayn tizimi (brand: laym #D7F904 + grafit #373435)
+   Shriftlar: Space Grotesk (sarlavha/raqam) + Manrope (matn)
+   Bu fayl dizayndan AYNAN ko'chirilgan — o'zgartirmasdan ishlating.
+   ============================================================ */
+html, body, #root { height: 100%; }
+body { margin: 0; }
+*{box-sizing:border-box}
+.app{--lime:#D7F904;--ink:#373435;--ink2:#2B2A28;--ink3:#1E1D1B;--canvas:#F3F4EF;--card:#fff;--bd:#E6E8E0;--bd2:#EFF0EA;--mut:#8B8E84;--mut2:#B6B9AE;--ok:#46B17B;--warn:#D9952E;--dang:#DE5147;--info:#3F77DD;font-family:'Manrope',system-ui,sans-serif;color:var(--ink);background:var(--canvas);display:flex;height:100vh;overflow:hidden;font-size:14px;-webkit-font-smoothing:antialiased}
+.disp{font-family:'Space Grotesk',sans-serif}.num{font-family:'Space Grotesk',sans-serif;font-variant-numeric:tabular-nums}
+.muted{color:var(--mut)}
+.sb{width:250px;flex:0 0 250px;background:var(--ink2);color:#E9EAE4;display:flex;flex-direction:column;height:100%}
+.sblogo{padding:18px 18px 8px}.sblogo img{height:30px;display:block}
+.nav{flex:1;overflow-y:auto;padding:4px 12px 12px;display:flex;flex-direction:column;gap:2px}
+.navsec{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#737569;padding:14px 10px 5px;font-weight:700}
+.navitem{display:flex;align-items:center;gap:11px;padding:8.5px 11px;border-radius:10px;color:#C3C6BD;cursor:pointer;font-weight:600;font-size:13.5px;text-decoration:none;transition:background .12s,color .12s}
+.navitem svg{width:18px;height:18px;flex:0 0 18px;stroke-width:1.9}
+.navitem:hover{background:#34332F;color:#fff}
+.navitem.on{background:var(--lime);color:var(--ink3);font-weight:700}
+.navitem.hidden{display:none}
+.sbfoot{padding:12px;border-top:1px solid #3C3B37;display:flex;flex-direction:column;gap:8px}
+.roleSel{appearance:none;width:100%;background:#34332F;color:#E9EAE4;border:1px solid #46443F;border-radius:10px;padding:9px 12px;font:600 12.5px 'Manrope';cursor:pointer}
+.userbox{display:flex;align-items:center;gap:10px;padding:4px 4px 2px}
+.ava{width:36px;height:36px;border-radius:10px;background:var(--lime);color:var(--ink3);display:flex;align-items:center;justify-content:center;font:800 14px 'Space Grotesk';flex:0 0 auto}
+.un{font-weight:700;font-size:13px;color:#fff}.ur{font-size:11.5px;color:#9B9D93}
+.main{flex:1;display:flex;flex-direction:column;height:100%;min-width:0}
+.top{height:64px;flex:0 0 64px;background:var(--card);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:14px;padding:0 22px}
+.ttl{font-family:'Space Grotesk';font-weight:700;font-size:19px;white-space:nowrap}
+.search{flex:1;max-width:380px;display:flex;align-items:center;gap:9px;background:var(--canvas);border:1px solid var(--bd);border-radius:10px;padding:9px 13px;color:var(--mut)}
+.search input{border:0;background:0;outline:0;font:inherit;color:var(--ink);width:100%}.search svg{width:16px;height:16px}
+.iconbtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--bd);background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);position:relative}
+.iconbtn:hover{background:var(--canvas)}.iconbtn svg{width:18px;height:18px}
+.iconbtn.lime{background:var(--lime);border-color:var(--lime)}
+.dot{position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--dang);border:2px solid var(--card)}
+.canvas{flex:1;overflow-y:auto;padding:22px 24px 40px}
+.pghead{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;gap:16px;flex-wrap:wrap}
+.pgttl{font-family:'Space Grotesk';font-weight:700;font-size:22px;margin:0}
+.pgsub{color:var(--mut);font-size:13px;margin-top:4px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:18px}
+.ch{font-family:'Space Grotesk';font-weight:700;font-size:15px;margin:0 0 2px}
+.chsub{font-size:12px;color:var(--mut)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 15px;border-radius:10px;font-weight:700;font-size:13px;border:1px solid var(--bd);background:var(--card);color:var(--ink);cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--canvas)}.btn svg{width:15px;height:15px}
+.btn.primary{background:var(--lime);border-color:var(--lime);color:var(--ink3)}.btn.primary:hover{filter:brightness(.96)}
+.btn.dark{background:var(--ink);border-color:var(--ink);color:#fff}.btn.dark:hover{background:var(--ink3)}
+.btn.sm{padding:7px 11px;font-size:12px}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.stat{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:17px;display:flex;flex-direction:column;gap:9px}
+.stat .lab{color:var(--mut);font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:8px}
+.stat .val{font-family:'Space Grotesk';font-weight:700;font-size:27px;line-height:1}
+.stat .delta{font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
+.statico{width:28px;height:28px;border-radius:8px;background:var(--canvas);display:flex;align-items:center;justify-content:center;color:var(--ink)}.statico svg{width:15px;height:15px}
+.up{color:var(--ok)}.down{color:var(--dang)}
+.stat.dk{background:var(--ink2);border-color:var(--ink2)}.stat.dk .val,.stat.dk{color:#fff}.stat.dk .lab{color:#A7A99F}.stat.dk .statico{background:#3B3A36;color:#fff}
+.stat.lime{background:var(--lime);border-color:var(--lime)}.stat.lime .val,.stat.lime .lab{color:var(--ink3)}.stat.lime .statico{background:rgba(0,0,0,.12);color:var(--ink3)}.stat.lime .delta{color:#3c5a00}
+.tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--canvas);color:var(--ink);white-space:nowrap}
+.pill{font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:999px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.pill.lime{background:var(--lime);color:var(--ink3)}.pill.ok{background:#E4F6EC;color:#2E8B57}.pill.warn{background:#F8EFD9;color:#A9781A}.pill.dang{background:#FBE6E4;color:#BE3A30}.pill.info{background:#E6EEFB;color:#2F5FC0}.pill.mut{background:var(--canvas);color:var(--mut);border:1px solid var(--bd)}.pill.ink{background:var(--ink);color:#fff}
+.av{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font:800 12px 'Space Grotesk';color:#fff;flex:0 0 auto}
+.bars{display:flex;align-items:flex-end;gap:9px;height:172px;margin-top:8px}
+.barwrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;justify-content:flex-end;height:100%}
+.bar{width:100%;max-width:34px;background:#E4E6DD;border-radius:6px 6px 0 0;min-height:5px;transition:height .4s}
+.bar.hl{background:var(--lime)}.bar.ink{background:var(--ink)}
+.barwrap span{font-size:10px;color:var(--mut);font-weight:600}
+.prog{height:8px;background:var(--canvas);border-radius:999px;overflow:hidden}
+.prog>i{display:block;height:100%;background:var(--lime);border-radius:999px;transition:width .4s}
+.prog.ink>i{background:var(--ink)}
+.fun{display:flex;flex-direction:column;gap:7px}
+.ring{width:118px;height:118px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.ring i{width:90px;height:90px;border-radius:50%;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.ring i b{font:700 30px 'Space Grotesk';color:var(--ink)}.ring i span{font-size:11px;color:var(--mut);font-weight:600}
+.insrow{display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--bd2)}.insrow:last-child{border-bottom:0}
+.idot{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:0 0 auto;background:var(--mut)}.idot.ok{background:var(--ok)}.idot.warn{background:var(--warn)}.idot.dang{background:var(--dang)}.idot.info{background:var(--info)}
+.it{font-weight:700;font-size:13px}.idd{font-size:12px;color:var(--mut);margin-top:2px}
+.actrow{display:flex;gap:11px;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd2)}.actrow:last-child{border-bottom:0}
+.acttime{margin-left:auto;font-size:11.5px;color:var(--mut2);white-space:nowrap}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);font-weight:700;padding:11px 14px;border-bottom:1px solid var(--bd)}
+.tbl td{padding:12px 14px;border-bottom:1px solid var(--bd2);font-size:13.5px;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}.tbl tbody tr:hover td{background:var(--canvas)}
+/* Board sahifalari (HR/Tasklar): to'liq balandlikni egallaydi — gorizontal scroll eng pastga qadaladi */
+.canvas:has(> .board-fill){padding-bottom:0;overflow:hidden;display:flex;flex-direction:column}
+.canvas > .board-fill{flex:1;min-height:0}
+.kanban{display:flex;gap:14px;align-items:stretch;overflow-x:auto;padding-bottom:10px}
+/* CRM doskasi (kanban) — gorizontal scroll ekran ENG PASTIGA yopishadi (bo'sh joy qolmaydi) */
+.canvas:has(.kanban),.crmsa-body:has(.kanban){padding-bottom:0;overflow:hidden}
+.canvas .amo:has(> .kanban),.crmsa-body .amo:has(> .kanban){display:flex;flex-direction:column;height:100%;min-height:0}
+.canvas .amo:has(> .kanban) > .amo-top,.crmsa-body .amo:has(> .kanban) > .amo-top,
+.canvas .amo:has(> .kanban) > .amo-toolbar,.crmsa-body .amo:has(> .kanban) > .amo-toolbar{flex:none}
+.canvas .amo:has(> .kanban) > .kanban,.crmsa-body .amo:has(> .kanban) > .kanban{flex:1;min-height:0;padding-bottom:6px}
+/* amoCRM kartochka — kompaniya qatori + mas'ul avatari (footerda o'ngda) */
+.amo .kc-task{margin-left:0}
+.amo .kc-company{font-size:11.5px;color:#5a6470;margin-top:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.amo .kc-resp{flex:0 0 auto;display:inline-flex;margin-left:8px}
+.amo .kc-foot .kc-task{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.amo .kc-info{font-size:11.5px;color:#5a6470;margin-top:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Kartochka sozlash — jonli namuna */
+.amo-cl-preview{position:sticky;top:0;background:var(--card);padding:2px 0 12px;margin-bottom:6px;z-index:2}
+.amo-cl-preview-lbl{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.amo-cl-preview-col{background:#ECEEE7;border:1px solid var(--bd);border-radius:10px;padding:12px}
+.amo-cl-preview-col .kcard{cursor:default}
+.amo .kcardcf-l{color:#3a3a3a;font-weight:600}
+/* Kontakt avatari — amoCRM'dagidek odam siluети (kulrang doira) */
+.amo .kc-avatar{width:30px;height:30px;border-radius:50%;background:#E4E6EA;color:#9aa0a6;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+
+/* ═══ Tasklar — o'ng-tugma (context) menyu (Trello uslubi) ═══ */
+.tctx-backdrop{position:fixed;inset:0;z-index:1300}
+.tctx{position:fixed;background:var(--card);border:1px solid var(--bd);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.22);padding:6px;animation:hrslide .12s ease;max-height:88vh;overflow:auto}
+.tctx-h{font-size:12.5px;font-weight:800;color:var(--ink);padding:6px 10px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tctx-lbl{font-size:10px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;padding:4px 10px 4px}
+.tctx-cols{display:flex;flex-direction:column;max-height:44vh;overflow:auto}
+.tctx-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;color:var(--ink);text-align:left}
+.tctx-item:hover:not(:disabled){background:var(--canvas)}
+.tctx-item:disabled{opacity:.5;cursor:default}
+.tctx-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.tctx-cname{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tctx-cur{font-size:10.5px;color:var(--mut);font-weight:600}
+.tctx-sep{height:1px;background:var(--bd);margin:5px 4px}
+.tctx-del{color:var(--dang)}
+.tctx-del:hover{background:rgba(222,81,71,.1)}
+
+/* Facebook forma → CRM bog'lash qatori */
+.fb-map{border:1px solid var(--bd);border-radius:8px;padding:9px 10px;background:var(--canvas)}
+.kcol{flex:0 0 280px;width:280px;background:#ECEEE7;border:1px solid var(--bd);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:9px}
+.kch{display:flex;align-items:center;gap:8px;padding:3px 4px 0}.kch b{font:700 13px 'Space Grotesk'}
+.kcnt{font-size:11px;font-weight:700;color:var(--mut);background:var(--card);border-radius:6px;padding:1px 7px}
+.kcards{display:flex;flex-direction:column;gap:9px;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden}
+.kcard{background:var(--card);border:1px solid var(--bd);border-radius:11px;padding:12px;cursor:grab;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.kcard:hover{border-color:var(--mut2);box-shadow:0 4px 10px rgba(0,0,0,.06)}
+.kstripe{height:4px;border-radius:99px;margin:-2px 0 9px;width:38px}
+.flow{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:9px;border:1px solid var(--bd);background:var(--card);font-weight:600;font-size:12.5px;cursor:pointer}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.divh{height:1px;background:var(--bd2);margin:14px 0}
+.lead{font-weight:700}
+.sub2{font-size:12px;color:var(--mut)}
+.mb4{margin-bottom:4px}.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.mb20{margin-bottom:20px}.mb24{margin-bottom:24px}
+.grid{display:grid;gap:16px}
+.scrollx{overflow-x:auto}
+.chk{width:20px;height:20px;border-radius:6px;border:2px solid var(--mut2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}
+.chk.done{background:var(--lime);border-color:var(--lime)}.chk svg{width:13px;height:13px;opacity:0;color:var(--ink3)}.chk.done svg{opacity:1}
+.chkrow{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--bd2)}.chkrow:last-child{border-bottom:0}
+.chkrow.done .ct{text-decoration:line-through;color:var(--mut2)}
+.ct{font-weight:600;font-size:13.5px}
+.msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:13px;padding:6px 2px}
+.bub{max-width:82%;padding:12px 15px;border-radius:15px;font-size:13.5px;line-height:1.5}
+.bub.ai{background:var(--canvas);border:1px solid var(--bd);align-self:flex-start;border-bottom-left-radius:4px}
+.bub.me{background:var(--ink);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.chatin{display:flex;gap:9px;border:1px solid var(--bd);border-radius:13px;padding:7px 7px 7px 15px;align-items:center;background:var(--card);margin-top:12px}
+.chatin input{flex:1;border:0;outline:0;background:0;font:inherit}
+.sendb{width:38px;height:38px;border-radius:10px;background:var(--lime);border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}.sendb svg{width:17px;height:17px;color:var(--ink3)}
+.plat{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--bd);border-radius:13px}
+.platico{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font:800 16px 'Space Grotesk';color:#fff;flex:0 0 auto}
+.sw{width:40px;height:23px;border-radius:99px;background:var(--mut2);position:relative;flex:0 0 auto;cursor:pointer;transition:.15s}
+.sw.on{background:var(--lime)}.sw::after{content:"";position:absolute;top:2.5px;left:2.5px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}.sw.on::after{left:19px}
+.mini{display:flex;align-items:flex-end;gap:3px;height:34px}.mini>div{flex:1;background:var(--lime);border-radius:2px;min-height:3px}
+.matrix th,.matrix td{text-align:center}.matrix td:first-child,.matrix th:first-child{text-align:left}
+.cell{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font:700 12px 'Space Grotesk';color:#fff}
+.cell.p{background:var(--ok)}.cell.a{background:var(--dang)}.cell.l{background:var(--warn)}.cell.o{background:#E4E6DD;color:var(--mut)}
+.dstrip{display:flex;gap:4px;flex-wrap:nowrap}.dc{width:16px;height:16px;border-radius:4px;background:#E4E6DD;flex:0 0 auto}.dc.p{background:var(--ok)}.dc.a{background:var(--dang)}.dc.l{background:var(--warn)}.dc.o{background:#EBEDE6}
+.lg{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);font-weight:600}.lg i{width:12px;height:12px;border-radius:3px;display:inline-block}
+/* utility qo'shimchalar (React port uchun) */
+.f1{flex:1}.fx{display:flex}.ac{align-items:center}.jb{justify-content:space-between}.jc{justify-content:center}.col{flex-direction:column}
+.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}.gap16{gap:16px}.gap24{gap:24px}
+.loading{display:flex;align-items:center;justify-content:center;height:60vh;color:var(--mut);font-weight:600;gap:10px}
+.spin{width:22px;height:22px;border:3px solid var(--bd);border-top-color:var(--lime);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== Forma/detal paneli ===== */
+.hr-overlay{position:fixed;inset:0;background:rgba(20,20,22,.45);z-index:50;display:flex;justify-content:flex-end;animation:hrfade .15s ease}
+@keyframes hrfade{from{opacity:0}to{opacity:1}}
+.hr-drawer{width:min(560px,100%);height:100%;background:var(--card);overflow-y:auto;box-shadow:-8px 0 28px rgba(0,0,0,.18);animation:hrslide .2s ease}
+@keyframes hrslide{from{transform:translateX(30px);opacity:.6}to{transform:translateX(0);opacity:1}}
+@keyframes pbxslide{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes pbxring{0%,100%{transform:scale(1)}50%{transform:scale(1.09)}}
+.hr-dh{display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--card);z-index:2}
+.hr-db{padding:18px 22px}
+.hr-x{margin-left:auto;background:0;border:0;cursor:pointer;color:var(--mut);font-size:22px;line-height:1;padding:4px 8px;border-radius:8px}
+.hr-x:hover{background:var(--canvas);color:var(--ink)}
+.hr-sec{margin-bottom:18px}
+.hr-sec h4{font-size:13px;font-weight:700;color:var(--ink);margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.hr-sec h4 .w{font-size:11px;color:var(--mut);font-weight:600}
+.hr-field{margin-bottom:12px}
+.hr-field label{display:block;font-size:11.5px;color:var(--mut);font-weight:600;margin-bottom:5px}
+.hr-input,.hr-select,.hr-area{width:100%;border:1px solid var(--bd);border-radius:9px;padding:8px 11px;font:inherit;font-size:13px;color:var(--ink);background:var(--canvas);outline:0}
+.hr-input:focus,.hr-select:focus,.hr-area:focus{border-color:var(--lime)}
+.hr-area{resize:vertical;min-height:64px}
+.hr-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hr-crit{padding:9px 0;border-bottom:1px dashed var(--bd)}
+.hr-crit:last-child{border-bottom:0}
+.hr-crit .lbl{font-size:12.5px;color:var(--ink);margin-bottom:3px}
+.hr-crit .scale{font-size:10.5px;color:var(--mut);margin-bottom:6px}
+.hr-scores{display:flex;gap:5px;flex-wrap:wrap}
+.hr-sb{width:30px;height:30px;border:1px solid var(--bd);border-radius:7px;background:var(--canvas);cursor:pointer;font:inherit;font-weight:700;font-size:12px;color:var(--mut)}
+.hr-sb:hover{border-color:var(--lime)}
+.hr-sb.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.hr-total{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--bd);border-radius:12px;background:var(--canvas);margin-bottom:16px}
+.hr-total .num{font-size:30px;font-weight:800;line-height:1;color:var(--ink)}
+.hr-ai{white-space:pre-wrap;font-size:12.5px;line-height:1.65;color:var(--ink2);background:var(--canvas);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;max-height:380px;overflow-y:auto}
+.hr-card-badge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px}
+.hr-cardfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:9px;border-top:1px dashed var(--bd)}
+.hr-cardfoot .n{font-weight:800;font-size:16px;letter-spacing:-.01em;color:var(--ink)}
+.hr-cardfoot .n small{font-size:11px;font-weight:600;color:var(--mut)}
+/* Nomzod modali: tab qatori + jonli ball */
+.hr-tabs{display:flex;align-items:center;gap:6px;padding:12px 22px;border-bottom:1px solid var(--bd);position:sticky;top:64px;background:var(--card);z-index:2}
+.hr-tab{padding:8px 14px;border-radius:9px;border:0;cursor:pointer;font:inherit;font-weight:700;font-size:13px;background:transparent;color:var(--mut)}
+.hr-tab.on{background:var(--ink);color:#fff}
+.hr-live{text-align:right;line-height:1}.hr-live .n{font-weight:800;font-size:20px;letter-spacing:-.02em;color:var(--ink)}.hr-live .n small{font-size:11.5px;font-weight:600;color:var(--mut)}
+/* Solishtirish modali (markazda) */
+.hr-overlay.center{justify-content:center;align-items:center;padding:20px}
+.hr-cmp{width:auto;max-width:min(940px,96vw);max-height:88vh;background:var(--card);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.28);display:flex;flex-direction:column;overflow:hidden;animation:hrfade .15s ease}
+.hr-cmp .body{overflow:auto;padding:8px 14px 16px}
+.hr-cmp table{border-collapse:collapse;width:100%}
+.hr-cmp th,.hr-cmp td{padding:8px 10px;border-bottom:1px solid var(--bd);font-size:12.5px;text-align:center;white-space:nowrap}
+.hr-cmp th.lft,.hr-cmp td.lft{text-align:left;position:sticky;left:0;background:var(--card)}
+.hr-cmp .best{background:rgba(70,177,123,.15);color:var(--ok);font-weight:800}
+.kcard{cursor:pointer;transition:box-shadow .12s,transform .12s}
+.kcard:hover{box-shadow:0 4px 14px rgba(0,0,0,.1);transform:translateY(-1px)}
+
+.hr-addcol{min-width:200px;display:flex;align-items:center;justify-content:center;gap:8px;border:2px dashed var(--bd);background:transparent;color:var(--mut);font-weight:600;font:inherit;cursor:pointer;border-radius:12px;align-self:flex-start;padding:14px}
+.hr-addcol:hover{border-color:var(--lime);color:var(--ink)}
+.kcard[draggable="true"]{cursor:grab}
+.kcard[draggable="true"]:active{cursor:grabbing}
+
+/* ===== Ariza formasi (ommaviy /apply) ===== */
+.apply-wrap{--lime:#D7F904;--ink:#373435;--ink2:#2B2A28;--ink3:#1E1D1B;--canvas:#F3F4EF;--card:#fff;--bd:#E6E8E0;--bd2:#EFF0EA;--mut:#8B8E84;--mut2:#B6B9AE;--ok:#46B17B;--warn:#D9952E;--dang:#DE5147;--info:#3F77DD;font-family:'Manrope',system-ui,sans-serif;color:var(--ink);min-height:100vh;background:var(--canvas);display:flex;flex-direction:column;align-items:center;padding:32px 16px}
+.apply-card{width:100%;max-width:560px;background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:26px 24px;box-shadow:0 4px 22px rgba(0,0,0,.06)}
+.apply-head{border-bottom:1px solid var(--bd);padding-bottom:14px;margin-bottom:18px}
+.apply-head h2{margin:0 0 4px;font-size:20px;color:var(--ink)}
+.apply-field{margin-bottom:16px}
+.apply-field>label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:7px}
+.apply-req{color:var(--dang)}
+.apply-opts{display:flex;flex-direction:column;gap:7px}
+.apply-opt{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer}
+.apply-opt input{width:16px;height:16px;accent-color:var(--ink)}
+.apply-err{color:var(--dang);font-size:13px;font-weight:600;margin-bottom:12px}
+.apply-submit{width:100%;justify-content:center;margin-top:6px}
+.apply-foot{color:var(--mut);font-size:12px;margin-top:18px;font-weight:600}
+.apply-done{text-align:center}
+.apply-check{width:56px;height:56px;border-radius:50%;background:var(--ok);color:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+
+/* ===== Forma tuzuvchi (FormsManager) ===== */
+.fb-row{border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--canvas)}
+.fb-link{display:flex;gap:8px;align-items:center}
+.fb-link input{flex:1}
+.fb-field{border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--canvas)}
+.fb-num{width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* ===== Cheklist ===== */
+.cl-modal-overlay{position:fixed;inset:0;background:rgba(20,20,22,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;animation:hrfade .15s ease}
+.cl-modal{width:100%;max-width:520px;background:var(--card);border:1px solid var(--bd);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.cl-modal.sm{max-width:420px}
+.cl-mh{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--bd)}
+.cl-mh b{font-size:15px}
+.cl-mb{padding:18px 20px;display:grid;gap:14px}
+.cl-mf{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:10px;justify-content:flex-end}
+.cl-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--bd);border-radius:12px;background:var(--card);cursor:pointer;transition:box-shadow .12s,transform .12s}
+.cl-row:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-1px)}
+.cl-banner{display:flex;align-items:center;gap:9px;padding:10px 14px;border-radius:10px;font-size:12.5px;font-weight:600;margin-bottom:14px;flex-wrap:wrap}
+.cl-matrix{overflow-x:auto;border:1px solid var(--bd);border-radius:12px}
+.cl-matrix table{border-collapse:separate;border-spacing:0;font-size:12px;width:max-content;min-width:100%}
+.cl-matrix th,.cl-matrix td{border-bottom:1px solid var(--bd)}
+.cl-cell{width:34px;min-width:34px;height:34px;text-align:center}
+.cl-chk{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;background:var(--ok);color:#fff;margin:0 auto}
+.cl-box{display:inline-block;width:20px;height:20px;border-radius:5px;border:1.5px solid var(--bd)}
+.cl-box.on{border-color:var(--lime);background:var(--canvas)}
+
+/* ============================================================
+   amoCRM uslubi — FAQAT CRM bo'limi (.amo doirasida)
+   Shrift: Roboto · accent: ko'k #2A9AF3 · kulrang canvas · rangli ustun sarlavhalari
+   ============================================================ */
+.amo{--amo-blue:#2A9AF3;--amo-blue-d:#1A8AE5;--amo-canvas:#EBEBEB;--amo-line:#E0E0E0;--amo-mut:#8A8A8A;
+  font-family:'Roboto','Helvetica Neue',Arial,sans-serif;font-size:13px;color:#1a1a1a}
+.amo .ch,.amo h3,.amo h4,.amo b,.amo .num,.amo .stat .val,.amo .pgttl,.amo input,.amo select,.amo button{font-family:'Roboto','Helvetica Neue',Arial,sans-serif}
+.amo .num{font-variant-numeric:tabular-nums}
+
+/* Yuqori tab paneli */
+.amo-top{border-bottom:1px solid var(--amo-line);margin:-4px 0 14px}
+.amo-tabs{display:flex;gap:2px;flex-wrap:wrap}
+.amo-tab{padding:9px 15px;border:0;background:transparent;color:#5a5a5a;font-size:13px;font-weight:500;cursor:pointer;border-radius:6px 6px 0 0;border-bottom:2px solid transparent;white-space:nowrap}
+.amo-tab:hover{color:#1a1a1a;background:#f5f5f5}
+.amo-tab.on{color:var(--amo-blue);border-bottom-color:var(--amo-blue);font-weight:700}
+.amo-subtabs{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:16px}
+.amo-subtabs .amo-tab.on{background:var(--amo-blue);color:#fff;border-radius:6px;border-bottom-color:transparent}
+
+/* Toolbar */
+.amo-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.amo-pipe{width:auto;min-width:170px;font-weight:500;background:#fff;border-radius:6px;font-size:13px}
+.amo-seg{display:inline-flex;border:1px solid var(--amo-line);border-radius:6px;overflow:hidden;background:#fff}
+.amo-seg button{border:0;background:#fff;color:var(--amo-mut);padding:7px 11px;cursor:pointer;display:flex;align-items:center}
+.amo-seg button.on{background:var(--amo-blue);color:#fff}
+.amo-incoming{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--amo-line);background:#fff;border-radius:6px;padding:7px 13px;font-size:13px;font-weight:500;color:#5a5a5a;cursor:pointer}
+.amo-incoming.on{border-color:var(--amo-blue);color:var(--amo-blue)}
+.amo-badge{background:var(--amo-blue);color:#fff;font-size:11px;font-weight:700;border-radius:9px;padding:1px 7px;min-width:18px;text-align:center}
+
+/* amoCRM tugmalari */
+.amo .btn{border-radius:6px;font-size:13px;font-weight:500}
+.amo .btn.primary{background:var(--amo-blue);border-color:var(--amo-blue);color:#fff;text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.3px}
+.amo .btn.primary:hover{background:var(--amo-blue-d);filter:none}
+.amo .hr-input:focus,.amo .hr-select:focus,.amo .hr-area:focus{border-color:var(--amo-blue)}
+
+/* Kanban — amoCRM */
+.amo .kanban{gap:8px;background:var(--amo-canvas);padding:12px;border-radius:8px}
+.amo .kcol{flex:0 0 272px;width:272px;background:transparent;border:0;border-radius:0;padding:0;gap:0}
+.amo .kcolhead{color:#fff;border-radius:5px;padding:8px 11px;margin-bottom:8px}
+.amo .kcoltitle{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.amo .kcolcnt{font-size:11px;font-weight:700;color:#fff;background:rgba(255,255,255,.24);border-radius:9px;padding:1px 7px}
+.amo .kcolbtn{border:0;background:transparent;color:#fff;opacity:.85;cursor:pointer;font-size:14px;line-height:1;padding:0 3px;display:inline-flex;align-items:center}
+.amo .kcolbtn:hover{opacity:1}
+.amo .kcolsum{font-size:11px;color:#fff;opacity:.92;margin-top:3px;font-weight:500}
+.amo .kcards{display:flex;flex-direction:column;gap:7px;min-height:55vh}
+.amo .kcard{background:#fff;border:1px solid var(--amo-line);border-radius:4px;padding:9px 11px;box-shadow:0 1px 2px rgba(0,0,0,.08);cursor:pointer;transition:box-shadow .12s,border-color .12s}
+.amo .kcard:hover{border-color:#c9c9c9;box-shadow:0 2px 8px rgba(0,0,0,.12);transform:none}
+.amo .kcardname{font-size:13px;font-weight:500;color:#1a1a1a;line-height:1.3}
+.amo .kcardsum{font-size:13px;font-weight:500;color:#1a1a1a;margin-top:2px}
+.amo .kcardtask{font-size:10.5px;color:var(--amo-mut)}
+/* amoCRM uslubidagi lid kartochkasi elementlari */
+.amo .kc-contact{font-size:13px;font-weight:500;color:var(--amo-blue);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.amo .kc-lead{font-size:10.5px;font-weight:600;color:#3a3a3a;text-transform:uppercase;letter-spacing:.2px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.amo .kc-date{font-size:11px;color:var(--amo-mut);flex:0 0 auto}
+.amo .kc-tag{background:#eef0f2;color:#5a6470;border-radius:3px;font-size:10.5px;font-weight:500;padding:2px 7px;text-transform:uppercase;letter-spacing:.2px}
+.amo .kc-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #efefef;margin-top:8px;padding-top:6px;min-height:18px}
+.amo .kc-task{font-size:11.5px;font-weight:500;display:inline-flex;align-items:center;gap:5px;margin-left:auto}
+.amo .kc-taskdot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.amo .ktaskdot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;margin-top:4px}
+.amo .kaddlead{width:100%;text-align:center;border:0;background:transparent;color:var(--amo-mut);font-size:12px;font-weight:500;padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:2px}
+.amo .kaddlead:hover{color:var(--amo-blue)}
+.amo .hr-addcol{flex:0 0 200px;border:2px dashed var(--amo-line);border-radius:6px;color:var(--amo-mut)}
+.amo .hr-addcol:hover{border-color:var(--amo-blue);color:var(--amo-blue)}
+.amo .tag{border-radius:3px;font-size:11px;font-weight:500;background:#eef0f2;color:#5a6470}
+
+/* Drawer ichida amoCRM ko'k */
+.amo .hr-drawer .btn.primary{background:var(--amo-blue);border-color:var(--amo-blue)}
+
+/* amoCRM — kartochka sozlash (⋮) + status bar */
+.amo .amo-dots{font-size:18px;line-height:1;padding:6px 13px;font-weight:700}
+.amo-cl-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd2);font-size:13px;cursor:default}
+.amo-cl-row:last-child{border-bottom:0}
+.amo-sw{width:38px;height:22px;border-radius:999px;background:#d4d6cf;position:relative;cursor:pointer;flex:0 0 auto;transition:background .15s;display:inline-block}
+.amo-sw.on{background:var(--amo-blue)}
+.amo-sw i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+.amo-sw.on i{left:18px}
+.amo .kcardcf{font-size:11px;color:#5a6470;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5}
+
+.amo-statusbar{display:flex;gap:2px;overflow-x:auto;margin-bottom:16px;padding-bottom:2px}
+.amo-stage{flex:1 1 0;min-width:56px;border:0;background:#eef0f2;color:#5a6470;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.2px;padding:8px 10px 8px 16px;cursor:pointer;white-space:nowrap;overflow:hidden;clip-path:polygon(0 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,0 100%,9px 50%)}
+.amo-stage:first-child{clip-path:polygon(0 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,0 100%);padding-left:11px;border-radius:4px 0 0 4px}
+.amo-stage:hover{filter:brightness(.97)}
+.amo-stage-nm{display:block;overflow:hidden;text-overflow:ellipsis}
+
+/* amoCRM lid kartochkasi — keng ikki ustunli modal */
+.amo-cardov{justify-content:center;align-items:center;padding:2vh 2vw}
+.amo-card{width:min(1120px,96vw);height:min(900px,94vh);background:#fff;border-radius:8px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);font-family:'Roboto','Helvetica Neue',Arial,sans-serif}
+.amo-card.isnew{width:min(680px,96vw)}
+.amo-card-top{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--amo-line);flex:0 0 auto}
+.amo-card-name{border:0;background:transparent;font-size:17px;font-weight:700;color:#1a1a1a;width:100%;outline:0;padding:0;font-family:inherit}
+.amo-card-name:focus{box-shadow:inset 0 -1px 0 var(--amo-blue)}
+.amo-card .amo-statusbar{margin:12px 18px 4px;flex:0 0 auto}
+.amo-card-msg{margin:4px 18px 0;color:var(--dang);font-size:13px;font-weight:600}
+.amo-card-body{display:flex;flex:1;min-height:0;margin-top:10px;border-top:1px solid var(--amo-line)}
+.amo-card-left{flex:0 0 400px;width:400px;overflow-y:auto;padding:16px 18px;border-right:1px solid var(--amo-line);display:flex;flex-direction:column}
+.amo-card.isnew .amo-card-left{flex:1;width:auto;border-right:0}
+.amo-card-right{flex:1;min-width:0;overflow-y:auto;padding:16px 18px;background:#f6f7f9;display:flex;flex-direction:column;gap:11px}
+.amo-card-right-empty{align-items:center;justify-content:center}
+.amo-card-actions{display:flex;gap:10px;margin-top:auto;padding-top:14px;position:sticky;bottom:0;background:#fff}
+.amo-stat-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd2);font-size:13px}
+.amo-stat-row span{color:var(--amo-mut)}
+.amo-composer{background:#fff;border:1px solid var(--amo-line);border-radius:8px;padding:10px;flex:0 0 auto}
+.amo-comp-tabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap}
+.amo-comp-tabs button{border:0;background:transparent;color:#5a5a5a;font-size:12.5px;font-weight:500;padding:5px 11px;border-radius:6px;cursor:pointer}
+.amo-comp-tabs button.on{background:var(--amo-blue);color:#fff;font-weight:700}
+.amo-feed-tasks{background:#fff;border:1px solid var(--amo-line);border-radius:8px;padding:4px 12px;flex:0 0 auto}
+.amo-feed{display:flex;flex-direction:column;gap:7px}
+.amo-feed-item{display:flex;gap:10px;padding:9px 11px;background:#fff;border:1px solid var(--amo-line);border-radius:8px}
+.amo-feed-ic{font-size:15px;flex:0 0 auto;line-height:1.4}
+@media(max-width:860px){.amo-card-body{flex-direction:column}.amo-card-left{flex:none;width:auto;border-right:0;border-bottom:1px solid var(--amo-line)}}
+
+/* amoCRM kartochka lentasi — kompozitor pastda, izoh ajralib, loglar minimal */
+.amo-card-right{padding:0;gap:0}
+.amo-feed-scroll{flex:1;min-height:0;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:8px;background:#f6f7f9}
+.amo-card-right .amo-composer{border:0;border-top:1px solid var(--amo-line);border-radius:0;background:#fff;margin:0;padding:12px 18px;flex:0 0 auto}
+.amo-note{background:#fffdf5;border:1px solid #f0e2bf;border-left:3px solid #E6A33C;border-radius:8px;padding:9px 12px}
+.amo-note-h{font-size:11px;color:#9a8044;font-weight:600;margin-bottom:3px}
+.amo-note-b{font-size:13.5px;color:#1a1a1a;line-height:1.45;white-space:pre-wrap}
+.amo-log{display:flex;align-items:baseline;gap:8px;padding:3px 2px;font-size:12px;color:#7a7f87}
+.amo-log-ic{font-size:12px;flex:0 0 auto;opacity:.7}
+.amo-log-tx{flex:1;min-width:0}
+.amo-log-dt{font-size:11px;color:#a7abb2;flex:0 0 auto}
+.amo-log a{color:var(--amo-blue)}
+
+/* Qo'ng'iroq yozuvi — kartochka lentasida audio pleer (OnlinePBX) */
+.amo-callrow{display:flex;flex-direction:column;gap:5px}
+.amo-rec{width:100%;max-width:320px;height:36px;margin-left:20px}
+.amo-rec-btn{margin-left:20px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1px solid var(--amo-bd,var(--bd));border-radius:99px;background:var(--card);color:var(--info);font-size:12px;font-weight:700;cursor:pointer}
+.amo-rec-btn:hover:not(:disabled){background:rgba(63,119,221,.08)}
+.amo-rec-btn:disabled{opacity:.6;cursor:default}
+.amo-rec-err{margin-left:20px;font-size:11.5px;color:var(--mut)}
+/* Telegram uslubidagi ovozli-xabar pleeri */
+.voice-rec{margin-left:20px;display:inline-flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;background:var(--canvas);border:1px solid var(--bd);border-radius:20px;max-width:290px}
+.voice-play{flex:none;width:34px;height:34px;border-radius:50%;border:none;background:var(--ok);color:#fff;display:grid;place-items:center;cursor:pointer;transition:transform .12s}
+.voice-play:hover{transform:scale(1.06)}
+.voice-wave{flex:1;display:flex;align-items:center;gap:2px;height:26px;cursor:pointer;min-width:110px}
+.voice-bar{flex:1;min-width:2px;max-width:4px;border-radius:2px;transition:background .1s}
+.voice-time{flex:none;font-size:11.5px;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums;min-width:30px;text-align:right}
+.voice-spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;animation:voicespin .7s linear infinite}
+@keyframes voicespin{to{transform:rotate(360deg)}}
+/* Telefon raqami yonidagi tez amallar (qo'ng'iroq / nusxa / telegram) */
+.amo-phone-acts{display:flex;gap:6px;margin-top:6px}
+.amo-pa{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--ink3,var(--ink));cursor:pointer;transition:background .12s,color .12s,border-color .12s}
+.amo-pa:hover:not(:disabled){background:var(--canvas)}
+.amo-pa:disabled{opacity:.55;cursor:default}
+.amo-pa-call{color:var(--ok);border-color:rgba(70,177,123,.35)}
+.amo-pa-call:hover:not(:disabled){background:rgba(70,177,123,.1)}
+.amo-pa-tg{color:#2AABEE;border-color:rgba(42,171,238,.35)}
+.amo-pa-tg:hover{background:rgba(42,171,238,.1)}
+/* Ro'yxat (jadval) — raqam yonida, sichqoncha kelganda chiqadi */
+.amo-phone-acts.compact{margin-top:0;display:inline-flex;vertical-align:middle}
+.amo-phone-acts.compact .amo-pa{width:26px;height:26px;border-radius:7px}
+.amo-phone-wrap{display:inline-flex;align-items:center;gap:8px}
+.amo-phone-inline .amo-phone-acts{opacity:0;transition:opacity .12s}
+.amo-phone-cell:hover .amo-phone-acts{opacity:1}
+@media (hover:none){.amo-phone-inline .amo-phone-acts{opacity:1}}
+
+/* ═══ amoCRM uslubidagi maydon sozlagich ═══ */
+.crm-fieldlist{display:flex;flex-direction:column;border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.crm-fieldrow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--bd2,var(--bd));background:var(--card)}
+.crm-fieldrow:last-child{border-bottom:none}
+.crm-fieldrow.off{opacity:.55;background:var(--canvas)}
+.crm-fmove{display:flex;flex-direction:column;gap:1px}
+.crm-fmini{width:26px;height:24px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--mut);cursor:pointer;font-size:13px;line-height:1}
+.crm-fmove .crm-fmini{height:15px;border-radius:5px}
+.crm-fmini:hover:not(:disabled){background:var(--canvas);color:var(--ink)}
+.crm-fmini:disabled{opacity:.4;cursor:default}
+.crm-fdel:hover{color:var(--dang);border-color:rgba(222,81,71,.4)}
+.crm-req{color:var(--dang);font-weight:800}
+.crm-grouptag{font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;background:rgba(63,119,221,.12);color:var(--info)}
+.crm-feditor{border:1px solid var(--lime);border-radius:10px;padding:14px;margin-bottom:14px;background:var(--canvas)}
+.crm-feditor-t{font-size:12.5px;font-weight:800;margin-bottom:10px}
+.crm-price-wrap{position:relative;display:flex;align-items:center}
+.crm-price-wrap input{padding-right:44px}
+.crm-price-cur{position:absolute;right:10px;font-size:12px;color:var(--mut);pointer-events:none}
+
+/* amoCRM vazifalar kalendari */
+.amo-cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+.amo-cal-head>div{font-size:11px;font-weight:700;color:var(--amo-mut,#8a8a8a);text-align:center;text-transform:uppercase}
+.amo-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.amo-cal-cell{min-height:92px;border:1px solid var(--amo-line,#e0e0e0);border-radius:8px;padding:5px;display:flex;flex-direction:column;gap:3px;background:#fff}
+.amo-cal-cell.empty{background:transparent;border:0}
+.amo-cal-cell.today{border-color:var(--amo-blue,#2A9AF3);box-shadow:inset 0 0 0 1px var(--amo-blue,#2A9AF3)}
+.amo-cal-d{font-size:12px;font-weight:700;color:#5a5a5a}
+.amo-cal-task{font-size:10.5px;background:#eaf3fd;color:#1a5fa8;border-radius:4px;padding:2px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.amo-cal-task.done{background:#e7f4ec;color:#2e8b57;text-decoration:line-through;opacity:.8}
+
+/* O'qish qulayligi — amoCRM o'lchamlariga yaqinlashtirish (kattaroq, qulayroq) */
+.amo{font-size:13.5px}
+.amo .amo-tab{font-size:13.5px}
+.amo .kcoltitle{font-size:13px}
+.amo .kcolcnt{font-size:12px}
+.amo .kcardname{font-size:13.5px}
+.amo .kcardsum{font-size:13.5px}
+.amo .kcardtask{font-size:12px}
+.amo .kcardcf{font-size:12.5px}
+.amo .amo-log{font-size:13px}
+.amo .amo-log-ic{font-size:13px}
+.amo .amo-log-dt{font-size:12px}
+.amo .amo-note-h{font-size:12.5px}
+.amo .amo-note-b{font-size:14px;line-height:1.5}
+.amo .amo-stage{font-size:11px}
+.amo .amo-comp-tabs button{font-size:13px}
+.amo .amo-cal-d{font-size:13px}
+.amo .amo-cal-task{font-size:12px}
+.amo .amo-cal-head>div{font-size:12px}
+.amo .tag{font-size:12px}
+.amo .amo-incoming{font-size:13.5px}
+
+/* Ochiq vazifa — kompozitorga yopishgan blok */
+.amo-pinned-tasks{border-top:1px solid var(--amo-line,#e0e0e0);background:#fff;padding:8px 18px;flex:0 0 auto}
+
+/* Kanban drop-zone (vazifa sudrab tashlaganda) */
+.kcol.amo-drop{outline:2px dashed var(--amo-blue,#2A9AF3);outline-offset:-2px;border-radius:6px}
+.amo .kcard[draggable="true"]{cursor:grab}
+.amo .kcard[draggable="true"]:active{cursor:grabbing}
+
+/* ====== AI markdown javoblari (.md) — chat, strategiya, tahlillar ====== */
+.md{line-height:1.6;color:var(--ink)}
+.md>*:first-child{margin-top:0}.md>*:last-child{margin-bottom:0}
+.md h1,.md h2,.md h3,.md h4{line-height:1.3;margin:14px 0 6px;font-weight:800}
+.md h1{font-size:1.25em}.md h2{font-size:1.15em}.md h3{font-size:1.06em}.md h4{font-size:1em}
+.md p{margin:6px 0}
+.md ul,.md ol{margin:6px 0;padding-left:20px}.md li{margin:3px 0}
+.md strong{font-weight:800}
+.md blockquote{margin:8px 0;padding:6px 12px;border-left:3px solid var(--lime);background:var(--canvas);border-radius:0 8px 8px 0;color:var(--ink)}
+.md hr{border:0;border-top:1px solid var(--bd);margin:12px 0}
+.md code{background:var(--canvas);border:1px solid var(--bd);border-radius:5px;padding:1px 5px;font-size:.92em}
+.md pre{background:var(--canvas);border:1px solid var(--bd);border-radius:9px;padding:10px;overflow-x:auto}
+.md pre code{border:0;background:0;padding:0}
+.md table{width:100%;border-collapse:collapse;margin:8px 0;font-size:.95em}
+.md th{background:var(--canvas);font-weight:800;text-align:left}
+.md th,.md td{border:1px solid var(--bd);padding:6px 9px;vertical-align:top}
+.md tr:nth-child(even) td{background:var(--bd2)}
+.md a{color:var(--info);text-decoration:underline}
+.md img{max-width:100%;border-radius:8px}
+
+/* Global fallback: portal orqali .app/.crmsa tashqarisida render bo'ladigan
+   elementlar (dialog, overlay) ham dizayn o'zgaruvchilarini olsin */
+:root{--lime:#D7F904;--ink:#373435;--ink2:#2B2A28;--ink3:#1E1D1B;--canvas:#F3F4EF;--card:#fff;--bd:#E6E8E0;--bd2:#EFF0EA;--mut:#8B8E84;--mut2:#B6B9AE;--ok:#46B17B;--warn:#D9952E;--dang:#DE5147;--info:#3F77DD}
+
+/* ══ CRM alohida platforma (crm.<domen> subdomeni) — amoCRM tuzilmasi ══ */
+.crmsa{--lime:#D7F904;--ink:#373435;--ink2:#2B2A28;--ink3:#1E1D1B;--canvas:#F3F4EF;--card:#fff;--bd:#E6E8E0;--bd2:#EFF0EA;--mut:#8B8E84;--mut2:#B6B9AE;--ok:#46B17B;--warn:#D9952E;--dang:#DE5147;--info:#3F77DD;
+display:flex;height:100vh;background:#EBEBEB;font-family:'Manrope',system-ui,sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
+/* Chap panel — amoCRM'dagi kabi ikonkali bo'limlar ustuni */
+.crmsa-rail{width:76px;flex:0 0 auto;background:#17191c;display:flex;flex-direction:column;align-items:stretch;padding:10px 6px;gap:2px;overflow-y:auto}
+.crmsa-logo{background:#D7F904;color:#1E1D1B;font-weight:800;font-size:12px;border-radius:9px;padding:8px 0;letter-spacing:.5px;text-align:center;margin:0 6px 10px}
+.crmsa-rl{display:flex;flex-direction:column;align-items:center;gap:4px;background:transparent;border:0;color:#9a9da3;font-size:10px;font-weight:600;padding:9px 2px;border-radius:9px;cursor:pointer;text-decoration:none;font-family:inherit}
+.crmsa-rl svg{width:19px;height:19px}
+.crmsa-rl:hover{color:#fff;background:#22252a}
+.crmsa-rl.on{color:#17191c;background:#D7F904}
+.crmsa-col{flex:1;display:flex;flex-direction:column;min-width:0}
+.crmsa-top{display:flex;align-items:center;gap:14px;background:#fff;border-bottom:1px solid #dedede;color:#373435;padding:0 18px;height:50px;flex:0 0 auto}
+.crmsa-title{font-size:15px;font-weight:700}
+.crmsa-user{font-size:13px;color:#666}
+.crmsa-out{background:transparent;border:1px solid #d5d5d5;color:#666;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:14px}
+.crmsa-out:hover{color:#DE5147;border-color:#DE5147}
+.crmsa-body{flex:1;overflow:auto;padding:14px 16px}
+.crmsa-body .amo{max-width:none}
+.crmsa-taskrow{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--bd2);border-radius:9px;font-size:13px;cursor:pointer}
+.crmsa-taskrow:hover{border-color:var(--mut2);background:var(--canvas)}
+.crmsa-tdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+
+/* ══ Voronka — amoCRM qo'shimchalari ══ */
+/* Karta sudralganda pastda chiquvchi yopish zonalari (amoCRM) */
+.kclose{position:fixed;left:0;right:0;bottom:0;display:flex;z-index:80;box-shadow:0 -4px 18px rgba(0,0,0,.18)}
+.kclose-z{flex:1;text-align:center;padding:20px 10px;font-size:12.5px;font-weight:800;letter-spacing:.4px;color:#fff;opacity:.93;transition:opacity .1s,transform .1s}
+.kclose-z:hover{opacity:1;transform:translateY(-2px)}
+.kclose-z.del{background:#6b7280}
+.kclose-z.lost{background:#DE5147}
+.kclose-z.won{background:#2E9E5B}
+/* Har ustunda tez qo'shish (amoCRM "Быстрое добавление") */
+.kaddquick{width:100%;border:1px dashed #cfcfcf;background:transparent;border-radius:4px;color:#9a9a9a;padding:5px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.kaddquick:hover{color:var(--amo-blue);border-color:var(--amo-blue)}
+.kqa{cursor:default}
+.kqa-in{width:100%;border:1px solid #ddd;border-radius:4px;padding:6px 8px;font:inherit;font-size:12.5px;margin-bottom:5px;outline:none}
+.kqa-in:focus{border-color:var(--amo-blue)}
+/* Saralanmagan — chapdagi maxsus ustun */
+.kcol-unsorted{background:#f2f2f2;border-radius:6px}
+.kcol-unsorted .kcard{border-style:dashed}
+/* Toolbar'dagi jami hisob */
+.amo-total{font-size:12.5px;color:var(--amo-mut);white-space:nowrap}
+
+/* ═══════════ Google Forms uslubidagi forma tuzuvchi ═══════════ */
+.gf-drawer{width:min(760px,100%)}
+.gf-build{display:flex;flex-direction:column;gap:14px;padding-bottom:6px}
+.gf-card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px 18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.gf-head{border-top:6px solid var(--lime);border-radius:12px}
+.gf-title-input{width:100%;border:none;border-bottom:1px solid transparent;background:transparent;font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--ink);padding:4px 0;outline:none}
+.gf-title-input:focus{border-bottom-color:var(--lime)}
+.gf-desc-input{width:100%;border:none;border-bottom:1px solid transparent;background:transparent;font-size:13px;color:var(--mut);padding:5px 0;margin-top:4px;outline:none}
+.gf-desc-input:focus{border-bottom-color:var(--bd)}
+.gf-q{position:relative;transition:box-shadow .15s,border-color .15s}
+.gf-q:focus-within{border-color:var(--lime);box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.gf-q-top{display:flex;gap:10px;align-items:flex-start}
+.gf-q-label{flex:1;min-width:0;border:none;border-bottom:1px solid var(--bd);background:var(--canvas);border-radius:6px 6px 0 0;font-size:14.5px;font-weight:600;color:var(--ink);padding:9px 10px;outline:none}
+.gf-q-label:focus{border-bottom:2px solid var(--lime);background:var(--card)}
+.gf-type{width:190px;flex:none}
+.gf-preview{margin-top:10px;background:var(--canvas);opacity:.75;cursor:default}
+.gf-opts{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.gf-opt-row{display:flex;align-items:center;gap:9px}
+.gf-bullet{width:20px;text-align:center;color:var(--mut);font-size:14px;flex:none}
+.gf-opt-input{flex:1;border:none;border-bottom:1px solid var(--bd);background:transparent;font-size:13.5px;color:var(--ink);padding:5px 2px;outline:none}
+.gf-opt-input:focus{border-bottom-color:var(--lime)}
+.gf-opt-other{opacity:.85}
+.gf-other-label{flex:1;font-size:13px;color:var(--mut);font-style:italic}
+.gf-opt-actions{display:flex;align-items:center;gap:14px;margin-top:4px;flex-wrap:wrap}
+.gf-linkbtn{background:none;border:none;color:var(--info);font-weight:600;font-size:12.5px;cursor:pointer;padding:0}
+.gf-linkbtn:hover{text-decoration:underline}
+.gf-shuffle{font-size:12px;color:var(--mut)}
+.gf-scale-edit{margin-top:12px}
+.gf-valid{margin-top:12px;padding:10px 12px;background:var(--canvas);border-radius:8px}
+.gf-foot{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--bd);flex-wrap:wrap}
+.gf-map{width:auto;min-width:150px;height:32px}
+.gf-iconbtn{width:30px;height:30px;border:none;background:transparent;border-radius:7px;cursor:pointer;color:var(--mut);font-size:16px;display:inline-flex;align-items:center;justify-content:center}
+.gf-iconbtn:hover{background:var(--canvas);color:var(--ink)}
+.gf-del:hover{color:var(--dang)}
+.gf-sep{width:1px;height:22px;background:var(--bd);margin:0 4px}
+.gf-req{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--mut)}
+.gf-section{border-left:4px solid var(--lime)}
+.gf-section-tag{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--lime);margin-bottom:4px}
+.gf-addbar{display:flex;gap:10px;flex-wrap:wrap}
+.gf-settings{background:var(--canvas)}
+.gf-set-title{font-size:13px;font-weight:800;margin-bottom:12px;color:var(--ink)}
+.gf-swatch{width:24px;height:24px;border-radius:50%;border:none;cursor:pointer;padding:0}
+
+/* ── Ommaviy forma (renderer) ── */
+.gf-render{position:relative;padding-top:0;overflow:hidden}
+.gf-render-top{height:8px;margin:-1px -1px 18px;border-radius:14px 14px 0 0}
+.gf-render-section{margin:6px 0 14px;padding:12px 14px;background:var(--canvas);border-radius:10px}
+.gf-render-section h3{margin:0 0 4px;font-size:16px;font-weight:800}
+.gf-progress{height:5px;background:var(--bd);border-radius:99px;overflow:hidden;margin-bottom:16px}
+.gf-progress-bar{height:100%;border-radius:99px;transition:width .3s}
+.gf-fhelp{font-size:12.5px;color:var(--mut);margin:-2px 0 8px}
+.gf-nav{display:flex;align-items:center;gap:10px;margin-top:18px}
+.gf-other-in{display:flex;align-items:center;gap:8px}
+.gf-other-in input[type=text],.gf-other-in .hr-input{flex:1}
+.gf-scale{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px}
+.gf-scale-lbl{font-size:12.5px;color:var(--mut);font-weight:600}
+.gf-scale-nums{display:flex;gap:10px;flex-wrap:wrap}
+.gf-scale-num{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px;font-weight:600;cursor:pointer}
+.gf-rating{display:flex;align-items:center;gap:4px;margin-top:4px}
+.gf-star{font-size:28px;cursor:pointer;transition:transform .1s}
+.gf-star:hover{transform:scale(1.15)}
+
+/* ── Banner rasm ── */
+.gf-render{position:relative}
+.gf-render-top{height:10px;margin:-26px -24px 18px;border-radius:16px 16px 0 0}
+.gf-render-banner{margin:-26px -24px 18px;border-radius:16px 16px 0 0;overflow:hidden;line-height:0}
+.gf-render-banner img{width:100%;max-height:230px;object-fit:cover;display:block}
+.gf-head-banner{position:relative;line-height:0}
+.gf-head-banner img{width:100%;max-height:180px;object-fit:cover;display:block}
+.gf-head-banner-acts{position:absolute;top:8px;right:8px;display:flex;gap:6px}
+.gf-head-banner-acts .btn{background:rgba(0,0,0,.55);color:#fff;border-color:transparent;backdrop-filter:blur(3px)}
+.gf-set-thumb{width:96px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--bd)}
+
+/* ── Rasm tanlash modali ── */
+.gf-imgmodal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1200;display:flex;align-items:center;justify-content:center;padding:16px}
+.gf-imgmodal{width:min(620px,100%);max-height:88vh;overflow:auto;background:var(--card);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:hrslide .18s ease}
+.gf-imgmodal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bd);font-size:15px}
+.gf-imgtabs{display:flex;gap:4px;padding:12px 20px 0;flex-wrap:wrap}
+.gf-imgtab{border:none;background:transparent;padding:8px 14px;border-radius:8px 8px 0 0;font-weight:700;font-size:13px;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent}
+.gf-imgtab.on{color:var(--ink);border-bottom-color:var(--lime)}
+.gf-imgbody{padding:16px 20px 22px}
+.gf-preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.gf-preset{height:74px;border:1px solid var(--bd);border-radius:10px;cursor:pointer;background-size:cover;background-position:center;transition:transform .1s,box-shadow .1s}
+.gf-preset:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.15)}
+.gf-drop{border:2px dashed var(--bd);border-radius:12px;padding:34px 16px;text-align:center;cursor:pointer;color:var(--mut);transition:border-color .15s,background .15s}
+.gf-drop:hover{border-color:var(--lime);background:var(--canvas);color:var(--ink)}
+.gf-url-preview{width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-top:12px;border:1px solid var(--bd)}
