@@ -12,6 +12,7 @@ import LeadsFilter from '../LeadsFilter'
 import FieldsModal from '../FieldsModal'
 import BulkBar from '../BulkBar'
 import { useLeadsQuery, useFilterMeta, filterChips, sortMenuItem, downloadLeadsCsv, useLayout, CARD_FIELDS, CARD_DEFAULT, withCustomFields } from '../filterState'
+import { useTagColors, tagStyle } from '../tagColors'
 import { useT, usePlural } from '../i18n'
 import '../i18n/leadcard.ru.js'
 import '../i18n/leadsfilter.ru.js'
@@ -40,15 +41,20 @@ function Avatar({ src }) {
   )
 }
 
-function TaskMark({ s }) {
+// amoCRM: rejalashtirilgan vazifa bo'lsa belgi yo'q; vazifa yo'q — sariq, muddati o'tgan — qizil.
+// Matn faqat teglar bo'lmaganda (joy bo'lsa) ko'rinadi.
+function TaskMark({ s, compact }) {
   const t = useT()
   if (!s) return null
   const kind = s.kind || 'none'
-  return <span className={`ac-card__task ${kind}`}>{t(s.label)}<i /></span>
+  if (kind === 'today' || kind === 'future') return null
+  return <span className={`ac-card__task ${kind}`} title={t(s.label)}>{!compact && t(s.label)}<i /></span>
 }
 
 function LeadCard({ lead, onOpen, onPointerDown, dragging, fields, bulk, selected, onToggle }) {
   const has = (k) => fields.includes(k)
+  const tagColors = useTagColors()
+  const tags = has('tags') ? lead.tags || [] : []
   const title = has('contact') ? lead.contactName || lead.n : lead.n
   const t = useT()
   // Qo'shimcha qatorlar kartochka sozlamasidagi tartibda
@@ -66,6 +72,8 @@ function LeadCard({ lead, onOpen, onPointerDown, dragging, fields, bulk, selecte
       {bulk && <input type="checkbox" className="ac-check ac-card__chk" readOnly checked={!!selected} />}
       {has('avatar') && <Avatar />}
       <div className="ac-card__body">
+        {/* amoCRM: kompaniya nomi bitim nomi ustida kulrang */}
+        {has('company') && lead.company && <div className="ac-card__company">{lead.company}</div>}
         <div className="ac-card__row">
           <span className="ac-card__name" onClick={(e) => { if (bulk) return; e.stopPropagation(); onOpen(lead) }} onPointerDown={(e) => e.stopPropagation()}>{title}</span>
           {has('date') && <span className="ac-card__date">{cardDate(lead.createdAt, t)}</span>}
@@ -73,14 +81,18 @@ function LeadCard({ lead, onOpen, onPointerDown, dragging, fields, bulk, selecte
         {has('contact') && lead.contactName && lead.contactName !== lead.n && <div className="ac-card__sub">{lead.n}</div>}
         {fields.map((k, i) => {
           if (k === 'budget') return lead.value > 0 ? <div key={k} className="ac-card__budget">{money(lead.value)}</div> : null
+          if (k === 'company') return null
           const v = lines[i]
           if (v == null || v === '') return null
           return <div key={k} className={k === 'assignee' ? 'ac-card__sub' : 'ac-card__extra'}>{v}</div>
         })}
         {(has('tags') || has('task')) && (
           <div className="ac-card__foot">
-            <div className="ac-card__tags">{has('tags') && (lead.tags || []).slice(0, 3).map((x) => <span key={x} className="ac-tag ac-tag--sm">{x}</span>)}</div>
-            {has('task') && <TaskMark s={lead.taskStatus} />}
+            <div className="ac-card__tags">
+              {tags.slice(0, 2).map((x) => <span key={x} className={`ac-tag ac-tag--sm ${tagColors[x] ? 'ac-tag--c' : ''}`} style={tagStyle(tagColors[x])}>{x}</span>)}
+              {tags.length > 2 && <span className="ac-tag ac-tag--sm ac-tag--more">+{tags.length - 2}</span>}
+            </div>
+            {has('task') && <TaskMark s={lead.taskStatus} compact={tags.length > 0} />}
           </div>
         )}
       </div>
@@ -88,8 +100,37 @@ function LeadCard({ lead, onOpen, onPointerDown, dragging, fields, bulk, selecte
   )
 }
 
-function UnsortedCard({ lead, onAccept, onReject, onOpen }) {
+const UTM_RE = /^(utm_|openstat_|_ym_|gclid|yclid|fbclid|gclientid|roistat|referrer|from$)/
+
+function UnsortedCard({ lead, fields = [], onAccept, onReject, onOpen }) {
   const t = useT()
+  // amoCRM: forma/Lead Ads arizasi — avatar o'rniga forma maydonlari ro'yxati (nom → qiymat)
+  const answers = Object.entries(lead.custom || {}).filter(([k, v]) => !UTM_RE.test(k) && !k.startsWith('_') && v !== '' && v != null && typeof v !== 'object')
+  if (lead.formName || answers.length) {
+    const label = (k) => fields.find((f) => f.key === k)?.label || k
+    const rows = [
+      [t('Bitim nomi'), lead.n],
+      ...answers.map(([k, v]) => [label(k), v === true ? t('Ha') : String(v)]),
+      lead.contactName && [t('Kontakt ismi'), lead.contactName],
+      (lead.contactPhone || lead.phone) && [t('Telefon'), lead.contactPhone || lead.phone],
+      lead.company && [t('Kompaniya nomi'), lead.company],
+    ].filter(Boolean)
+    return (
+      <div className="ac-card ac-card--unsorted ac-card--form">
+        <div className="ac-card__body">
+          <div className="ac-card__row">
+            <span className="ac-card__formtitle" onClick={() => onOpen(lead)}>{lead.n}</span>
+            <span className="ac-card__date">{cardDate(lead.createdAt, t)}</span>
+          </div>
+          {rows.map(([k, v], i) => <div key={i} className="ac-card__kv"><span title={k}>{k}</span><b title={v}>{v}</b></div>)}
+        </div>
+        <div className="ac-card__accept">
+          <button className="ac-btn ac-btn--green ac-btn--sm" onClick={() => onAccept(lead)}><Ico name="check" size={12} /> {t('Qabul qilish')}</button>
+          <button className="ac-btn ac-btn--sm" onClick={() => onReject(lead)}>{t('Rad etish')}</button>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="ac-card ac-card--unsorted">
       <Avatar src={lead.source || 'form'} />
@@ -387,7 +428,7 @@ export default function LeadsPipeline() {
           { label: t('Avto-yangilash'), switch: autoRefresh, onClick: () => setAutoRefresh((v) => { localStorage.setItem('amo_autorefresh', v ? '0' : '1'); return !v }) },
         ]}
         actions={<>
-          <button className="ac-btn" onClick={() => navigate(`/settings/pipeline/leads/${pipelineId || 'main'}`)}>{t('Voronkani sozlash')}</button>
+          <button className="ac-btn" onClick={() => navigate(`/settings/pipeline/leads/${pipelineId || 'main'}`)}>{t('Sozlash')}</button>
           <button className="ac-btn ac-btn--blue" onClick={() => navigate(`/leads/add${pipelineId ? `?pipeline=${pipelineId}` : ''}`)}><span className="ac-btn__plus">+</span>{t('Yangi bitim')}</button>
         </>}
       />
@@ -401,7 +442,7 @@ export default function LeadsPipeline() {
                 <div className="ac-col__line" />
               </div>
               <div className="ac-col__body">
-                {unsorted.map((l) => <UnsortedCard key={l.id} lead={l} onAccept={acceptUnsorted} onReject={rejectUnsorted} onOpen={openLead} />)}
+                {unsorted.map((l) => <UnsortedCard key={l.id} lead={l} fields={meta.fields} onAccept={acceptUnsorted} onReject={rejectUnsorted} onOpen={openLead} />)}
               </div>
             </div>
           )}

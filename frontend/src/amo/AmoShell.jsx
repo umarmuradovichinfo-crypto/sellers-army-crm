@@ -137,7 +137,8 @@ function LeadsFlyout({ open, onEnter, onLeave, onPick }) {
     <div className={`ac-aside ac-flyout ${open ? 'open' : ''}`} onMouseEnter={onEnter} onMouseLeave={onLeave}>
       <div className="ac-aside__head">{t('Bitimlar')}</div>
       <div className="ac-aside__list">
-        {(pipes.length ? pipes : [{ id: '', name: t('Asosiy voronka') }]).map((p) => (
+        {/* getPipeline().pipelines — faqat qo'shimcha voronkalar; asosiy voronka birinchi */}
+        {[{ id: '', name: t('Asosiy voronka') }, ...pipes.filter((p) => p.id)].map((p) => (
           <NavLink key={p.id || 'main'} to={`/leads/pipeline/${p.id || ''}`} className={`ac-aside__item ${String(current) === String(p.id || '') && loc.pathname.startsWith('/leads/pipeline') ? 'selected' : ''}`} onClick={onPick}>
             {p.name}
           </NavLink>

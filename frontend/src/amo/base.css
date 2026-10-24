@@ -173,3 +173,7 @@ textarea.ac-input { height: auto; min-height: 80px; padding: 8px 10px; resize: v
 .ac-filter__tagrow { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--palette-text-secondary-dark); }
 .ac-filter__foot { display: flex; gap: 8px; padding-top: 10px; margin-top: auto; }
 
+
+/* Rangli teg (Sozlamalar → Teglar rangi) */
+.ac-tag--c { background: var(--tag) !important; border-color: var(--tag) !important; color: #363b44 !important; }
+[data-color-scheme="dark"] .ac-tag--c { background: color-mix(in srgb, var(--tag) 22%, transparent) !important; color: var(--palette-text-secondary-dark) !important; border-color: color-mix(in srgb, var(--tag) 75%, transparent) !important; }

@@ -185,3 +185,14 @@
 .ac-filter .ac-filter__tags { flex: none; }
 .ac-filter__save .ac-input { width: auto; flex: 1; min-width: 0; }
 .ac-card__chk { flex: none; }
+
+/* Kartochka: kompaniya nomi (nom ustida), teglar "+N" */
+.ac-card__company { font-size: 13px; line-height: 16px; color: var(--palette-text-secondary-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-tag--more { background: transparent !important; color: var(--palette-text-secondary-dark); }
+/* Saralanmagan: forma arizasi (amoCRM .pipeline-unsorted__item-from-form) */
+.ac-card--form .ac-card__body { min-width: 0; }
+.ac-card__formtitle { flex: 1; min-width: 0; font-size: 13px; color: var(--palette-text-primary); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-card__formtitle:hover { color: var(--palette-link-primary); }
+.ac-card__kv { display: flex; gap: 10px; font-size: 13px; line-height: 19px; }
+.ac-card__kv span { width: 92px; flex: none; color: var(--palette-text-secondary-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-card__kv b { flex: 1; min-width: 0; font-weight: 400; color: var(--palette-text-secondary-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

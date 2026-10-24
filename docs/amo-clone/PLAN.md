@@ -97,6 +97,18 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     - [ ] Lenta qatorining o'ng tomonida obyekt havolasi (kontakt nomi) — kontakt voqealari lentaga tushganda
     - [x] Vazifa turi ikonkalari
     - [ ] Composer'da sana tanlagich amoCRM uslubida ("31.10.2026" maydon + kalendar popup)
+25. [~] (USTUVOR, foydalanuvchi so'rovi 24.10) amoCRM'ni qaytadan to'liq ko'rib chiqish va CRM'ni har bo'lim bo'yicha
+    1:1 solishtirish: joylashuv, dizayn, funksiya, mantiq; har bir farq/xato docs/amo-clone/AUDIT.md ga yoziladi va tuzatiladi.
+    Tartib: qobiq/menyu → Bitimlar voronka → ro'yxat → kartochka → Vazifalar → Ro'yxatlar (kontakt/kompaniya + kartochkalar)
+    → imBox → Analitika → Ish stoli → Sozlamalar (har sahifa)
+27. [ ] Facebook ulash xatosi: "Invalid Scopes: instagram_basic, instagram_manage_messages, instagram_manage_comments".
+    Sabab: Meta ilovasida Instagram ruxsatlari (use case "Instagram'da xabar va kontentni boshqarish") qo'shilmagan.
+    Tuzatish: ilovaga Instagram use case/ruxsatlarini qo'shish; connector so'raydigan scope'larni ilovada yoqilganlari bilan
+    moslash (yoqilmaganini so'ramaslik), shunda Facebook Lead Ads ulanishi Instagram'siz ham ishlasin. Qilingan: App Domains va
+    Valid OAuth Redirect URI (connector /fb/callback) qo'shildi.
+26. [ ] (25-banddan keyin) Har bir qurilma ekraniga moslashish: avval amoCRM turli o'lchamlarda (desktop 1920/1440/1280,
+    planshet 1024/768, telefon 414/375) qanday moslashishi ko'riladi (menyu, voronka ustunlari, kartochka, jadval, modallar),
+    so'ng bizniki xuddi shunday qilinadi va har o'lchamda test qilinadi
 22. [ ] Sozlamalar → Chatlar va messenjerlar: amoCRM kabi "Javob shablonlari" (nom, tur, matn; chatda tanlash) va imBox/notif switch'lari
 
 ## Kutilayotgan so'rovlar (navbati kelganda)

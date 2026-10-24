@@ -8,6 +8,7 @@ import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
 import { feedDate, feedDateFull, dmy, relDay, currency } from '../format'
 import { useT } from '../i18n'
+import { tagStyle } from '../tagColors'
 import '../i18n/leadcard.ru.js'
 import '../leadcard.css'
 
@@ -685,7 +686,7 @@ export default function LeadCard() {
             </div>
             <div className="ac-cf__meta" onClick={(e) => { if (e.target === e.currentTarget && tagInput === null) setTagInput('') }}>
               {!isNew && v.n && <span>#{String(lead.id).slice(-8)}</span>}
-              {(v.tags || []).map((tg) => <span key={tg} className="ac-cf__tagpill" style={tagColors[tg] ? { background: tagColors[tg], borderColor: tagColors[tg], color: '#363b44' } : undefined}>{tg}<button onClick={() => removeTag(tg)}><Ico name="close" size={10} /></button></span>)}
+              {(v.tags || []).map((tg) => <span key={tg} className={`ac-cf__tagpill ${tagColors[tg] ? 'ac-tag--c' : ''}`} style={tagStyle(tagColors[tg])}>{tg}<button onClick={() => removeTag(tg)}><Ico name="close" size={10} /></button></span>)}
               {tagInput === null
                 ? <button className={`ac-cf__tagbtn ${(v.tags || []).length ? 'ac-cf__tagbtn--more' : ''}`} onClick={() => setTagInput('')}>{(v.tags || []).length ? '+' : `#${t('Teglash')}`}</button>
                 : <input autoFocus className="ac-input" style={{ width: 140, height: 22 }} value={tagInput} onChange={(e) => setTagInput(e.target.value)}

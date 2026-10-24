@@ -95,4 +95,9 @@ addRu({
   "Rejalashtirilgan vazifalar yo'q, tavsiya qilamiz": 'Нет запланированных задач, рекомендуем',
   "qo'shish": 'добавить',
   'Bitim': 'Сделка',
+  'Bitim nomi': 'Название сделки',
+  "Vazifa yo'q": 'Нет задач',
+  'Kontakt ismi': 'Имя контакта',
+  'Kompaniya nomi': 'Название компании',
+  'Asosiy qilish': 'Сделать основным',
 })
