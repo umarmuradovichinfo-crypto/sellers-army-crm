@@ -237,3 +237,5 @@
 .ac-fs-opt { display: flex; gap: 6px; }
 .ac-fs-opt button { background: none; border: 0; cursor: pointer; color: var(--palette-text-secondary-light); }
 .ac-fs-opt button:hover { color: var(--amo-danger); }
+
+.ac-fs-req { flex: none; height: 22px; line-height: 22px; padding: 0 8px; border-radius: 3px; background: #f37575; color: #fff; font-size: 12px; margin-right: 8px; }

@@ -118,3 +118,9 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 |---|--------|-----------|-------|
 | 1 | "+ WEB HOOKS (n)": hodisalarda (bitim qo'shildi/o'zgardi/bosqich/o'chirildi, eslatma, vazifa) tashqi URL'ga POST | yo'q | qo'shildi (crm/webhooks, SSRF himoyasi, fon rejimida) |
 | 2 | Bannerlar, "Выбор amoCRM", "Амма и агенты", Email/SMS katalogi | — | amoCRM marketplace kontenti — qo'shilmaydi |
+
+## 15. Maydonlar sozlamasi
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | Maydon ma'lum bosqichlarda majburiy ("Обязательно N"): bitim shu bosqichga o'tkazilganda bo'sh bo'lsa — o'tkazilmaydi | faqat umumiy "majburiy" belgisi (formalar uchun) | qo'shildi (requiredStagesJson, moveLead/updateLead tekshiruvi, "Yo'qotilgan"ga o'tish erkin) |
+| 2 | Sozlash kartochka ichida ("Настроить" tabi — chap panelda) | alohida sahifa | rejada (ko'rinish farqi, funksiya bir xil) |

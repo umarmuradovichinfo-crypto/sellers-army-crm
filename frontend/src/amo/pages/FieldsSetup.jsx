@@ -5,6 +5,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
 import { Ico } from '../AmoIcons'
 import { useT } from '../i18n'
+import MultiSelect from '../MultiSelect'
+import { useFilterMeta } from '../filterState'
 import '../i18n/pipesetup.ru'
 import '../pipesetup.css'
 
@@ -20,9 +22,9 @@ const TYPES = [
 const typeLabel = (v) => TYPES.find((x) => x.v === v)?.l || (v === 'textarea' ? 'Matn (ko\'p qatorli)' : v)
 const DEFAULT_GROUP = ''
 
-function FieldModal({ initial, defaultGroup, groups, onSave, onClose }) {
+function FieldModal({ initial, defaultGroup, groups, onSave, onClose, entity, stageOpts }) {
   const t = useT()
-  const [f, setF] = useState({ label: initial?.label || '', type: initial?.type || 'text', options: initial?.options?.length ? initial.options : [''], group: initial?.group ?? defaultGroup ?? groups[0] ?? DEFAULT_GROUP, required: !!initial?.required })
+  const [f, setF] = useState({ label: initial?.label || '', type: initial?.type || 'text', options: initial?.options?.length ? initial.options : [''], group: initial?.group ?? defaultGroup ?? groups[0] ?? DEFAULT_GROUP, required: !!initial?.required, requiredStages: initial?.requiredStages || [] })
   const [newGroup, setNewGroup] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -35,7 +37,7 @@ function FieldModal({ initial, defaultGroup, groups, onSave, onClose }) {
     if (f.group === '__new' && !newGroup.trim()) { setErr(t('Guruh nomini kiriting')); return }
     setBusy(true); setErr('')
     const group = f.group === '__new' ? newGroup.trim() : f.group
-    try { await onSave({ label: f.label.trim(), type: f.type, options: opts, group, required: f.required }) }
+    try { await onSave({ label: f.label.trim(), type: f.type, options: opts, group, required: f.required, requiredStages: f.requiredStages }) }
     catch (e) { setErr(e?.message || t('Saqlanmadi')) }
     finally { setBusy(false) }
   }
@@ -76,6 +78,13 @@ function FieldModal({ initial, defaultGroup, groups, onSave, onClose }) {
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 14, cursor: 'pointer' }}>
           <input type="checkbox" className="ac-check" checked={f.required} onChange={(e) => set({ required: e.target.checked })} />{t('Majburiy maydon')}
         </label>
+        {entity === 'lead' && (
+          <>
+            <label className="ac-ps-lbl" style={{ marginTop: 14 }}>{t("Qaysi bosqichlarga o'tishda majburiy")}</label>
+            <MultiSelect options={stageOpts} groups value={f.requiredStages} onChange={(v) => set({ requiredStages: v })} placeholder={t('Bosqichlarni tanlang')} />
+            <div className="ac-muted" style={{ fontSize: 12, marginTop: 4 }}>{t("Bitim shu bosqichlarga o'tkazilganda maydon bo'sh bo'lsa, o'tkazilmaydi")}</div>
+          </>
+        )}
         {err && <div style={{ color: 'var(--amo-danger)', fontSize: 13, marginTop: 10 }}>{err}</div>}
         <div className="ac-modal__foot">
           <button className="ac-btn ac-btn--blue" disabled={busy || !f.label.trim()} onClick={submit}>{t('Saqlash')}</button>
@@ -92,6 +101,12 @@ export default function FieldsSetupPage() {
   const { entity: slug = 'leads' } = useParams()
   const cur = ENTITIES.find((e) => e.slug === slug) || ENTITIES[0]
   const [fields, setFields] = useState(null)
+  // "Обязательно N": barcha voronkalar bosqichlari (ochiq va yutilgan), voronka bo'yicha guruhlangan
+  const meta = useFilterMeta()
+  const stageOpts = useMemo(() => {
+    const pname = (pid) => (pid ? (meta.pipelines || []).find((p) => p.id === pid)?.name || '' : t('Asosiy voronka'))
+    return (meta.stages || []).filter((x) => x.kind !== 'lost').map((x) => ({ value: x.key, label: x.name, group: pname(x.pipelineId), color: x.color }))
+  }, [meta.stages, meta.pipelines]) // eslint-disable-line
   const [extraGroups, setExtraGroups] = useState([])
   const [modal, setModal] = useState(null) // {initial?}
   const [drag, setDrag] = useState(null)
@@ -181,6 +196,7 @@ export default function FieldsSetupPage() {
                     <span className="ac-fs-row__grip" draggable onDragStart={(e) => { setDrag(f.id); const r = e.currentTarget.closest('.ac-fs-row'); if (r) e.dataTransfer.setDragImage(r, 10, 10) }} onDragEnd={() => { setDrag(null); setOver(null) }}><Ico name="dragDots" size={14} /></span>
                     <span className="ac-fs-row__name">{f.label}{f.required ? ' *' : ''}</span>
                     <span className="ac-fs-row__type">{t(typeLabel(f.type))}</span>
+                    {(f.requiredStages || []).length > 0 && <span className="ac-fs-req" title={(f.requiredStages || []).map((k) => stageOpts.find((o) => o.value === k)?.label || k).join(', ')}>{t('Majburiy')} {f.requiredStages.length}</span>}
                     <span className="ac-fs-row__act">
                       <button title={t('Tahrirlash')} onClick={() => setModal({ initial: f })}><Ico name="edit" size={14} /></button>
                       <button className="danger" title={t("O'chirish")} onClick={() => remove(f)}><Ico name="trash" size={14} /></button>
@@ -196,7 +212,7 @@ export default function FieldsSetupPage() {
           </>
         )}
       </div>
-      {modal && <FieldModal initial={modal.initial} defaultGroup={modal.group} groups={groups} onSave={save} onClose={() => setModal(null)} />}
+      {modal && <FieldModal initial={modal.initial} defaultGroup={modal.group} groups={groups} onSave={save} onClose={() => setModal(null)} entity={cur.entity} stageOpts={stageOpts} />}
     </div>
   )
 }

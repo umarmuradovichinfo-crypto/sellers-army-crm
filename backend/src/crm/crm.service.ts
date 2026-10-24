@@ -517,6 +517,8 @@ export class CrmService {
 
     let stageChanged = false;
     if (dto.stage !== undefined && dto.stage !== existing.stage) {
+      const tgKind = (await this.prisma.crmStage.findUnique({ where: { key: dto.stage }, select: { kind: true } }))?.kind;
+      if (tgKind !== 'lost') await this.assertRequiredFields(existing, dto.stage, (dto as any).custom);
       data.stage = dto.stage;
       stageChanged = true;
       if ((dto as any).pipelineId === undefined) {
@@ -544,6 +546,21 @@ export class CrmService {
     const names = await this.userMap([fresh.assigneeId]);
     const st = await this.prisma.crmStage.findUnique({ where: { key: fresh.stage } });
     return { lead: { ...this.card(fresh, st?.kind || 'open', names), notes: parse<unknown[]>(fresh.notesJson, []) } };
+  }
+
+  /**
+   * amoCRM "Обязательно": bitim maqsad bosqichga o'tkazilganda shu bosqich uchun majburiy maydonlar bo'sh bo'lsa — o'tkazilmaydi.
+   * custom — yangi qiymatlar ham hisobga olinadi (bir so'rovda to'ldirib o'tkazish mumkin).
+   */
+  private async assertRequiredFields(lead: { customJson: string }, stageKey: string, customPatch?: Record<string, unknown>) {
+    const fields = await this.prisma.crmField.findMany({ where: { entity: 'lead', active: true }, select: { key: true, label: true, requiredStagesJson: true } });
+    const need = fields.filter((f) => parse<string[]>(f.requiredStagesJson, []).includes(stageKey));
+    if (!need.length) return;
+    const custom = { ...parse<Record<string, unknown>>(lead.customJson, {}), ...(customPatch || {}) };
+    const empty = (v: unknown) => v == null || (typeof v === 'string' && !v.trim()) || (Array.isArray(v) && !v.length) || v === false;
+    const missing = need.filter((f) => empty(custom[f.key]));
+    if (missing.length)
+      throw new BadRequestException({ error: 'REQUIRED_FIELDS', message: `Bosqichga o'tish uchun majburiy maydonlarni to'ldiring: ${missing.map((f) => f.label).join(', ')}`, fields: missing.map((f) => f.key) });
   }
 
   // won/lost bosqichga o'tganda wonAt/lostAt belgilash
@@ -632,6 +649,7 @@ export class CrmService {
     const before = await this.prisma.lead.findUnique({ where: { id } });
     if (!before) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
     const changed = before.stage !== stageKey;
+    if (changed && target.kind !== 'lost') await this.assertRequiredFields(before, stageKey);
 
     await this.prisma.$transaction(async (tx) => {
       const closeData: Record<string, unknown> = { stage: stageKey, pipelineId: target.pipelineId || null };

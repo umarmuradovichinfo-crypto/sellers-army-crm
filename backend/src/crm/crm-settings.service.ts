@@ -19,6 +19,11 @@ function parse<T>(s: string | null, fb: T): T {
  * CRM sozlamalari: voronkalar, maxsus maydonlar, yo'qotish sabablari,
  * teglar katalogi, saqlangan filtrlar.
  */
+// Majburiy bosqichlar ro'yxati: bosqich kalitlari (string), takrorsiz, 200 tagacha
+function stageList(v: unknown): string[] {
+  return [...new Set((Array.isArray(v) ? v : []).map((x) => String(x).trim()).filter((x) => x && x.length <= 120))].slice(0, 200);
+}
+
 @Injectable()
 export class CrmSettingsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -62,7 +67,7 @@ export class CrmSettingsService {
   // ── Maxsus maydonlar ──
   async listFields(entity = 'lead') {
     const fields = await this.prisma.crmField.findMany({ where: { entity }, orderBy: { order: 'asc' } });
-    return { fields: fields.map((f) => ({ ...f, options: parse<string[]>(f.optionsJson, []), group: f.groupName || '' })) };
+    return { fields: fields.map((f) => ({ ...f, options: parse<string[]>(f.optionsJson, []), group: f.groupName || '', requiredStages: parse<string[]>(f.requiredStagesJson, []) })) };
   }
   async createField(dto: any) {
     const label = (dto.label || '').trim();
@@ -85,11 +90,12 @@ export class CrmSettingsService {
         type,
         optionsJson: JSON.stringify(options),
         required: !!dto.required,
+        requiredStagesJson: JSON.stringify(stageList(dto.requiredStages)),
         groupName: String(dto.group || '').trim().slice(0, 100),
         order: (agg._max.order ?? -1) + 1,
       },
     });
-    return { field: { ...field, options: parse<string[]>(field.optionsJson, []), group: field.groupName || '' } };
+    return { field: { ...field, options: parse<string[]>(field.optionsJson, []), group: field.groupName || '', requiredStages: parse<string[]>(field.requiredStagesJson, []) } };
   }
   async updateField(id: string, dto: any) {
     const cur = await this.prisma.crmField.findUnique({ where: { id } });
@@ -109,11 +115,12 @@ export class CrmSettingsService {
     if ((finalType === 'select' || finalType === 'multiselect') && JSON.parse((data.optionsJson as string) ?? cur.optionsJson).length === 0)
       throw new BadRequestException({ error: 'BAD_OPTIONS', message: "Ro'yxat uchun kamida bitta variant kerak" });
     if (dto.required !== undefined) data.required = !!dto.required;
+    if (dto.requiredStages !== undefined) data.requiredStagesJson = JSON.stringify(stageList(dto.requiredStages));
     if (dto.order !== undefined && Number.isFinite(Number(dto.order))) data.order = Math.round(Number(dto.order));
     if (dto.active !== undefined) data.active = !!dto.active;
     if (dto.group !== undefined) data.groupName = (dto.group || '').trim();
     const field = await this.prisma.crmField.update({ where: { id }, data });
-    return { field: { ...field, options: parse<string[]>(field.optionsJson, []), group: field.groupName || '' } };
+    return { field: { ...field, options: parse<string[]>(field.optionsJson, []), group: field.groupName || '', requiredStages: parse<string[]>(field.requiredStagesJson, []) } };
   }
 
   // amoCRM uslubi: bir nechta maydon tartibini birdan yangilash (drag/reorder)

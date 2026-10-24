@@ -211,6 +211,7 @@ model CrmField {
   order       Int      @default(0)
   active      Boolean  @default(true)
   groupName   String   @default("") // amoCRM uslubidagi maydon guruhi (bo'lim nomi)
+  requiredStagesJson String @default("[]") // amoCRM "Обязательно": shu bosqichlarga o'tishda to'ldirilishi shart (bosqich kalitlari)
   createdAt   DateTime @default(now())
 
   @@unique([entity, key])

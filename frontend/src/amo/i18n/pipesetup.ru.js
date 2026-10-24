@@ -239,4 +239,8 @@ addRu({
   'Teglar': 'Теги',
   'Byudjet': 'Бюджет',
   'dan': 'от',
+  "Qaysi bosqichlarga o'tishda majburiy": 'Обязательно при переходе на этапы',
+  "Bitim shu bosqichlarga o'tkazilganda maydon bo'sh bo'lsa, o'tkazilmaydi": 'Если поле не заполнено, сделку нельзя перевести на эти этапы',
+  'Majburiy': 'Обязательно',
+  'Bosqichlarni tanlang': 'Выберите этапы',
 })
