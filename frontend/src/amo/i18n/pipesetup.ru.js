@@ -243,4 +243,5 @@ addRu({
   "Bitim shu bosqichlarga o'tkazilganda maydon bo'sh bo'lsa, o'tkazilmaydi": 'Если поле не заполнено, сделку нельзя перевести на эти этапы',
   'Majburiy': 'Обязательно',
   'Bosqichlarni tanlang': 'Выберите этапы',
+  'Instagram izohlari': 'Instagram Комментарии',
 })

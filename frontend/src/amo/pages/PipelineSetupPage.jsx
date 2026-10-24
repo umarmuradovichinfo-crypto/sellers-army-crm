@@ -246,6 +246,7 @@ export default function PipelineSetupPage() {
   const [tgOn, setTgOn] = useState(false)
   const [fbMaps, setFbMaps] = useState([])
   const [metaOn, setMetaOn] = useState(false)
+  const [metaPages, setMetaPages] = useState([])
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
   const [allStages, setAllStages] = useState([])
   const [tags, setTags] = useState([])
@@ -279,7 +280,7 @@ export default function PipelineSetupPage() {
     crmService.listMembers().then((r) => setMembers(r.members || [])).catch(() => {})
     crmService.listForms().then((r) => setForms(r.forms || [])).catch(() => {})
     crmService.chatStatus().then((r) => setTgOn(!!r.telegram)).catch(() => {})
-    facebookService.getConfig().then((r) => setMetaOn(!!r.enabled && (r.pages || []).length > 0)).catch(() => {})
+    facebookService.getConfig().then((r) => { setMetaOn(!!r.enabled && (r.pages || []).length > 0); setMetaPages(r.pages || []) }).catch(() => {})
     facebookService.listMappings().then((r) => setFbMaps((r.mappings || []).filter((m) => (m.destination || 'crm') === 'crm'))).catch(() => {})
     psApi.tags().then((r) => setTags((r.tags || []).map((x) => x.name))).catch(() => {})
     psApi.fields().then((r) => setFields(r.fields || [])).catch(() => {})
@@ -313,11 +314,22 @@ export default function PipelineSetupPage() {
   // Ulangan manbalar (kartochkalar + dublikat qoidalari "Manbalar" tabi)
   const sources = useMemo(() => {
     const out = []
-    if (tgOn) out.push({ key: 'telegram', kind: 'telegram', name: 'Telegram', sub: t('Messenjer') })
-    fbMaps.forEach((m) => out.push({ key: `fb:${m.formId}`, kind: 'facebook', name: m.formName || m.pageName || 'Facebook', sub: 'Facebook Lead Ads' }))
+    // amoCRM: faqat shu voronkaga lid tushiradigan manbalar; chatlar (Telegram, Messenger, Instagram) asosiy voronkaga tushadi
+    const inThis = (pipelineId) => (pipelineId || 'main') === (pid || 'main')
+    if (inThis(null)) {
+      if (tgOn) out.push({ key: 'telegram', kind: 'telegram', name: 'Telegram', sub: t('Messenjer') })
+      metaPages.forEach((p) => {
+        out.push({ key: `msg:${p.id}`, kind: 'facebook', name: p.name, sub: 'Messenger' })
+        if (p.igId) {
+          out.push({ key: `ig:${p.id}`, kind: 'instagram', name: p.igUsername || p.name, sub: 'Instagram Direct' })
+          out.push({ key: `igc:${p.id}`, kind: 'instagram', name: p.igUsername || p.name, sub: t('Instagram izohlari') })
+        }
+      })
+    }
+    fbMaps.filter((m) => inThis(m.pipelineId)).forEach((m) => out.push({ key: `fb:${m.formId}`, kind: 'facebook', name: m.formName || m.pageName || 'Facebook', sub: 'Facebook Lead Ads' }))
     forms.forEach((f) => out.push({ key: `form:${f.id}`, kind: 'form', name: f.title || f.name, sub: t('Forma') }))
     return out
-  }, [tgOn, fbMaps, forms]) // eslint-disable-line
+  }, [tgOn, fbMaps, forms, metaPages, pid]) // eslint-disable-line
 
   const patchCol = (id, patch) => setCols((cs) => cs.map((c) => c.id === id ? { ...c, ...patch } : c))
 
