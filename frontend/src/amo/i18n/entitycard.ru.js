@@ -22,5 +22,5 @@ addRu({
   "Kompaniyani o'chirishni tasdiqlaysizmi?": 'Удалить компанию?',
   'Xatolik yuz berdi': 'Произошла ошибка',
   'Nomini kiriting': 'Укажите название',
-  "Email noto'g'ri": 'Некорректный email',
+  "Email noto'g'ri": 'Неверный email',
 })

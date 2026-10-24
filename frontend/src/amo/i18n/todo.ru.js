@@ -30,7 +30,7 @@ addRu({
   'Yangi vazifa': 'Новая задача',
   'Bitim': 'Сделка',
   'Bitim qidirish': 'Поиск сделки',
-  'Bitim topilmadi': 'Сделки не найдены',
+  'todo§Bitim topilmadi': 'Сделки не найдены',
   'Muddat': 'Срок',
   'Hafta oxiri': 'Конец недели',
   'Vazifa': 'Задача',

@@ -120,7 +120,7 @@ export function AddTaskModal({ members, defaultDate, defaultAssignee, onClose, o
               <input className="ac-input" placeholder={t('Bitim qidirish')} value={q} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)} onChange={(e) => { setQ(e.target.value); setOpen(true) }} />
               {open && (
                 <div className="ac-menu ac-todo-lead__list">
-                  {found.length === 0 && <div className="ac-todo-lead__empty">{t('Bitim topilmadi')}</div>}
+                  {found.length === 0 && <div className="ac-todo-lead__empty">{t('todo§Bitim topilmadi')}</div>}
                   {found.map((l) => (
                     <button key={l.id} className="ac-menu__item" onMouseDown={(e) => e.preventDefault()} onClick={() => { setLead(l); setOpen(false); setErr('') }}>{l.contactName && l.contactName !== l.n ? `${l.n} — ${l.contactName}` : l.n}</button>
                   ))}

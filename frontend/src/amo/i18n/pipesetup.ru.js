@@ -38,7 +38,7 @@ addRu({
   "Vazifa qo'yish": 'Поставить задачу',
   "Teg qo'shish": 'Добавить теги',
   'Tegni olib tashlash': 'Удалить теги',
-  "Mas'ulni o'zgartirish": 'Смена ответственного',
+  "Mas'ulni o'zgartirish": 'Сменить ответственного',
   "Maydonni o'zgartirish": 'Изменить поле',
   "Izoh qo'shish": 'Добавить примечание',
   'Xabar yuborish': 'Отправить сообщение',
@@ -133,7 +133,7 @@ addRu({
   '1 kun': '1 день',
   'Boshqa': 'Другое',
   'kun': 'дн.',
-  'soat': 'ч.',
+  'soat': 'ч',
   'daqiqa': 'мин.',
   // Bajarish
   'Bajarish': 'Выполнить',

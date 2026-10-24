@@ -235,9 +235,9 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
                   </div>
                   {st && (bad
                     ? <span className="ac-set-status" style={{ color: 'var(--palette-meta-badge-color-red)' }}>{t('Qayta ulash kerak')}</span>
-                    : <span className="ac-set-status ok">{t('Faol')}</span>)}
+                    : <span className="ac-set-status ok">{t('fb§Faol')}</span>)}
                   {bad && <button className="ac-btn ac-btn--sm" onClick={connect} disabled={busy}>{t('Qayta ulash')}</button>}
-                  <button className="ac-btn ac-btn--sm" onClick={() => removePage(p)}>{t('Uzish')}</button>
+                  <button className="ac-btn ac-btn--sm" onClick={() => removePage(p)}>{t('fb§Uzish')}</button>
                   {withForms && <PageForms page={p} mappings={mappings} onPick={(f) => setWiz({ pageId: p.id, formId: f.id, formName: f.name, fieldMap: {}, fresh: true })} />}
                 </div>
               )
@@ -257,7 +257,7 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
                   </div>
                   <span className={`ac-switch ${m.active !== false ? 'on' : ''}`} onClick={() => toggle(m)} />
                   <button className="ac-btn ac-btn--sm" onClick={() => setWiz({ ...m, fieldMap: safeParse(m.fieldMapJson) })}>{t('Tahrirlash')}</button>
-                  <button className="ac-int-x" title={t('Uzish')} onClick={() => remove(m)}>×</button>
+                  <button className="ac-int-x" title={t('fb§Uzish')} onClick={() => remove(m)}>×</button>
                 </div>
               )
             })}

@@ -317,7 +317,7 @@ export default function ImportPage({ entity = 'leads' }) {
                 <p className="hint">{t('Import qilinadigan bitimlar shu bosqichga tushadi')}</p>
                 <div className="ac-import-row">
                   <select className="ac-select" value={pipelineId} onChange={(e) => { setPipelineId(e.target.value); setStageKey('') }}>
-                    <option value="">{t('Asosiy')}</option>
+                    <option value="">{t('imp§Asosiy')}</option>
                     {(meta?.pipelines || []).filter((p) => !p.isDefault).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                   <select className="ac-select" value={stageKey} onChange={(e) => setStageKey(e.target.value)}>

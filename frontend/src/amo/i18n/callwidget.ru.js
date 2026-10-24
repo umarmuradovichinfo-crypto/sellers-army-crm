@@ -22,7 +22,7 @@ addRu({
   'masalan 100': 'например 100',
   'OnlinePBX SIP paroli': 'SIP-пароль OnlinePBX',
   'Ichki raqam va SIP parol kerak': 'Нужны внутренний номер и SIP-пароль',
-  'Saqlanmadi': 'Не сохранено',
+  'Saqlanmadi': 'Не удалось сохранить',
   'Saqlanmoqda…': 'Сохранение…',
   'Yoqish': 'Включить',
   'Raqam terish': 'Набор номера',

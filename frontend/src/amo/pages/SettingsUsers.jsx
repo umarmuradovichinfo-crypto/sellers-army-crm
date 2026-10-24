@@ -12,7 +12,7 @@ import '../settings.css'
 // Ustunlar bo'yicha huquq nuqtalari: ko'rish / tahrirlash / qo'shish / o'chirish / eksport.
 // Bizdagi ruxsatlar (crm.view, crm.settings, crm.export) shu 5 ta nuqtaga xaritalanadi.
 const DOT_KINDS = ['v', 'e', 'a', 'd', 'x']
-const DOT_TITLES = ["Ko'rish", 'Tahrirlash', "Qo'shish", "O'chirish", 'Eksport']
+const DOT_TITLES = ["perm§Ko'rish", 'perm§Tahrirlash', "perm§Qo'shish", "perm§O'chirish", 'perm§Eksport']
 function rightsOf(perms, col) {
   const has = (k) => perms.includes(k)
   if (col === 'stages') return [has('crm.view'), has('crm.settings'), has('crm.settings'), has('crm.settings'), false]
@@ -140,7 +140,7 @@ export default function SettingsUsers() {
               <tr>
                 <th className="ac-chk"><input type="checkbox" className="ac-check" checked={shown.length > 0 && sel.size === shown.length} onChange={toggleAll} /></th>
                 <th>{t('Ism')}</th><th>{t('Guruh')}</th><th>E-mail</th><th>{t("Qo'shilgan sana")}</th>
-                <th>{t('Bitimlar / Xaridorlar')}</th><th>{t('Kontaktlar')}</th><th>{t('Kompaniyalar')}</th><th>{t('Vazifalar')}</th><th>{t('Bosqichlar')}</th>
+                <th>{t('Bitimlar / Xaridorlar')}</th><th>{t('Kontaktlar')}</th><th>{t('Kompaniyalar')}</th><th>{t('Vazifalar')}</th><th>{t('set§Bosqichlar')}</th>
               </tr>
             </thead>
             <tbody>

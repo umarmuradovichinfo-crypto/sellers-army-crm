@@ -170,7 +170,7 @@ function SalesPipeline({ filter, params }) {
             })}
             <div className="ac-stats-col won">
               <div className="ac-stats-col__top" style={{ '--c': 'var(--ac-stats-c2)' }}>
-                <div className="ac-stats-col__name">{t('Yutilgan')}</div>
+                <div className="ac-stats-col__name">{t('stats§Yutilgan')}</div>
               </div>
               <div className="ac-stats-col__arrow"><Arrow fill="var(--ac-stats-c2)" stroke="transparent" /><span><b>{num(wonF.won)}</b>{money(wonF.wonSum)}</span></div>
               <div className="ac-stats-col__lost">{t('Yutqazilgan')}{wonF.lost ? ` · ${num(wonF.lost)}` : ''}</div>
@@ -181,7 +181,7 @@ function SalesPipeline({ filter, params }) {
 
       <div className="ac-stats-box">
         <div className="ac-stats-toolbar">
-          <Tabs value={tab} onChange={setTab} options={[['all', 'Barchasi'], ['active', 'stats§Faol'], ['closed', 'Yopilgan']]} />
+          <Tabs value={tab} onChange={setTab} options={[['all', 'Barchasi'], ['active', 'stats§Faol'], ['closed', 'stats§Yopilgan']]} />
           <Tabs value={mode} onChange={setMode} options={[['sum', "Byudjet bo'yicha"], ['count', "Soni bo'yicha"]]} />
         </div>
         <div className="ac-flow__wrap">

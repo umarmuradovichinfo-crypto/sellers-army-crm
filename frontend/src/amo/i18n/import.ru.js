@@ -56,7 +56,7 @@ addRu({
   'Dublikat topilsa — yozuv import qilinmaydi': 'Если найден дубль — запись не импортируется',
   'Dublikat topilsa — bo\'sh bo\'lmagan maydonlar yangilanadi': 'Если найден дубль — обновляются непустые поля',
   'Dublikatlar ham alohida yozuv sifatida yaratiladi': 'Дубли тоже создаются как отдельные записи',
-  'Asosiy': 'Основная',
+  'imp§Asosiy': 'Основная',
   'Orqaga': 'Назад',
   'Keyingi': 'Далее',
   'Importni boshlash': 'Начать импорт',

@@ -11,7 +11,7 @@ import { Seg, Spin, SERIES, byUsers, num, hms } from './StatsCommon'
 
 /* ── Voqealar ro'yxati ── */
 const EV = {
-  created: ['Bitim', 'Bitim yaratildi'],
+  created: ['Bitim', 'stats§Bitim yaratildi'],
   updated: ['Bitim', 'Bitim yangilandi'],
   stage: ['Bitim', "Bosqich o'zgardi"],
   note: ['Bitim', "Izoh qo'shildi"],
@@ -24,7 +24,7 @@ const EV = {
   assignee: ['Bitim', "Mas'ul o'zgardi"],
   tag: ['Bitim', "Teg o'zgardi"],
   automation: ['Bitim', 'Avtomatika'],
-  email: ['Bitim', 'Email'],
+  email: ['Bitim', 'stats§Email'],
 }
 
 export function StatsEvents({ members }) {
@@ -189,7 +189,7 @@ export function StatsGoals({ filter, members, settingsOpen, onCloseSettings }) {
         <div style={{ position: 'absolute', top: 0, bottom: 0, left: 173, right: 150, pointerEvents: 'none' }}>
           <div className="ac-stats-goals__today" style={{ left: `${frac * 100}%` }} />
           <div className="ac-stats-goals__todaylab" style={{ left: `${frac * 100}%`, right: 'auto', transform: 'translateX(-100%)', marginLeft: -8 }}>
-            {d2(now.getDate())}.{d2(now.getMonth() + 1)}.{now.getFullYear()}<br />{now.getDate()} {t('kun')} {t('dan')} {days}
+            {d2(now.getDate())}.{d2(now.getMonth() + 1)}.{now.getFullYear()}<br />{now.getDate()} {t('stats§kun')} {t('stats§dan')} {days}
           </div>
           <div className="ac-stats-goals__goallab" style={{ left: '100%', marginLeft: 12, top: 4 }}>{t('Maqsad')}</div>
         </div>

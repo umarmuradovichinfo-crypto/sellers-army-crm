@@ -3,10 +3,10 @@ import { addRu } from '../i18n'
 addRu({
   'Facebook bilan ulash': 'Подключить через Facebook',
   "Yana sahifa qo'shish": 'Добавить ещё страницу',
-  'Faol': 'Активна',
+  'fb§Faol': 'Активна',
   'Qayta ulash kerak': 'Требуется переподключение',
   'Qayta ulash': 'Переподключить',
-  'Uzish': 'Отключить',
+  'fb§Uzish': 'Отключить',
   'Formalar': 'Формы',
   'Kutilmoqda…': 'Ожидание…',
   'Facebook ilovasi sozlanmagan': 'Приложение Facebook не настроено',
