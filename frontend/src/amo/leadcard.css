@@ -131,7 +131,11 @@ a.ac-field__link:hover { color: var(--palette-link-primary); }
 .ac-feed__sep span { position: relative; padding: 1px 10px; border: 1px solid var(--palette-border-default); border-radius: 10px; background: var(--palette-background-default); font-size: 12px; color: var(--palette-text-secondary-dark); }
 .ac-feed__sys { display: flex; gap: 8px; margin: 7px 0; padding-left: 52px; font-size: 13px; color: var(--palette-text-secondary-dark); line-height: 17px; }
 .ac-feed__sys b { font-weight: 400; color: var(--palette-text-secondary-dark); }
-.ac-feed__sys .grow { flex: 1; }
+.ac-feed__sys .grow { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-feed__sys.open .grow { white-space: normal; }
+.ac-feed__more { flex: none; display: inline-flex; align-items: center; height: 17px; color: var(--palette-text-secondary-dark); cursor: pointer; transition: transform 0.15s; }
+.ac-feed__sys.open .ac-feed__more { transform: rotate(180deg); }
+.ac-note__ttype { display: inline-flex; vertical-align: -2px; margin-right: 5px; color: #c49a3a; }
 .ac-feed__sys a, .ac-note__link { text-decoration: underline; color: var(--palette-text-secondary-dark); white-space: nowrap; }
 
 .ac-note { position: relative; display: flex; gap: 14px; margin: 8px 0; padding: 10px 12px 10px 10px; background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); border-radius: 4px; animation: ac-fadeIn 0.2s ease both; }

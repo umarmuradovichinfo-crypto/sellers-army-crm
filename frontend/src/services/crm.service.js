@@ -34,6 +34,10 @@ export const crmService = {
   getLead: (id) => mockOr(() => api.get(`/crm/leads/${id}`), { lead: { id } }),
   updateLead: (id, payload) => mockOr(() => api.put(`/crm/leads/${id}`, payload), { lead: { id, ...payload } }),
   deleteLead: (id) => mockOr(() => api.del(`/crm/leads/${id}`), { success: true }),
+  // Bitim kontaktlari (amoCRM: bir nechta kontakt; asosiysi birinchi)
+  addLeadContact: (id, payload) => api.post(`/crm/leads/${id}/contacts`, payload),
+  removeLeadContact: (id, contactId) => api.del(`/crm/leads/${id}/contacts/${contactId}`),
+  setMainLeadContact: (id, contactId) => api.put(`/crm/leads/${id}/contacts/${contactId}/main`, {}),
   moveLead: (id, stageId, position, lostReason) => mockOr(() => api.patch(`/crm/leads/${id}/move`, { stageId, position, lostReason }), { id, stageId }),
   addNote: (id, text) => mockOr(() => api.post(`/crm/leads/${id}/notes`, { text }), { notes: [] }),
   // params: { limit, cursor, sort, dir, search, preset, period, assigneeId, budgetFrom, budgetTo, tags, pipelineId, stage, task, contactId, companyId, unsorted }

@@ -47,7 +47,8 @@
       opacity: 0;
     }to{
       opacity: 1;
-    }.top{
+    }
+  }.top{
     padding: env(safe-area-inset-top, 0px) 14px 0;
     gap: 10px;
   }.search{

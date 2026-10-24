@@ -394,7 +394,8 @@ export function leadConds(q: LeadFilter, ctx: LeadCtx): Cond[] {
   }
 
   if (q.hot === 'true') c.push(Prisma.sql`l.hot = TRUE`);
-  if (q.contactId) c.push(Prisma.sql`l."contactId" = ${q.contactId}`);
+  // asosiy yoki qo'shimcha kontakt sifatida biriktirilgan bitimlar
+  if (q.contactId) c.push(Prisma.sql`(l."contactId" = ${q.contactId} OR EXISTS (SELECT 1 FROM crm_lead_contacts lc WHERE lc."leadId" = l.id AND lc."contactId" = ${q.contactId}))`);
   if (q.companyId) {
     c.push(Prisma.sql`(l."companyId" = ${q.companyId} OR l."contactId" IN (SELECT id FROM crm_contacts WHERE "companyId" = ${q.companyId}))`);
   }

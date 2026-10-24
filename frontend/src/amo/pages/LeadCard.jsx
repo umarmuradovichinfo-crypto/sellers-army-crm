@@ -12,10 +12,10 @@ import '../i18n/leadcard.ru.js'
 import '../leadcard.css'
 
 export const TASK_TYPES = [
-  { key: 'call', label: "Qo'ng'iroq" },
-  { key: 'meeting', label: 'Uchrashuv' },
-  { key: 'task', label: 'Kuzatish' },
-  { key: 'message', label: 'Xat' },
+  { key: 'call', label: "Qo'ng'iroq", icon: 'phone' },
+  { key: 'meeting', label: 'Uchrashuv', icon: 'users' },
+  { key: 'task', label: 'Kuzatish', icon: 'clock' },
+  { key: 'message', label: 'Xat', icon: 'send' },
 ]
 
 export function PersonAvatar({ size = 40 }) {
@@ -105,10 +105,59 @@ export function CustomInput({ field, value, onChange }) {
   return <input className="ac-field__edit" type={field.type === 'number' ? 'number' : 'text'} value={value ?? ''} placeholder="..." onChange={(e) => onChange(e.target.value)} />
 }
 
-// ── Kontakt bloki ──
-function ContactBlock({ contact, onLink, onUnlink, onChange }) {
+// ── Kontakt bloki: bitta kontakt (amoCRM .linked-forms__item) ──
+function ContactItem({ contact, isMain, canMain, onUnlink, onMain, onChange }) {
   const t = useT()
   const navigate = useNavigate()
+  const [more, setMore] = useState(false)
+  const [phoneEdit, setPhoneEdit] = useState(false)
+  const open = () => contact.id && !contact.isNew && navigate(`/contacts/detail/${contact.id}`)
+  return (
+    <div className="ac-linked">
+      <div className="ac-linked__head">
+        <div className="ac-linked__avatar"><PersonAvatar size={36} /></div>
+        <div className="ac-linked__name" onClick={open}>{contact.name}</div>
+        <DotsMenu align="left" className="ac-linked__dots" items={[
+          !contact.isNew && { label: t("Kartochkaga o'tish"), icon: 'external', onClick: open },
+          { label: t('Ismni nusxalash'), icon: 'list', onClick: () => navigator.clipboard?.writeText(contact.name || '') },
+          canMain && !isMain && { label: t('Asosiy qilish'), icon: 'star', onClick: onMain },
+          { label: t('Uzish'), icon: 'link', onClick: onUnlink },
+        ]} />
+      </div>
+      <div className="ac-linked__fields">
+        <FieldRow label={t('Kompaniya')}>
+          {contact.companyName ? <span className="ac-field__link">{contact.companyName}</span> : <span className="ac-field__ph">...</span>}
+        </FieldRow>
+        <FieldRow label={t('Ish tel.')}>
+          {contact.phone && !phoneEdit ? (
+            <span className="ac-field__phone">
+              <span className="ac-field__plusmini" title={t("Telefon qo'shish")} onClick={() => setPhoneEdit(true)}><Ico name="plus" size={8} /></span>
+              <a className="ac-field__link" href={`tel:${String(contact.phone).replace(/[^\d+]/g, '')}`}>{contact.phone}</a>
+              <span className="ac-field__pen" onClick={() => setPhoneEdit(true)}><Ico name="edit" size={12} /></span>
+            </span>
+          ) : (
+            <input className="ac-field__edit" autoFocus={phoneEdit} value={contact.phone || ''} placeholder="..." onBlur={() => setPhoneEdit(false)} onChange={(e) => onChange({ phone: e.target.value })} />
+          )}
+        </FieldRow>
+        {more && (
+          <>
+            <FieldRow label={t('Email ish.')}>
+              <input className="ac-field__edit" value={contact.email || ''} placeholder="..." onChange={(e) => onChange({ email: e.target.value })} />
+            </FieldRow>
+            <FieldRow label={t('Lavozim')}>
+              <input className="ac-field__edit" value={contact.position || ''} placeholder="..." onChange={(e) => onChange({ position: e.target.value })} />
+            </FieldRow>
+          </>
+        )}
+        <button className="ac-linked__more" onClick={() => setMore((v) => !v)}>{t(more ? 'yashirish' : 'yana')}</button>
+      </div>
+    </div>
+  )
+}
+
+// "Kontakt qo'shish": qidiruv (mavjud kontakt) yoki yangi kontakt nomi
+function ContactAdder({ exclude, onLink }) {
+  const t = useT()
   const [adding, setAdding] = useState(false)
   const [q, setQ] = useState('')
   const [found, setFound] = useState([])
@@ -117,54 +166,7 @@ function ContactBlock({ contact, onLink, onUnlink, onChange }) {
     const h = setTimeout(() => crmService.listContacts(q).then((r) => setFound(r.contacts || [])).catch(() => {}), 250)
     return () => clearTimeout(h)
   }, [q, adding])
-  const [more, setMore] = useState(false)
-  const [phoneEdit, setPhoneEdit] = useState(false)
-  if (contact && !adding) {
-    const open = () => contact.id && !contact.isNew && navigate(`/contacts/detail/${contact.id}`)
-    return (
-      <>
-        <div className="ac-linked">
-          <div className="ac-linked__head">
-            <div className="ac-linked__avatar"><PersonAvatar size={36} /></div>
-            <div className="ac-linked__name" onClick={open}>{contact.name}</div>
-            <DotsMenu align="left" className="ac-linked__dots" items={[
-              !contact.isNew && { label: t("Kartochkaga o'tish"), icon: 'external', onClick: open },
-              { label: t('Ismni nusxalash'), icon: 'list', onClick: () => navigator.clipboard?.writeText(contact.name || '') },
-              { label: t('Uzish'), icon: 'link', onClick: onUnlink },
-            ]} />
-          </div>
-          <div className="ac-linked__fields">
-            <FieldRow label={t('Kompaniya')}>
-              {contact.companyName ? <span className="ac-field__link">{contact.companyName}</span> : <span className="ac-field__ph">...</span>}
-            </FieldRow>
-            <FieldRow label={t('Ish tel.')}>
-              {contact.phone && !phoneEdit ? (
-                <span className="ac-field__phone">
-                  <span className="ac-field__plusmini" title={t("Telefon qo'shish")} onClick={() => setPhoneEdit(true)}><Ico name="plus" size={8} /></span>
-                  <a className="ac-field__link" href={`tel:${String(contact.phone).replace(/[^\d+]/g, '')}`}>{contact.phone}</a>
-                  <span className="ac-field__pen" onClick={() => setPhoneEdit(true)}><Ico name="edit" size={12} /></span>
-                </span>
-              ) : (
-                <input className="ac-field__edit" autoFocus={phoneEdit} value={contact.phone || ''} placeholder="..." onBlur={() => setPhoneEdit(false)} onChange={(e) => onChange({ ...contact, phone: e.target.value })} />
-              )}
-            </FieldRow>
-            {more && (
-              <>
-                <FieldRow label={t('Email ish.')}>
-                  <input className="ac-field__edit" value={contact.email || ''} placeholder="..." onChange={(e) => onChange({ ...contact, email: e.target.value })} />
-                </FieldRow>
-                <FieldRow label={t('Lavozim')}>
-                  <input className="ac-field__edit" value={contact.position || ''} placeholder="..." onChange={(e) => onChange({ ...contact, position: e.target.value })} />
-                </FieldRow>
-              </>
-            )}
-            <button className="ac-linked__more" onClick={() => setMore((v) => !v)}>{t(more ? 'yashirish' : 'yana')}</button>
-          </div>
-        </div>
-        {/* amoCRM'da bitimga bir nechta kontakt biriktiriladi; bizda hozircha bitta (PLAN: ko'p kontakt) */}
-      </>
-    )
-  }
+  const pick = (c) => { setAdding(false); setQ(''); onLink(c) }
   if (!adding) {
     return (
       <button className="ac-linked__add" onClick={() => setAdding(true)}>
@@ -175,11 +177,12 @@ function ContactBlock({ contact, onLink, onUnlink, onChange }) {
   return (
     <div className="ac-linked">
       <div className="ac-linked__search">
-        <input autoFocus className="ac-input" placeholder={t('Ism, telefon yoki email')} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && setAdding(false)} />
+        <input autoFocus className="ac-input" placeholder={t('Ism, telefon yoki email')} value={q} onChange={(e) => setQ(e.target.value)}
+          onBlur={() => !q.trim() && setAdding(false)} onKeyDown={(e) => e.key === 'Escape' && setAdding(false)} />
         {q.trim() && (
           <div className="ac-linked__results">
-            {found.map((c) => <div key={c.id} className="ac-linked__result" onClick={() => { setAdding(false); setQ(''); onLink(c) }}>{c.name} <span className="ac-muted">{c.phone || ''}</span></div>)}
-            <div className="ac-linked__result" style={{ color: '#1691ff' }} onClick={() => { setAdding(false); onLink({ name: q.trim(), isNew: true }) }}>+ {t('Yangi kontakt')}: {q.trim()}</div>
+            {found.filter((c) => !exclude.includes(c.id)).map((c) => <div key={c.id} className="ac-linked__result" onMouseDown={(e) => { e.preventDefault(); pick(c) }}>{c.name} <span className="ac-muted">{c.phone || ''}</span></div>)}
+            <div className="ac-linked__result" style={{ color: '#1691ff' }} onMouseDown={(e) => { e.preventDefault(); pick({ name: q.trim(), isNew: true }) }}>+ {t('Yangi kontakt')}: {q.trim()}</div>
           </div>
         )}
       </div>
@@ -264,9 +267,14 @@ function LeadStats({ lead, feed }) {
 // ── Lenta elementlari ──
 export function SysLine({ at, who, text, link }) {
   const t = useT()
+  const [open, setOpen] = useState(false)
+  const [long, setLong] = useState(false)
+  // amoCRM: uzun yozuv bir qatorda kesiladi, "⌄" bosilsa to'liq ochiladi
+  const measure = (el) => { if (el && !open) setLong(el.scrollWidth > el.clientWidth + 1) }
   return (
-    <div className="ac-feed__sys">
-      <span className="grow">{feedDateFull(at, t)} {who && <b>{who}</b>} {text}</span>
+    <div className={`ac-feed__sys ${open ? 'open' : ''}`}>
+      <span className="grow" ref={measure}>{feedDateFull(at, t)} {who && <b>{who}</b>} {text}</span>
+      {(long || open) && <span className="ac-feed__more" onClick={() => setOpen((v) => !v)}><Ico name="chevronDown" size={10} /></span>}
       {link}
     </div>
   )
@@ -318,13 +326,14 @@ export function TaskNote({ task, onDone }) {
   const [busy, setBusy] = useState(false)
   const finish = async () => { if (busy) return; setBusy(true); try { await onDone(task, res) } finally { setBusy(false) } }
   const kind = taskKind(task)
-  const typeLabel = TASK_TYPES.find((x) => x.key === task.type)?.label || 'Kuzatish'
+  const tt = TASK_TYPES.find((x) => x.key === task.type) || TASK_TYPES[2]
+  const typeLabel = tt.label
   return (
     <div className={`ac-note ac-note--task ${kind}`}>
       <div className="ac-note__icon"><Ico name={task.done ? 'check' : 'clock'} size={17} /></div>
       <div className="ac-note__body">
         <div className="ac-note__head"><span className="grow">{task.dueDate ? feedDate(task.dueDate, t) : t('Muddatsiz')} {task.assigneeName ? `${t('uchun')} ${task.assigneeName}` : ''}</span></div>
-        <div className="ac-note__text"><b>{t(typeLabel)}</b> — {task.title}</div>
+        <div className="ac-note__text"><span className="ac-note__ttype"><Ico name={tt.icon} size={13} /></span><b>{t(typeLabel)}</b> — {task.title}</div>
         {task.done && task.result && <div className="ac-note__text ac-muted" style={{ textDecoration: 'none' }}>{t('Natija')}: {task.result}</div>}
         {!task.done && (
           <div className="ac-task-result">
@@ -388,6 +397,7 @@ function actText(a, t) {
 
 const ACT_GROUP = { created: 'Yaratish', field: "Maydon o'zgarishi", updated: "Maydon o'zgarishi", tag: "Teglar o'zgartirildi" }
 const dayOf = (d) => new Date(d).toDateString()
+const contactsOf = (l) => l.contacts || (l.contact ? [l.contact] : [])
 // "3 события / 13 событий" — ruscha ko'plik i18n'da ("voqea" kalitlari)
 function plEvents(n) {
   const m10 = n % 10, m100 = n % 100
@@ -489,7 +499,7 @@ export default function LeadCard() {
   const { user } = useAuth()
   const [lead, setLead] = useState(null)
   const [draft, setDraft] = useState({})
-  const [contactDraft, setContactDraft] = useState(null)
+  const [contactEdits, setContactEdits] = useState({}) // kontakt id -> o'zgargan maydonlar (Saqlash bosilganda yoziladi)
   const [pipes, setPipes] = useState([])
   const [fields, setFields] = useState([])
   const [members, setMembers] = useState([])
@@ -520,7 +530,7 @@ export default function LeadCard() {
   }
 
   useEffect(() => {
-    setDraft({}); setContactDraft(null); setTab('main')
+    setDraft({}); setContactEdits({}); setTab('main')
     const pid = sp.get('pipeline') || ''
     if (isNew) setLead({ id: null, n: '', stage: '', pipelineId: pid, tags: [], custom: {}, value: 0, assigneeId: user?.id, activity: [], notes: [] })
     else { setLead(null); loadLead() }
@@ -540,37 +550,42 @@ export default function LeadCard() {
   if (!lead) return <div className="ac-cardpage" style={{ alignItems: 'center', justifyContent: 'center' }}><div className="ac-spinner" /></div>
 
   const v = { ...lead, ...draft, custom: { ...(lead.custom || {}), ...(draft.custom || {}) } }
-  const dirty = isNew || Object.keys(draft).length > 0 || !!contactDraft
+  const dirty = isNew || Object.keys(draft).length > 0 || Object.keys(contactEdits).length > 0
   const set = (k, val) => setDraft((d) => ({ ...d, [k]: val }))
   const setCustom = (k, val) => setDraft((d) => ({ ...d, custom: { ...(d.custom || {}), [k]: val } }))
 
   const save = async () => {
     setSaving(true)
     try {
-      let contactId
-      if (contactDraft?.isNew) {
-        const c = await crmService.createContact({ name: contactDraft.name, phone: contactDraft.phone, email: contactDraft.email })
-        contactId = c.contact?.id
-      } else if (contactDraft?.id) {
-        if (contactDraft.unlink) contactId = ''
-        else {
-          contactId = contactDraft.id
-          await crmService.updateContact(contactDraft.id, { name: contactDraft.name, phone: contactDraft.phone || '', email: contactDraft.email || '', position: contactDraft.position || '' })
-        }
+      for (const [cid, patch] of Object.entries(contactEdits)) {
+        if (!cid.startsWith('new:')) await crmService.updateContact(cid, patch)
       }
       const payload = { ...draft }
       if (payload.value !== undefined) payload.value = Number(String(payload.value).replace(/\D/g, '')) || 0
-      if (contactId !== undefined) payload.contactId = contactId
       if (isNew) {
-        const r = await crmService.createLead({ name: v.n || `${t('Bitim')} #${Date.now().toString().slice(-6)}`, stage: v.stage, pipelineId: v.pipelineId || undefined, value: payload.value ?? 0, assigneeId: v.assigneeId || undefined, tags: v.tags, custom: v.custom, contactId: contactId || undefined })
+        // yangi bitim: kontaktlar avval yaratiladi/biriktiriladi (birinchisi asosiy)
+        const ids = []
+        for (const c of contactsOf(lead)) {
+          if (c.isNew) ids.push((await crmService.createContact({ name: c.name, ...(contactEdits[c.id] || {}) })).contact?.id)
+          else ids.push(c.id)
+        }
+        const r = await crmService.createLead({ name: v.n || `${t('Bitim')} #${Date.now().toString().slice(-6)}`, stage: v.stage, pipelineId: v.pipelineId || undefined, value: payload.value ?? 0, assigneeId: v.assigneeId || undefined, tags: v.tags, custom: v.custom, contactId: ids[0] || undefined })
+        for (const cid of ids.slice(1).filter(Boolean)) await crmService.addLeadContact(r.lead.id, { contactId: cid })
         navigate(`/leads/detail/${r.lead.id}`, { replace: true })
         return
       }
       if (payload.n !== undefined) { payload.name = payload.n; delete payload.n }
       await crmService.updateLead(lead.id, payload)
-      setDraft({}); setContactDraft(null)
+      setDraft({}); setContactEdits({})
       await loadLead()
     } finally { setSaving(false) }
+  }
+
+  // Kontaktni biriktirish/uzish darhol saqlanadi; yangi (hali saqlanmagan) bitimda — faqat lokal ro'yxat
+  const linkOp = async (remote, local) => {
+    if (isNew) { if (local) setLead(local); return }
+    try { await remote() } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')); return }
+    loadLead()
   }
 
   const pickStatus = async (pipelineId, stage) => {
@@ -706,12 +721,15 @@ export default function LeadCard() {
                   </FieldRow>
                 ))}
               </div>
-              <ContactBlock
-                contact={contactDraft?.unlink ? null : contactDraft || lead.contact}
-                onLink={(c) => setContactDraft(c.isNew ? { ...c } : { ...c })}
-                onUnlink={() => setContactDraft({ id: lead.contact?.id || 'x', unlink: true })}
-                onChange={(c) => setContactDraft(c)}
-              />
+              {contactsOf(lead).map((c, i) => (
+                <ContactItem key={c.id} contact={{ ...c, ...(contactEdits[c.id] || {}) }} isMain={i === 0} canMain={!isNew}
+                  onChange={(patch) => setContactEdits((m) => ({ ...m, [c.id]: { ...(m[c.id] || {}), ...patch } }))}
+                  onUnlink={() => linkOp(() => crmService.removeLeadContact(lead.id, c.id), (l) => ({ ...l, contacts: contactsOf(l).filter((x) => x.id !== c.id) }))}
+                  onMain={() => linkOp(() => crmService.setMainLeadContact(lead.id, c.id))} />
+              ))}
+              <ContactAdder exclude={contactsOf(lead).map((c) => c.id)}
+                onLink={(c) => linkOp(() => crmService.addLeadContact(lead.id, c.isNew ? { name: c.name } : { contactId: c.id }),
+                  (l) => ({ ...l, contacts: [...contactsOf(l), c.isNew ? { ...c, id: `new:${Date.now()}` } : c] }))} />
               <CompanyBlock company={lead.companyInfo} name={lead.companyName} />
             </>
           )}
@@ -727,7 +745,7 @@ export default function LeadCard() {
         {dirty && (
           <div className="ac-cf__save">
             <button className="ac-btn ac-btn--blue ac-btn--plain" style={{ padding: '0 16px' }} disabled={saving} onClick={save}>{t('Saqlash')}</button>
-            <button className="ac-btn ac-btn--plain" style={{ border: 0, background: 'transparent' }} onClick={() => (isNew ? navigate(-1) : (setDraft({}), setContactDraft(null)))}>{t('Bekor qilish')}</button>
+            <button className="ac-btn ac-btn--plain" style={{ border: 0, background: 'transparent' }} onClick={() => (isNew ? navigate(-1) : (setDraft({}), setContactEdits({})))}>{t('Bekor qilish')}</button>
           </div>
         )}
       </div>

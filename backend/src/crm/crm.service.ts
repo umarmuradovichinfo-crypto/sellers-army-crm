@@ -459,10 +459,16 @@ export class CrmService {
       l.companyId ? this.prisma.company.findUnique({ where: { id: l.companyId }, select: { id: true, name: true, phone: true, email: true, website: true } }) : Promise.resolve(null),
       l.contactId ? this.prisma.contact.findUnique({ where: { id: l.contactId }, select: { id: true, name: true, phone: true, email: true, position: true, companyId: true } }) : Promise.resolve(null),
     ]);
+    // qo'shimcha kontaktlar (amoCRM: bitimga bir nechta kontakt), asosiysi birinchi
+    const extra = await this.prisma.leadContact.findMany({
+      where: { leadId: id }, orderBy: { createdAt: 'asc' },
+      select: { contact: { select: { id: true, name: true, phone: true, email: true, position: true, companyId: true } } },
+    });
+    const all = [contact, ...extra.map((x) => x.contact)].filter((c): c is NonNullable<typeof contact> => !!c);
     // kontakt kartochkasidagi "Kompaniya" qatori uchun
-    const contactCompany = contact?.companyId
-      ? contact.companyId === company?.id ? company : await this.prisma.company.findUnique({ where: { id: contact.companyId }, select: { id: true, name: true } })
-      : null;
+    const coIds = [...new Set(all.map((c) => c.companyId).filter(Boolean))] as string[];
+    const coNames = new Map((coIds.length ? await this.prisma.company.findMany({ where: { id: { in: coIds } }, select: { id: true, name: true } }) : []).map((c) => [c.id, c.name]));
+    const contacts = all.map((c) => ({ ...c, companyName: c.companyId ? coNames.get(c.companyId) || null : null, main: c.id === l.contactId }));
     return {
       lead: {
         ...this.card(l, st?.kind || 'open', names),
@@ -471,7 +477,8 @@ export class CrmService {
         companyName: company?.name || null,
         companyInfo: company,
         contactId: l.contactId || null,
-        contact: contact ? { ...contact, companyName: contactCompany?.name || null } : null,
+        contact: contacts.find((c) => c.main) || null,
+        contacts,
       },
     };
   }
@@ -554,6 +561,58 @@ export class CrmService {
     if (kind === 'won') await this.activity.record(id, 'won', { actorId: user?.id, actorName: user?.name, text: `🏆 Sotuv yopildi: ${fmtSum(lead.value)} so'm` });
     else if (kind === 'lost') await this.activity.record(id, 'lost', { actorId: user?.id, actorName: user?.name, text: `Yo'qotildi${lead.lostReason ? ` — ${lead.lostReason}` : ''}` });
     else await this.activity.record(id, 'stage', { actorId: user?.id, actorName: user?.name, text: `Bosqich: ${stageName}` });
+  }
+
+  /** Bitimga kontakt biriktirish: asosiy kontakt bo'lmasa — asosiy bo'ladi, aks holda qo'shimcha. */
+  async addLeadContact(id: string, dto: { contactId?: string; name?: string; phone?: string; email?: string }, user?: AuthUser) {
+    const l = await this.prisma.lead.findUnique({ where: { id }, select: { id: true, contactId: true } });
+    if (!l) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
+    let contactId = dto.contactId || null;
+    if (contactId) {
+      if (!(await this.prisma.contact.findUnique({ where: { id: contactId }, select: { id: true } }))) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Kontakt topilmadi' });
+    } else {
+      const name = String(dto.name || '').trim();
+      if (!name) throw new BadRequestException({ error: 'BAD_REQUEST', message: 'Kontakt nomi kerak' });
+      contactId = (await this.prisma.contact.create({ data: { name: name.slice(0, 200), phone: dto.phone || null, email: dto.email || null, createdById: user?.id || null } })).id;
+    }
+    if (l.contactId === contactId) return this.getLead(id);
+    if (!l.contactId) await this.prisma.lead.update({ where: { id }, data: { contactId } });
+    else await this.prisma.leadContact.upsert({ where: { leadId_contactId: { leadId: id, contactId } }, create: { leadId: id, contactId }, update: {} });
+    const c = await this.prisma.contact.findUnique({ where: { id: contactId }, select: { name: true } });
+    await this.activity.record(id, 'updated', { actorId: user?.id, actorName: user?.name, text: `Kontakt biriktirildi: ${c?.name || ''}` });
+    return this.getLead(id);
+  }
+
+  /** Kontaktni bitimdan uzish. Asosiy uzilsa — birinchi qo'shimcha kontakt asosiy bo'ladi. */
+  async removeLeadContact(id: string, contactId: string, user?: AuthUser) {
+    const l = await this.prisma.lead.findUnique({ where: { id }, select: { id: true, contactId: true } });
+    if (!l) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
+    if (l.contactId === contactId) {
+      const next = await this.prisma.leadContact.findFirst({ where: { leadId: id }, orderBy: { createdAt: 'asc' } });
+      await this.prisma.$transaction([
+        this.prisma.lead.update({ where: { id }, data: { contactId: next?.contactId || null } }),
+        ...(next ? [this.prisma.leadContact.delete({ where: { leadId_contactId: { leadId: id, contactId: next.contactId } } })] : []),
+      ]);
+    } else {
+      await this.prisma.leadContact.deleteMany({ where: { leadId: id, contactId } });
+    }
+    const c = await this.prisma.contact.findUnique({ where: { id: contactId }, select: { name: true } });
+    await this.activity.record(id, 'updated', { actorId: user?.id, actorName: user?.name, text: `Kontakt uzildi: ${c?.name || ''}` });
+    return this.getLead(id);
+  }
+
+  /** Qo'shimcha kontaktni asosiy qilish (amoCRM: kontaktni birinchi o'ringa ko'chirish). */
+  async setMainLeadContact(id: string, contactId: string) {
+    const l = await this.prisma.lead.findUnique({ where: { id }, select: { contactId: true } });
+    if (!l) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
+    if (l.contactId === contactId) return this.getLead(id);
+    if (!(await this.prisma.leadContact.findUnique({ where: { leadId_contactId: { leadId: id, contactId } } }))) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Kontakt bitimga biriktirilmagan' });
+    await this.prisma.$transaction([
+      this.prisma.leadContact.delete({ where: { leadId_contactId: { leadId: id, contactId } } }),
+      ...(l.contactId ? [this.prisma.leadContact.create({ data: { leadId: id, contactId: l.contactId } })] : []),
+      this.prisma.lead.update({ where: { id }, data: { contactId } }),
+    ]);
+    return this.getLead(id);
   }
 
   async deleteLead(id: string) {

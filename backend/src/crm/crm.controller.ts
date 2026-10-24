@@ -123,6 +123,18 @@ export class CrmController {
   deleteLead(@Param('id') id: string) {
     return this.crm.deleteLead(id);
   }
+  @Post('leads/:id/contacts')
+  addLeadContact(@Param('id') id: string, @Body() dto: { contactId?: string; name?: string; phone?: string; email?: string }, @CurrentUser() user: AuthUser) {
+    return this.crm.addLeadContact(id, dto, user);
+  }
+  @Delete('leads/:id/contacts/:contactId')
+  removeLeadContact(@Param('id') id: string, @Param('contactId') contactId: string, @CurrentUser() user: AuthUser) {
+    return this.crm.removeLeadContact(id, contactId, user);
+  }
+  @Put('leads/:id/contacts/:contactId/main')
+  setMainLeadContact(@Param('id') id: string, @Param('contactId') contactId: string) {
+    return this.crm.setMainLeadContact(id, contactId);
+  }
   @Patch('leads/:id/move')
   moveLead(@Param('id') id: string, @Body() dto: MoveLeadDto, @CurrentUser() user: AuthUser) {
     return this.crm.moveLead(id, dto.stageId, dto.position, user, dto.lostReason);

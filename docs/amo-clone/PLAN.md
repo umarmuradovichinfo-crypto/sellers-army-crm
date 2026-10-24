@@ -92,9 +92,11 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     - [x] Saralanmagan bitimda pastki "Qabul qilish | Rad etish" paneli
     - [x] Lenta: vaqt soniya.ms bilan, bir turdagi 3+ voqea "N voqea — Yoyish"; ochiq vazifalar composer ustida
     - [x] Composer: rejim menyusida belgi, "qo'shish" havolasi vazifa rejimini ochadi
-    - [ ] Bitimga bir nechta kontakt (amoCRM'da ko'p; bizda bitta — schema: LeadContact)
-    - [ ] Lenta qatorining o'ng tomonida obyekt havolasi (kontakt nomi), uzun matnni yoyish "⌄"
-    - [ ] Vazifa turi ikonkalari (Связаться, Встреча ...) va composer'da sana tanlagich amoCRM uslubida
+    - [x] Bitimga bir nechta kontakt (crm_lead_contacts; "Asosiy qilish", uzishda keyingisi asosiy bo'ladi; kontakt filtri ham hisobga oladi)
+    - [x] Uzun lenta yozuvi bir qatorda, "⌄" bilan yoyiladi
+    - [ ] Lenta qatorining o'ng tomonida obyekt havolasi (kontakt nomi) — kontakt voqealari lentaga tushganda
+    - [x] Vazifa turi ikonkalari
+    - [ ] Composer'da sana tanlagich amoCRM uslubida ("31.10.2026" maydon + kalendar popup)
 22. [ ] Sozlamalar → Chatlar va messenjerlar: amoCRM kabi "Javob shablonlari" (nom, tur, matn; chatda tanlash) va imBox/notif switch'lari
 
 ## Kutilayotgan so'rovlar (navbati kelganda)

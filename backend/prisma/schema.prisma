@@ -140,6 +140,7 @@ model Lead {
   emailNorm    String? // lower(trim(email))
 
   tasks LeadTask[]
+  contactLinks LeadContact[]
 
   @@index([stage])
   @@index([pipelineId])
@@ -360,6 +361,8 @@ model Contact {
   phoneDigits String? // trigger to'ldiradi: asosiy + qo'shimcha telefonlar raqamlari (probel bilan)
   assigneeKey String? // trigger to'ldiradi: customJson._assigneeId, bo'lmasa createdById (mas'ul bo'yicha filtr/saralash)
 
+  leadLinks   LeadContact[]
+
   @@index([companyId])
   @@index([name])
   @@index([createdAt])
@@ -473,4 +476,17 @@ model Product {
   createdAt DateTime @default(now())
 
   @@map("crm_products")
+}
+
+// Bitimning qo'shimcha kontaktlari (amoCRM: bitimga bir nechta kontakt). Asosiy kontakt — leads.contactId.
+model LeadContact {
+  leadId    String
+  contactId String
+  createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@id([leadId, contactId])
+  @@index([contactId])
+  @@map("crm_lead_contacts")
 }
