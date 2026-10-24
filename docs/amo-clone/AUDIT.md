@@ -85,3 +85,9 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 2 | "Сохранить" — kulrang, o'zgarish bo'lsa faol | doim faol "СОХРАНИТЬ" | tuzatildi |
 | 3 | "Настройка левого меню с учетом роли пользователя" (Все пользователи + rollar, har bo'lim yoqish/o'chirish) | yo'q | qo'shildi (general.navHidden, chap menyu darhol yangilanadi) |
 | 4 | Периодические покупки, Счета, Товары, Личные чаты, Кабинет клиента, fayllar, amoAI, Счет и оплата | — | amoCRM'ning alohida xizmatlari — qo'shilmaydi |
+
+## 10. Sozlamalar → foydalanuvchilar
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | "…": Лог авторизаций (sana, foydalanuvchi, IP, brauzer, natija) | yo'q, kirishlar yozilmasdi | qo'shildi (crm_activities type=auth, GET /auth/log) |
+| 2 | "…": Настройка групп | faqat foydalanuvchi oynasida | qo'shildi (guruhlar ro'yxati + yangi guruh) |

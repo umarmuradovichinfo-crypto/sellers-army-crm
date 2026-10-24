@@ -26,6 +26,70 @@ function Dots({ flags, t }) {
   )
 }
 
+// "Лог авторизаций": kim, qachon, qaysi IP va brauzerdan kirgan (muvaffaqiyatsiz urinishlar ham)
+function AuthLogModal({ onClose }) {
+  const t = useT()
+  const { data, error } = useApi(() => settingsService.authLog(), [])
+  const browser = (ua) => (/Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : ua ? ua.slice(0, 30) : '—')
+  const os = (ua) => (/Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Mac OS/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : '')
+  return (
+    <div className="ac-modal-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="ac-modal" style={{ maxWidth: 860 }}>
+        <h2 className="ac-set-block__title" style={{ marginTop: 0 }}>{t('Avtorizatsiya jurnali')}</h2>
+        {!data && !error && <div className="ac-spinner" />}
+        {error && <div className="ac-set-err">{error.message}</div>}
+        {data && (
+          <div className="ac-table-wrap" style={{ maxHeight: '60vh', overflow: 'auto' }}>
+            <table className="ac-table">
+              <thead><tr><th>{t('Sana')}</th><th>{t('Foydalanuvchi')}</th><th>IP</th><th>{t('Brauzer')}</th><th>{t('Natija')}</th></tr></thead>
+              <tbody>
+                {(data.items || []).map((r, i) => (
+                  <tr key={i}>
+                    <td>{dmy(r.at)} {new Date(r.at).toTimeString().slice(0, 5)}</td>
+                    <td>{r.name || r.email}</td>
+                    <td>{r.ip || '—'}</td>
+                    <td>{browser(r.ua)}{os(r.ua) ? `, ${os(r.ua)}` : ''}</td>
+                    <td className={r.ok ? 'ac-set-saved' : 'ac-set-err'}>{t(r.ok ? 'Kirdi' : "Noto'g'ri parol")}</td>
+                  </tr>
+                ))}
+                {(data.items || []).length === 0 && <tr><td colSpan={5} className="ac-muted">{t("Yozuvlar yo'q")}</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div style={{ marginTop: 16, textAlign: 'right' }}><button className="ac-btn" onClick={onClose}>{t('Yopish')}</button></div>
+      </div>
+    </div>
+  )
+}
+
+// "Настройка групп": guruhlar (rollar) va ulardagi foydalanuvchilar soni, yangi guruh
+function GroupsModal({ roles, onClose, onChanged }) {
+  const t = useT()
+  const [name, setName] = useState('')
+  const [err, setErr] = useState('')
+  const add = async () => {
+    if (!name.trim()) return
+    try { await settingsService.createRole(name.trim()); setName(''); onChanged() } catch (e) { setErr(e.message) }
+  }
+  return (
+    <div className="ac-modal-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="ac-modal">
+        <h2 className="ac-set-block__title" style={{ marginTop: 0 }}>{t('Guruhlarni sozlash')}</h2>
+        <div className="ac-set-groups">
+          {roles.map((r) => <div key={r.key} className="ac-set-group"><span>{r.name}</span><span className="ac-muted">{r.users ?? ''}</span></div>)}
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+          <input className="ac-input" style={{ flex: 1 }} placeholder={t('Yangi guruh nomi')} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
+          <button className="ac-btn ac-btn--blue" disabled={!name.trim()} onClick={add}>{t("Qo'shish")}</button>
+        </div>
+        {err && <div className="ac-set-err" style={{ marginTop: 8 }}>{err}</div>}
+        <div style={{ marginTop: 16, textAlign: 'right' }}><button className="ac-btn" onClick={onClose}>{t('Yopish')}</button></div>
+      </div>
+    </div>
+  )
+}
+
 export default function SettingsUsers() {
   const t = useT()
   const { user, can } = useAuth()
@@ -59,6 +123,10 @@ export default function SettingsUsers() {
     <>
       <TopBar
         search={q} onSearch={setQ}
+        menu={canManage ? [
+          { label: t('Avtorizatsiya jurnali'), icon: 'external', onClick: () => setModal({ log: true }) },
+          { label: t('Guruhlarni sozlash'), icon: 'gear', onClick: () => setModal({ groups: true }) },
+        ] : null}
         actions={canManage && (
           <button className="ac-btn ac-btn--blue" onClick={() => setModal({ create: true })}><span className="ac-btn__plus">+</span> {t("Foydalanuvchi qo'shish")}</button>
         )}
@@ -95,7 +163,9 @@ export default function SettingsUsers() {
           </table>
         )}
       </div>
-      {modal && (
+      {modal?.log && <AuthLogModal onClose={() => setModal(null)} />}
+      {modal?.groups && <GroupsModal roles={roles} onClose={() => setModal(null)} onChanged={() => access.reload()} />}
+      {modal && (modal.create || modal.user) && (
         <UserDrawer
           initial={modal.user} roles={roles} canManage={canManage} selfId={user?.id}
           onClose={() => setModal(null)}

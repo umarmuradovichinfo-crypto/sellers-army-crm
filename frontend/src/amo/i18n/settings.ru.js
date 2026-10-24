@@ -170,4 +170,13 @@ addRu({
   'Chap menyuni foydalanuvchi roliga qarab sozlash': 'Настройка левого меню с учетом роли пользователя',
   'Barcha foydalanuvchilar': 'Все пользователи',
   'card§Saqlash': 'Сохранить',
+  'Avtorizatsiya jurnali': 'Лог авторизаций',
+  'Guruhlarni sozlash': 'Настройка групп',
+  'Brauzer': 'Браузер',
+  'Kirdi': 'Вход выполнен',
+  "Noto'g'ri parol": 'Неверный пароль',
+  "Yozuvlar yo'q": 'Записей нет',
+  'Yopish': 'Закрыть',
+  'Foydalanuvchi': 'Пользователь',
+  'Natija': 'Результат',
 })

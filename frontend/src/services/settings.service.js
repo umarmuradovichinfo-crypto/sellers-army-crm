@@ -2,6 +2,8 @@ import { api, mockOr } from '../lib/apiClient'
 
 export const settingsService = {
   // GET /settings/access -> { permissions:[{key,label}], roles:[{key,name,isSystem,users,permissions:[]}] }
+  // GET /auth/log -> { items:[{at,email,name,ok,ip,ua}] } (Лог авторизаций)
+  authLog: () => api.get('/auth/log'),
   getAccess: () => mockOr(() => api.get('/settings/access'), {
     permissions: [],
     roles: [

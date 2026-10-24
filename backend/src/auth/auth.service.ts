@@ -60,8 +60,9 @@ export class AuthService {
     };
   }
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string, meta?: { ip?: string; ua?: string }) {
     const user = await this.validateUser(email, password);
+    await this.logAuth(user?.id || null, email, !!user, meta);
     if (!user) {
       throw new UnauthorizedException({
         error: 'INVALID_CREDENTIALS',
@@ -69,6 +70,30 @@ export class AuthService {
       });
     }
     return this.loginResponse(user.id);
+  }
+
+  /** Avtorizatsiya jurnali (Sozlamalar → Foydalanuvchilar → "…" → Лог авторизаций): crm_activities, type='auth'. */
+  private async logAuth(userId: string | null, email: string, ok: boolean, meta?: { ip?: string; ua?: string }) {
+    try {
+      await this.prisma.activity.create({
+        data: { leadId: null, type: 'auth', actorId: userId, actorName: String(email || '').slice(0, 200), text: ok ? 'ok' : 'fail', dataJson: JSON.stringify({ ip: meta?.ip || '', ua: meta?.ua || '' }) },
+      });
+    } catch { /* jurnal yozilmasa ham kirish ishlaydi */ }
+  }
+
+  /** Oxirgi kirishlar (eng yangisi birinchi). */
+  async authLog(limit = 200) {
+    const rows = await this.prisma.activity.findMany({ where: { type: 'auth' }, orderBy: { createdAt: 'desc' }, take: Math.min(500, Math.max(1, limit)) });
+    const ids = [...new Set(rows.map((r) => r.actorId).filter(Boolean))] as string[];
+    const users = ids.length ? await this.prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }) : [];
+    const name = new Map(users.map((u) => [u.id, u.name]));
+    return {
+      items: rows.map((r) => {
+        let d: { ip?: string; ua?: string } = {};
+        try { d = JSON.parse(r.dataJson || '{}'); } catch { /* */ }
+        return { at: r.createdAt.toISOString(), email: r.actorName, name: r.actorId ? name.get(r.actorId) || null : null, ok: r.text === 'ok', ip: d.ip || '', ua: d.ua || '' };
+      }),
+    };
   }
 
   private setupTokenRequired(): string {

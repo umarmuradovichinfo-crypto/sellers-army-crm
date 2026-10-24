@@ -119,3 +119,6 @@
 .ac-set-navlist { display: flex; flex-direction: column; max-width: 420px; }
 .ac-set-navitem { display: flex; align-items: center; justify-content: space-between; height: 40px; border-bottom: 1px solid var(--palette-border-primary); font-size: 15px; color: var(--palette-text-primary); cursor: pointer; }
 .ac-set-navitem.off span:first-child { color: var(--palette-text-secondary-light); }
+
+.ac-set-groups { display: flex; flex-direction: column; }
+.ac-set-group { display: flex; justify-content: space-between; height: 38px; align-items: center; border-bottom: 1px solid var(--palette-border-primary); font-size: 15px; }

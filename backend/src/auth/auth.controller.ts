@@ -1,10 +1,11 @@
-import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
 
 import {
   CurrentUser,
   type AuthUser,
 } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
@@ -17,8 +18,18 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(200)
-  login(@Body() dto: LoginDto) {
-    return this.auth.login(dto.email, dto.password);
+  login(@Body() dto: LoginDto, @Req() req: { ip?: string; headers?: Record<string, unknown> }) {
+    // "Лог авторизаций" uchun IP va brauzer
+    const ua = String(req?.headers?.['user-agent'] || '').slice(0, 300);
+    const xf = String(req?.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
+    return this.auth.login(dto.email, dto.password, { ip: xf || req?.ip || '', ua });
+  }
+
+  /** Avtorizatsiya jurnali (amoCRM "Лог авторизаций") — faqat rollarni boshqaradiganlar */
+  @Get('log')
+  @RequirePermissions('settings.roles.manage')
+  authLog() {
+    return this.auth.authLog();
   }
 
   /** Birinchi ishga tushirish: hech qanday foydalanuvchi yo'qmi? (ochiq) */
