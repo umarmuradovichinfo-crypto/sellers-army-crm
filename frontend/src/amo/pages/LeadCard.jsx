@@ -388,12 +388,34 @@ export function NoteItem({ n }) {
   )
 }
 
+// Suhbat raqami: leadId'dan barqaror "A1234" ko'rinishidagi yorliq (imBox bilan bir xil)
+export function convNum(id) {
+  let h = 0
+  for (let i = 0; i < String(id).length; i++) h = (h * 31 + String(id).charCodeAt(i)) % 9000
+  return `A${1000 + h}`
+}
+const CHAN_TITLE = { instagram: 'Instagram', facebook: 'Facebook Messenger', telegram: 'Telegram', whatsapp: 'WhatsApp' }
+
+// amoCRM: ketma-ket chat xabarlari bitta "suhbat bloki"da — tepada kanal, pastda "Беседа № A1234"
+export function MsgGroup({ msgs, leadId }) {
+  const t = useT()
+  const ch = msgs[0]?.channel || 'telegram'
+  const comment = msgs[0]?.kind === 'comment'
+  return (
+    <div className="ac-chatblock">
+      <div className="ac-chatblock__head"><Ico name={ch === 'facebook' ? 'facebook' : ch === 'instagram' ? 'instagram' : 'telegram'} size={12} /> {CHAN_TITLE[ch] || ch}{comment ? ` (${t('izohlar')})` : ''}</div>
+      {msgs.map((m) => <MsgItem key={m.id} m={m} />)}
+      <div className="ac-chatblock__foot"><span>{t('Suhbat')} № {convNum(leadId)}</span></div>
+    </div>
+  )
+}
+
 export function MsgItem({ m }) {
   const t = useT()
   return (
     <div className={`ac-msg ${m.direction === 'out' ? 'ac-msg--out' : ''}`}>
       <div className="ac-msg__bubble">
-        <div className="ac-msg__head">{feedDate(m.createdAt, t)} {m.senderName || ''} {m.channel ? `· ${m.channel}` : ''}</div>
+        <div className="ac-msg__head">{feedDateFull(m.createdAt, t)} {m.senderName || ''}</div>
         <div className="ac-msg__text">{m.text}</div>
       </div>
     </div>
@@ -690,6 +712,8 @@ export default function LeadCard() {
     const g = groups[groups.length - 1]
     if (it.kind === 'sys' && g?.kind === 'grp' && g.type === it.a.type && dayOf(g.items[0].at) === dayOf(it.at)) g.items.push(it)
     else if (it.kind === 'sys') groups.push({ kind: 'grp', type: it.a.type, at: it.at, items: [it] })
+    else if (it.kind === 'msg' && g?.kind === 'chat' && g.channel === it.m.channel && dayOf(g.at) === dayOf(it.at)) g.msgs.push(it.m)
+    else if (it.kind === 'msg') groups.push({ kind: 'chat', channel: it.m.channel, at: it.at, msgs: [it.m] })
     else groups.push(it)
   }
   let lastDay = ''
@@ -805,7 +829,7 @@ export default function LeadCard() {
               } else if (it.kind === 'note') el = <NoteItem key={`n${i}`} n={it.n} />
               else if (it.kind === 'call') el = <CallNote key={`c${it.c.id}`} c={it.c} />
               else if (it.kind === 'task') el = <TaskNote key={`t${it.tk.id}`} task={it.tk} onDone={completeTask} />
-              else if (it.kind === 'msg') el = <MsgItem key={`m${it.m.id}`} m={it.m} />
+              else if (it.kind === 'chat') el = <MsgGroup key={`g${it.msgs[0].id}`} msgs={it.msgs} leadId={lead.id} />
               return <React.Fragment key={i}>{sep}{el}</React.Fragment>
             })}
           </div>

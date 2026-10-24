@@ -102,6 +102,8 @@ addRu({
   "qo'shish": 'добавить',
   'Bitim': 'Сделка',
   'Bitim nomi': 'Название сделки',
+  'Suhbat': 'Беседа',
+  'izohlar': 'комментарии',
   "Vazifa yo'q": 'Нет задач',
   'Kontakt ismi': 'Имя контакта',
   'Kompaniya nomi': 'Название компании',

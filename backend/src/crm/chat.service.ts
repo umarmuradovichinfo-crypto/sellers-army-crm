@@ -261,9 +261,9 @@ export class ChatService {
     const recent = await this.prisma.message.findMany({ orderBy: { createdAt: 'desc' }, take: 300 });
     const seen = new Set<string>();
     const order: string[] = [];
-    const lastByLead = new Map<string, { text: string; direction: string; at: Date; channel: string; kind: string }>();
+    const lastByLead = new Map<string, { text: string; direction: string; at: Date; channel: string; kind: string; senderName: string | null }>();
     for (const m of recent) {
-      if (!lastByLead.has(m.leadId)) lastByLead.set(m.leadId, { text: m.text, direction: m.direction, at: m.createdAt, channel: m.channel, kind: m.kind });
+      if (!lastByLead.has(m.leadId)) lastByLead.set(m.leadId, { text: m.text, direction: m.direction, at: m.createdAt, channel: m.channel, kind: m.kind, senderName: m.senderName });
       if (!seen.has(m.leadId)) { seen.add(m.leadId); order.push(m.leadId); }
     }
     const leads = await this.prisma.lead.findMany({ where: { id: { in: order } }, select: { id: true, name: true, source: true, assigneeId: true } });
@@ -275,6 +275,7 @@ export class ChatService {
       return {
         leadId: id, name: l.name, source: l.source, last: last?.text || '', direction: last?.direction, at: last?.at?.toISOString(),
         channel: last?.channel || 'telegram', kind: last?.kind || 'message',
+        senderName: last?.senderName || null, // amoCRM: ro'yxatda "Yuboruvchi: matn"
         avatar: null as string | null, initial: (name.replace(/^@/, '')[0] || '?').toUpperCase(), // rasm yo'q — bosh harf
       };
     }).filter(Boolean);

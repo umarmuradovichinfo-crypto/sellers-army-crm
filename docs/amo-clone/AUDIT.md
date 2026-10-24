@@ -52,3 +52,12 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 5 | Telefon: "+" (yana telefon) + formatlangan havola, qalam bilan tahrirlash | input + "добавить" | tuzatildi |
 | 6 | Kompaniya bloki: "КОМПАНИЯ" yorlig'i, "…" (Перейти в карточку, Скопировать имя, Открепить) | faqat "Uzish" | tuzatildi |
 | 7 | i18n: bir xil o'zbekcha kalit turli bo'limda turlicha tarjima — oxirgi yuklangan yutardi | tasodifiy natija | tuzatildi ("ctx§matn" kalitlari) |
+
+## 6. imBox
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | Ochilganda eng so'nggi suhbat avtomatik ochiladi | "Suhbatni tanlang" bo'sh ekran | tuzatildi (keng ekranda) |
+| 2 | Ro'yxatda oxirgi xabar "Yuboruvchi ismi: matn" | "Mijoz:/Siz:" | tuzatildi (senderName) |
+| 3 | Chat xabarlari "suhbat bloki"da: kanal sarlavhasi, pastda "Беседа № A6703" (lenta va bitim kartochkasida ham) | alohida pufakchalar | tuzatildi |
+| 4 | Xabar sarlavhasi: "13.07.2026 13:29:21.446 ISM" | "… · telegram" | tuzatildi |
+| 5 | Blok pastida "Закрыть" (suhbatni yopish), xabar holati (Ошибка) | yo'q | rejada (suhbat holati backend'da yo'q) |

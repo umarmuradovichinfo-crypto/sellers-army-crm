@@ -208,3 +208,8 @@ a.ac-field__link:hover { color: var(--palette-link-primary); }
 .ac-cf__resize { position: absolute; top: 0; bottom: 0; right: -7px; width: 9px; cursor: col-resize; z-index: 20; }
 .ac-cf__resize:hover, .ac-cf__resize.on { background: rgba(76, 139, 247, 0.25); }
 @media (max-width: 900px) { .ac-cf { min-width: 0; max-width: none; } .ac-cf__resize { display: none; } }
+
+/* Suhbat bloki (amoCRM .feed-note-wrapper-amojo) */
+.ac-chatblock { margin: 8px 0; padding: 10px 14px 8px; border: 1px solid var(--palette-border-primary); border-radius: 4px; background: var(--palette-background-primary); box-shadow: 0 3px 0 -1px var(--palette-background-primary), 0 3px 0 0 var(--palette-border-primary); }
+.ac-chatblock__head { display: flex; align-items: center; justify-content: center; gap: 6px; font: 700 13px var(--font-main); color: var(--palette-text-secondary-dark); margin-bottom: 6px; }
+.ac-chatblock__foot { display: flex; justify-content: flex-end; gap: 14px; margin-top: 6px; font-size: 13px; color: #7fb245; }

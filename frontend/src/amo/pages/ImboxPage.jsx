@@ -6,7 +6,7 @@ import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
 import { feedDate, dmy, hm, relDay } from '../format'
 import { useT } from '../i18n'
-import { SysLine, CallNote, TaskNote, NoteItem, MsgItem, PersonAvatar } from './LeadCard'
+import { SysLine, CallNote, TaskNote, NoteItem, MsgGroup, PersonAvatar, convNum } from './LeadCard'
 import '../i18n/imbox.ru.js'
 import '../leadcard.css'
 import '../imbox.css'
@@ -27,11 +27,17 @@ const ACT_TEXT = {
   updated: "O'zgartirildi",
 }
 
-// Suhbat raqami: leadId'dan barqaror "A1234" ko'rinishidagi yorliq
-function convNum(id) {
-  let h = 0
-  for (let i = 0; i < String(id).length; i++) h = (h * 31 + String(id).charCodeAt(i)) % 9000
-  return `A${1000 + h}`
+
+// Ketma-ket bir kanal xabarlari bitta suhbat blokiga (amoCRM)
+function chatGroups(items) {
+  const out = []
+  for (const it of items) {
+    const g = out[out.length - 1]
+    if (it.kind === 'msg' && g?.kind === 'chat' && g.channel === it.m.channel && new Date(g.at).toDateString() === new Date(it.at).toDateString()) g.msgs.push(it.m)
+    else if (it.kind === 'msg') out.push({ kind: 'chat', channel: it.m.channel, at: it.at, msgs: [it.m] })
+    else out.push(it)
+  }
+  return out
 }
 
 function listDate(iso, t) {
@@ -53,7 +59,7 @@ const CHAN_NAME = { instagram: 'Instagram', facebook: 'Facebook Messenger', tele
 
 function Row({ c, on, onClick }) {
   const t = useT()
-  const author = c.direction === 'out' ? t('Siz') : t('Mijoz')
+  const author = c.senderName || (c.direction === 'out' ? t('Siz') : t('Mijoz'))
   return (
     <div className={`ac-imbox-row ${on ? 'on' : ''}`} onClick={onClick}>
       <div className="ac-imbox-row__avatar">
@@ -247,7 +253,7 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
       {err && <div className="ac-imbox-err" onClick={() => setErr('')}>{err}</div>}
       <div className="ac-imbox-view__feed">
         <div className="ac-feed__inner">
-          {items.map((it, i) => {
+          {chatGroups(items).map((it, i) => {
             const day = new Date(it.at).toDateString()
             const sep = day !== lastDay ? (lastDay = day, <div key={`s${i}`} className="ac-feed__sep"><span>{t(relDay(it.at) || '') || dmy(it.at)}</span></div>) : null
             let el = null
@@ -258,7 +264,7 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
             } else if (it.kind === 'note') el = <NoteItem key={`n${i}`} n={it.n} />
             else if (it.kind === 'call') el = <CallNote key={`c${it.c.id}`} c={it.c} />
             else if (it.kind === 'task') el = <TaskNote key={`t${it.tk.id}`} task={it.tk} onDone={completeTask} />
-            else if (it.kind === 'msg') el = <MsgItem key={`m${it.m.id}`} m={it.m} />
+            else if (it.kind === 'chat') el = <MsgGroup key={`g${it.msgs[0].id}`} msgs={it.msgs} leadId={lead.id} />
             return <React.Fragment key={i}>{sep}{el}</React.Fragment>
           })}
         </div>
@@ -310,6 +316,11 @@ export default function ImboxPage() {
     const s = q.trim().toLowerCase()
     return (convs || []).filter((c) => !s || `${c.name} ${c.last} ${convNum(c.leadId)}`.toLowerCase().includes(s))
   }, [convs, q])
+
+  // amoCRM: imBox ochilganda birinchi (eng so'nggi) suhbat avtomatik ochiladi (keng ekranda)
+  useEffect(() => {
+    if (!leadId && convs && convs.length && window.innerWidth > 760) navigate(`/imbox/${convs[0].leadId}`, { replace: true })
+  }, [leadId, convs]) // eslint-disable-line
 
   const empty = convs && convs.length === 0 && status && !status.telegram && !status.facebook && !status.instagram
 
