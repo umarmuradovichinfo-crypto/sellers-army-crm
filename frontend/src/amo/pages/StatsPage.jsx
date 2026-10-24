@@ -119,7 +119,9 @@ function SalesPipeline({ filter, params }) {
   const [tab, setTab] = useState('closed')
   const [mode, setMode] = useState('count')
   const pipelineId = params.pipelineId || 'main' // sotuv tahlili bitta voronka bo'yicha (aralash bosqichlar bo'lmasin)
-  const cur = useApi(() => crmService.analytics({ pipelineId }), [pipelineId], null)
+  // "Сейчас" — davrsiz joriy holat, lekin maydon/UTM filtrlari qo'llanadi
+  const { from: _f, to: _t, ...nowParams } = params
+  const cur = useApi(() => crmService.analytics({ ...nowParams, pipelineId }), [JSON.stringify(nowParams), pipelineId], null)
   const per = useApi(() => crmService.analytics({ ...params, pipelineId }), [JSON.stringify(params), pipelineId], null)
   const flow = useApi(() => crmService.analyticsFlow({ ...params, pipelineId }), [JSON.stringify(params), pipelineId], null)
   if (!cur.data || !per.data) return <Spin />
@@ -362,8 +364,8 @@ function ByActivities({ filter, params }) {
 
 /* ── Sahifa ── */
 const SECTIONS = {
-  pipeline: { title: 'Sotuv tahlili', fields: ['period', 'pipeline1'], preset: 'month' },
-  consolidated: { title: 'Umumiy hisobot', fields: ['period', 'pipeline', 'users'], preset: 'all' },
+  pipeline: { title: 'Sotuv tahlili', fields: ['period', 'pipeline1', 'cf'], preset: 'month' },
+  consolidated: { title: 'Umumiy hisobot', fields: ['period', 'pipeline', 'users', 'cf'], preset: 'all' },
   by_activities: { title: "Barcha xodimlar bo'yicha hisobot", fields: ['period', 'users'], preset: 'week' },
   events: { title: '', fields: [], preset: 'all' },
   calls: { title: "Qo'ng'iroqlar", fields: ['period', 'users'], preset: 'month' },

@@ -1,9 +1,12 @@
 // Analitika: umumiy qismlar — filtr holati, "Фильтр ›" paneli, yuqori panel, sarlavhalar.
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Ico } from '../AmoIcons'
 import { useOutside } from '../TopBar'
 import { useT } from '../i18n'
 import { dmy } from '../format'
+import MultiSelect from '../MultiSelect'
+import { CustomField } from '../LeadsFilter'
+import { EMPTY_FILTER, UTM_KEYS, toParams, useFilterMeta } from '../filterState'
 import '../i18n/stats.ru'
 import '../stats.css'
 
@@ -36,7 +39,7 @@ export function presetRange(preset, custom) {
   return {}
 }
 
-export function defaultFilter(preset = 'month') { return { preset, from: '', to: '', pipelineId: '', userIds: [] } }
+export function defaultFilter(preset = 'month') { return { preset, from: '', to: '', pipelineId: '', userIds: [], cf: {}, utm: {} } }
 
 // filter → API params
 export function useParams(filter, withPipeline = true) {
@@ -44,6 +47,10 @@ export function useParams(filter, withPipeline = true) {
     const r = presetRange(filter.preset, filter)
     const p = { from: r.from, to: r.to }
     if (withPipeline && filter.pipelineId) p.pipelineId = filter.pipelineId
+    // qo'shimcha maydonlar va UTM — bitimlar filtri bilan bir xil format (backend leadConds)
+    const { cf, utm } = toParams({ ...EMPTY_FILTER, cf: filter.cf || {}, utm: filter.utm || {} })
+    if (cf) p.cf = cf
+    if (utm) p.utm = utm
     return p
   }, [filter, withPipeline])
 }
@@ -54,53 +61,59 @@ export function Spin() { return <div className="ac-stats-spin"><div className="a
 
 const PRESETS = [['all', 'Hammasi'], ['today', 'Bugun'], ['yesterday', 'Kecha'], ['week', 'Bu hafta'], ['month', 'Bu oy'], ['range', 'Oraliq']]
 
-// fields: 'period' | 'pipeline' | 'users'
-function FilterPanel({ open, filter, setFilter, fields, pipelines, members }) {
+// fields: 'period' | 'pipeline' | 'users' | 'cf' (qo'shimcha maydonlar + UTM)
+// amoCRM (.analytics-sidebar): chapdan chiquvchi panel, "ФИЛЬТР | Применить", ixcham qatorlar; o'zgarishlar "Qo'llash" bilan
+function FilterPanel({ open, filter, setFilter, fields, pipelines, members, onClose }) {
   const t = useT()
-  const set = (patch) => setFilter({ ...filter, ...patch })
-  const toggleUser = (id) => set({ userIds: filter.userIds.includes(id) ? filter.userIds.filter((x) => x !== id) : [...filter.userIds, id] })
+  const meta = useFilterMeta()
+  const [d, setD] = useState(filter)
+  useEffect(() => { if (open) setD(filter) }, [open, filter])
+  const set = (patch) => setD((p) => ({ ...p, ...patch }))
+  const apply = () => { setFilter(d); onClose() }
+  const one = fields.includes('pipeline1')
+  const pipeOpts = [...(one ? [] : [{ value: '', label: t('Barcha voronkalar') }]), { value: 'main', label: t('Asosiy voronka') }, ...pipelines.map((p) => ({ value: p.id, label: p.name }))]
+  const cfList = fields.includes('cf') ? meta.fields : []
   return (
     <div className={`ac-stats-fpanel ${open ? 'open' : ''}`}>
+      <div className="ac-stats-fpanel__head">
+        <span>{t('Filtr')}</span>
+        <button className="ac-btn ac-btn--blue ac-btn--sm" onClick={apply}>{t("Qo'llash")}</button>
+      </div>
       {fields.includes('period') && (
         <>
-          <div className="ac-stats-fpanel__label">{t('Davr')}</div>
-          {PRESETS.map(([k, l]) => (
-            <div key={k} className={`ac-stats-fpanel__opt ${filter.preset === k ? 'on' : ''}`} onClick={() => set({ preset: k })}>
-              {filter.preset === k ? <Ico name="check" size={12} /> : <span style={{ width: 12 }} />}{t(l)}
-            </div>
-          ))}
-          {filter.preset === 'range' && (
+          <MultiSelect single search={false} chevron label="" options={PRESETS.map(([k, l]) => ({ value: k, label: t(l) }))} value={d.preset} onChange={(v) => set({ preset: v || 'all' })} />
+          {d.preset === 'range' && (
             <div className="ac-stats-fpanel__range">
-              <input type="date" className="ac-input" value={filter.from} onChange={(e) => set({ from: e.target.value })} />
+              <input type="date" className="ac-input" value={d.from} onChange={(e) => set({ from: e.target.value })} />
               <span>—</span>
-              <input type="date" className="ac-input" value={filter.to} onChange={(e) => set({ to: e.target.value })} />
+              <input type="date" className="ac-input" value={d.to} onChange={(e) => set({ to: e.target.value })} />
             </div>
           )}
         </>
       )}
-      {(fields.includes('pipeline') || fields.includes('pipeline1')) && (
-        <>
-          <div className="ac-stats-fpanel__label">{t('Voronka')}</div>
-          <select className="ac-select" value={filter.pipelineId || (fields.includes('pipeline1') ? 'main' : '')} onChange={(e) => set({ pipelineId: e.target.value })}>
-            {fields.includes('pipeline') && <option value="">{t('Barcha voronkalar')}</option>}
-            <option value="main">{t('Asosiy voronka')}</option>
-            {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </>
+      {(fields.includes('pipeline') || one) && (
+        <MultiSelect single search={false} chevron label="" options={pipeOpts} value={d.pipelineId || (one ? 'main' : '')} onChange={(v) => set({ pipelineId: v })} />
       )}
       {fields.includes('users') && (
+        <MultiSelect label="" emptyText="Menejerlar" options={members.map((m) => ({ value: String(m.id), label: m.name }))} value={d.userIds} onChange={(v) => set({ userIds: v })} />
+      )}
+      {cfList.map((fd) => (
+        <div key={fd.key} className="ac-stats-fpanel__cf">
+          <div className="ac-stats-fpanel__cap">{fd.label}</div>
+          <CustomField field={fd} value={d.cf?.[fd.key]} onChange={(v) => set({ cf: { ...d.cf, [fd.key]: v } })} />
+        </div>
+      ))}
+      {fields.includes('cf') && (
         <>
-          <div className="ac-stats-fpanel__label">{t('Menejerlar')}</div>
-          {members.map((m) => (
-            <label key={m.id} className="ac-stats-fpanel__opt">
-              <input type="checkbox" className="ac-check" checked={filter.userIds.includes(String(m.id))} onChange={() => toggleUser(String(m.id))} />
-              {m.name}
-            </label>
+          <div className="ac-stats-fpanel__cap ac-stats-fpanel__cap--group">{t('Statistika')}</div>
+          {UTM_KEYS.map((k) => (
+            <input key={k} className="ac-input" placeholder={k} value={d.utm?.[k] || ''}
+              onChange={(e) => { const u = { ...d.utm, [k]: e.target.value }; if (!e.target.value) delete u[k]; set({ utm: u }) }} />
           ))}
         </>
       )}
       <div className="ac-stats-fpanel__foot">
-        <button className="ac-btn ac-btn--sm" onClick={() => setFilter({ ...defaultFilter(filter.preset === 'range' ? 'month' : filter.preset) })}>{t('Tozalash')}</button>
+        <button className="ac-btn ac-btn--sm ac-btn--plain" onClick={() => { setFilter(defaultFilter(filter.preset === 'range' ? 'month' : filter.preset)); onClose() }}>{t('Tozalash')}</button>
       </div>
     </div>
   )
@@ -126,7 +139,7 @@ export function StatsHead({ title, plain, filter, setFilter, fields, pipelines =
       )}
       {title && <span className={`ac-stats-head__title ${plain ? 'plain' : ''}`}>{children || t(title)}</span>}
       {right && <div className="ac-stats-head__right">{right}</div>}
-      {fields.length > 0 && <FilterPanel open={open} filter={filter} setFilter={setFilter} fields={fields} pipelines={pipelines} members={members} />}
+      {fields.length > 0 && <FilterPanel open={open} filter={filter} setFilter={setFilter} fields={fields} pipelines={pipelines} members={members} onClose={() => setOpen(false)} />}
     </div>
   )
 }

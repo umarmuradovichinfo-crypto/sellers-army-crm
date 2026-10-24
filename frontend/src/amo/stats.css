@@ -38,6 +38,16 @@
 .ac-stats-fpanel__range { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
 .ac-stats-fpanel .ac-input, .ac-stats-fpanel .ac-select { height: 28px; font-size: 13px; background: var(--palette-background-default); border-color: var(--palette-border-primary); }
 .ac-stats-fpanel__foot { margin-top: 14px; }
+/* amoCRM .analytics-sidebar: 270px, sarlavha "ФИЛЬТР" + Применить, qatorlar orasi 10px */
+.ac-stats-fpanel { width: 300px; display: flex; flex-direction: column; gap: 10px; padding: 0 18px 18px; }
+.ac-stats-fpanel__head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; margin: 0 -18px 4px; padding: 12px 18px; background: var(--palette-background-primary); border-bottom: 1px solid var(--palette-border-primary); font: 700 13px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; }
+.ac-stats-fpanel__cf { display: flex; flex-direction: column; gap: 5px; }
+.ac-stats-fpanel__cap { font-size: 13px; color: var(--palette-text-secondary-dark); }
+.ac-stats-fpanel__cap--group { margin-top: 6px; }
+.ac-stats-fpanel > * { flex-shrink: 0; }
+.ac-stats-fpanel .ac-ms { width: 100%; }
+.ac-stats-fpanel > .ac-input { height: 32px; }
+.ac-stats-fpanel .ac-stats-fpanel__range { margin-top: 0; }
 
 /* ── Bloklar ── */
 .ac-stats-body { padding: 0 15px 60px; }

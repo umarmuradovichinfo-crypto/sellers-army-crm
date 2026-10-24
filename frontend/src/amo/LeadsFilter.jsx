@@ -25,7 +25,7 @@ function Range({ from, to, onFrom, onTo, ph, type = 'text', raw }) {
 }
 
 // Maxsus maydon (turiga qarab), amoCRM ixcham ko'rinishida
-function CustomField({ field, value, onChange }) {
+export function CustomField({ field, value, onChange }) {
   const t = useT()
   const ty = field.type
   if (ty === 'select' || ty === 'multiselect') {

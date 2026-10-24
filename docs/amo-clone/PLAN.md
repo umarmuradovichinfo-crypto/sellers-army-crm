@@ -77,7 +77,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 
 18. [x] Tarmoq nazoratchisi / offline rejim: /health ping, GET retry, yozuvlar navbati (Idempotency-Key), banner, PWA app-shell
 19. [x] Bitimlar filtrlari/saralash/statistika amoCRM bilan 1:1 (FILTERS-SPEC.md) — 256 ta tekshiruv psql bilan mos (qa/filtrlar.md)
-    - [ ] Analitika sahifasiga ham to'liq filtr paneli (backend tayyor)
+    - [x] Analitika sahifasiga ham to'liq filtr paneli (amoCRM .analytics-sidebar: davr, voronka, menejerlar, qo'shimcha maydonlar, UTM, «Применить»)
 20. [x] Meta Connector Railway'da (sellers-army-crm-production.up.railway.app) — FB_APP_SECRET foydalanuvchi kiritadi
 
 21. [x] Instagram Direct/izohlar + Facebook Messenger connector orqali (bir tugma) → imBox; Meta obunalari ok
