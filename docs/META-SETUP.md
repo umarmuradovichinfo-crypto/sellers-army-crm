@@ -25,8 +25,10 @@ Facebook ──leadgen webhook──> Connector /fb/webhook ──imzolangan for
   Use case'lar: Lead Ads, Messenger, Instagram, Pages. Redirect URI, App Domains, Privacy/Terms/Data-deletion URL — sozlangan.
 - Connector: Railway loyihasi `handsome-contentment`, servis `sellers-army-crm` (Root Directory `connector`, branch `amo-clone`),
   domen **https://sellers-army-crm-production.up.railway.app**, Volume `/data`. `/health`, `/privacy`, `/data-deletion` ishlaydi.
-- QOLGAN (foydalanuvchi): Railway → Variables → `FB_APP_SECRET` ni haqiqiy App Secret bilan almashtirish (hozir placeholder);
-  Business verification; App Review (Advanced Access); App Mode = Live. Ungacha faqat ilovada roli bor akkauntlar ulana oladi.
+- `FB_APP_SECRET` kiritilgan. Railway'da `FB_SUBSCRIBED_FIELDS`/`FB_GRAPH_VERSION` o'chirilgan (koddagi standart ishlaydi).
+- Instagram Direct/izohlar va Messenger ham shu connector orqali (bir tugma). Instagram akkaunti professional bo'lib, Facebook sahifaga
+  ulangan va "Allow access to messages" yoqilgan bo'lishi kerak. Avval ulangan sahifalar "Yana sahifa qo'shish" bilan qayta ulanadi.
+- QOLGAN (foydalanuvchi): Business verification; App Review (Advanced Access); App Mode = Live. Ungacha faqat ilovada roli bor akkauntlar ulana oladi.
 
 ## Vendor qadamlari (bir marta)
 1. **Meta ilovasi**: https://developers.facebook.com → Create App → Other → **Business**. App settings → Basic: App ID, App Secret,
@@ -37,7 +39,7 @@ Facebook ──leadgen webhook──> Connector /fb/webhook ──imzolangan for
 4. Connector'ni deploy qiling (`docs/CONNECTOR.md`): `FB_APP_ID`, `FB_APP_SECRET`, `CONNECTOR_PUBLIC_URL`, `TOKEN_ENC_KEY`, Volume.
 5. **Business verification** (business.facebook.com → Settings → Business info → Verify).
 6. **App Review** → Advanced Access: `leads_retrieval`, `pages_show_list`, `pages_manage_metadata`, `pages_read_engagement`,
-   `business_management` (keyin: `pages_messaging`, `instagram_*`). Har ruxsat uchun tavsif va qisqa ekran-video
+   `business_management`, `pages_messaging`, `instagram_basic`, `instagram_manage_messages`, `instagram_manage_comments`. Har ruxsat uchun tavsif va qisqa ekran-video
    (CRM'da "Facebook bilan ulash" → sahifa tanlash → formadan lid kelishi). Odatda bir necha kundan 1–2 haftagacha.
 7. Tasdiqlangach App Mode = **Live**. Shundan keyin istalgan mijoz CRM'i ulana oladi.
 8. Mijozlarga CRM'ni berayotganda `CONNECTOR_URL=https://connector.sizning-domen.uz` ni `.env.example` / Variables'da tayyor qo'ying.

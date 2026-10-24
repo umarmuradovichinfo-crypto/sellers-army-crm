@@ -10,8 +10,11 @@
 | `TOKEN_ENC_KEY` | Sahifa tokenlari/instance sirlari shifrlash kaliti (`openssl rand -hex 32`). Production'da majburiy; yo'qotsangiz mijozlar qayta ulanishi kerak |
 | `DATABASE_PATH` | SQLite fayl (standart `/data/connector.db`) — **Volume** ulang |
 | `PORT` | standart 8100 |
-| `FB_SUBSCRIBED_FIELDS` | standart `leadgen` (keyin `leadgen,messages`) |
-| `FB_GRAPH_VERSION` | standart `v26.0` |
+| `FB_SUBSCRIBED_FIELDS` | Page obunasi; standart `leadgen,messages,messaging_postbacks,message_reads,feed` (Railway'da o'rnatmang — standart ishlasin) |
+| `FB_IG_FIELDS` | Instagram obunasi; standart `messages,comments` |
+| `FB_SCOPE` | OAuth ruxsatlari (standart: lid + Messenger + Instagram to'plami) |
+| `FB_GRAPH_VERSION` | standart `v26.0` (Railway'da o'rnatmang) |
+| Diagnostika | `GET /health` → `webhook.status` (ok/error/skipped) va har obyekt natijasi |
 | `ALLOW_INSECURE` | faqat dev: `1` bo'lsa http instance manzillariga ruxsat |
 
 ## Railway
