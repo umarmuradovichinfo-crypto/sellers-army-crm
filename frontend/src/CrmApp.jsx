@@ -17,6 +17,9 @@ import Settings from './pages/Settings'
 import CallWidget from './components/CallWidget'
 import AmoShell from './amo/AmoShell'
 import LeadsPipeline from './amo/pages/LeadsPipeline'
+import ListsPage from './amo/pages/ListsPage'
+import LeadCard from './amo/pages/LeadCard'
+import TasksPage from './amo/pages/TasksPage'
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
@@ -34,9 +37,15 @@ function CrmShell() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<div className="crmsa-body"><CrmDesk /></div>} />
           <Route path="/leads/pipeline/:pipelineId?" element={<LeadsPipeline />} />
+          <Route path="/leads/detail/:id" element={<LeadCard />} />
+          <Route path="/leads/add" element={<LeadCard />} />
           <Route path="/leads/*" element={<CRM chrome="none" forceView="leads" />} />
           <Route path="/imbox/*" element={<CRM chrome="none" forceView="chats" />} />
-          <Route path="/todo/*" element={<CRM chrome="none" forceView="tasks" />} />
+          <Route path="/todo" element={<Navigate to="/todo/line" replace />} />
+          <Route path="/todo/calendar" element={<Navigate to="/todo/calendar/month" replace />} />
+          <Route path="/todo/*" element={<TasksPage />} />
+          <Route path="/contacts/list" element={<ListsPage entity="all" />} />
+          <Route path="/companies/list" element={<ListsPage entity="companies" />} />
           <Route path="/contacts/*" element={<CRM chrome="none" forceView="lists" />} />
           <Route path="/companies/*" element={<CRM chrome="none" forceView="lists" />} />
           <Route path="/stats/*" element={<CRM chrome="none" forceView="analytics" />} />

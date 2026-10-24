@@ -179,4 +179,30 @@ export class SettingsService {
     await this.prisma.user.update({ where: { id }, data: { passwordHash } });
     return { success: true };
   }
+
+  // ── Umumiy sozlamalar (AppSetting 'general_settings' kaliti, JSON) ──
+  private static readonly GENERAL_KEY = 'general_settings';
+  private static readonly GENERAL_FIELDS = ['accountName', 'address', 'timezone', 'country', 'dateFormat', 'timeFormat', 'currency', 'nameOrder'];
+
+  async getGeneral() {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: SettingsService.GENERAL_KEY } });
+    let saved: Record<string, unknown> = {};
+    try { saved = JSON.parse(row?.value || '{}'); } catch { /* */ }
+    return { general: saved };
+  }
+
+  async saveGeneral(body: Record<string, unknown>) {
+    const cur = (await this.getGeneral()).general;
+    const next: Record<string, string> = { ...(cur as Record<string, string>) };
+    for (const k of SettingsService.GENERAL_FIELDS) {
+      if (typeof body?.[k] === 'string') next[k] = (body[k] as string).trim().slice(0, 200);
+    }
+    const value = JSON.stringify(next);
+    await this.prisma.appSetting.upsert({
+      where: { key: SettingsService.GENERAL_KEY },
+      update: { value },
+      create: { key: SettingsService.GENERAL_KEY, value },
+    });
+    return { general: next };
+  }
 }

@@ -24,7 +24,7 @@ Qoidalar
    - [ ] Ro'yxat ko'rinishi (/leads/list): jadval, ommaviy amallar
    - [ ] Import sahifasi ("…" menyudan)
 4. [ ] Vazifalar: kun/hafta/oy, ro'yxat, kalendar, vazifa qo'shish oynasi
-5. [ ] Ro'yxatlar: kontaktlar va kompaniyalar ro'yxati + kartochkalar
+5. [~] Ro'yxatlar: [x] kontaktlar/kompaniyalar jadvali; [ ] kontakt/kompaniya kartochkasi (/contacts/detail, /companies/detail, /contacts/add); [ ] backend: kontakt/kompaniyaga assigneeId va teglar, bulk endpoint, 200 ta limitni olib tashlash (sahifalash), import sahifasi
 6. [ ] imBox: suhbatlar ro'yxati + chat lentasi
 7. [ ] Analitika: sotuv tahlili, umumiy hisobot, xodimlar hisoboti, voqealar ro'yxati, qo'ng'iroqlar, maqsadlar
 8. [ ] Ish stoli: vidjetlar, davr tanlagich, voronka statistikasi

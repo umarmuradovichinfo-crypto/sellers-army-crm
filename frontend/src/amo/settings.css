@@ -1,0 +1,107 @@
+/* Sozlamalar va Integratsiyalar (amoМаркет o'rnida) — amoCRM o'lchamlari skrinshotlardan olingan. */
+
+/* ── Umumiy sozlamalar ── */
+.ac-set-body { padding: 15px 23px 60px; }
+.ac-set-block { background: var(--palette-background-primary); border-radius: var(--border-radius-default); padding: 15px 15px 20px; margin-bottom: 17px; }
+.ac-set-block__title { display: flex; align-items: center; gap: 10px; font: 18px var(--font-main); color: var(--palette-text-primary); margin: 0 0 4px; }
+.ac-set-block__desc { font-size: 14px; color: var(--palette-text-secondary-light); margin-bottom: 14px; line-height: 1.3; }
+.ac-set-row { display: flex; align-items: center; min-height: 46px; }
+.ac-set-row__label { width: 165px; flex: none; font-size: 14px; color: var(--palette-text-primary); }
+.ac-set-row .ac-input, .ac-set-row .ac-select { width: 250px; height: 36px; background: transparent; }
+.ac-set-row .ac-select { appearance: none; padding-right: 30px; background-image: linear-gradient(45deg, transparent 50%, var(--palette-text-primary) 50%), linear-gradient(135deg, var(--palette-text-primary) 50%, transparent 50%); background-position: calc(100% - 15px) 15px, calc(100% - 10px) 15px; background-size: 5px 5px; background-repeat: no-repeat; }
+.ac-set-row .ac-select option { background: var(--palette-background-primary); color: var(--palette-text-primary); }
+.ac-set-saved { font-size: 13px; color: var(--palette-text-success); margin-right: 14px; align-self: center; animation: ac-fadeIn 0.2s ease both; }
+.ac-set-err { font-size: 13px; color: var(--amo-danger); margin: 8px 0 0; }
+.ac-set-switchrow { display: flex; align-items: center; gap: 12px; }
+.ac-set-note { font-size: 14px; color: var(--palette-text-secondary-light); line-height: 1.4; }
+
+/* ── Foydalanuvchilar ── */
+.ac-set-users .ac-table td, .ac-set-users .ac-table th { max-width: 190px; }
+.ac-set-users .ac-table td .name { color: var(--palette-link-primary); cursor: pointer; }
+.ac-set-users .ac-table td .name:hover { color: var(--palette-link-hover); }
+.ac-set-admin { color: #8cc051; }
+.ac-set-dots { display: inline-flex; gap: 2px; vertical-align: middle; }
+.ac-set-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--palette-border-default); display: block; }
+.ac-set-dots i.on.v { background: #4eb15c; }
+.ac-set-dots i.on.e { background: #4c8bf7; }
+.ac-set-dots i.on.a { background: #e4b248; }
+.ac-set-dots i.on.d { background: #f37575; }
+.ac-set-dots i.on.x { background: #a07ae0; }
+.ac-set-inactive td { opacity: 0.55; }
+
+/* ── Foydalanuvchi tahrirlash paneli (o'ngdan) ── */
+.ac-set-drawer-wrap { position: fixed; inset: 0; z-index: 1100; background: var(--palette-overlay-background-default-700, rgba(15, 34, 49, 0.7)); animation: ac-fadeIn 0.2s ease both; }
+.ac-set-drawer { position: absolute; top: 0; right: 0; bottom: 0; width: 560px; max-width: 100%; background: var(--palette-background-primary); border-left: 1px solid var(--palette-border-primary); box-shadow: -6px 0 24px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; animation: ac-set-slide 0.25s ease both; }
+@keyframes ac-set-slide { from { transform: translateX(100%); } to { transform: none; } }
+.ac-set-drawer__head { height: 65px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 20px 0 30px; border-bottom: 1px solid var(--palette-border-primary); font: 700 15px var(--font-caption); letter-spacing: 1px; text-transform: uppercase; }
+.ac-set-drawer__body { flex: 1; overflow-y: auto; padding: 20px 30px; }
+.ac-set-drawer__foot { flex: none; display: flex; gap: 10px; align-items: center; padding: 14px 30px; border-top: 1px solid var(--palette-border-primary); }
+.ac-set-field { margin-bottom: 14px; }
+.ac-set-field > label { display: block; font-size: 12px; color: var(--palette-text-secondary-light); margin-bottom: 4px; }
+.ac-set-sub { font: 700 12px var(--font-caption); letter-spacing: 1px; text-transform: uppercase; color: var(--palette-text-secondary-dark); margin: 22px 0 10px; }
+.ac-set-matrix { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ac-set-matrix td { height: 34px; border-bottom: 1px solid var(--palette-border-primary); padding: 0 4px; }
+.ac-set-matrix td:last-child { text-align: right; width: 70px; }
+.ac-set-checkrow { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+
+/* ── Chatlar ── */
+.ac-set-chat { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--palette-border-primary); }
+.ac-set-chat:first-of-type { border-top: 0; }
+.ac-set-chat__ico { width: 40px; height: 40px; border-radius: 50%; background: #2ca5e0; color: #fff; display: flex; align-items: center; justify-content: center; flex: none; }
+.ac-set-chat__name { font: 700 15px var(--font-main); }
+.ac-set-status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--palette-text-secondary-dark); }
+.ac-set-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--palette-border-default); }
+.ac-set-status.ok { color: #8cc051; }
+.ac-set-status.ok::before { background: #8cc051; }
+
+/* ── Integratsiyalar (amoМаркет o'rnida) ── */
+.ac-int-tabs { display: flex; align-items: stretch; height: 50px; padding: 0 22px; border-bottom: 1px solid var(--palette-border-primary); background: var(--ac-top-bg); overflow-x: auto; }
+.ac-int-tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 0 16px; margin-bottom: -1px; color: var(--palette-text-primary); font: 15px var(--font-main); cursor: pointer; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+.ac-int-tab:hover { color: var(--palette-link-primary); }
+.ac-int-tab.on { color: var(--palette-link-primary); border-bottom-color: var(--palette-link-primary); }
+.ac-int-body { padding: 24px 22px 60px; }
+.ac-int-section { font: 18px var(--font-main); margin: 0 0 14px; }
+.ac-int-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-bottom: 30px; }
+.ac-int-card { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 16px; min-height: 140px; background: var(--palette-background-primary); border: 1px solid transparent; border-radius: var(--border-radius-default); cursor: pointer; transition: border-color 0.2s, transform 0.2s; overflow: hidden; }
+.ac-int-card:hover { border-color: var(--palette-link-primary); transform: translateY(-2px); }
+.ac-int-card__top { display: flex; gap: 12px; align-items: center; }
+.ac-int-card__logo { width: 54px; height: 54px; border-radius: 8px; flex: none; display: flex; align-items: center; justify-content: center; color: #fff; }
+.ac-int-card__name { font: 700 15px var(--font-main); line-height: 1.2; }
+.ac-int-card__cat { font-size: 12px; color: var(--palette-text-secondary-light); margin-top: 3px; }
+.ac-int-card__desc { font-size: 13px; color: var(--palette-text-secondary-dark); line-height: 1.35; flex: 1; }
+.ac-int-card__foot { display: flex; align-items: center; gap: 10px; }
+.ac-int-badge { position: absolute; top: 10px; right: 10px; padding: 2px 8px; border-radius: 3px; font: 700 11px var(--font-caption); text-transform: uppercase; background: #8cc051; color: #1d2b12; }
+.ac-int-empty { color: var(--palette-text-secondary-light); padding: 40px 0; text-align: center; }
+
+/* Integratsiya modali (vidjet oynasi) */
+.ac-int-modal { max-width: 720px; padding: 0; overflow: hidden; }
+.ac-int-modal__head { display: flex; align-items: center; gap: 14px; padding: 20px 60px 16px 30px; border-bottom: 1px solid var(--palette-border-primary); }
+.ac-int-modal__head .ac-int-card__logo { width: 46px; height: 46px; }
+.ac-int-modal__title { font: 700 20px var(--font-main); }
+.ac-int-modal__tabs { display: flex; gap: 0; padding: 0 30px; border-bottom: 1px solid var(--palette-border-primary); }
+.ac-int-modal__body { padding: 20px 30px 26px; max-height: calc(100vh - 260px); overflow-y: auto; }
+.ac-int-lead { font-size: 14px; color: var(--palette-text-secondary-dark); line-height: 1.4; margin-bottom: 16px; }
+.ac-int-field { margin-bottom: 14px; }
+.ac-int-field > label { display: block; font-size: 12px; color: var(--palette-text-secondary-light); margin-bottom: 4px; }
+.ac-int-hint { font-size: 12px; color: var(--palette-text-secondary-light); margin-top: 4px; line-height: 1.3; }
+.ac-int-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ac-int-actions { display: flex; align-items: center; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.ac-int-msg { font-size: 13px; }
+.ac-int-msg.ok { color: #8cc051; }
+.ac-int-msg.err { color: var(--amo-danger); }
+.ac-int-radio { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--palette-border-primary); border-radius: var(--border-radius-default); margin-bottom: 8px; cursor: pointer; transition: border-color 0.2s; }
+.ac-int-radio.on { border-color: var(--palette-link-primary); }
+.ac-int-radio b { font-size: 14px; }
+.ac-int-radio .sub { font-size: 12px; color: var(--palette-text-secondary-light); margin-top: 2px; }
+.ac-int-list-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--palette-border-primary); }
+.ac-int-list-item:first-child { border-top: 0; }
+.ac-int-list-item .grow { flex: 1; min-width: 0; }
+.ac-int-list-item .nm { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-int-list-item .sb { font-size: 12px; color: var(--palette-text-secondary-light); }
+.ac-int-steps { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; font-size: 13px; }
+.ac-int-steps span { color: var(--palette-text-secondary-light); }
+.ac-int-steps span.on { color: var(--palette-link-primary); font-weight: 700; }
+.ac-int-fieldrow { display: grid; grid-template-columns: 1.3fr 1.4fr 70px 28px; gap: 8px; align-items: center; margin-bottom: 8px; }
+.ac-int-x { background: none; border: 0; color: var(--palette-text-secondary-light); cursor: pointer; padding: 4px; display: flex; }
+.ac-int-x:hover { color: var(--amo-danger); }
+.ac-int-copy { display: flex; gap: 8px; }

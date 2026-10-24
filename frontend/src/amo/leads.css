@@ -1,32 +1,5 @@
 /* amoCRM klon — Bitimlar: voronka (kanban), ro'yxat, filtr paneli. */
 
-/* ── Filtr paneli (.filter-search) ── */
-.ac-filter {
-  position: absolute; top: 100%; left: -1px; z-index: 120; display: flex;
-  width: min(965px, calc(100vw - 110px)); max-height: calc(100vh - 90px);
-  background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); border-top: 0;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  opacity: 0; transform: translate3d(0, -10px, 0); pointer-events: none;
-  transition: opacity 0.2s, transform 0.2s;
-  color: var(--palette-text-primary); cursor: default;
-}
-.ac-filter.open { opacity: 1; transform: none; pointer-events: auto; }
-.ac-filter__presets { width: 215px; flex: none; padding: 10px 18px; border-right: 1px solid var(--palette-border-primary); overflow-y: auto; }
-.ac-filter__preset { display: flex; align-items: center; gap: 8px; min-height: 44px; border-bottom: 1px solid var(--palette-border-primary); font-size: 14px; cursor: pointer; color: var(--palette-text-primary); }
-.ac-filter__preset:hover { color: #1691ff; }
-.ac-filter__preset.on { color: #1691ff; }
-.ac-filter__preset .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
-.ac-filter__preset .edit { margin-left: auto; color: var(--palette-text-secondary-light); }
-.ac-filter__col { flex: 1; padding: 14px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.ac-filter__col--fields { flex: 0 0 305px; border-right: 1px solid var(--palette-border-primary); }
-.ac-filter__label { display: flex; align-items: center; gap: 30px; font: 700 12px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; color: var(--palette-text-secondary-dark); margin-bottom: 6px; }
-.ac-filter__label a { font: 400 13px var(--font-main); text-transform: none; letter-spacing: 0; text-decoration: underline; }
-.ac-filter .ac-input, .ac-filter .ac-select { height: 28px; font-size: 13px; background: var(--palette-background-default); border-color: var(--palette-border-primary); }
-.ac-filter__range { display: flex; align-items: center; gap: 6px; }
-.ac-filter__tags { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-.ac-filter__tagrow { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--palette-text-secondary-dark); }
-.ac-filter__foot { display: flex; gap: 8px; padding-top: 10px; margin-top: auto; }
-
 /* ── Voronka ── */
 .ac-pipeline { position: relative; }
 .ac-pipeline__scroll { overflow: auto; height: calc(100vh - 65px); padding: 0 30px 80px; }

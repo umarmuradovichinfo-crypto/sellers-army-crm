@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put } from '@nestjs/common';
 
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
@@ -57,5 +57,18 @@ export class SettingsController {
   @RequirePermissions('settings.roles.manage')
   resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto) {
     return this.settings.resetPassword(id, dto.password);
+  }
+
+  // Umumiy sozlamalar (akkaunt nomi, mintaqa, formatlar)
+  @Get('general')
+  @RequirePermissions('settings.view')
+  general() {
+    return this.settings.getGeneral();
+  }
+
+  @Put('general')
+  @RequirePermissions('settings.roles.manage')
+  saveGeneral(@Body() body: Record<string, unknown>) {
+    return this.settings.saveGeneral(body);
   }
 }

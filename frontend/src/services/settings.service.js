@@ -30,4 +30,8 @@ export const settingsService = {
   updateUser: (id, payload) => mockOr(() => api.patch(`/settings/users/${id}`, payload), { user: { id, ...payload, roleName: payload.roleKey } }),
   // POST /settings/users/:id/password { password }
   resetUserPassword: (id, password) => mockOr(() => api.post(`/settings/users/${id}/password`, { password }), { success: true }),
+
+  // GET/PUT /settings/general -> { general: { accountName, address, timezone, country, dateFormat, timeFormat, currency, nameOrder } }
+  getGeneral: () => mockOr(() => api.get('/settings/general'), { general: {} }),
+  saveGeneral: (payload) => mockOr(() => api.put('/settings/general', payload), { general: payload }),
 }

@@ -107,6 +107,10 @@ export class CrmAnalyticsService {
         lost: lost.length,
         winRate,
         avgCheck: won.length ? Math.round(won.reduce((a, l) => a + l.value, 0) / won.length) : 0,
+        avgDays: (() => {
+          const w = won.filter((l) => l.wonAt);
+          return w.length ? Math.round(w.reduce((a, l) => a + (l.wonAt!.getTime() - l.createdAt.getTime()) / 86400000, 0) / w.length) : 0;
+        })(),
       },
       funnel,
       bySource,
@@ -142,12 +146,13 @@ export class CrmAnalyticsService {
     const totalDuration = logs.reduce((a, c) => a + (c.durationSec || 0), 0);
     const answered = logs.filter((c) => isAnswered(c.status));
 
-    const empMap = new Map<string, { count: number; answered: number; missed: number; totalDur: number }>();
+    const empMap = new Map<string, { count: number; answered: number; missed: number; totalDur: number; inCount: number; outCount: number; inDur: number; outDur: number }>();
     const dayMap = new Map<string, { in: number; out: number; missed: number }>();
     for (const c of logs) {
       const ek = c.userId || '—';
-      const e = empMap.get(ek) || { count: 0, answered: 0, missed: 0, totalDur: 0 };
+      const e = empMap.get(ek) || { count: 0, answered: 0, missed: 0, totalDur: 0, inCount: 0, outCount: 0, inDur: 0, outDur: 0 };
       e.count++;
+      if (c.direction === 'in') { e.inCount++; e.inDur += c.durationSec || 0; } else { e.outCount++; e.outDur += c.durationSec || 0; }
       if (isAnswered(c.status)) e.answered++;
       if (isMissed(c.status)) e.missed++;
       e.totalDur += c.durationSec || 0;
@@ -177,6 +182,10 @@ export class CrmAnalyticsService {
           answered: v.answered,
           missed: v.missed,
           totalDur: v.totalDur,
+          inCount: v.inCount,
+          outCount: v.outCount,
+          inDur: v.inDur,
+          outDur: v.outDur,
           avgDur: v.answered ? Math.round(v.totalDur / v.answered) : 0,
         }))
         .sort((a, b) => b.count - a.count),
@@ -267,7 +276,7 @@ export class CrmAnalyticsService {
     const leadWhere: Record<string, any> = { ...this.range('createdAt', params.from, params.to) };
     if (params.pipelineId) leadWhere.pipelineId = params.pipelineId;
 
-    const [stages, leads, nameById, callLogs, tasks] = await Promise.all([
+    const [stages, leads, nameById, callLogs, tasks, openTasks, notes] = await Promise.all([
       this.prisma.crmStage.findMany({ select: { key: true, kind: true } }),
       this.prisma.lead.findMany({ where: leadWhere }),
       this.userNames(),
@@ -276,15 +285,20 @@ export class CrmAnalyticsService {
         where: { done: true, ...this.range('doneAt', params.from, params.to) },
         select: { assigneeId: true },
       }),
+      this.prisma.leadTask.findMany({ where: { done: false }, select: { assigneeId: true } }),
+      this.prisma.activity.findMany({ where: { type: 'note', ...this.range('createdAt', params.from, params.to) }, select: { actorId: true } }),
     ]);
     const kindByKey = new Map(stages.map((s) => [s.key, s.kind]));
 
-    const rows = new Map<string, { leads: number; won: number; lost: number; sum: number; calls: number; tasksDone: number }>();
+    const rows = new Map<string, { leads: number; leadSum: number; won: number; lost: number; sum: number; calls: number; tasksDone: number; tasksOpen: number; notes: number }>();
     const ensure = (id: string) =>
-      rows.get(id) || rows.set(id, { leads: 0, won: 0, lost: 0, sum: 0, calls: 0, tasksDone: 0 }).get(id)!;
+      rows.get(id) || rows.set(id, { leads: 0, leadSum: 0, won: 0, lost: 0, sum: 0, calls: 0, tasksDone: 0, tasksOpen: 0, notes: 0 }).get(id)!;
+    for (const t of openTasks) ensure(t.assigneeId || '—').tasksOpen++;
+    for (const n of notes) ensure((n as any).actorId || '—').notes++;
     for (const l of leads) {
       const e = ensure(l.assigneeId || '—');
       e.leads++;
+      e.leadSum += l.value;
       if (kindByKey.get(l.stage) === 'won') { e.won++; e.sum += l.value; }
       if (kindByKey.get(l.stage) === 'lost') e.lost++;
     }
@@ -296,6 +310,9 @@ export class CrmAnalyticsService {
         id,
         name: id === '—' ? 'Biriktirilmagan' : nameById.get(id) || id,
         leads: v.leads,
+        leadSum: v.leadSum,
+        notes: v.notes,
+        tasksOpen: v.tasksOpen,
         won: v.won,
         lost: v.lost,
         sum: v.sum,

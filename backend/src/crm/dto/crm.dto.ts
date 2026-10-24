@@ -76,6 +76,7 @@ export class UpdateLeadDto {
   @IsOptional() @IsString() nextTask?: string;
   @IsOptional() @IsString() nextTaskDate?: string;
   @IsOptional() @IsString() lostReason?: string;
+  @IsOptional() @IsString() contactId?: string;
 }
 
 export class MoveLeadDto {

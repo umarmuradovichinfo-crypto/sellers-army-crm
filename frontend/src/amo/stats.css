@@ -1,0 +1,178 @@
+/* amoCRM klon — Analitika (Sotuv tahlili, Umumiy hisobot, Xodimlar, Voqealar, Qo'ng'iroqlar, Maqsadlar). */
+.ac-stats {
+  --ac-stats-c1: #4c8bf7; --ac-stats-c2: #9bd23c; --ac-stats-c3: #f5a443; --ac-stats-c4: #f0605e;
+  --ac-stats-c5: #6cc7f5; --ac-stats-c6: #c7b3f0; --ac-stats-c7: #f0d24a; --ac-stats-c8: #8fb85a;
+  --ac-stats-box: var(--palette-background-secondary-300);
+  --ac-stats-mut: var(--palette-text-secondary-light);
+  min-height: 100vh;
+}
+[data-color-scheme="dark"] .ac-stats { --ac-stats-box: #102535; }
+
+/* ── Yuqori panel ── */
+.ac-stats-head { position: relative; display: flex; align-items: center; gap: 14px; height: 65px; padding: 0 30px 0 25px; }
+.ac-stats-head__title { font: 700 15px var(--font-caption); letter-spacing: 1px; text-transform: uppercase; color: var(--palette-text-primary); white-space: nowrap; }
+.ac-stats-head__title.plain { text-transform: none; font-weight: 400; letter-spacing: 0.3px; font-size: 18px; }
+.ac-stats-head__title u { text-decoration: none; border-bottom: 1px dashed var(--palette-text-secondary-dark); }
+.ac-stats-head__right { margin-left: auto; display: flex; gap: 10px; }
+.ac-stats-fbtn {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px 0 10px; border-radius: var(--border-radius-default);
+  border: 1px solid var(--palette-border-primary); background: var(--ac-stats-box); color: var(--palette-text-primary);
+  font: 700 12px var(--font-caption); cursor: pointer; transition: background 0.2s, border-color 0.2s;
+}
+.ac-stats-fbtn:hover { border-color: var(--palette-border-default); }
+.ac-stats-fbtn .ico-chev { transition: transform 0.2s; color: var(--ac-stats-mut); }
+.ac-stats-fbtn.open .ico-chev { transform: rotate(180deg); }
+
+/* ── Filtr paneli (chapdan ochiladi) ── */
+.ac-stats-fpanel {
+  position: absolute; top: 56px; left: 0; z-index: 130; width: 330px; max-height: calc(100vh - 90px); overflow-y: auto;
+  background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); padding: 16px 18px;
+  opacity: 0; transform: translate3d(-24px, 0, 0); pointer-events: none; transition: opacity 0.2s, transform 0.2s;
+}
+.ac-stats-fpanel.open { opacity: 1; transform: none; pointer-events: auto; }
+.ac-stats-fpanel__label { font: 700 12px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; color: var(--palette-text-secondary-dark); margin: 14px 0 8px; }
+.ac-stats-fpanel__label:first-child { margin-top: 0; }
+.ac-stats-fpanel__opt { display: flex; align-items: center; gap: 8px; min-height: 30px; font-size: 14px; cursor: pointer; color: var(--palette-text-primary); }
+.ac-stats-fpanel__opt:hover, .ac-stats-fpanel__opt.on { color: #1691ff; }
+.ac-stats-fpanel__range { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+.ac-stats-fpanel .ac-input, .ac-stats-fpanel .ac-select { height: 28px; font-size: 13px; background: var(--palette-background-default); border-color: var(--palette-border-primary); }
+.ac-stats-fpanel__foot { margin-top: 14px; }
+
+/* ── Bloklar ── */
+.ac-stats-body { padding: 0 15px 60px; }
+.ac-stats-box { position: relative; background: transparent; border: 1px solid var(--palette-border-primary); margin-bottom: 15px; padding: 14px 12px 16px; }
+.ac-stats-box__title { font: 700 12px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; color: var(--palette-text-primary); margin-bottom: 8px; }
+.ac-stats-note { position: relative; margin-bottom: 15px; padding: 14px 18px; background: var(--ac-stats-box); border: 1px solid var(--palette-border-primary); color: var(--palette-text-secondary-dark); font-size: 13px; line-height: 18px; }
+.ac-stats-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.ac-stats-check { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 6px; background: var(--ac-stats-box); border: 1px solid var(--palette-border-primary); font-size: 12px; color: var(--palette-text-secondary-dark); }
+.ac-stats-seg { display: inline-flex; border: 1px solid var(--palette-border-primary); background: var(--ac-stats-box); }
+.ac-stats-seg button { position: relative; height: 28px; padding: 0 14px; border: 0; background: transparent; color: var(--palette-text-secondary-dark); font: 700 13px var(--font-main); cursor: pointer; transition: color 0.2s, background 0.2s; }
+.ac-stats-seg button.on { color: var(--palette-text-primary); background: var(--palette-background-primary); }
+.ac-stats-tabs { display: inline-flex; gap: 0; }
+.ac-stats-tabs button { height: 28px; padding: 0 9px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--palette-text-secondary-dark); font: 700 11px var(--font-caption); letter-spacing: 0.3px; text-transform: uppercase; cursor: pointer; transition: color 0.2s, border-color 0.2s; }
+.ac-stats-tabs button:hover { color: var(--palette-text-primary); }
+.ac-stats-tabs button.on { color: #1691ff; border-bottom-color: #1691ff; }
+.ac-stats-tabs.center { display: flex; justify-content: center; border-bottom: 1px solid var(--palette-border-primary); width: max-content; margin: -4px auto 8px; }
+
+/* ── Sotuv tahlili: bitimlar bloki ── */
+.ac-stats-deals { display: flex; align-items: stretch; padding: 14px 0 6px 0; }
+.ac-stats-deals__new { width: 340px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--ac-stats-mut); opacity: 0.55; }
+.ac-stats-deals__new small { font: 700 10px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; }
+.ac-stats-deals__new b { font: 300 52px/56px var(--font-main); }
+.ac-stats-deals__rows { width: 80px; flex: none; border-left: 1px solid var(--palette-border-primary); padding-left: 14px; display: flex; flex-direction: column; }
+.ac-stats-rowlab { font: 700 10px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; color: var(--palette-text-secondary-dark); display: flex; align-items: center; }
+.ac-stats-deals__rows .r1 { height: 62px; margin-top: 22px; }
+.ac-stats-deals__rows .r2 { height: 82px; }
+.ac-stats-deals__rows .r3 { height: 32px; margin-top: 18px; }
+.ac-stats-cols { display: flex; gap: 8px; margin-left: 12px; align-items: flex-start; flex: 1; min-width: 0; overflow-x: auto; padding-bottom: 6px; }
+.ac-stats-col { width: 167px; flex: none; }
+.ac-stats-col.won { margin-left: 18px; }
+.ac-stats-col__top { height: 196px; border: 1px solid var(--palette-border-primary); border-top: 4px solid var(--c, var(--ac-stats-c6)); text-align: center; padding-top: 10px; background: var(--ac-stats-box); }
+.ac-stats-col__name { font-size: 15px; color: var(--palette-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 6px; }
+.ac-stats-col__val { font-size: 13px; line-height: 19px; color: var(--palette-text-primary); }
+.ac-stats-col__val:first-of-type { margin-top: 4px; }
+.ac-stats-col__arrow { position: relative; height: 82px; margin: 10px 0 0 -1px; color: var(--ac-stats-mut); display: flex; flex-direction: column; justify-content: center; text-align: center; font-size: 13px; line-height: 17px; }
+.ac-stats-col__arrow svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.ac-stats-col__arrow span { position: relative; z-index: 1; }
+.ac-stats-col__arrow b { display: block; font: 300 26px/28px var(--font-main); }
+.ac-stats-col.won .ac-stats-col__arrow { color: var(--palette-text-primary); }
+.ac-stats-col__lost { height: 32px; margin-top: 18px; border: 1px solid var(--palette-border-primary); background: var(--ac-stats-box); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--ac-stats-mut); clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); }
+.ac-stats-col.won .ac-stats-col__lost { border: 0; background: transparent; clip-path: none; font-size: 15px; color: var(--palette-text-primary); }
+
+/* ── Voronka barlar ── */
+.ac-stats-fun { display: flex; padding: 10px 6px 4px; min-height: 280px; }
+.ac-stats-fun__left { flex: 1; position: relative; min-width: 0; padding-right: 20px; }
+.ac-stats-fun__avg { position: absolute; left: 0; bottom: 6px; }
+.ac-stats-fun__avg b { display: block; font: 300 76px/80px var(--font-main); color: var(--palette-text-primary); }
+.ac-stats-fun__avg span { font: 300 24px var(--font-main); color: var(--palette-text-primary); }
+.ac-stats-fun__line { position: absolute; left: 0; top: 70px; height: 3px; background: var(--ac-stats-c6); width: 60%; }
+.ac-stats-fun__bars { width: 62%; flex: none; display: flex; flex-direction: column; gap: 8px; }
+.ac-stats-bar { display: flex; align-items: center; height: 38px; }
+.ac-stats-bar__pct { flex: 1; text-align: right; padding-right: 2px; font: 300 24px var(--font-main); color: var(--palette-text-primary); }
+.ac-stats-bar svg { flex: none; width: 320px; height: 30px; display: block; }
+.ac-stats-bar svg polygon { transition: points 0.4s; }
+.ac-stats-bar__info { width: 190px; flex: none; margin-left: 20px; font-size: 13px; line-height: 17px; }
+.ac-stats-bar__info u { color: var(--ac-stats-mut); }
+.ac-stats-fun__wrap { display: flex; align-items: flex-start; }
+
+/* ── Umumiy hisobot ── */
+.ac-stats-chart svg { width: 100%; height: auto; display: block; }
+.ac-stats-chart text { fill: var(--ac-stats-mut); font: 10px var(--font-main); }
+.ac-stats-chart .grid { stroke: var(--palette-border-primary); stroke-width: 1; }
+.ac-stats-chart .ln { fill: none; stroke-width: 2; }
+.ac-stats-chart circle { stroke: var(--palette-background-primary); stroke-width: 2; cursor: default; }
+.ac-stats-chart circle:hover { r: 6; }
+.ac-stats-sum { display: grid; grid-template-columns: 1fr 320px 1fr; gap: 20px; padding: 10px 60px 14px; }
+.ac-stats-sum__cap { font: 700 10px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; color: var(--palette-text-secondary-dark); margin-bottom: 16px; }
+.ac-stats-sum__row { display: flex; align-items: center; gap: 10px; height: 47px; }
+.ac-stats-sum__pct { width: 72px; text-align: right; font: 300 26px var(--font-main); color: var(--palette-text-primary); flex: none; }
+.ac-stats-sum__txt { border-left: 2px solid var(--c, var(--ac-stats-c1)); padding-left: 10px; font-size: 13px; line-height: 17px; min-width: 0; }
+.ac-stats-sum__txt div:first-child { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-stats-sum__txt div:last-child { color: var(--palette-text-secondary-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-stats-donut { position: relative; align-self: center; width: 260px; height: 260px; margin: 0 auto; }
+.ac-stats-donut svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ac-stats-donut__mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ac-stats-donut__mid small { font-size: 11px; color: var(--ac-stats-mut); }
+.ac-stats-donut__mid b { font: 300 58px/64px var(--font-main); color: var(--palette-text-primary); }
+.ac-stats-donut__mid span { font-size: 13px; color: var(--palette-text-secondary-dark); }
+
+/* ── Xodimlar jadvali ── */
+.ac-stats-emp { padding: 0 15px 60px; }
+.ac-stats-emp .ac-table { background: transparent; border: 0; }
+.ac-stats-emp .ac-table th { top: 0; position: static; font: 700 11px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; color: var(--palette-text-secondary-dark); background: transparent; border-right: 1px solid var(--palette-border-primary); }
+.ac-stats-emp .ac-table td { max-width: none; }
+.ac-stats-emp .ac-table td.r { text-align: right; }
+.ac-stats-emp .ac-table td.l { text-align: left; }
+.ac-stats-emp .ac-table td a { color: #1691ff; }
+.ac-stats-emp .ac-table td, .ac-stats-emp .ac-table th { width: 22%; }
+.ac-stats-emp .ac-table td:first-child, .ac-stats-emp .ac-table th:first-child { width: 22%; }
+
+/* ── Voqealar ro'yxati ── */
+.ac-stats-ev { padding: 0 15px 60px; }
+.ac-stats-ev .ac-table { background: transparent; border: 0; }
+.ac-stats-ev .ac-table th { position: sticky; top: 65px; font: 700 11px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; color: var(--palette-text-secondary-dark); background: var(--ac-stats-box); }
+.ac-stats-ev .ac-table td { max-width: 260px; }
+.ac-stats-ev .ac-table td.obj { color: #1691ff; }
+.ac-stats-ev__play { display: inline-flex; align-items: center; gap: 8px; }
+.ac-stats-ev__play .ico { color: #1691ff; cursor: pointer; }
+.ac-stats-more { display: flex; justify-content: center; padding: 16px 0; }
+
+/* ── Qo'ng'iroqlar ── */
+.ac-stats-calls__legend { margin: 0 0 8px 218px; font-size: 13px; color: var(--palette-text-secondary-dark); }
+.ac-stats-call { display: flex; align-items: center; height: 47px; }
+.ac-stats-call__who { width: 218px; flex: none; text-align: right; padding-right: 20px; font-size: 13px; line-height: 17px; color: var(--palette-text-primary); }
+.ac-stats-call__who small { display: block; color: var(--palette-text-secondary-dark); font-size: 13px; }
+.ac-stats-call__track { flex: 1; display: flex; align-items: center; min-width: 0; }
+.ac-stats-call__bar { display: flex; height: 29px; min-width: 22px; transition: width 0.4s; overflow: hidden; }
+.ac-stats-call__in, .ac-stats-call__out { display: flex; align-items: center; font-size: 13px; padding: 0 5px; color: rgba(0, 0, 0, 0.45); background: var(--c); }
+.ac-stats-call__out { justify-content: flex-end; background: color-mix(in srgb, var(--c) 55%, #2a2a2a); }
+.ac-stats-call__total { margin-left: 8px; font: 300 26px var(--font-main); color: var(--palette-text-primary); }
+
+/* ── Maqsadlar ── */
+.ac-stats-goals { position: relative; }
+.ac-stats-goals__head { display: flex; height: 50px; }
+.ac-stats-goals__name { width: 173px; flex: none; font-size: 14px; color: var(--palette-text-primary); padding-right: 10px; }
+.ac-stats-goals__area { flex: 1; position: relative; min-width: 0; margin-right: 150px; }
+.ac-stats-goals__row { display: flex; align-items: center; min-height: 47px; }
+.ac-stats-goals__row.total { min-height: 34px; }
+.ac-stats-goals__cell { position: relative; flex: 1; height: 14px; margin-right: 150px; border-left: 1px dashed var(--palette-border-default); border-right: 1px dashed var(--palette-border-default); }
+.ac-stats-goals__none { position: absolute; left: 6px; top: -4px; z-index: 2; font-size: 13px; color: var(--palette-text-secondary-dark); }
+.ac-stats-goals__hatch { position: absolute; left: 90px; right: 0; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--palette-border-primary) 0 4px, transparent 4px 8px); }
+.ac-stats-goals__fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ac-stats-c2); transition: width 0.4s; }
+.ac-stats-goals__val { position: absolute; left: 6px; top: -4px; z-index: 2; font-size: 13px; color: var(--palette-text-primary); white-space: nowrap; }
+.ac-stats-goals__group { font: 700 18px var(--font-main); margin: 12px 0 2px; color: var(--palette-text-primary); }
+.ac-stats-goals__today { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--palette-text-primary); z-index: 3; pointer-events: none; }
+.ac-stats-goals__today::before { content: ''; position: absolute; top: 0; left: -3px; width: 7px; height: 7px; background: var(--palette-text-primary); }
+.ac-stats-goals__todaylab { position: absolute; top: 0; right: 8px; text-align: right; font-size: 12px; line-height: 14px; color: var(--palette-text-secondary-dark); white-space: nowrap; }
+.ac-stats-goals__goallab { position: absolute; top: 4px; left: 6px; font-size: 12px; color: var(--palette-text-secondary-dark); }
+
+/* ── Maqsadlar modali ── */
+.ac-stats-gm { max-width: 520px; }
+.ac-stats-gm__row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.ac-stats-gm__row span { flex: 1; font-size: 14px; }
+.ac-stats-gm__row .ac-input { width: 180px; text-align: right; }
+.ac-stats-gm__list { max-height: 50vh; overflow-y: auto; padding-right: 4px; }
+
+.ac-stats-empty { padding: 40px; text-align: center; color: var(--ac-stats-mut); }
+.ac-stats-spin { display: flex; justify-content: center; padding: 60px 0; }

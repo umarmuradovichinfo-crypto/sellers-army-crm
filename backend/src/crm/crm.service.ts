@@ -332,9 +332,10 @@ export class CrmService {
     if (!l) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
     const names = await this.userMap([l.assigneeId]);
     const st = await this.prisma.crmStage.findUnique({ where: { key: l.stage } });
-    const [activity, company] = await Promise.all([
+    const [activity, company, contact] = await Promise.all([
       this.activity.listForLead(id),
       l.companyId ? this.prisma.company.findUnique({ where: { id: l.companyId }, select: { id: true, name: true } }) : Promise.resolve(null),
+      l.contactId ? this.prisma.contact.findUnique({ where: { id: l.contactId }, select: { id: true, name: true, phone: true, email: true, position: true } }) : Promise.resolve(null),
     ]);
     return {
       lead: {
@@ -342,6 +343,8 @@ export class CrmService {
         notes: parse<unknown[]>(l.notesJson, []),
         activity,
         companyName: company?.name || null,
+        contactId: l.contactId || null,
+        contact,
       },
     };
   }
@@ -356,6 +359,7 @@ export class CrmService {
     if ((dto as any).email !== undefined) data.email = (dto as any).email || null;
     if (dto.company !== undefined) data.company = dto.company || null;
     if ((dto as any).companyId !== undefined) data.companyId = (dto as any).companyId || null;
+    if ((dto as any).contactId !== undefined) data.contactId = (dto as any).contactId || null;
     if (dto.source !== undefined && dto.source !== existing.source) { data.source = dto.source || null; changes.push('manba'); }
     if (dto.value !== undefined && Number(dto.value) !== existing.value) { data.value = Number(dto.value) || 0; changes.push('byudjet'); }
     if ((dto as any).items !== undefined) {

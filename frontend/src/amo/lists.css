@@ -1,0 +1,22 @@
+/* Ro'yxatlar (Списки) — kontaktlar va kompaniyalar jadvali */
+.ac-lists-title { position: relative; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.ac-lists-title .ac-top__title { cursor: pointer; }
+.ac-lists-title:hover .ac-top__title { color: #1691ff; }
+.ac-lists-title svg { transition: transform 0.2s ease; color: var(--palette-text-secondary-light); }
+.ac-lists-title.open svg { transform: rotate(180deg); }
+.ac-lists-menu { top: 100%; left: 0; margin-top: 10px; min-width: 260px; }
+.ac-lists-menu .ac-menu__item.on { color: #1691ff; }
+
+.ac-lists-wrap { padding: 12px 15px 80px; }
+.ac-lists-table th.sortable { cursor: pointer; }
+.ac-lists-table th.sortable:hover { color: var(--palette-text-primary); }
+.ac-lists-table th .arr { margin-left: 4px; font-size: 9px; }
+.ac-lists-table td.name { max-width: 320px; }
+.ac-lists-table td.name a { color: #1691ff; cursor: pointer; }
+.ac-lists-table td.name a:hover { text-decoration: underline; }
+.ac-lists-table td.name .ico { vertical-align: -3px; margin-right: 6px; color: var(--palette-text-secondary-light); }
+.ac-lists-table td .u { cursor: pointer; }
+.ac-lists-table .dot { background: var(--palette-text-secondary-light); }
+.ac-lists-empty { padding: 60px 0; text-align: center; color: var(--palette-text-secondary-dark); font-size: 14px; }
+.ac-lists-more { padding: 16px; text-align: center; }
+.ac-lists-bulk-count { color: var(--palette-text-secondary-dark); }

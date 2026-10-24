@@ -1,0 +1,27 @@
+import { addRu } from '../i18n'
+
+addRu({
+  'Barcha kontaktlar va kompaniyalar': 'Все контакты и компании',
+  'Kontaktlar': 'Контакты',
+  'Kompaniyalar': 'Компании',
+  "Kontakt qo'shish": 'Добавить контакт',
+  "Kompaniya qo'shish": 'Добавить компанию',
+  'Nomi': 'Наименование',
+  'Kompaniya': 'Компания',
+  'Telefon': 'Телефон',
+  "Mas'ul": 'Ответственный',
+  'Email': 'Email',
+  'Yaratilgan sana': 'Дата создания',
+  'Yaratilgan': 'Создан',
+  "Kontakt va kompaniya xususiyatlari": 'Свойства контакта и компании',
+  'Faqat mening': 'Только мои',
+  'Hammasi': 'Все',
+  "Ma'lumot topilmadi": 'Ничего не найдено',
+  "Tanlangan: ": 'Выбрано: ',
+  'Yuklanmoqda…': 'Загрузка…',
+  "{n} ta o'chirilsinmi?": 'Удалить выбранные элементы?',
+  "Tanlanganlarni o'chirishni tasdiqlaysizmi?": 'Удалить выбранные элементы?',
+  'Oxirgi 7 kun': 'Последние 7 дней',
+  'Oxirgi 30 kun': 'Последние 30 дней',
+  'Butun vaqt uchun': 'За все время',
+})
