@@ -245,3 +245,13 @@
 .ac-dupm__res-cap { font-size: 13px; color: var(--palette-text-secondary-dark); margin-bottom: 2px; }
 .ac-dupm__tags { display: flex; flex-wrap: wrap; gap: 4px; }
 @media (max-width: 760px) { .ac-dupm__body { flex-direction: column; } .ac-dupm__res { padding: 16px 0 0; } .ac-dupm__head { flex-wrap: wrap; } }
+
+/* amoCRM ro'yxat ustuni oynachasi (sarlavha bosilganda): Сортировка / Фильтр / Применить */
+.ac-table th.on { color: var(--palette-text-primary); }
+.ac-colmenu { position: fixed; z-index: 300; max-width: 860px; padding: 14px 16px 16px; background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); font-size: 14px; }
+.ac-colmenu__cap { color: var(--palette-text-secondary-dark); margin-bottom: 8px; }
+.ac-colmenu__cap--sep { margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--palette-border-primary); }
+.ac-colmenu__opt { padding: 5px 0; cursor: pointer; }
+.ac-colmenu__opt:hover, .ac-colmenu__opt.on { color: var(--palette-link-primary); }
+.ac-colmenu .ac-input { width: 100%; height: 32px; }
+.ac-colmenu__foot { display: flex; gap: 8px; margin-top: 16px; }

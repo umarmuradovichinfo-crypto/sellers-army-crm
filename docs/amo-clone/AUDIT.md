@@ -158,3 +158,8 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
   «Yaratilgan sana» tanlovi — qaysi bitim saqlanishi. «Не дубль» ro'yxati saqlanadi (guruh qayta chiqmaydi).
 - Xato tuzatildi: birlashtirishda chat xabarlari va o'chirilgan vazifalar arxivi ko'chirilmasdi (o'chirilgan bitimda qolib ketardi);
   boshqa bitimlarning kontaktlari endi asosiy bitimga qo'shimcha kontakt sifatida o'tadi.
+
+## 20. Bitimlar ro'yxati — ustun sarlavhasi
+- amoCRM: sarlavha bosilsa oynacha «Сортировка (По возрастанию / По убыванию) · Фильтр [maydon] · Применить / Отменить».
+  Bizda bosish faqat saralashni almashtirardi → amoCRM kabi oynacha; matnli ustunlar (nom, kontakt, telefon, email, kompaniya,
+  matnli qo'shimcha maydonlar) uchun filtr, natija filtr chipida ko'rinadi.

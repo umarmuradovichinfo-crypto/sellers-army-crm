@@ -1,6 +1,7 @@
 // amoCRM "Все сделки" — bitimlar ro'yxati (/leads/list): jadval, saralash, belgilash va ommaviy amallar.
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import { crmService } from '../../services/crm.service'
 import { useApi } from '../../lib/useApi'
 import TopBar from '../TopBar'
@@ -9,7 +10,7 @@ import { money, dmy, phoneFmt } from '../format'
 import LeadsFilter from '../LeadsFilter'
 import FieldsModal from '../FieldsModal'
 import BulkBar from '../BulkBar'
-import { useLeadsQuery, useFilterMeta, filterChips, sortMenuItem, downloadLeadsCsv, useLayout, LIST_COLUMNS, LIST_DEFAULT, withCustomFields, defaultDir } from '../filterState'
+import { useLeadsQuery, useFilterMeta, filterChips, sortMenuItem, downloadLeadsCsv, useLayout, LIST_COLUMNS, LIST_DEFAULT, withCustomFields } from '../filterState'
 import { useT, usePlural, addRu } from '../i18n'
 import { ViewSwitch } from './LeadsPipeline'
 import { useTagColors, tagStyle } from '../tagColors'
@@ -37,6 +38,53 @@ addRu({
 })
 
 const PAGE = 50
+
+const COL_FILTER = { name: 'name', contact: 'contactName', phone: 'contactPhone', email: 'contactEmail', company: 'companyName' }
+
+function ColMenu({ c, rect, sort, filterKey, filter, onApply, onClose }) {
+  const t = useT()
+  const ref = useRef(null)
+  const cur = filterKey ? (filterKey.startsWith('cf:') ? filter.cf?.[filterKey.slice(3)] || '' : filter[filterKey] || '') : ''
+  const [dir, setDir] = useState(sort.key === c.sort ? sort.dir : '')
+  const [val, setVal] = useState(cur)
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
+    const k = (e) => e.key === 'Escape' && onClose()
+    document.addEventListener('mousedown', h); document.addEventListener('keydown', k)
+    return () => { document.removeEventListener('mousedown', h); document.removeEventListener('keydown', k) }
+  }, [onClose])
+  const apply = () => {
+    let f = null
+    if (filterKey && val.trim() !== cur) {
+      f = filterKey.startsWith('cf:') ? { ...filter, preset: '', cf: { ...filter.cf, [filterKey.slice(3)]: val.trim() } } : { ...filter, preset: '', [filterKey]: val.trim() }
+    }
+    onApply({ filter: f, sort: dir && c.sort ? { key: c.sort, dir } : null })
+  }
+  const left = Math.max(8, Math.min(rect.left, window.innerWidth - 860))
+  return createPortal(
+    <div ref={ref} className="ac-colmenu" style={{ top: rect.bottom, left, minWidth: Math.max(rect.width, 300) }}>
+      {c.sort && (
+        <>
+          <div className="ac-colmenu__cap">{t('Saralash')}</div>
+          {[['asc', "O'sish bo'yicha"], ['desc', "Kamayish bo'yicha"]].map(([k, l]) => (
+            <div key={k} className={`ac-colmenu__opt ${dir === k ? 'on' : ''}`} onClick={() => setDir(k)}>{t(l)}</div>
+          ))}
+        </>
+      )}
+      {filterKey && (
+        <>
+          <div className="ac-colmenu__cap ac-colmenu__cap--sep">{t('Filtr')}</div>
+          <input className="ac-input" autoFocus value={val} onChange={(e) => setVal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && apply()} />
+        </>
+      )}
+      <div className="ac-colmenu__foot">
+        <button className="ac-btn" onClick={apply}>{t("Qo'llash")}</button>
+        <button className="ac-btn ac-btn--plain" onClick={onClose}>{t('Bekor qilish')}</button>
+      </div>
+    </div>,
+    document.body,
+  )
+}
 
 export default function LeadsList() {
   const navigate = useNavigate()
@@ -109,8 +157,15 @@ export default function LeadsList() {
     if (allMode || allOn) { setAllMode(false); setExcluded(new Set()); setSel(new Set()) } else setSel(new Set(rows.map((r) => r.id)))
   }
   const clearSel = () => { setSel(new Set()); setAllMode(false); setExcluded(new Set()) }
+  // amoCRM: ustun sarlavhasi bosilsa "Сортировка / Фильтр" oynachasi
+  const [colMenu, setColMenu] = useState(null) // { c, rect }
+  const colFilterKey = (c) => {
+    if (COL_FILTER[c.key]) return COL_FILTER[c.key]
+    const f = c.key.startsWith('cf:') && meta.fields.find((x) => `cf:${x.key}` === c.key)
+    return f && !['select', 'multiselect', 'number', 'date', 'checkbox'].includes(f.type) ? c.key : null
+  }
   const th = (c, style) => (
-    <th key={c.key} style={style} onClick={() => c.sort && Q.setSort(c.sort, sort.key === c.sort ? (sort.dir === 'asc' ? 'desc' : 'asc') : defaultDir(c.sort))}>
+    <th key={c.key} style={style} className={colMenu?.c.key === c.key ? 'on' : ''} onClick={(e) => (c.sort || colFilterKey(c)) && setColMenu({ c, rect: e.currentTarget.getBoundingClientRect() })}>
       {t(c.label)}{sort.key === c.sort ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}
     </th>
   )
@@ -159,6 +214,8 @@ export default function LeadsList() {
   return (
     <div>
       {importOpen && <ImportModal entity="leads" onClose={() => setImportOpen(false)} />}
+      {colMenu && <ColMenu c={colMenu.c} rect={colMenu.rect} sort={sort} filter={Q.filter} filterKey={colFilterKey(colMenu.c)} onClose={() => setColMenu(null)}
+        onApply={(o) => { setColMenu(null); if (o.filter || o.sort) Q.apply(o) }} />}
       {dupOpen && <DuplicatesModal onClose={() => setDupOpen(false)} onMerged={reload} />}
       <TopBar
         title={t('Barcha bitimlar')}

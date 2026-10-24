@@ -141,6 +141,8 @@ export function useLeadsQuery({ defaultSort = null } = {}) {
     filter, params, q, search, setSearch, sort, sortParams,
     applyFilter: (f) => write({ filter: f }),
     setSort: (key, dir) => write({ sort: { key, dir } }),
+    // filtr va saralashni bir yo'la (ustun oynachasi)
+    apply: ({ filter: f, sort: s }) => write({ ...(f ? { filter: f } : {}), ...(s ? { sort: s } : {}) }),
     removeChip: (updater) => write({ filter: updater(filter) }),
     clearSearch: () => { setSearch(''); setQ(''); write({ q: '' }) },
     isFiltered: !isDefaultFilter(filter) || !!q,

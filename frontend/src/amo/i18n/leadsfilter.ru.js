@@ -119,4 +119,6 @@ addRu({
   "Ehtimoliy dublikatlarni tekshiring va saqlamoqchi bo'lgan ma'lumotlarni tanlang. Birlashtirish natijasini o'ngda ko'rishingiz mumkin.": 'Проверьте возможные дубли и выберите данные, которые хотите сохранить. Результат объединения можно посмотреть справа.',
   'Hammasini bekor qilish': 'Отменить всё',
   'dup§dan': 'из',
+  "O'sish bo'yicha": 'По возрастанию',
+  "Kamayish bo'yicha": 'По убыванию',
 })
