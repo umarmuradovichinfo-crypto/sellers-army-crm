@@ -127,7 +127,7 @@ export class CrmFormsService {
     await this.prisma.crmForm.update({ where: { id: f.id }, data: { submissions: { increment: 1 } } });
     await this.activity.record(lead.id, 'created', { actorName: 'Web forma', text: `Formadan keldi: ${f.title}` });
     await this.automation.run('lead_created', lead.id, 'Web forma');
-    if (f.assigneeId) await this.notif.notify(f.assigneeId, `Formadan yangi lid: ${name}`, { type: 'lead', link: `/crm?lead=${lead.id}` });
+    if (f.assigneeId) await this.notif.notify(f.assigneeId, `Formadan yangi lid: ${name}`, { type: 'lead', link: `/leads/detail/${lead.id}` });
     return { ok: true };
   }
 
@@ -157,7 +157,7 @@ export class CrmFormsService {
     });
     await this.activity.record(lead.id, 'created', { actorName: src, text: input.label ? `${src}: ${input.label}` : `${src} Lead Ads` });
     await this.automation.run('lead_created', lead.id, src);
-    if (input.assigneeId) await this.notif.notify(input.assigneeId, `${src}'dan yangi lid: ${name}`, { type: 'lead', link: `/crm?lead=${lead.id}` });
+    if (input.assigneeId) await this.notif.notify(input.assigneeId, `${src}'dan yangi lid: ${name}`, { type: 'lead', link: `/leads/detail/${lead.id}` });
     return lead;
   }
 }

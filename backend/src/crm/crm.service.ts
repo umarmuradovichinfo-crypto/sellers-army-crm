@@ -289,6 +289,12 @@ export class CrmService {
     const stage = dto.stage || 'new';
     const items = Array.isArray((dto as any).items) ? (dto as any).items : [];
     const value = items.length ? this.itemsValue(items) : (Number(dto.value) || 0);
+    // amoCRM tez qo'shish: kontakt nomi berilsa — kontakt yaratib bitimga bog'lanadi
+    let contactId = dto.contactId || null;
+    if (!contactId && dto.contactName?.trim()) {
+      const c = await this.prisma.contact.create({ data: { name: dto.contactName.trim(), phone: dto.phone || null, email: (dto as any).email || null, createdById: user?.id || null } });
+      contactId = c.id;
+    }
     const lead = (await this.prisma.lead.create({
       data: {
         name: dto.name,
@@ -309,10 +315,11 @@ export class CrmService {
         nextTaskDate: dto.nextTaskDate ? new Date(dto.nextTaskDate) : null,
         queue: await this.nextQueue(stage),
         createdById: user?.id || null,
+        contactId,
       },
     })) as LeadRow;
     await this.activity.record(lead.id, 'created', { actorId: user?.id, actorName: user?.name, text: `Lid yaratildi: ${lead.name}` });
-    if (lead.assigneeId) await this.notif.notify(lead.assigneeId, `Yangi lid biriktirildi: ${lead.name}`, { type: 'lead', link: `/crm?lead=${lead.id}` });
+    if (lead.assigneeId) await this.notif.notify(lead.assigneeId, `Yangi lid biriktirildi: ${lead.name}`, { type: 'lead', link: `/leads/detail/${lead.id}` });
     await this.automation.run('lead_created', lead.id, user?.name);
     const fresh = (await this.prisma.lead.findUnique({ where: { id: lead.id } })) as LeadRow;
     const names = await this.userMap([fresh.assigneeId]);
@@ -382,7 +389,7 @@ export class CrmService {
     if (changes.length) await this.activity.record(id, 'updated', { actorId: user?.id, actorName: user?.name, text: `O'zgartirildi: ${changes.join(', ')}` });
     if (assigneeChanged) {
       await this.activity.record(id, 'assignee', { actorId: user?.id, actorName: user?.name, text: `Mas'ul o'zgardi` });
-      if (l.assigneeId) await this.notif.notify(l.assigneeId, `Sizga lid biriktirildi: ${l.name}`, { type: 'lead', link: `/crm?lead=${id}` });
+      if (l.assigneeId) await this.notif.notify(l.assigneeId, `Sizga lid biriktirildi: ${l.name}`, { type: 'lead', link: `/leads/detail/${id}` });
     }
     if (stageChanged) {
       const st = await this.prisma.crmStage.findUnique({ where: { key: l.stage } });
@@ -635,7 +642,7 @@ export class CrmService {
     if (dto.pipelineId !== undefined) data.pipelineId = dto.pipelineId || null;
     await this.prisma.lead.update({ where: { id }, data });
     await this.activity.record(id, 'updated', { actorId: user?.id, actorName: user?.name, text: 'Saralanmagandan qabul qilindi' });
-    if (data.assigneeId) await this.notif.notify(data.assigneeId as string, `Sizga lid biriktirildi: ${lead.name}`, { type: 'lead', link: `/crm?lead=${id}` });
+    if (data.assigneeId) await this.notif.notify(data.assigneeId as string, `Sizga lid biriktirildi: ${lead.name}`, { type: 'lead', link: `/leads/detail/${id}` });
     return { ok: true };
   }
 
@@ -709,7 +716,7 @@ export class CrmService {
       },
     });
     await this.activity.record(leadId, 'task_created', { actorId: user?.id, actorName: user?.name, text: `Vazifa: ${t.title}` });
-    if (t.assigneeId && t.assigneeId !== user?.id) await this.notif.notify(t.assigneeId, `Yangi vazifa: ${t.title}`, { type: 'task', link: `/crm?lead=${leadId}` });
+    if (t.assigneeId && t.assigneeId !== user?.id) await this.notif.notify(t.assigneeId, `Yangi vazifa: ${t.title}`, { type: 'task', link: `/leads/detail/${leadId}` });
     return { task: this.taskView(t) };
   }
 

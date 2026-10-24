@@ -1,0 +1,131 @@
+// Ikki tillilik: o'zbekcha (asosiy) va ruscha (amoCRM'dagi asl nomlar).
+// Kalit — o'zbekcha matnning o'zi: t("Bitimlar") → ru'da "Сделки".
+import React, { createContext, useContext, useEffect, useState } from 'react'
+
+const KEY = 'amo_lang'
+
+const RU = {
+  // Chap menyu
+  'Akkaunt': 'Аккаунт',
+  'Ish stoli': 'Рабочий стол',
+  'Bitimlar': 'Сделки',
+  'Vazifalar': 'Задачи',
+  "Ro'yxatlar": 'Списки',
+  'Analitika': 'Аналитика',
+  'Sozlamalar': 'Настройки',
+  'Barcha bitimlar': 'Все сделки',
+  'Asosiy voronka': 'Основная воронка',
+  'Voronka': 'Воронка',
+  "Ro'yxat": 'Список',
+  // Yuqori panel
+  'Qidiruv va filtr': 'Поиск и фильтр',
+  'Filtr': 'Фильтр',
+  'Topish': 'Найти',
+  'Voronkani sozlash': 'Настроить воронку',
+  'Yangi bitim': 'Новая сделка',
+  'Import': 'Импорт',
+  'Eksport': 'Экспорт',
+  'Dublikatlarni qidirish': 'Поиск дублей',
+  // Voronka
+  'Saralanmagan': 'Неразобранное',
+  "So'rovlar": 'Заявок',
+  "Tez qo'shish": 'Быстрое добавление',
+  'Bitim nomi': 'Название сделки',
+  'Kontakt: F.I.Sh.': 'Контакт: Ф.И.О.',
+  'Kontakt: telefon': 'Контакт: Телефон',
+  'Byudjet': 'Бюджет',
+  "Qo'shish": 'Добавить',
+  'Bekor qilish': 'Отмена',
+  'dan': 'от',
+  'Forma': 'Форма',
+  "Yangi so'rov": 'Новая заявка',
+  'Qabul qilish': 'Принять',
+  'Rad etish': 'Отклонить',
+  "O'chirish": 'Удалить',
+  'Yopildi va amalga oshmadi': 'Закрыто и не реализовано',
+  'Muvaffaqiyatli amalga oshirildi': 'Успешно реализовано',
+  "Yo'qotish sababi": 'Причина отказа',
+  'Sababsiz': 'Без причины',
+  "Vazifa yo'q": 'Нет задач',
+  "Muddati o'tgan": 'Просрочена',
+  'Bugun': 'Сегодня',
+  'Kecha': 'Вчера',
+  'Ertaga': 'Завтра',
+  'Muddatsiz': 'Без срока',
+  // Filtr
+  'Ochiq bitimlar': 'Открытые сделки',
+  'Faqat mening bitimlarim': 'Только мои сделки',
+  'Muvaffaqiyatli yakunlangan': 'Успешно завершенные',
+  'Amalga oshmagan bitimlar': 'Нереализованные сделки',
+  'Vazifasiz bitimlar': 'Сделки без задач',
+  "Vazifasi muddati o'tgan bitimlar": 'Сделки с просроченными задачами',
+  'Bitim xususiyatlari': 'Свойства сделок',
+  'Butun vaqt uchun': 'За все время',
+  'Oxirgi 7 kun': 'Последние 7 дней',
+  'Oxirgi 30 kun': 'Последние 30 дней',
+  'Menejerlar': 'Менеджеры',
+  'Vazifalar: barcha qiymatlar': 'Задачи: Все значения',
+  'Vazifasiz': 'Без задач',
+  'Bugungi': 'На сегодня',
+  'Kelajakdagi': 'Будущие',
+  'Teglar': 'Теги',
+  'Boshqarish': 'Управление',
+  'Teg topish': 'Найти тег',
+  "Qo'llash": 'Применить',
+  'Tozalash': 'Сбросить',
+  // Akkaunt / bildirishnomalar
+  'Chiqish': 'Выход',
+  "Qorong'i": 'Тёмная',
+  "Yorug'": 'Светлая',
+  'Til': 'Язык',
+  "Bildirishnomalar yo'q": 'Нет уведомлений',
+  "Hammasini o'qilgan qilish": 'Отметить все прочитанными',
+  'Vazifa': 'Задача',
+  'Bitim': 'Сделка',
+  'Eslatma': 'Упоминание',
+  'Avtomatlashtirish': 'Автоматизация',
+  'Xabar': 'Сообщение',
+  'Foydalanuvchi': 'Пользователь',
+}
+
+const DICTS = { ru: RU }
+
+// Bo'limlar o'z lug'atini qo'shadi: addRu({ 'Kontaktlar': 'Контакты' })
+export function addRu(dict) { Object.assign(RU, dict) }
+
+export function getLang() {
+  try { return localStorage.getItem(KEY) || 'uz' } catch { return 'uz' }
+}
+
+const Ctx = createContext({ lang: 'uz', setLang: () => {}, t: (s) => s })
+
+export function I18nProvider({ children }) {
+  const [lang, setLangState] = useState(getLang())
+  useEffect(() => { document.documentElement.lang = lang }, [lang])
+  const setLang = (l) => { setLangState(l); try { localStorage.setItem(KEY, l) } catch { /* */ } }
+  const t = (s) => (DICTS[lang] && DICTS[lang][s]) || s
+  return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>
+}
+
+export const useI18n = () => useContext(Ctx)
+export const useT = () => useContext(Ctx).t
+
+// Son bilan so'z: uz → "5 ta bitim", ru → "5 сделок" (1 сделка, 2 сделки, 5 сделок)
+const RU_FORMS = {
+  bitim: ['сделка', 'сделки', 'сделок'],
+  vazifa: ['задача', 'задачи', 'задач'],
+  kontakt: ['контакт', 'контакта', 'контактов'],
+  element: ['элемент', 'элемента', 'элементов'],
+  "so'rov": ['заявка', 'заявки', 'заявок'],
+  voqea: ['событие', 'события', 'событий'],
+}
+export function usePlural() {
+  const { lang } = useI18n()
+  return (n, word) => {
+    if (lang !== 'ru' || !RU_FORMS[word]) return `${n} ta ${word}`
+    const f = RU_FORMS[word]
+    const m10 = n % 10, m100 = n % 100
+    const form = m10 === 1 && m100 !== 11 ? f[0] : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? f[1] : f[2]
+    return `${n} ${form}`
+  }
+}

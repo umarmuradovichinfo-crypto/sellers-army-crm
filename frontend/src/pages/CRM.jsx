@@ -251,7 +251,7 @@ function atTimeDT(addDays, hour) { const d = new Date(); d.setDate(d.getDate() +
 
 // chrome='tabs' — asosiy platformada tepada tab-qator; 'none' — alohida CRM
 // platformasida (subdomen) tab yashirin, bo'lim tanlash chapdagi panel orqali.
-export default function CRM({ chrome = 'tabs' }) {
+export default function CRM({ chrome = 'tabs', forceView }) {
   const { data, loading, error, reload, setData } = useApi(async () => {
     const [pipe, mem, fl, cfl, cofl, lr] = await Promise.all([
       crmService.getPipeline(), crmService.listMembers(), crmService.listFields('lead'), crmService.listFields('contact'), crmService.listFields('company'), crmService.listLostReasons(),
@@ -273,7 +273,7 @@ export default function CRM({ chrome = 'tabs' }) {
   // alohida CRM platformasida (subdomen) prefiks yo'q: /vazifalar
   const base = location.pathname.startsWith('/crm') ? '/crm' : ''
   const seg = location.pathname.slice(base.length).replace(/^\//, '').split('/')[0]
-  const view = SLUG_VIEW[seg] || 'leads'
+  const view = forceView || SLUG_VIEW[seg] || 'leads'
   const setView = (k) => navigate((base + (k === 'leads' ? '' : '/' + (VIEW_SLUG[k] || k))) || '/')
   const [leadsView, setLeadsView] = useState('board') // board | list | unsorted
   const [settingsTab, setSettingsTab] = useState('fields') // fields | automation | forms

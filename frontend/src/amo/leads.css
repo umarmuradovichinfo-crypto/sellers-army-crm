@@ -1,0 +1,116 @@
+/* amoCRM klon — Bitimlar: voronka (kanban), ro'yxat, filtr paneli. */
+
+/* ── Filtr paneli (.filter-search) ── */
+.ac-filter {
+  position: absolute; top: 100%; left: -1px; z-index: 120; display: flex;
+  width: min(965px, calc(100vw - 110px)); max-height: calc(100vh - 90px);
+  background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); border-top: 0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  opacity: 0; transform: translate3d(0, -10px, 0); pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  color: var(--palette-text-primary); cursor: default;
+}
+.ac-filter.open { opacity: 1; transform: none; pointer-events: auto; }
+.ac-filter__presets { width: 215px; flex: none; padding: 10px 18px; border-right: 1px solid var(--palette-border-primary); overflow-y: auto; }
+.ac-filter__preset { display: flex; align-items: center; gap: 8px; min-height: 44px; border-bottom: 1px solid var(--palette-border-primary); font-size: 14px; cursor: pointer; color: var(--palette-text-primary); }
+.ac-filter__preset:hover { color: #1691ff; }
+.ac-filter__preset.on { color: #1691ff; }
+.ac-filter__preset .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.ac-filter__preset .edit { margin-left: auto; color: var(--palette-text-secondary-light); }
+.ac-filter__col { flex: 1; padding: 14px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ac-filter__col--fields { flex: 0 0 305px; border-right: 1px solid var(--palette-border-primary); }
+.ac-filter__label { display: flex; align-items: center; gap: 30px; font: 700 12px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; color: var(--palette-text-secondary-dark); margin-bottom: 6px; }
+.ac-filter__label a { font: 400 13px var(--font-main); text-transform: none; letter-spacing: 0; text-decoration: underline; }
+.ac-filter .ac-input, .ac-filter .ac-select { height: 28px; font-size: 13px; background: var(--palette-background-default); border-color: var(--palette-border-primary); }
+.ac-filter__range { display: flex; align-items: center; gap: 6px; }
+.ac-filter__tags { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.ac-filter__tagrow { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--palette-text-secondary-dark); }
+.ac-filter__foot { display: flex; gap: 8px; padding-top: 10px; margin-top: auto; }
+
+/* ── Voronka ── */
+.ac-pipeline { position: relative; }
+.ac-pipeline__scroll { overflow: auto; height: calc(100vh - 65px); padding: 0 30px 80px; }
+.ac-pipeline__cols { display: flex; justify-content: safe center; gap: 10px; min-width: min-content; }
+.ac-col { width: 312px; flex: none; display: flex; flex-direction: column; }
+.ac-col__head {
+  position: sticky; top: 0; z-index: 20; background: var(--palette-background-default);
+  padding: 15px 10px 10px; text-align: center; min-height: 60px; margin-bottom: 8px;
+}
+.ac-col__title { font: 700 12px var(--font-caption); letter-spacing: 1px; text-transform: uppercase; color: var(--palette-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-col--unsorted .ac-col__title { color: var(--ac-column-title); }
+.ac-col__info { margin-top: 3px; font-size: 13px; color: var(--palette-text-secondary-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: max-height 0.4s, opacity 0.4s; }
+.ac-col__info b { font-weight: 400; color: var(--palette-text-primary); }
+.ac-col__line { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: #c1c1c1; }
+.ac-col__body { flex: 1; min-height: 60px; }
+.ac-col.drop-target .ac-col__body { outline: 1px dashed var(--palette-border-default); outline-offset: 2px; border-radius: 4px; }
+
+/* Tez qo'shish (.pipeline_leads__quick_add) */
+.ac-quick { margin-bottom: 5px; }
+.ac-quick__btn { width: 100%; height: 46px; border: 1px dashed var(--palette-border-default); border-radius: var(--border-radius-default); background: transparent; color: var(--palette-text-primary); font: 15px var(--font-main); cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+.ac-quick__btn:hover { border-color: var(--palette-text-secondary-light); background: rgba(255, 255, 255, 0.02); }
+.ac-quick__form { background: var(--palette-background-primary); border: 1px solid var(--palette-border-default); border-radius: var(--border-radius-default); padding: 8px; display: flex; flex-direction: column; gap: 6px; animation: ac-fadeIn 0.2s ease both; }
+.ac-quick__form .ac-input { height: 30px; font-size: 14px; }
+.ac-quick__row { display: flex; gap: 6px; }
+
+/* Kartochka (.pipeline_leads__item) */
+.ac-card {
+  position: relative; display: flex; gap: 8px; margin: 0 0 5px; padding: 6px 8px;
+  background: var(--palette-background-primary); border: 1px solid var(--ac-pipeline-card-border);
+  border-radius: var(--border-radius-default); cursor: move; user-select: none;
+  transition: box-shadow 0.15s, opacity 0.15s;
+}
+.ac-card:hover { box-shadow: 0 0 0 1px var(--palette-border-default); }
+.ac-card.dragging-src { opacity: 0.35; }
+.ac-card__avatar { width: 36px; height: 36px; flex: none; border-radius: 50%; background: #dcdfe3; color: #fff; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.ac-card__avatar svg { width: 36px; height: 36px; }
+.ac-card__src { position: absolute; right: -2px; bottom: -2px; width: 15px; height: 15px; border-radius: 50%; background: #e1306c; color: #fff; display: flex; align-items: center; justify-content: center; border: 1px solid var(--palette-background-primary); }
+.ac-card__body { flex: 1; min-width: 0; }
+.ac-card__row { display: flex; align-items: baseline; gap: 8px; }
+.ac-card__name { flex: 1; min-width: 0; font-size: 15px; line-height: 17px; color: #1691ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+:root:not([data-color-scheme="dark"]) .ac-card__name { color: #0057a9; }
+.ac-card__name:hover { text-decoration: underline; }
+.ac-card__date { flex: none; font-size: 13px; color: var(--palette-text-secondary-dark); }
+.ac-card__sub { font-size: 14px; line-height: 17px; color: var(--palette-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-card__budget { font-size: 14px; color: var(--palette-text-primary); }
+.ac-card__foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 3px; min-height: 18px; }
+.ac-card__tags { display: flex; gap: 4px; min-width: 0; overflow: hidden; }
+.ac-card__task { flex: none; display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--task-yellow); margin-left: auto; }
+.ac-card__task i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; display: inline-block; }
+.ac-card__task.today { color: var(--task-green); }
+.ac-card__task.overdue { color: var(--task-red); }
+.ac-card__task.future { color: var(--palette-text-secondary-dark); }
+.ac-card__task.future i { background: var(--task-green); }
+
+/* Saralanmagan kartochka (.pipeline-unsorted__item) */
+.ac-card--unsorted { cursor: default; }
+.ac-card__from { font-size: 13px; color: var(--palette-text-primary); }
+.ac-card__msg { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; margin-top: 4px; padding: 2px 9px; border-radius: 10px; background: #233f57; font-size: 12px; color: var(--palette-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root:not([data-color-scheme="dark"]) .ac-card__msg { background: #e9eef3; }
+.ac-card__accept { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--palette-overlay-background-default-900, rgba(15, 34, 49, 0.9)); border-radius: inherit; opacity: 0; transition: opacity 0.2s; }
+.ac-card--unsorted:hover .ac-card__accept { opacity: 1; }
+.ac-card__accept .ac-btn { height: 30px; line-height: 28px; }
+.ac-btn--green { background: #8cc051; border-color: #78a843; color: #fff; }
+.ac-btn--green:hover { background: #7fb245; }
+
+/* Drag: suzib yuruvchi nusxa va joy belgisi */
+.ac-drag-ghost { position: fixed; z-index: 2000; pointer-events: none; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45); transform: rotate(-2deg); opacity: 0.95; }
+.ac-drop-ph { margin: 0 0 5px; border: 1px dashed var(--palette-border-default); border-radius: var(--border-radius-default); background: rgba(255, 255, 255, 0.03); }
+
+/* Pastki yopish zonalari (.pipeline_manage) */
+.ac-manage {
+  position: fixed; left: var(--left-menu-width); right: 0; bottom: 0; z-index: 150; height: 66px;
+  display: flex; transform: translateY(100%); transition: transform 0.2s ease;
+}
+.ac-manage.show { transform: none; }
+.ac-manage__zone { flex: 1; display: flex; align-items: center; justify-content: center; font: 700 13px var(--font-caption); letter-spacing: 1px; text-transform: uppercase; color: #fff; transition: filter 0.15s, flex 0.2s; border-top: 2px solid transparent; }
+.ac-manage__zone--delete { background: #b8534f; flex: 0 0 22%; }
+.ac-manage__zone--lost { background: #5f6b78; }
+.ac-manage__zone--won { background: #79a43c; }
+.ac-manage__zone.hover { filter: brightness(1.18); border-top-color: #fff; }
+
+/* Yo'qotish sababi popover */
+.ac-reasons { position: fixed; z-index: 1200; width: 320px; background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); border-radius: 4px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); padding: 16px; animation: ac-modal-in 0.25s ease both; }
+.ac-reasons__title { font: 700 14px var(--font-main); margin-bottom: 10px; }
+.ac-reasons__item { display: flex; align-items: center; gap: 8px; padding: 7px 0; cursor: pointer; font-size: 14px; }
+.ac-reasons__item:hover { color: #1691ff; }
+

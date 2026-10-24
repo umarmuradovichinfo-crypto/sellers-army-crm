@@ -44,7 +44,7 @@ export class ReminderService implements OnModuleInit {
 
     let sent = 0;
     for (const t of tasks) {
-      const link = `/crm?lead=${t.leadId}&task=${t.id}`;
+      const link = `/leads/detail/${t.leadId}`;
       if (sentLinks.has(link)) continue;
       const overdue = t.dueDate && t.dueDate < now;
       const label = overdue ? 'Kechikkan vazifa' : 'Bugungi vazifa';

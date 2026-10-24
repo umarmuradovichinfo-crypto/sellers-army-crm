@@ -133,7 +133,7 @@ export class AutomationService {
           data: { leadId, title: act.title || 'Avtomatik vazifa', type: act.taskType || 'task', dueDate, assigneeId: assigneeId || null },
         });
         await this.activity.record(leadId, 'automation', { text: `⚙ ${ruleName}: vazifa "${t.title}"`, actorName });
-        if (t.assigneeId) await this.notif.notify(t.assigneeId, `Avtomatik vazifa: ${t.title}`, { type: 'task', link: `/crm?lead=${leadId}` });
+        if (t.assigneeId) await this.notif.notify(t.assigneeId, `Avtomatik vazifa: ${t.title}`, { type: 'task', link: `/leads/detail/${leadId}` });
         break;
       }
       case 'add_tag':
@@ -152,7 +152,7 @@ export class AutomationService {
         if (assignee) {
           await this.prisma.lead.update({ where: { id: leadId }, data: { assigneeId: assignee } });
           await this.activity.record(leadId, 'assignee', { text: `⚙ ${ruleName}: mas'ul belgilandi`, actorName });
-          await this.notif.notify(assignee, `Sizga lid biriktirildi: ${lead.name}`, { type: 'lead', link: `/crm?lead=${leadId}` });
+          await this.notif.notify(assignee, `Sizga lid biriktirildi: ${lead.name}`, { type: 'lead', link: `/leads/detail/${leadId}` });
         }
         break;
       }
@@ -180,7 +180,7 @@ export class AutomationService {
         break;
       }
       case 'notify': {
-        if (lead.assigneeId) await this.notif.notify(lead.assigneeId, act.text || `${ruleName}`, { type: 'automation', link: `/crm?lead=${leadId}` });
+        if (lead.assigneeId) await this.notif.notify(lead.assigneeId, act.text || `${ruleName}`, { type: 'automation', link: `/leads/detail/${leadId}` });
         break;
       }
       case 'webhook': {

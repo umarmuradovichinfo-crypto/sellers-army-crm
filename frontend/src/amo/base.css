@@ -1,0 +1,147 @@
+/* amoCRM klon — asosiy stillar: shrift, o'lchamlar, tugmalar, inputlar.
+   Qiymatlar amoCRM'dan o'lchab olingan (docs/amo-clone/SPEC.md). */
+@import url('https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400&family=PT+Sans+Caption:wght@400;700&display=swap');
+
+:root {
+  --left-menu-width: 65px;
+  --left-menu-transition: 0.3s;
+  --transition-default: 0.3s;
+  --aside-transition: var(--transition-default);
+  --top_menu_avatar_height: 65px;
+  --border-radius-default: 4px;
+  --base_button_active: #4c8bf7;
+  --base_button_active_border: #4077d6;
+  --base_button_hover: #4d85e6;
+  --font-main: 'PT Sans', Arial, sans-serif;
+  --font-caption: 'PT Sans Caption', 'Arial Black', sans-serif;
+  --task-yellow: #e4b248;
+  --task-red: #f37575;
+  --task-green: #63dda1;
+  --amo-success: #8cc051;
+  --amo-danger: #f37575;
+}
+
+/* dark skin ("amo" mavzusi) — amoCRM'da body/top ranglari */
+:root[data-color-scheme="dark"] {
+  --ac-top-bg: #153043;
+  --ac-card-top-bg: #03242f;
+  --ac-pipeline-card-border: rgba(0, 0, 0, 0.2);
+  --ac-tag-color: #7f8ba4;
+  --ac-column-title: #8092ad;
+}
+:root {
+  --ac-top-bg: #fff;
+  --ac-card-top-bg: #fff;
+  --ac-pipeline-card-border: #e8eaeb;
+  --ac-tag-color: #6b6d72;
+  --ac-column-title: #6b6d72;
+}
+
+html, body { height: 100%; }
+body.ac-body {
+  margin: 0;
+  background: var(--palette-background-default);
+  color: var(--palette-text-primary);
+  font: 15px/1.2 var(--font-main);
+  -webkit-font-smoothing: antialiased;
+}
+.ac-body *, .ac-body *::before, .ac-body *::after { box-sizing: border-box; }
+.ac-body a { color: var(--palette-link-primary); text-decoration: none; }
+.ac-body a:hover { color: var(--palette-link-hover); }
+.ac-body button { font-family: inherit; }
+
+/* ── Tugmalar (.button-input) ── */
+.ac-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  height: 38px; padding: 0 8px; border-radius: var(--border-radius-default);
+  border: 1px solid var(--palette-border-default);
+  background: var(--palette-background-primary);
+  color: var(--palette-text-primary);
+  font: 700 12px/36px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase;
+  cursor: pointer; white-space: nowrap; user-select: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+.ac-btn:hover { background: var(--palette-button-classic-hover-background); }
+.ac-btn:active { transform: translateY(1px); }
+.ac-btn--blue { background: var(--base_button_active); border-color: var(--base_button_active_border); color: #f5f5f5; }
+.ac-btn--blue:hover { background: var(--base_button_hover); }
+.ac-btn--plain { text-transform: none; letter-spacing: 0; font: 400 15px var(--font-main); }
+.ac-btn--sm { height: 30px; line-height: 28px; font-size: 11px; }
+.ac-btn[disabled] { opacity: 0.6; cursor: default; }
+.ac-btn__plus { font: 400 17px var(--font-main); margin-right: 1px; }
+
+/* ── Inputlar ── */
+.ac-input, .ac-select {
+  height: 32px; padding: 0 10px; width: 100%;
+  border: 1px solid var(--palette-border-default); border-radius: var(--border-radius-default);
+  background: var(--palette-background-primary); color: var(--palette-text-primary);
+  font: 14px var(--font-main); outline: none;
+  transition: border-color 0.2s;
+}
+.ac-input:focus, .ac-select:focus { border-color: var(--palette-link-primary); }
+.ac-input::placeholder { color: var(--palette-text-secondary-light); }
+textarea.ac-input { height: auto; min-height: 80px; padding: 8px 10px; resize: vertical; }
+
+/* ── Checkbox (amoCRM kvadrat) ── */
+.ac-check {
+  appearance: none; width: 18px; height: 18px; margin: 0; cursor: pointer; flex: none;
+  border: 1px solid var(--palette-border-primary); border-radius: 3px;
+  background: var(--palette-background-default);
+}
+.ac-check:checked { background: var(--base_button_active); border-color: var(--base_button_active_border); }
+.ac-check:checked::after { content: ''; display: block; width: 5px; height: 9px; margin: 2px 0 0 5px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+
+/* ── Switch ── */
+.ac-switch { position: relative; width: 22px; height: 12px; display: inline-block; cursor: pointer; vertical-align: middle; }
+.ac-switch::before { content: ''; position: absolute; inset: 5px 0; height: 2px; background: var(--palette-border-default); }
+.ac-switch::after { content: ''; position: absolute; left: 0; top: 0; width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--palette-border-default); background: var(--palette-background-primary); transition: left 0.2s, background 0.2s; }
+.ac-switch.on::after { left: 10px; background: var(--base_button_active); border-color: var(--base_button_active); }
+
+/* ── Scrollbar (amoCRM ingichka) ── */
+.ac-body ::-webkit-scrollbar { width: 6px; height: 6px; }
+.ac-body ::-webkit-scrollbar-thumb { background: var(--palette-border-default); border-radius: 3px; }
+.ac-body ::-webkit-scrollbar-track { background: transparent; }
+
+/* ── Umumiy animatsiyalar (amoCRM keyframes nomlari bilan) ── */
+@keyframes ac-fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ac-fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes ac-spin { to { transform: rotate(360deg); } }
+@keyframes ac-plug-loader { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+
+.ac-spinner { width: 18px; height: 18px; border: 2px solid var(--palette-link-primary); border-right-color: transparent; border-bottom-color: transparent; border-radius: 50%; animation: ac-spin 0.9s linear infinite; }
+.ac-plug { background: linear-gradient(90deg, var(--palette-background-primary) 0%, var(--palette-border-primary) 50%, var(--palette-background-primary) 100%); background-size: 800px 100%; animation: ac-plug-loader 1.5s linear infinite; border-radius: 3px; }
+
+.ac-link-dashed { border-bottom: 1px dashed currentColor; cursor: pointer; }
+.ac-muted { color: var(--palette-text-secondary-dark); }
+.ac-caption { font: 700 12px var(--font-caption); letter-spacing: 1px; text-transform: uppercase; }
+
+/* ── Teg (.tag / .pipeline_leads__tag) ── */
+.ac-tag {
+  display: inline-block; max-width: 100%; height: 20px; padding: 0 5px; line-height: 18px;
+  border: 1px solid var(--palette-border-default); border-radius: var(--border-radius-default);
+  background: var(--palette-background-primary); color: var(--palette-text-primary);
+  font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+.ac-tag--sm { height: 18px; line-height: 16px; font-size: 12px; color: var(--ac-tag-color); background: transparent; border-color: var(--palette-border-primary); }
+.ac-tag.on { background: #42547a; border-color: #8fa0c8; }
+
+
+/* ── Ro'yxat (jadval) ko'rinishi — kontaktlar, bitimlar, foydalanuvchilar ── */
+.ac-table-wrap { padding: 12px 15px 60px; }
+.ac-table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); font-size: 14px; }
+.ac-table th { position: sticky; top: 65px; z-index: 5; height: 38px; padding: 0 10px; text-align: left; white-space: nowrap; background: var(--palette-background-primary); border-bottom: 1px solid var(--palette-border-primary); border-right: 1px solid var(--palette-border-primary); font: 700 11px var(--font-caption); letter-spacing: 1px; text-transform: uppercase; color: var(--palette-text-secondary-dark); overflow: hidden; text-overflow: ellipsis; }
+.ac-table th:last-child { border-right: 0; }
+.ac-table td { height: 35px; padding: 0 10px; border-bottom: 1px solid var(--palette-border-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 360px; }
+.ac-table tr:hover td { background: var(--palette-button-classic-hover-background); }
+.ac-table tr.selected td { background: rgba(76, 139, 247, 0.12); }
+.ac-table td.chk, .ac-table th.chk { width: 40px; padding: 0 0 0 12px; }
+.ac-table td a { cursor: pointer; }
+.ac-table td .u { text-decoration: underline; color: var(--palette-text-primary); }
+.ac-table .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+/* Ommaviy amallar paneli (belgilanganda pastdan chiqadi) */
+.ac-bulk { position: fixed; left: var(--left-menu-width); right: 0; bottom: 0; z-index: 150; height: 56px; display: flex; align-items: center; gap: 22px; padding: 0 30px; background: var(--palette-background-primary); border-top: 1px solid var(--palette-border-primary); box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.25); animation: ac-bulk-in 0.2s ease both; font-size: 14px; }
+@keyframes ac-bulk-in { from { transform: translateY(100%); } to { transform: none; } }
+.ac-bulk button { background: none; border: 0; color: var(--palette-text-primary); cursor: pointer; font: 14px var(--font-main); padding: 6px 0; }
+.ac-bulk button:hover { color: #1691ff; }
+.ac-bulk button.danger:hover { color: #f37575; }

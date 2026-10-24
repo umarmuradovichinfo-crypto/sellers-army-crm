@@ -65,7 +65,7 @@ export class ChatService {
     await this.prisma.lead.update({ where: { id: lead.id }, data: { lastActivityAt: new Date() } }).catch(() => {});
 
     if (isNew) await this.automation.run('lead_created', lead.id, 'Telegram');
-    if (lead.assigneeId) await this.notif.notify(lead.assigneeId, `Telegram xabar: ${name}`, { type: 'mention', link: `/crm?lead=${lead.id}` });
+    if (lead.assigneeId) await this.notif.notify(lead.assigneeId, `Telegram xabar: ${name}`, { type: 'mention', link: `/leads/detail/${lead.id}` });
 
     return { ok: true, leadId: lead.id };
   }

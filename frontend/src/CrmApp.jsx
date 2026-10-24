@@ -15,19 +15,8 @@ import LeadForm from './pages/LeadForm'
 import CRM from './pages/CRM'
 import Settings from './pages/Settings'
 import CallWidget from './components/CallWidget'
-
-// amoCRM chap paneli — har bo'lim alohida route
-const RAIL = [
-  { path: '/ish-stoli', label: 'Ish stoli', icon: 'dashboard' },
-  { path: '/', label: 'Lidlar', icon: 'crm' },
-  { path: '/vazifalar', label: 'Vazifalar', icon: 'checkSquare' },
-  { path: '/royxatlar', label: "Ro'yxatlar", icon: 'checklist' },
-  { path: '/suhbatlar', label: 'Suhbatlar', icon: 'send' },
-  { path: '/qongiroqlar', label: "Qo'ng'iroqlar", icon: 'phone' },
-  { path: '/analitika', label: 'Analitika', icon: 'vision' },
-  { path: '/sozlamalar', label: 'Sozlamalar', icon: 'settings' },
-  { path: '/settings', label: 'Foydalanuvchilar', icon: 'hr' },
-]
+import AmoShell from './amo/AmoShell'
+import LeadsPipeline from './amo/pages/LeadsPipeline'
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
@@ -36,42 +25,36 @@ function RequireAuth({ children }) {
   return children
 }
 
+// amoCRM qobig'i ichida bo'limlar. Hali qayta yozilmagan bo'limlar eski komponentlar orqali ishlaydi.
 function CrmShell() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
-  const loc = useLocation()
-  const active = (p) => (p === '/' ? loc.pathname === '/' : loc.pathname.startsWith(p))
   return (
-    <div className="crmsa">
-      <aside className="crmsa-rail">
-        <div className="crmsa-logo" title="Sellers Army CRM">SA</div>
-        {RAIL.map((r) => (
-          <button key={r.path} className={`crmsa-rl ${active(r.path) ? 'on' : ''}`} onClick={() => navigate(r.path)}>
-            <Icon name={r.icon} size={19} />
-            <span>{r.label}</span>
-          </button>
-        ))}
-        <div className="f1" />
-      </aside>
-      <div className="crmsa-col">
-        <header className="crmsa-top">
-          <b className="crmsa-title">{RAIL.find((r) => active(r.path))?.label || 'CRM'}</b>
-          <div className="f1" />
-          <span className="crmsa-user">{user?.name}</span>
-          <button className="crmsa-out" onClick={logout} title="Chiqish">⎋</button>
-        </header>
-        <div className="crmsa-body">
-          <Routes>
-            <Route path="/ish-stoli" element={<CrmDesk />} />
-            {/* Foydalanuvchilar, rollar va ruxsatlar */}
-            <Route path="/settings/*" element={<Settings />} />
-            {/* Qolgan bo'limlar — CRM ichida URL slug bo'yicha (chrome='none': tab-qatorsiz) */}
-            <Route path="/*" element={<CRM chrome="none" />} />
-          </Routes>
-        </div>
+    <AmoShell>
+      <div className="amo-content">
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<div className="crmsa-body"><CrmDesk /></div>} />
+          <Route path="/leads/pipeline/:pipelineId?" element={<LeadsPipeline />} />
+          <Route path="/leads/*" element={<CRM chrome="none" forceView="leads" />} />
+          <Route path="/imbox/*" element={<CRM chrome="none" forceView="chats" />} />
+          <Route path="/todo/*" element={<CRM chrome="none" forceView="tasks" />} />
+          <Route path="/contacts/*" element={<CRM chrome="none" forceView="lists" />} />
+          <Route path="/companies/*" element={<CRM chrome="none" forceView="lists" />} />
+          <Route path="/stats/*" element={<CRM chrome="none" forceView="analytics" />} />
+          <Route path="/events/*" element={<CRM chrome="none" forceView="analytics" />} />
+          <Route path="/settings/users/*" element={<Settings />} />
+          <Route path="/settings/*" element={<CRM chrome="none" forceView="settings" />} />
+          {/* Eski manzillar */}
+          <Route path="/ish-stoli" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/vazifalar" element={<Navigate to="/todo/line" replace />} />
+          <Route path="/royxatlar" element={<Navigate to="/contacts/list" replace />} />
+          <Route path="/suhbatlar" element={<Navigate to="/imbox" replace />} />
+          <Route path="/analitika" element={<Navigate to="/stats/pipeline" replace />} />
+          <Route path="/sozlamalar" element={<Navigate to="/settings/general" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
       </div>
       <CallWidget />
-    </div>
+    </AmoShell>
   )
 }
 
@@ -257,8 +240,6 @@ export default function CrmApp() {
       <Route path="/login" element={<Login />} />
       {/* Ochiq lid formasi subdomen'da ham ishlaydi (reklama havolalari uchun) */}
       <Route path="/lead/:slug" element={<LeadForm />} />
-      {/* Login /dashboard'ga yo'naltiradi — alohida CRM'da bosh sahifaga qaytaramiz */}
-      <Route path="/dashboard" element={<Navigate to="/" replace />} />
       <Route path="/*" element={<RequireAuth><CrmShell /></RequireAuth>} />
     </Routes>
   )

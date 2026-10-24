@@ -54,6 +54,8 @@ export class CreateLeadDto {
   @IsOptional() @IsBoolean() hot?: boolean;
   @IsOptional() @IsString() nextTask?: string;
   @IsOptional() @IsString() nextTaskDate?: string;
+  @IsOptional() @IsString() contactName?: string;
+  @IsOptional() @IsString() contactId?: string;
 }
 
 export class UpdateLeadDto {

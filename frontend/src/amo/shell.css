@@ -1,0 +1,173 @@
+/* amoCRM klon — ilova qobig'i: chap menyu, ikkinchi daraja aside, yuqori panel,
+   akkaunt paneli, bildirishnomalar paneli. */
+
+.ac-page { min-height: 100vh; padding-left: var(--left-menu-width); }
+
+/* ── Chap menyu (.left-menu / .nav__menu) ── */
+.ac-nav {
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 110;
+  width: var(--left-menu-width);
+  background: var(--palette-left-menu-background-primary);
+  display: flex; flex-direction: column;
+  user-select: none; transform: translateZ(0);
+  transition: width var(--left-menu-transition);
+}
+.ac-nav__top {
+  position: relative; height: var(--top_menu_avatar_height); flex: none;
+  background: var(--palette-left-menu-background-secondary);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--palette-left-menu-text-primary); cursor: pointer;
+  overflow: hidden;
+}
+.ac-nav__top-pic { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #8fa0b0; background: #27445a; overflow: hidden; }
+.ac-nav__top-pic img { width: 100%; height: 100%; object-fit: cover; }
+.ac-nav__top-title { font-size: 11px; margin-top: 2px; color: var(--palette-left-menu-text-primary); }
+.ac-nav__top:hover .ac-nav__top-title { color: #fff; }
+
+.ac-nav__menu { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px 0 10px; scrollbar-width: none; }
+.ac-nav__menu::-webkit-scrollbar { display: none; }
+.ac-nav__item { position: relative; text-align: center; margin: 16px 0 0; cursor: pointer; }
+.ac-nav__item:first-child { margin-top: 0; }
+.ac-nav__link { display: block; color: var(--palette-left-menu-text-primary); text-decoration: none; padding: 0 2px; }
+.ac-nav__icon { width: 30px; height: 30px; margin: 0 auto 6px; position: relative; display: block; }
+.ac-nav__title { font-size: 11px; line-height: 13px; color: var(--palette-left-menu-text-primary); word-wrap: break-word; }
+.ac-nav__item:hover .ac-nav__link { color: #acadaf; }
+.ac-nav__item:hover .ac-nav__title { color: #fff; }
+.ac-nav__item.selected .ac-nav__title { color: #fff; font-weight: 700; }
+.ac-nav__item.selected .ac-nav__link { color: #acadaf; }
+
+.ac-nav__bottom { flex: none; padding: 10px 0 14px; text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.04); }
+.ac-nav__bell { position: relative; display: inline-block; color: var(--palette-left-menu-text-primary); cursor: pointer; padding: 4px; }
+.ac-nav__bell:hover { color: #fff; }
+.ac-nav__badge {
+  position: absolute; top: -2px; right: -8px; min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 9px; background: #e2453c; color: #fff; font: 700 11px/18px var(--font-main);
+  border: 2px solid var(--palette-left-menu-background-primary);
+}
+
+/* ── Ikkinchi darajali aside (Analitika/Sozlamalar ro'yxati, Сделки flyout) ── */
+.ac-aside {
+  position: fixed; top: 0; bottom: 0; left: var(--left-menu-width); z-index: 105;
+  width: 238px; display: flex; flex-direction: column;
+  background: var(--palette-background-primary);
+  border-right: 1px solid var(--palette-border-primary);
+}
+.ac-aside--fixed + .ac-content { margin-left: 238px; }
+.ac-aside__head {
+  height: var(--top_menu_avatar_height); flex: none; display: flex; align-items: center; padding: 0 25px 0 26px;
+  border-bottom: 1px solid var(--palette-border-primary);
+  font: 700 13px var(--font-caption); letter-spacing: 1px; text-transform: uppercase; color: var(--palette-text-primary);
+}
+.ac-aside__list { flex: 1; overflow-y: auto; }
+.ac-aside__item {
+  display: flex; align-items: center; min-height: 50px; padding: 6px 25px 6px 26px;
+  border-bottom: 1px solid var(--palette-border-primary);
+  color: var(--palette-text-primary); font-size: 14px; cursor: pointer; text-decoration: none;
+  transition: background 0.15s;
+}
+.ac-body a.ac-aside__item { color: var(--palette-text-primary); }
+.ac-aside__item:hover { background: var(--palette-button-classic-hover-background); }
+.ac-body a.ac-aside__item.selected, .ac-aside__item.selected { color: #1691ff; }
+.ac-aside__item-note { margin-left: auto; font-size: 9px; color: var(--palette-text-secondary-light); max-width: 70px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ac-aside__foot { border-top: 1px solid var(--palette-border-primary); }
+.ac-aside__foot .ac-aside__item { color: var(--palette-text-secondary-dark); border-bottom: none; border-top: 1px solid var(--palette-border-primary); }
+
+/* Сделки flyout — hoverda chiqadi */
+.ac-flyout { transform: translateX(-100%); opacity: 0; visibility: hidden; pointer-events: none; transition: transform 0.2s ease, opacity 0.2s ease, visibility 0s 0.2s; box-shadow: 6px 0 18px rgba(0, 0, 0, 0.25); z-index: 109; }
+.ac-flyout.open { transform: translateX(0); opacity: 1; visibility: visible; pointer-events: auto; transition: transform 0.2s ease, opacity 0.2s ease; }
+.ac-flyout .ac-aside__item { text-transform: uppercase; font-size: 15px; }
+.ac-flyout .ac-aside__foot .ac-aside__item { text-transform: none; }
+
+/* ── Kontent ── */
+.ac-content { min-height: 100vh; position: relative; }
+
+/* ── Yuqori panel (.list__body-right__top) ── */
+.ac-top {
+  position: sticky; top: 0; z-index: 100;
+  height: var(--top_menu_avatar_height); display: flex; align-items: stretch;
+  background: var(--ac-top-bg); border-bottom: 1px solid var(--palette-border-primary);
+}
+.ac-top__preset { display: flex; align-items: center; gap: 12px; padding: 0 10px 0 30px; flex: none; border-right: 1px solid var(--palette-border-primary); }
+.ac-top__title { font: 700 15px var(--font-caption); letter-spacing: 1px; text-transform: uppercase; color: var(--palette-text-primary); white-space: nowrap; cursor: default; }
+.ac-top__switch { display: flex; align-items: center; gap: 10px; color: var(--palette-text-secondary-dark); }
+.ac-top__switch button { background: none; border: 0; padding: 4px; cursor: pointer; color: inherit; display: flex; }
+.ac-top__switch button.on { color: #1691ff; }
+.ac-top__search { flex: 1; display: flex; align-items: center; gap: 8px; padding: 0 15px; color: var(--palette-text-secondary-light); min-width: 140px; position: relative; }
+.ac-top__search input { flex: 1; height: 100%; border: 0; outline: 0; background: transparent; color: var(--palette-text-primary); font: 15px var(--font-main); }
+.ac-top__search input::placeholder { color: var(--palette-text-secondary-light); }
+.ac-top__count { display: flex; align-items: center; padding: 0 18px; font-size: 14px; color: var(--palette-text-secondary-light); white-space: nowrap; }
+.ac-top__count b { color: var(--palette-text-primary); font-weight: 400; margin-left: 4px; }
+.ac-top__actions { display: flex; align-items: center; gap: 10px; padding: 0 30px 0 10px; border-left: 1px solid var(--palette-border-primary); }
+.ac-top__dots { background: none; border: 0; color: var(--palette-text-primary); cursor: pointer; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
+.ac-top__dots:hover { background: var(--palette-button-classic-hover-background); }
+
+/* ── Popup menyu (… tugmasi, karta menyusi) ── */
+.ac-menu {
+  position: absolute; z-index: 1000; min-width: 160px; padding: 6px 0;
+  background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary);
+  border-radius: var(--border-radius-default); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  animation: ac-fadeIn 0.15s ease both;
+}
+.ac-menu__item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 16px; background: none; border: 0; text-align: left; color: var(--palette-text-primary); font: 14px var(--font-main); cursor: pointer; white-space: nowrap; }
+.ac-menu__item:hover { background: var(--palette-button-classic-hover-background); }
+.ac-menu__item .ico-danger { color: #f37575; }
+
+/* ── Akkaunt paneli ── */
+.ac-userbar {
+  position: fixed; top: 0; left: var(--left-menu-width); z-index: 1005; width: 300px;
+  background: var(--palette-background-primary); border-right: 1px solid var(--palette-border-primary);
+  box-shadow: 6px 0 18px rgba(0, 0, 0, 0.3);
+  transform: translateX(-110%); visibility: hidden; transition: transform 0.3s, visibility 0s 0.3s; bottom: 0; display: flex; flex-direction: column;
+}
+.ac-userbar.open { transform: translateX(0); visibility: visible; transition: transform 0.3s; }
+.ac-userbar__head { display: flex; gap: 14px; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--palette-border-primary); }
+.ac-userbar__pic { width: 54px; height: 54px; border-radius: 50%; background: #27445a; color: #8fa0b0; display: flex; align-items: center; justify-content: center; }
+.ac-userbar__name { font: 700 16px var(--font-main); }
+.ac-userbar__role { font-size: 13px; color: var(--palette-text-secondary-dark); margin-top: 2px; }
+.ac-userbar__item { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--palette-border-primary); color: var(--palette-text-primary); cursor: pointer; font-size: 14px; background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; text-align: left; }
+.ac-userbar__item:hover { background: var(--palette-button-classic-hover-background); }
+.ac-themes { display: flex; gap: 8px; padding: 14px 20px; }
+.ac-themes button { flex: 1; height: 32px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; font: 12px var(--font-main); }
+.ac-themes button.on { border-color: #4c8bf7; }
+
+/* ── Overlay (bildirishnoma/akkaunt ochilganda) ── */
+.ac-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0, 0, 0, 0.45); animation: ac-fadeIn 0.4s ease both; }
+
+/* ── Bildirishnomalar paneli (.notifications) ── */
+.ac-notif {
+  position: fixed; top: 0; bottom: 0; left: var(--left-menu-width); z-index: 1005; width: 325px;
+  background: var(--palette-background-primary); border-right: 1px solid var(--palette-border-primary);
+  display: flex; flex-direction: column;
+  transform: translateX(-110%); visibility: hidden; transition: transform 0.3s ease, visibility 0s 0.3s;
+}
+.ac-notif.open { transform: translateX(0); visibility: visible; transition: transform 0.3s ease; }
+.ac-notif__search { height: var(--top_menu_avatar_height); flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px 0 16px; border-bottom: 1px solid var(--palette-border-primary); color: var(--palette-text-secondary-light); }
+.ac-notif__search input { flex: 1; border: 0; outline: 0; background: transparent; color: var(--palette-text-primary); font: 15px var(--font-main); }
+.ac-notif__list { flex: 1; overflow-y: auto; perspective: 800px; }
+.ac-notif__item { display: flex; gap: 12px; padding: 12px 14px 12px 12px; min-height: 64px; border-bottom: 1px solid var(--palette-border-primary); cursor: pointer; transform-origin: top; transform: rotateX(-90deg); transition: all 0.5s cubic-bezier(0.36, -0.64, 0.34, 1.76); }
+.ac-notif__item.show { transform: none; }
+.ac-notif__item.unread { background: rgba(22, 145, 255, 0.12); }
+.ac-notif__item:hover { background: var(--palette-button-classic-hover-background); }
+.ac-notif__avatar { width: 38px; height: 38px; flex: none; border-radius: 50%; background: #27445a; color: #9fb7cf; display: flex; align-items: center; justify-content: center; }
+.ac-notif__body { flex: 1; min-width: 0; }
+.ac-notif__head { display: flex; justify-content: space-between; gap: 8px; }
+.ac-notif__title { font: 700 14px var(--font-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-notif__time { font-size: 12px; color: var(--palette-text-secondary-light); white-space: nowrap; }
+.ac-notif__text { font-size: 14px; color: var(--palette-text-secondary-dark); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ac-notif__empty { padding: 40px 20px; text-align: center; color: var(--palette-text-secondary-light); }
+
+/* ── Modal (amoCRM .modal-body) ── */
+.ac-modal-wrap { position: fixed; inset: 0; z-index: 1100; background: var(--palette-overlay-background-default-700, rgba(15, 34, 49, 0.7)); display: flex; align-items: flex-start; justify-content: center; padding: 80px 20px 40px; overflow-y: auto; animation: ac-fadeIn 0.2s ease both; }
+.ac-modal { position: relative; width: 100%; max-width: 560px; background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); border-radius: var(--border-radius-default); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); padding: 30px; animation: ac-modal-in 0.3s ease both; }
+@keyframes ac-modal-in { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: none; } }
+.ac-modal__close { position: absolute; top: 14px; right: 14px; background: none; border: 0; color: var(--palette-text-secondary-light); cursor: pointer; padding: 4px; }
+.ac-modal__title { font: 700 20px var(--font-main); margin: 0 0 20px; }
+.ac-modal__foot { display: flex; gap: 10px; margin-top: 24px; }
+
+@media (max-width: 760px) {
+  .ac-top__count, .ac-top__preset .ac-top__switch { display: none; }
+  .ac-top__preset { padding-left: 14px; }
+  .ac-top__actions { padding-right: 12px; }
+  .ac-aside--fixed + .ac-content { margin-left: 0; }
+  .ac-aside--fixed { display: none; }
+}
