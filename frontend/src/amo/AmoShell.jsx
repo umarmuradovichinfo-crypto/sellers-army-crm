@@ -94,33 +94,78 @@ function NotificationsPanel({ open, onClose, onCount }) {
 
 const crmService_notifications = () => notificationsApi.list()
 
+// amoCRM akkaunt paneli: yuqoridan tushadigan chiziq — ism/email, "профиль", "выйти", til, mavzu (auto / light / dark)
 function UserBar({ open, onClose }) {
   const { user, logout } = useAuth()
   const { t, lang, setLang } = useI18n()
   const [theme, setTheme] = useState(getTheme())
-  const pick = (t) => { setTheme(t); applyTheme(t) }
+  const [profile, setProfile] = useState(false)
+  const pick = (v) => { setTheme(v); applyTheme(v) }
   return (
     <>
       {open && <div className="ac-overlay" onClick={onClose} />}
       <div className={`ac-userbar ${open ? 'open' : ''}`}>
-        <div className="ac-userbar__head">
-          <div className="ac-userbar__pic"><NavIcon name="account" size={34} /></div>
-          <div>
-            <div className="ac-userbar__name">{user?.name || t('Foydalanuvchi')}</div>
-            <div className="ac-userbar__role">{user?.email || user?.login}</div>
+        <div className="ac-userbar__who">
+          <div className="ac-userbar__name">{user?.name || t('Foydalanuvchi')}</div>
+          <div className="ac-userbar__role">{user?.email || user?.login}
+            <button className="ac-userbar__copy" title={t('Nusxalash')} onClick={() => navigator.clipboard?.writeText(user?.email || '')}><Ico name="list" size={12} /></button>
           </div>
         </div>
-        <div className="ac-themes">
-          <button className={theme === 'dark' ? 'on' : ''} style={{ background: '#0f2231', color: '#f2f2f2' }} onClick={() => pick('dark')}>{t("Qorong'i")}</button>
-          <button className={theme === 'light' ? 'on' : ''} style={{ background: '#f5f5f5', color: '#363b44' }} onClick={() => pick('light')}>{t("Yorug'")}</button>
+        <button className="ac-userbar__btn" onClick={() => { setProfile(true); onClose() }}><Ico name="edit" size={18} /><span>{t('profil')}</span></button>
+        <button className="ac-userbar__btn" onClick={logout}><Ico name="external" size={18} /><span>{t('chiqish')}</span></button>
+        <div className="ac-userbar__grow" />
+        <div className="ac-userbar__seg">
+          <button className={lang === 'uz' ? 'on' : ''} onClick={() => setLang('uz')}><b>UZ</b><span>o'zbek</span></button>
+          <button className={lang === 'ru' ? 'on' : ''} onClick={() => setLang('ru')}><b>RU</b><span>русский</span></button>
         </div>
-        <div className="ac-themes">
-          <button className={lang === 'uz' ? 'on' : ''} onClick={() => setLang('uz')}>O'zbekcha</button>
-          <button className={lang === 'ru' ? 'on' : ''} onClick={() => setLang('ru')}>Русский</button>
+        <div className="ac-userbar__seg">
+          {[['auto', 'auto', '◐'], ['light', 'light', '☼'], ['dark', 'dark', '☾']].map(([k, l, ic]) => (
+            <button key={k} className={theme === k ? 'on' : ''} onClick={() => pick(k)}><b>{ic}</b><span>{l}</span></button>
+          ))}
         </div>
-        <button className="ac-userbar__item" onClick={logout}><Ico name="external" /> {t('Chiqish')}</button>
       </div>
+      {profile && <ProfileModal onClose={() => setProfile(false)} />}
     </>
+  )
+}
+
+// "профиль": ism/email, til va o'z parolini o'zgartirish
+function ProfileModal({ onClose }) {
+  const { user } = useAuth()
+  const { t, lang, setLang } = useI18n()
+  const [cur, setCur] = useState('')
+  const [pw, setPw] = useState('')
+  const [pw2, setPw2] = useState('')
+  const [msg, setMsg] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const bad = !cur || pw.length < 6 || pw !== pw2
+  const save = async () => {
+    if (bad || busy) return
+    setBusy(true); setMsg(null)
+    try { await settingsService.changeOwnPassword(cur, pw); setCur(''); setPw(''); setPw2(''); setMsg({ ok: true, m: t("Parol o'zgartirildi") }) }
+    catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) } finally { setBusy(false) }
+  }
+  return (
+    <div className="ac-modal-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="ac-modal">
+        <h2 className="ac-profile__title">{user?.name}</h2>
+        <div className="ac-profile__mail">{user?.email}</div>
+        <div className="ac-profile__row"><span>{t('Til')}</span>
+          <select className="ac-select" value={lang} onChange={(e) => setLang(e.target.value)}>
+            <option value="uz">O'zbekcha</option><option value="ru">Русский</option>
+          </select>
+        </div>
+        <div className="ac-profile__sub">{t('Parolni almashtirish')}</div>
+        <input className="ac-input" type="password" autoComplete="current-password" placeholder={t('Joriy parol')} value={cur} onChange={(e) => setCur(e.target.value)} />
+        <input className="ac-input" type="password" autoComplete="new-password" placeholder={t('Yangi parol')} value={pw} onChange={(e) => setPw(e.target.value)} />
+        <input className="ac-input" type="password" autoComplete="new-password" placeholder={t('Parolni takrorlang')} value={pw2} onChange={(e) => setPw2(e.target.value)} />
+        {msg && <div className={msg.ok ? 'ac-set-saved' : 'ac-set-err'} style={{ margin: '6px 0 0' }}>{msg.m}</div>}
+        <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+          <button className="ac-btn ac-btn--blue" disabled={bad || busy} onClick={save}>{t('Saqlash')}</button>
+          <button className="ac-btn ac-btn--plain" onClick={onClose}>{t('Yopish')}</button>
+        </div>
+      </div>
+    </div>
   )
 }
 

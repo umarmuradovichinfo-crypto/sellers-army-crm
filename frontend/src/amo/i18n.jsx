@@ -7,6 +7,13 @@ const KEY = 'amo_lang'
 const RU = {
   // Chap menyu
   'Mahkamlash': 'Закрепить',
+  'profil': 'профиль',
+  'chiqish': 'выйти',
+  'Nusxalash': 'Копировать',
+  'Parolni almashtirish': 'Смена пароля',
+  'Joriy parol': 'Текущий пароль',
+  'Yangi parol': 'Новый пароль',
+  'Parolni takrorlang': 'Повторите пароль',
   "Yig'ish": 'Свернуть',
   'Akkaunt': 'Аккаунт',
   'Ish stoli': 'Рабочий стол',

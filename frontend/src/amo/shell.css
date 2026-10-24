@@ -121,20 +121,32 @@
 .ac-menu__item:hover { background: var(--palette-button-classic-hover-background); }
 .ac-menu__item .ico-danger { color: #f37575; }
 
-/* ── Akkaunt paneli ── */
+/* ── Akkaunt paneli (amoCRM .nav__top-user: yuqoridan tushadigan chiziq) ── */
 .ac-userbar {
-  position: fixed; top: 0; left: var(--left-menu-width); z-index: 1005; width: 300px;
-  background: var(--palette-background-primary); border-right: 1px solid var(--palette-border-primary);
-  box-shadow: 6px 0 18px rgba(0, 0, 0, 0.3);
-  transform: translateX(-110%); visibility: hidden; transition: transform 0.3s, visibility 0s 0.3s; bottom: 0; display: flex; flex-direction: column;
+  position: fixed; top: 0; left: var(--left-menu-width); right: 0; z-index: 1005; height: 64px;
+  display: flex; align-items: stretch; background: var(--palette-background-primary); border-bottom: 1px solid var(--palette-border-primary);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  transform: translateY(-110%); visibility: hidden; transition: transform 0.25s, visibility 0s 0.25s;
 }
-.ac-userbar.open { transform: translateX(0); visibility: visible; transition: transform 0.3s; }
-.ac-userbar__head { display: flex; gap: 14px; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--palette-border-primary); }
-.ac-userbar__pic { width: 54px; height: 54px; border-radius: 50%; background: #27445a; color: #8fa0b0; display: flex; align-items: center; justify-content: center; }
-.ac-userbar__name { font: 700 16px var(--font-main); }
-.ac-userbar__role { font-size: 13px; color: var(--palette-text-secondary-dark); margin-top: 2px; }
-.ac-userbar__item { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--palette-border-primary); color: var(--palette-text-primary); cursor: pointer; font-size: 14px; background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; text-align: left; }
-.ac-userbar__item:hover { background: var(--palette-button-classic-hover-background); }
+.ac-userbar.open { transform: none; visibility: visible; transition: transform 0.25s; }
+.ac-userbar__who { display: flex; flex-direction: column; justify-content: center; padding: 0 30px; min-width: 0; }
+.ac-userbar__name { font: 400 18px var(--font-main); color: var(--palette-text-primary); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-userbar__role { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--palette-text-secondary-dark); margin-top: 2px; }
+.ac-userbar__copy { border: 0; background: none; color: var(--palette-text-secondary-dark); cursor: pointer; display: flex; padding: 0; }
+.ac-userbar__btn { width: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 0; background: none; color: var(--palette-text-secondary-dark); font: 14px var(--font-main); cursor: pointer; }
+.ac-userbar__btn:hover { background: var(--palette-button-classic-hover-background); color: var(--palette-text-primary); }
+.ac-userbar__grow { flex: 1; }
+.ac-userbar__seg { display: flex; border-left: 1px solid var(--palette-border-primary); }
+.ac-userbar__seg button { width: 66px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--palette-text-secondary-dark); font: 14px var(--font-main); cursor: pointer; }
+.ac-userbar__seg button b { font-size: 15px; font-weight: 400; }
+.ac-userbar__seg button.on { color: var(--palette-text-primary); font-weight: 700; }
+.ac-userbar__seg button:hover { background: var(--palette-button-classic-hover-background); }
+.ac-profile__title { margin: 0; font: 400 22px var(--font-main); }
+.ac-profile__mail { color: var(--palette-text-secondary-dark); margin: 4px 0 16px; }
+.ac-profile__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.ac-profile__sub { font: 700 13px var(--font-caption); text-transform: uppercase; letter-spacing: 0.5px; color: var(--palette-text-secondary-dark); margin: 6px 0 8px; }
+.ac-modal .ac-input + .ac-input { margin-top: 8px; }
+@media (max-width: 760px) { .ac-userbar { left: 0; height: auto; flex-wrap: wrap; } .ac-userbar__seg button { width: 54px; height: 56px; } }
 .ac-themes { display: flex; gap: 8px; padding: 14px 20px; }
 .ac-themes button { flex: 1; height: 32px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; font: 12px var(--font-main); }
 .ac-themes button.on { border-color: #4c8bf7; }

@@ -105,3 +105,10 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 1 | "Белый список IP-адресов": faqat ro'yxatdagi IP'lardan kirish, joriy IP ko'rsatiladi va ro'yxatda bo'lishi shart | yo'q | qo'shildi (IpWhitelistGuard, X-Forwarded-For'ning proksi qo'shgan qiymati; ochiq yo'llar/webhook'lar tegilmaydi) |
 | 2 | Резервное копирование | — | amoCRM Pro xizmati; bizda Excel eksportlari bor |
 | 3 | Parolni o'zgartirish amoCRM'da profil oynasida | Xavfsizlikda | qoldirildi (qo'shimcha qulaylik) |
+
+## 13. Akkaunt paneli
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | Yuqoridan tushadigan chiziq: ism, email (nusxalash), "профиль", "выйти", o'ngda mavzu auto/light/dark | chapdan yon panel, auto yo'q | tuzatildi (+ til UZ/RU shu chiziqda) |
+| 2 | "профиль" oynasi | yo'q | qo'shildi (til, o'z parolini o'zgartirish) |
+| 3 | Mavzu "auto" — tizim mavzusiga ergashadi | yo'q | qo'shildi |
