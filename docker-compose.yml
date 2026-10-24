@@ -1,7 +1,7 @@
 # Ishga tushirish:
-#   cp .env.example .env   # JWT_*_SECRET va SEED_ADMIN_PASSWORD ni to'ldiring
+#   cp .env.example .env   # JWT_*_SECRET ni to'ldiring
 #   docker compose up --build
-# So'ng http://localhost:8000 (login: SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD)
+# So'ng http://localhost:8000 (birinchi ochilganda "Birinchi sozlash" ekrani: o'z admin login/parolingizni yarating)
 services:
   db:
     image: postgres:16

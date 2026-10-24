@@ -10,8 +10,10 @@ PORT="${SMOKE_PORT:-8123}"
 export DATABASE_URL PORT
 export JWT_ACCESS_SECRET="${JWT_ACCESS_SECRET:-smoke-access-$(openssl rand -hex 16)}"
 export JWT_REFRESH_SECRET="${JWT_REFRESH_SECRET:-smoke-refresh-$(openssl rand -hex 16)}"
-export SEED_ADMIN_EMAIL="${SEED_ADMIN_EMAIL:-smoke-admin@example.com}"
-export SEED_ADMIN_PASSWORD="${SEED_ADMIN_PASSWORD:-$(openssl rand -hex 12)}"
+# Admin seed orqali EMAS, birinchi sozlash (POST /auth/setup) orqali yaratiladi (smoke.mjs).
+unset SEED_ADMIN_EMAIL SEED_ADMIN_PASSWORD SETUP_TOKEN
+export SMOKE_EMAIL="${SMOKE_EMAIL:-smoke-admin@example.com}"
+export SMOKE_PASSWORD="${SMOKE_PASSWORD:-$(openssl rand -hex 12)}"
 
 cd "$ROOT/backend"
 [ -d node_modules ] || npm install
@@ -31,4 +33,4 @@ for i in $(seq 1 40); do
   sleep 0.5
 done
 
-SMOKE_BASE="http://localhost:$PORT" SMOKE_EMAIL="$SEED_ADMIN_EMAIL" SMOKE_PASSWORD="$SEED_ADMIN_PASSWORD" node "$ROOT/scripts/smoke.mjs"
+SMOKE_BASE="http://localhost:$PORT" node "$ROOT/scripts/smoke.mjs"

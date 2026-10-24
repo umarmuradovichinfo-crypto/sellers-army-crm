@@ -68,6 +68,16 @@ export function AuthProvider({ children }) {
     writeCachedUser(res)
   }, [])
 
+  // Birinchi sozlash: { name, email, password, setupToken? } -> super admin yaratadi va darrov kiritadi.
+  const setup = useCallback(async (data) => {
+    if (USE_MOCKS) { setUser(MOCK_USER); setPermissions(permsForRole(MOCK_USER.role)); return }
+    const res = await api.post('/auth/setup', data) // login bilan bir xil javob
+    invalidateCache()
+    setSession({ token: res.token, refreshToken: res.refreshToken })
+    setUser(res.user); setPermissions(res.permissions || [])
+    writeCachedUser(res)
+  }, [])
+
   const logout = useCallback(async () => {
     if (!USE_MOCKS) { try { await api.post('/auth/logout') } catch {} }
     invalidateCache() // keshni tozalab, keyingi foydalanuvchiga sirqib o'tmasin
@@ -85,9 +95,9 @@ export function AuthProvider({ children }) {
   const can = useCallback((perm) => !perm || permissions.includes(perm), [permissions])
 
   const value = useMemo(() => ({
-    user, permissions, loading, login, logout, switchRole, can,
+    user, permissions, loading, login, setup, logout, switchRole, can,
     roleLabel: ROLES.find((r) => r.id === user?.role)?.label || '',
-  }), [user, permissions, loading, login, logout, switchRole, can])
+  }), [user, permissions, loading, login, setup, logout, switchRole, can])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

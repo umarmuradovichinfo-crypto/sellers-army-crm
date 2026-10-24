@@ -50,19 +50,22 @@ Talab: Node.js 20+ va PostgreSQL 14+ (yoki Docker).
 ### A) Docker (eng oson)
 ```bash
 cp .env.example .env
-# .env da to'ldiring: JWT_ACCESS_SECRET, JWT_REFRESH_SECRET (har biri `openssl rand -hex 32`), SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD
+# .env da to'ldiring: JWT_ACCESS_SECRET, JWT_REFRESH_SECRET (har biri `openssl rand -hex 32`)
 docker compose up --build        # postgres + ilova (frontend backend ichida uzatiladi)
 ```
-Ochiladi: http://localhost:8000 . Kirish: `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`.
-`SEED_ADMIN_PASSWORD` berilmasa tasodifiy parol yaratiladi va **faqat birinchi ishga tushishda** konsolga (`docker compose logs app`) chiqadi.
+Ochiladi: http://localhost:8000 . Birinchi ochilganda login so'ralmaydi: **"Birinchi sozlash"** ekrani chiqadi —
+ism, email va parol (kamida 8 belgi) kiriting, shu bilan o'z admin hisobingiz yaratiladi va CRM'ga kirasiz.
+Hisob yaratilgach sozlash ekrani endi chiqmaydi (`POST /auth/setup` 403 qaytaradi).
+Ixtiyoriy: `SEED_ADMIN_EMAIL` + `SEED_ADMIN_PASSWORD` ikkalasi berilsa, admin seed paytida oldindan yaratiladi (sozlash ekrani chiqmaydi).
+Internetga ochiq yangi o'rnatishda `SETUP_TOKEN` o'rnating: sozlash ekranida shu kod ham so'raladi.
 (`docker-compose.yml` va `Dockerfile` yozilgan, lekin muallif muhitida Docker yo'q edi, shuning uchun konteynerda sinalmagan.)
 
 ### B) Lokal PostgreSQL
 ```bash
-cp .env.example backend/.env      # DATABASE_URL, JWT_*_SECRET, SEED_ADMIN_* ni to'ldiring
+cp .env.example backend/.env      # DATABASE_URL, JWT_*_SECRET ni to'ldiring (SEED_ADMIN_* ixtiyoriy)
 cd backend && npm install         # prisma generate avtomatik ishlaydi
 npx prisma migrate deploy         # jadvallar + standart voronka bosqichlari
-npm run db:seed                   # rollar, ruxsatlar, birinchi super admin
+npm run db:seed                   # rollar, ruxsatlar, voronka (SEED_ADMIN_* berilsa admin ham)
 npm run start:dev                 # http://localhost:8000/api/v1
 
 cd ../frontend && npm install
@@ -82,7 +85,9 @@ Bo'sh (throwaway) baza bilan: `DATABASE_URL=postgresql://user:pass@localhost:543
 
 ### Muhim o'zgaruvchilar
 - Majburiy: `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` (>= 32 belgi, bir-biridan farqli).
-- Seed: `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` (>= 8 belgi; yo'q bo'lsa tasodifiy parol bir marta chop etiladi; standart parol yo'q), `SEED_ADMIN_NAME`.
+- Birinchi kirish: bo'sh bazada CRM "Birinchi sozlash" ekranini ko'rsatadi (`GET /auth/setup-status` -> `{ needsSetup, tokenRequired }`, `POST /auth/setup`), egasi o'z adminini yaratadi.
+- Ixtiyoriy seed: `SEED_ADMIN_EMAIL` + `SEED_ADMIN_PASSWORD` (ikkalasi berilsa; parol >= 8 belgi), `SEED_ADMIN_NAME`. Berilmasa foydalanuvchi yaratilmaydi, standart parol yo'q.
+- Ixtiyoriy: `SETUP_TOKEN` — berilsa `/auth/setup` shu kodni (`setupToken`) talab qiladi; ochiq deploy'ni begona odam egallab olishidan himoya.
 - Webhook manzillari uchun: `PUBLIC_URL` (masalan `https://crm.example.com`).
 - Ixtiyoriy: `ONLINEPBX_*`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `FB_APP_ID/FB_APP_SECRET/FB_VERIFY_TOKEN`, `CORS_ORIGIN`, `PORT`.
 - Frontend (build vaqtida): `VITE_API_BASE`, `VITE_USE_MOCKS` (demo, backend'siz), `VITE_API_URL` (dev proxy).

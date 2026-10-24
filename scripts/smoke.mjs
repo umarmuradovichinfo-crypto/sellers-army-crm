@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 // Smoke test: running backend'ga qarshi asosiy endpointlarni tekshiradi.
 // Ishlatish:  SMOKE_BASE=http://localhost:8000 SMOKE_EMAIL=... SMOKE_PASSWORD=... node scripts/smoke.mjs
+// Baza BO'SH (foydalanuvchisiz) bo'lishi kerak: admin birinchi sozlash (POST /auth/setup) orqali yaratiladi.
+// Agar baza allaqachon sozlangan bo'lsa (masalan SEED_ADMIN_* bilan), setup tekshiruvlari o'tkazib yuboriladi.
 // (scripts/smoke.sh bazani/serverni o'zi ko'taradi.)
 const BASE = (process.env.SMOKE_BASE || 'http://localhost:8000').replace(/\/$/, '') + '/api/v1';
 const EMAIL = process.env.SMOKE_EMAIL || process.env.SEED_ADMIN_EMAIL;
 const PASSWORD = process.env.SMOKE_PASSWORD || process.env.SEED_ADMIN_PASSWORD;
 if (!EMAIL || !PASSWORD) { console.error('SMOKE_EMAIL va SMOKE_PASSWORD (yoki SEED_ADMIN_*) kerak'); process.exit(2); }
+if (PASSWORD.length < 8) { console.error('SMOKE_PASSWORD kamida 8 belgi'); process.exit(2); }
 
 let token = '', pass = 0, fail = 0;
 async function call(method, path, body, { auth = true, raw = false } = {}) {
@@ -24,6 +27,34 @@ async function expect(name, method, path, body, status, opts) {
   const okSt = Array.isArray(status) ? status.includes(r.status) : r.status === status;
   check(`${method} ${path} -> ${status}`, okSt, `got ${r.status} ${r.text.slice(0, 200)}`);
   return r.data;
+}
+
+console.log('# first-run setup');
+const st0 = await expect('setup-status', 'GET', '/auth/setup-status', undefined, 200, { auth: false });
+let setupRes = null;
+if (st0?.needsSetup === true) {
+  check('setup-status needsSetup true on fresh DB', true);
+  check('setup-status tokenRequired false (no SETUP_TOKEN)', st0.tokenRequired === false, JSON.stringify(st0));
+  await expect('setup invalid email', 'POST', '/auth/setup', { name: 'A', email: 'bad', password: PASSWORD }, 400, { auth: false });
+  await expect('setup short password', 'POST', '/auth/setup', { name: 'A', email: EMAIL, password: 'short' }, 400, { auth: false });
+  await expect('setup empty name', 'POST', '/auth/setup', { name: '', email: EMAIL, password: PASSWORD }, 400, { auth: false });
+  check('still needs setup after invalid attempts', (await call('GET', '/auth/setup-status', undefined, { auth: false })).data?.needsSetup === true);
+  // bir vaqtda ikki so'rov: faqat bittasi o'tishi kerak
+  const race = await Promise.all([
+    call('POST', '/auth/setup', { name: 'Smoke Admin', email: EMAIL, password: PASSWORD }, { auth: false }),
+    call('POST', '/auth/setup', { name: 'Smoke Admin', email: EMAIL, password: PASSWORD }, { auth: false }),
+  ]);
+  const oks = race.filter((r) => r.status === 200 || r.status === 201);
+  check('concurrent setup: exactly one succeeds', oks.length === 1 && race.filter((r) => r.status === 403).length === 1, race.map((r) => r.status).join(','));
+  setupRes = oks[0]?.data;
+  check('setup returns token/refresh/permissions/user', !!(setupRes?.token && setupRes?.refreshToken && setupRes?.permissions?.length && setupRes?.user?.role === 'super_admin'), JSON.stringify(setupRes).slice(0, 150));
+  const second = await call('POST', '/auth/setup', { name: 'Again', email: 'again-' + EMAIL, password: PASSWORD }, { auth: false });
+  check('second setup -> 403', second.status === 403, `got ${second.status}`);
+  check('second setup message', String(second.text).includes('Sozlash allaqachon bajarilgan'), second.text.slice(0, 150));
+  const st1 = await expect('setup-status after', 'GET', '/auth/setup-status', undefined, 200, { auth: false });
+  check('setup-status needsSetup false', st1?.needsSetup === false, JSON.stringify(st1));
+} else {
+  console.log('  (baza allaqachon sozlangan - setup tekshiruvlari o\'tkazib yuborildi)');
 }
 
 console.log('# auth');

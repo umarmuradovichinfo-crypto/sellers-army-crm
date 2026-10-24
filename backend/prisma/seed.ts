@@ -1,5 +1,4 @@
 import 'dotenv/config';
-import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -41,31 +40,32 @@ async function main() {
     });
   }
 
-  // 3) Super admin foydalanuvchi
-  const superRole = await prisma.role.findUniqueOrThrow({
-    where: { key: 'super_admin' },
-  });
-  // Admin login/parol env orqali. SEED_ADMIN_PASSWORD berilmasa — tasodifiy parol yaratiladi
-  // va FAQAT admin birinchi marta yaratilganda bir marta konsolga chiqariladi (standart parol yo'q).
-  const email = process.env.SEED_ADMIN_EMAIL || 'admin@example.com';
-  const existing = await prisma.user.findUnique({ where: { email } });
-  let generated: string | null = null;
-  if (!existing) {
-    let password = process.env.SEED_ADMIN_PASSWORD;
-    if (!password) {
-      generated = randomBytes(12).toString('base64url');
-      password = generated;
-    } else if (password.length < 8) {
-      throw new Error('SEED_ADMIN_PASSWORD kamida 8 belgi bo\'lishi kerak');
+  // 3) Super admin foydalanuvchi — FAQAT SEED_ADMIN_EMAIL va SEED_ADMIN_PASSWORD ikkalasi berilgan bo'lsa.
+  // Aks holda foydalanuvchi yaratilmaydi: birinchi ochilganda frontend "Birinchi sozlash" ekranini ko'rsatadi.
+  const email = process.env.SEED_ADMIN_EMAIL?.trim();
+  const password = process.env.SEED_ADMIN_PASSWORD;
+  let adminStatus: 'created' | 'exists' | 'skipped' = 'skipped';
+  if (email && password) {
+    if (password.length < 8) {
+      throw new Error("SEED_ADMIN_PASSWORD kamida 8 belgi bo'lishi kerak");
     }
-    await prisma.user.create({
-      data: {
-        name: process.env.SEED_ADMIN_NAME || 'Admin',
-        email,
-        passwordHash: await bcrypt.hash(password, 10),
-        roleId: superRole.id,
-      },
+    const superRole = await prisma.role.findUniqueOrThrow({
+      where: { key: 'super_admin' },
     });
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      adminStatus = 'exists';
+    } else {
+      await prisma.user.create({
+        data: {
+          name: process.env.SEED_ADMIN_NAME || 'Admin',
+          email,
+          passwordHash: await bcrypt.hash(password, 10),
+          roleId: superRole.id,
+        },
+      });
+      adminStatus = 'created';
+    }
   }
 
   // 4) Standart voronka bosqichlari (migratsiya kiritgan bo'lishi kerak; bo'sh bo'lsa to'ldiramiz)
@@ -88,13 +88,12 @@ async function main() {
   }
 
   console.log('✓ Seed tayyor.');
-  if (generated) {
-    console.log(`  Super admin yaratildi: ${email}`);
-    console.log(`  Tasodifiy parol (faqat hozir ko'rsatiladi, saqlab qo'ying): ${generated}`);
-  } else if (existing) {
+  if (adminStatus === 'created') {
+    console.log(`  Super admin yaratildi: ${email} (parol SEED_ADMIN_PASSWORD dan)`);
+  } else if (adminStatus === 'exists') {
     console.log(`  Super admin allaqachon mavjud: ${email} (parol o'zgartirilmadi)`);
   } else {
-    console.log(`  Super admin yaratildi: ${email} (parol SEED_ADMIN_PASSWORD dan)`);
+    console.log("  Super admin yaratilmadi (SEED_ADMIN_* berilmagan): birinchi ochilganda 'Birinchi sozlash' ekrani chiqadi.");
   }
   console.log('  Rollar:', ROLE_DEFS.map((r) => r.key).join(', '));
 }

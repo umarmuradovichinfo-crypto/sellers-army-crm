@@ -1,4 +1,12 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { timingSafeEqual } from 'crypto';
+
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -6,6 +14,13 @@ import * as bcrypt from 'bcryptjs';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { initialsOf } from '../common/utils/initials';
 import { PrismaService } from '../prisma/prisma.service';
+
+type SetupInput = {
+  name: string;
+  email: string;
+  password: string;
+  setupToken?: string;
+};
 
 type Tokens = { token: string; refreshToken: string };
 
@@ -53,8 +68,65 @@ export class AuthService {
         message: "Email yoki parol noto'g'ri",
       });
     }
-    const ctx = (await this.buildUserContext(user.id))!;
-    const tokens = await this.issueTokens(user.id);
+    return this.loginResponse(user.id);
+  }
+
+  private setupTokenRequired(): string {
+    return (this.config.get<string>('SETUP_TOKEN') ?? '').trim();
+  }
+
+  /** Birinchi sozlash holati: foydalanuvchi yo'q bo'lsa needsSetup=true. */
+  async setupStatus() {
+    const needsSetup = (await this.prisma.user.count()) === 0;
+    return { needsSetup, tokenRequired: needsSetup && !!this.setupTokenRequired() };
+  }
+
+  /** Birinchi super adminni yaratadi; keyin login javobini qaytaradi. */
+  async setup(dto: SetupInput) {
+    const required = this.setupTokenRequired();
+    if (required) {
+      const a = Buffer.from(dto.setupToken ?? '');
+      const b = Buffer.from(required);
+      if (a.length !== b.length || !timingSafeEqual(a, b)) {
+        throw new ForbiddenException({
+          error: 'INVALID_SETUP_TOKEN',
+          message: "Sozlash kodi noto'g'ri",
+        });
+      }
+    }
+    const name = dto.name.trim();
+    if (!name) {
+      throw new BadRequestException({ message: 'Ism kiritilishi shart' });
+    }
+    const email = dto.email.trim();
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    const userId = await this.prisma.$transaction(async (tx) => {
+      // Bir vaqtdagi ikki so'rov ikkita admin yaratmasligi uchun tranzaksiya darajasidagi qulf.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(727001)`;
+      if ((await tx.user.count()) > 0) {
+        throw new ForbiddenException({
+          error: 'SETUP_DONE',
+          message: 'Sozlash allaqachon bajarilgan',
+        });
+      }
+      const role = await tx.role.findUnique({ where: { key: 'super_admin' } });
+      if (!role) {
+        throw new ServiceUnavailableException({
+          message: "Rollar topilmadi (seed ishga tushmagan)",
+        });
+      }
+      const user = await tx.user.create({
+        data: { name, email, passwordHash, roleId: role.id },
+      });
+      return user.id;
+    });
+    return this.loginResponse(userId);
+  }
+
+  private async loginResponse(userId: string) {
+    const ctx = (await this.buildUserContext(userId))!;
+    const tokens = await this.issueTokens(userId);
 
     return {
       token: tokens.token,
