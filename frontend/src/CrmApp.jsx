@@ -24,6 +24,8 @@ import LeadsList from './amo/pages/LeadsList'
 import StatsPage from './amo/pages/StatsPage'
 import ImboxPage from './amo/pages/ImboxPage'
 import DashboardPage from './amo/pages/DashboardPage'
+import PipelineSetupPage from './amo/pages/PipelineSetupPage'
+import FieldsSetupPage from './amo/pages/FieldsSetup'
 import ContactCard from './amo/pages/ContactCard'
 import CompanyCard from './amo/pages/CompanyCard'
 import SettingsPage from './amo/pages/SettingsPage'
@@ -48,7 +50,7 @@ function CrmShell() {
           <Route path="/leads/detail/:id" element={<LeadCard />} />
           <Route path="/leads/add" element={<LeadCard />} />
           <Route path="/leads/list" element={<LeadsList />} />
-          <Route path="/leads/*" element={<CRM chrome="none" forceView="leads" />} />
+          <Route path="/leads/*" element={<Navigate to="/leads/pipeline" replace />} />
           <Route path="/imbox" element={<ImboxPage />} />
           <Route path="/imbox/:leadId" element={<ImboxPage />} />
           <Route path="/todo" element={<Navigate to="/todo/line" replace />} />
@@ -72,7 +74,9 @@ function CrmShell() {
           <Route path="/settings/users" element={<SettingsPage section="users" />} />
           <Route path="/settings/chats" element={<SettingsPage section="chats" />} />
           <Route path="/settings/security" element={<SettingsPage section="security" />} />
-          <Route path="/settings/*" element={<CRM chrome="none" forceView="settings" />} />
+          <Route path="/settings/pipeline/leads/:pipelineId" element={<PipelineSetupPage />} />
+          <Route path="/settings/fields/:entity" element={<FieldsSetupPage />} />
+          <Route path="/settings/*" element={<Navigate to="/settings/general" replace />} />
           <Route path="/amo-market" element={<IntegrationsPage />} />
           {/* Eski manzillar */}
           <Route path="/ish-stoli" element={<Navigate to="/dashboard" replace />} />

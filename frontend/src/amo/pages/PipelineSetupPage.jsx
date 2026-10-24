@@ -228,15 +228,8 @@ export default function PipelineSetupPage() {
 
   const patchCol = (id, patch) => setCols((cs) => cs.map((c) => c.id === id ? { ...c, ...patch } : c))
 
-  // Bosqichlar tartibini (faqat ochiq bosqichlar) saqlash: mavjud order qiymatlari yangi ketma-ketlikka beriladi
-  const persistOrder = async (list, base) => {
-    const baseOrder = new Map()
-    const orders = (data?.stages || []).map((s) => s).length ? null : null // eslint-disable-line
-    void orders
-    const sortedVals = base.slice().map((x) => x.order).filter((x) => x != null).sort((a, b) => a - b)
-    list.forEach((c, i) => baseOrder.set(c.id, sortedVals[i]))
-    await Promise.all(list.map((c) => baseOrder.get(c.id) != null ? crmService.updateStage(c.id, { order: baseOrder.get(c.id) }) : null))
-  }
+  // Tartibni saqlash: ochiq bosqichlar, so'ng muvaffaqiyatli/muvaffaqiyatsiz — order = (indeks + 1) * 10
+  const persistOrder = (list) => Promise.all(list.map((c, i) => crmService.updateStage(c.id, { order: (i + 1) * 10 })))
 
   const addStage = async (index) => {
     const r = await crmService.createStage({ name: t('Yangi bosqich'), kind: 'open', color: COLORS[1], pipelineId: pid })
@@ -244,28 +237,10 @@ export default function PipelineSetupPage() {
     if (!s) return
     const fresh = { id: s.key || s.id, name: s.name, color: s.color, kind: 'open', isSystem: false }
     const next = open.slice(); next.splice(index, 0, fresh)
-    setCols([...next, ...tail]); setOrig((o) => [...o, fresh])
+    const all = [...next, ...tail]
+    setCols(all); setOrig(all)
     setEditing(fresh.id)
-    // yangi bosqichning order'i oxirida — tartibni darhol saqlaymiz
-    const fresh2 = await crmService.getPipeline(pid)
-    const ord = new Map((fresh2.stages || []).map((x, i) => [x.id, i]))
-    void ord
-    await reorderByIds(next.map((c) => c.id), fresh2)
-  }
-
-  // Server tartibi yangi ro'yxatdagi indeksga mos kelishi uchun: server orderlari yo'q bo'lgani uchun faqat updateStage(order)
-  const reorderByIds = async (ids, snapshot) => {
-    // order qiymatlarini aniqlash uchun backenddan stages ro'yxati
-    const all = await crmService.getPipeline(pid)
-    void snapshot
-    const have = (all.stages || []).filter((s) => s.kind === 'open').map((s) => s.id)
-    const pool = have.slice().sort((a, b) => 0) // eslint-disable-line
-    void pool
-    const base = (await crmService.listStagesOrder?.(pid)) || null
-    void base
-    // oddiy yondashuv: ketma-ket order = 0..n-1 emas, balki mavjud global orderlarni qayta taqsimlash mumkin emas
-    // (getPipeline order qaytarmaydi) — shuning uchun yangi tartib bo'yicha order = (indeks + 1) * 10 beriladi.
-    await Promise.all(ids.map((id, i) => crmService.updateStage(id, { order: (i + 1) * 10 })))
+    await persistOrder(all)
   }
 
   const removeStage = async (id) => {
@@ -285,7 +260,7 @@ export default function PipelineSetupPage() {
       })
       const oIds = orig.filter((c) => c.kind === 'open').map((c) => c.id).join()
       const nIds = open.map((c) => c.id).join()
-      if (oIds !== nIds) open.forEach((c, i) => ops.push(crmService.updateStage(c.id, { order: (i + 1) * 10 })))
+      if (oIds !== nIds) ops.push(persistOrder([...open, ...tail]))
       await Promise.all(ops)
       setOrig(cols); setSaveState('saved')
       setTimeout(() => setSaveState('idle'), 1500)
