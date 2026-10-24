@@ -19,16 +19,21 @@ Qoidalar
 3. [~] Bitimlar
    - [x] Voronka: ustunlar, kartalar, saralanmagan, tez qo'shish, drag-and-drop, yopish zonalari, yo'qotish sababi
    - [x] Filtr paneli (presetlar, xususiyatlar, teglar)
-   - [ ] Lid kartasi (/leads/detail/:id): chap maydonlar paneli, status dropdown, tablar, lenta, composer (chat/eslatma/vazifa), "…" menyu
-   - [ ] Yangi bitim (/leads/add)
-   - [ ] Ro'yxat ko'rinishi (/leads/list): jadval, ommaviy amallar
+   - [x] Lid kartasi (/leads/detail/:id): chap maydonlar paneli, status dropdown, tablar, lenta, composer (chat/eslatma/vazifa), "…" menyu
+   - [x] Yangi bitim (/leads/add)
+   - [x] Ro'yxat ko'rinishi (/leads/list): jadval, ommaviy amallar
    - [ ] Import sahifasi ("…" menyudan)
-4. [ ] Vazifalar: kun/hafta/oy, ro'yxat, kalendar, vazifa qo'shish oynasi
+4. [x] Vazifalar: kun/hafta/oy, ro'yxat, kalendar, vazifa qo'shish oynasi
 5. [~] Ro'yxatlar: [x] kontaktlar/kompaniyalar jadvali; [ ] kontakt/kompaniya kartochkasi (/contacts/detail, /companies/detail, /contacts/add); [ ] backend: kontakt/kompaniyaga assigneeId va teglar, bulk endpoint, 200 ta limitni olib tashlash (sahifalash), import sahifasi
 6. [ ] imBox: suhbatlar ro'yxati + chat lentasi
-7. [ ] Analitika: sotuv tahlili, umumiy hisobot, xodimlar hisoboti, voqealar ro'yxati, qo'ng'iroqlar, maqsadlar
+7. [x] Analitika: sotuv tahlili, umumiy hisobot, xodimlar hisoboti, voqealar ro'yxati, qo'ng'iroqlar, maqsadlar
+   - [ ] Tuzatish: sotuv tahlilida o'rtacha davomiylik "11k." chiqyapti (avgDays birligi), tor ekranda bloklar ustma-ust
+   - [ ] Voqealar: "qiymat oldin/keyin" uchun backend activity'da before/after saqlash
 8. [ ] Ish stoli: vidjetlar, davr tanlagich, voronka statistikasi
-9. [ ] Sozlamalar: umumiy (til tanlash shu yerda), foydalanuvchilar, chatlar, voronka sozlash (bitim manbalari, digital pipeline)
+9. [~] Sozlamalar: [x] umumiy (til tanlash), foydalanuvchilar, chatlar, xavfsizlik; [x] Market/Integratsiyalar (OnlinePBX, Facebook, Telegram, formalar); [ ] voronka sozlash (bitim manbalari, digital pipeline); [ ] maydonlar sozlash (/settings/fields/leads)
+   - [ ] Integratsiyalar: "O'rnatilganlar" tabida ulangan integratsiyalar ko'rinmayapti
+   - [ ] O'z parolini o'zgartirish uchun /settings/me/password (joriy parol tekshiruvi bilan)
+   - [ ] Umumiy sozlamalardagi sana/vaqt/valyuta formatlarini format.js ishlatishi
 10. [ ] Eski kodni tozalash: eski CRM.jsx, styles.css'dagi .amo-* va .crmsa-*, ishlatilmaydigan komponentlar
 11. [ ] Yakuniy solishtirish: har bir ekran amoCRM bilan yonma-yon (desktop + mobil)
 

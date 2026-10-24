@@ -20,6 +20,10 @@ import LeadsPipeline from './amo/pages/LeadsPipeline'
 import ListsPage from './amo/pages/ListsPage'
 import LeadCard from './amo/pages/LeadCard'
 import TasksPage from './amo/pages/TasksPage'
+import LeadsList from './amo/pages/LeadsList'
+import StatsPage from './amo/pages/StatsPage'
+import SettingsPage from './amo/pages/SettingsPage'
+import IntegrationsPage from './amo/pages/IntegrationsPage'
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
@@ -39,6 +43,7 @@ function CrmShell() {
           <Route path="/leads/pipeline/:pipelineId?" element={<LeadsPipeline />} />
           <Route path="/leads/detail/:id" element={<LeadCard />} />
           <Route path="/leads/add" element={<LeadCard />} />
+          <Route path="/leads/list" element={<LeadsList />} />
           <Route path="/leads/*" element={<CRM chrome="none" forceView="leads" />} />
           <Route path="/imbox/*" element={<CRM chrome="none" forceView="chats" />} />
           <Route path="/todo" element={<Navigate to="/todo/line" replace />} />
@@ -48,10 +53,20 @@ function CrmShell() {
           <Route path="/companies/list" element={<ListsPage entity="companies" />} />
           <Route path="/contacts/*" element={<CRM chrome="none" forceView="lists" />} />
           <Route path="/companies/*" element={<CRM chrome="none" forceView="lists" />} />
-          <Route path="/stats/*" element={<CRM chrome="none" forceView="analytics" />} />
-          <Route path="/events/*" element={<CRM chrome="none" forceView="analytics" />} />
-          <Route path="/settings/users/*" element={<Settings />} />
+          <Route path="/stats" element={<Navigate to="/stats/pipeline" replace />} />
+          <Route path="/stats/pipeline" element={<StatsPage section="pipeline" />} />
+          <Route path="/stats/consolidated" element={<StatsPage section="consolidated" />} />
+          <Route path="/stats/by_activities" element={<StatsPage section="by_activities" />} />
+          <Route path="/stats/calls" element={<StatsPage section="calls" />} />
+          <Route path="/stats/goals" element={<StatsPage section="goals" />} />
+          <Route path="/events/list" element={<StatsPage section="events" />} />
+          <Route path="/settings" element={<Navigate to="/settings/general" replace />} />
+          <Route path="/settings/general" element={<SettingsPage section="general" />} />
+          <Route path="/settings/users" element={<SettingsPage section="users" />} />
+          <Route path="/settings/chats" element={<SettingsPage section="chats" />} />
+          <Route path="/settings/security" element={<SettingsPage section="security" />} />
           <Route path="/settings/*" element={<CRM chrome="none" forceView="settings" />} />
+          <Route path="/amo-market" element={<IntegrationsPage />} />
           {/* Eski manzillar */}
           <Route path="/ish-stoli" element={<Navigate to="/dashboard" replace />} />
           <Route path="/vazifalar" element={<Navigate to="/todo/line" replace />} />

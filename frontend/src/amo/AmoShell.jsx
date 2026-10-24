@@ -15,6 +15,7 @@ export const NAV = [
   { key: 'todo', to: '/todo/line', title: 'Vazifalar', icon: 'tasks' },
   { key: 'lists', to: '/contacts/list', title: "Ro'yxatlar", icon: 'lists', match: ['/contacts', '/companies'] },
   { key: 'stats', to: '/stats/pipeline', title: 'Analitika', icon: 'stats', match: ['/stats', '/events'] },
+  { key: 'market', to: '/amo-market', title: 'Market', icon: 'market' },
   { key: 'settings', to: '/settings/general', title: 'Sozlamalar', icon: 'settings' },
 ]
 

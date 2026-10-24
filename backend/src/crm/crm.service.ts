@@ -536,11 +536,22 @@ export class CrmService {
     const stages = await this.prisma.crmStage.findMany();
     const kindByKey = new Map(stages.map((s) => [s.key, s.kind]));
     const nameByKey = new Map(stages.map((s) => [s.key, s.name]));
+    const colorByKey = new Map(stages.map((s) => [s.key, s.color]));
+    const cIds = [...new Set(leads.map((l) => l.contactId).filter(Boolean))] as string[];
+    const cs = cIds.length ? await this.prisma.contact.findMany({ where: { id: { in: cIds } }, select: { id: true, name: true, phone: true } }) : [];
+    const cMap = new Map(cs.map((c) => [c.id, c]));
     return {
-      leads: leads.map((l) => ({
-        ...this.card(l, kindByKey.get(l.stage) || 'open', names),
-        stageName: nameByKey.get(l.stage) || l.stage,
-      })),
+      leads: leads.map((l) => {
+        const c = l.contactId ? cMap.get(l.contactId) : undefined;
+        return {
+          ...this.card(l, kindByKey.get(l.stage) || 'open', names),
+          stageName: nameByKey.get(l.stage) || l.stage,
+          stageColor: colorByKey.get(l.stage) || null,
+          contactId: l.contactId || null,
+          contactName: c?.name || null,
+          contactPhone: c?.phone || null,
+        };
+      }),
     };
   }
 

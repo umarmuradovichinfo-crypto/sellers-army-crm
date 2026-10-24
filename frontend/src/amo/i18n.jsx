@@ -13,6 +13,7 @@ const RU = {
   "Ro'yxatlar": 'Списки',
   'Analitika': 'Аналитика',
   'Sozlamalar': 'Настройки',
+  'Market': 'Маркет',
   'Barcha bitimlar': 'Все сделки',
   'Asosiy voronka': 'Основная воронка',
   'Voronka': 'Воронка',

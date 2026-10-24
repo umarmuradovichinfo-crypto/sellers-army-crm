@@ -11,14 +11,14 @@ import { useT } from '../i18n'
 import '../i18n/leadcard.ru.js'
 import '../leadcard.css'
 
-const TASK_TYPES = [
+export const TASK_TYPES = [
   { key: 'call', label: "Qo'ng'iroq" },
   { key: 'meeting', label: 'Uchrashuv' },
   { key: 'task', label: 'Kuzatish' },
   { key: 'message', label: 'Xat' },
 ]
 
-function PersonAvatar({ size = 40 }) {
+export function PersonAvatar({ size = 40 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 36 36"><circle cx="18" cy="18" r="18" fill="#dcdfe3" /><circle cx="18" cy="14" r="6.5" fill="#fff" /><path d="M5 34c1.5-7 6.5-10.5 13-10.5S29.5 27 31 34" fill="#fff" /></svg>
   )
@@ -69,7 +69,7 @@ function StatusPicker({ lead, pipes, onPick }) {
 }
 
 // ── Maydon qatori: bosilganda tahrirlanadi (amoCRM inline edit) ──
-function FieldRow({ label, children }) {
+export function FieldRow({ label, children }) {
   return (
     <div className="ac-field">
       <div className="ac-field__label" title={label}>{label}</div>
@@ -78,7 +78,7 @@ function FieldRow({ label, children }) {
   )
 }
 
-function CustomInput({ field, value, onChange }) {
+export function CustomInput({ field, value, onChange }) {
   const t = useT()
   const opts = useMemo(() => { try { return JSON.parse(field.optionsJson || '[]') } catch { return field.options || [] } }, [field])
   const options = Array.isArray(field.options) ? field.options : opts
@@ -153,7 +153,7 @@ function ContactBlock({ contact, onLink, onUnlink, onChange }) {
 }
 
 // ── Lenta elementlari ──
-function SysLine({ at, who, text, link }) {
+export function SysLine({ at, who, text, link }) {
   const t = useT()
   return (
     <div className="ac-feed__sys">
@@ -163,7 +163,7 @@ function SysLine({ at, who, text, link }) {
   )
 }
 
-function CallNote({ c }) {
+export function CallNote({ c }) {
   const t = useT()
   const [audio, setAudio] = useState(null)
   const [err, setErr] = useState(false)
@@ -193,7 +193,7 @@ function CallNote({ c }) {
   )
 }
 
-function taskKind(task) {
+export function taskKind(task) {
   if (task.done) return 'done'
   if (!task.dueDate) return 'future'
   const d = new Date(task.dueDate), now = new Date()
@@ -202,7 +202,7 @@ function taskKind(task) {
   return 'future'
 }
 
-function TaskNote({ task, onDone }) {
+export function TaskNote({ task, onDone }) {
   const t = useT()
   const [res, setRes] = useState('')
   const kind = taskKind(task)
@@ -225,7 +225,7 @@ function TaskNote({ task, onDone }) {
   )
 }
 
-function NoteItem({ n }) {
+export function NoteItem({ n }) {
   const t = useT()
   return (
     <div className="ac-note">
@@ -238,7 +238,7 @@ function NoteItem({ n }) {
   )
 }
 
-function MsgItem({ m }) {
+export function MsgItem({ m }) {
   const t = useT()
   return (
     <div className={`ac-msg ${m.direction === 'out' ? 'ac-msg--out' : ''}`}>
