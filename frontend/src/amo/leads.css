@@ -211,3 +211,7 @@
 .ac-filter__more { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--palette-link-primary); text-decoration: underline; cursor: pointer; }
 .ac-ms__btn--amo > span.ac-ms__box { flex: none; width: 13px; }
 .ac-ms__btn--amo > span.ac-ms__txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+
+/* Ro'yxat: saralanmagan bitim (amoCRM — kulrang nom + "Веб Форма" belgisi) */
+.ac-body a.ac-list__unsorted, .ac-list__unsorted { color: var(--palette-text-secondary-dark) !important; }
+.ac-list__srcbadge { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px; border-radius: 3px; background: #c9ced3; color: #fff; font-size: 12px; white-space: nowrap; }

@@ -20,13 +20,14 @@ import '../leads.css'
 
 const PAGE = 50
 
-export function ViewSwitch({ mode }) {
+// listOnly: amoCRM "Все сделки" ro'yxatida voronka belgisi yo'q (u voronkaga bog'lanmagan)
+export function ViewSwitch({ mode, listOnly = false }) {
   const navigate = useNavigate()
   const { pipelineId } = useParams()
   const t = useT()
   return (
     <div className="ac-top__switch">
-      <button className={mode === 'pipeline' ? 'on' : ''} title={t('Voronka')} onClick={() => navigate(`/leads/pipeline/${pipelineId || ''}`)}><Ico name="pipeline" /></button>
+      {!listOnly && <button className={mode === 'pipeline' ? 'on' : ''} title={t('Voronka')} onClick={() => navigate(`/leads/pipeline/${pipelineId || ''}`)}><Ico name="pipeline" /></button>}
       <button className={mode === 'list' ? 'on' : ''} title={t("Ro'yxat")} onClick={() => navigate('/leads/list')}><Ico name="burger" /></button>
     </div>
   )

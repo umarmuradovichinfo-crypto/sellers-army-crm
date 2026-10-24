@@ -12,6 +12,7 @@ import BulkBar from '../BulkBar'
 import { useLeadsQuery, useFilterMeta, filterChips, sortMenuItem, downloadLeadsCsv, useLayout, LIST_COLUMNS, LIST_DEFAULT, withCustomFields, defaultDir } from '../filterState'
 import { useT, usePlural, addRu } from '../i18n'
 import { ViewSwitch } from './LeadsPipeline'
+import { useTagColors, tagStyle } from '../tagColors'
 import '../i18n/leadsfilter.ru.js'
 import '../leads.css'
 
@@ -58,7 +59,8 @@ export default function LeadsList() {
   const seq = useRef(0)
 
   // Filtr parametrlari (limit/cursor/sort'siz) — ro'yxat va ommaviy amallar uchun bir xil (URL query'dagi holat)
-  const filterParams = useMemo(() => ({ unsorted: '0', ...Q.params }), [Q.params])
+  // amoCRM "Все сделки": saralanmaganlar ham ro'yxatda (kulrang nom, manba belgisi bilan)
+  const filterParams = useMemo(() => ({ ...Q.params }), [Q.params])
   const paramsKey = JSON.stringify([filterParams, sort])
 
   const fetchPage = async (cursor, reset) => {
@@ -108,6 +110,7 @@ export default function LeadsList() {
       {t(c.label)}{sort.key === c.sort ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}
     </th>
   )
+  const tagColors = useTagColors()
   const catalog = useMemo(() => withCustomFields(LIST_COLUMNS, meta.fields), [meta.fields])
   const shownCols = cols.fields.map((k) => catalog.find((c) => c.key === k)).filter(Boolean)
   const cell = (c, l) => {
@@ -115,9 +118,10 @@ export default function LeadsList() {
       case 'name': return (
         <td key={c.key}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="ac-dot" style={{ background: l.stageColor || '#c1c1c1' }} />
-            <a onClick={() => navigate(`/leads/detail/${l.id}`)} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.n}</a>
-            {!cols.fields.includes('tags') && (l.tags || []).slice(0, 3).map((tg) => <span key={tg} className="ac-tag ac-tag--sm">{tg}</span>)}
+            {!l.unsorted && <span className="ac-dot" style={{ background: l.stageColor || '#c1c1c1' }} />}
+            <a className={l.unsorted ? 'ac-list__unsorted' : ''} onClick={() => navigate(`/leads/detail/${l.id}`)} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.n}</a>
+            {l.unsorted && <span className="ac-list__srcbadge"><Ico name="form" size={11} /> {l.formName || l.source || t('Forma')}</span>}
+            {!cols.fields.includes('tags') && (l.tags || []).slice(0, 3).map((tg) => <span key={tg} className={`ac-tag ac-tag--sm ${tagColors[tg] ? 'ac-tag--c' : ''}`} style={tagStyle(tagColors[tg])}>{tg}</span>)}
           </div>
         </td>
       )
@@ -152,7 +156,7 @@ export default function LeadsList() {
     <div>
       <TopBar
         title={t('Barcha bitimlar')}
-        switcher={<ViewSwitch mode="list" />}
+        switcher={<ViewSwitch mode="list" listOnly />}
         search={search}
         onSearch={setSearch}
         filterPanel={(close) => <LeadsFilter value={filter} meta={meta} onApply={(f) => { Q.applyFilter(f); close() }} />}
@@ -166,7 +170,7 @@ export default function LeadsList() {
           { label: t('Dublikatlarni qidirish'), icon: 'search', onClick: () => navigate('/leads/duplicates') },
         ]}
         actions={<>
-          <button className="ac-btn" onClick={() => navigate('/settings/pipeline/leads/main')}>{t('Voronkani sozlash')}</button>
+          <button className="ac-btn" onClick={() => navigate('/settings/pipeline/leads/main')}>{t('Sozlash')}</button>
           <button className="ac-btn ac-btn--blue" onClick={() => navigate('/leads/add')}><span className="ac-btn__plus">+</span>{t('Yangi bitim')}</button>
         </>}
       />
