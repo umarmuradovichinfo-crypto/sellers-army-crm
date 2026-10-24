@@ -11,7 +11,7 @@
 | `DATABASE_PATH` | SQLite fayl (standart `/data/connector.db`) — **Volume** ulang |
 | `PORT` | standart 8100 |
 | `FB_SUBSCRIBED_FIELDS` | standart `leadgen` (keyin `leadgen,messages`) |
-| `FB_GRAPH_VERSION` | standart `v24.0` |
+| `FB_GRAPH_VERSION` | standart `v26.0` |
 | `ALLOW_INSECURE` | faqat dev: `1` bo'lsa http instance manzillariga ruxsat |
 
 ## Railway

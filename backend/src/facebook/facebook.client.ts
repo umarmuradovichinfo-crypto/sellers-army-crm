@@ -1,9 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 // Graph API versiyasi — bitta joyda (OAuth dialog ham shundan foydalanadi)
-export const GRAPH_VERSION = process.env.FB_GRAPH_VERSION || 'v24.0';
+export const GRAPH_VERSION = process.env.FB_GRAPH_VERSION || 'v26.0';
 // FB_GRAPH_BASE — faqat test/mock uchun (standart: rasmiy Graph API)
 const GRAPH = (process.env.FB_GRAPH_BASE || `https://graph.facebook.com/${GRAPH_VERSION}`).replace(/\/$/, '');
+
+/** Graph xatosi: kod va subkod saqlanadi (24 soatlik oyna kabi holatlarni aniqlash uchun). */
+export class GraphError extends Error {
+  constructor(message: string, readonly code?: number, readonly subcode?: number, readonly status?: number) {
+    super(message);
+  }
+}
+function graphError(json: any, status: number): GraphError {
+  const e = json?.error;
+  return new GraphError(e?.message || `Facebook API xato (${status})`, e?.code, e?.error_subcode, status);
+}
+
+/** Sahifa obunasi maydonlari: Lead Ads + Messenger (+ Instagram ulangan bo'lsa messages, comments). */
+export const PAGE_FIELDS = 'leadgen,messages,messaging_postbacks,message_reads,feed';
+export const IG_FIELDS = 'messages,comments';
 
 /**
  * Facebook Graph API mijozi — amoCRM logikasi:
@@ -18,9 +33,7 @@ export class FacebookClient {
     const qs = new URLSearchParams(params).toString();
     const res = await fetch(`${GRAPH}${path}?${qs}`, { signal: AbortSignal.timeout(20000) });
     const json: any = await res.json().catch(() => null);
-    if (!res.ok || json?.error) {
-      throw new Error(json?.error?.message || `Facebook API xato (${res.status})`);
-    }
+    if (!res.ok || json?.error) throw graphError(json, res.status);
     return json;
   }
   private async post(path: string, params: Record<string, string>): Promise<any> {
@@ -31,9 +44,7 @@ export class FacebookClient {
       signal: AbortSignal.timeout(20000),
     });
     const json: any = await res.json().catch(() => null);
-    if (!res.ok || json?.error) {
-      throw new Error(json?.error?.message || `Facebook API xato (${res.status})`);
-    }
+    if (!res.ok || json?.error) throw graphError(json, res.status);
     return json;
   }
 
@@ -57,11 +68,43 @@ export class FacebookClient {
     return Array.isArray(j.data) ? j.data : [];
   }
   // Sahifani leadgen hodisalariga obuna qilish (webhook shu ilovaga keladi)
-  async subscribePage(pageId: string, pageToken: string): Promise<boolean> {
-    const j = await this.post(`/${pageId}/subscribed_apps`, {
-      subscribed_fields: 'leadgen', access_token: pageToken,
+  async subscribePage(pageId: string, pageToken: string, withInstagram = false): Promise<boolean> {
+    const fields = withInstagram ? [...new Set([...PAGE_FIELDS.split(','), ...IG_FIELDS.split(',')])].join(',') : PAGE_FIELDS;
+    try {
+      const j = await this.post(`/${pageId}/subscribed_apps`, { subscribed_fields: fields, access_token: pageToken });
+      return !!j.success;
+    } catch (e) {
+      if (!withInstagram) throw e;
+      const j = await this.post(`/${pageId}/subscribed_apps`, { subscribed_fields: PAGE_FIELDS, access_token: pageToken });
+      return !!j.success;
+    }
+  }
+  // Sahifaga ulangan Instagram biznes akkaunt (bo'lmasa null)
+  async getInstagramAccount(pageId: string, pageToken: string): Promise<{ id: string; username: string } | null> {
+    const j = await this.get(`/${pageId}`, { access_token: pageToken, fields: 'instagram_business_account{id,username}' });
+    const ig = j?.instagram_business_account;
+    return ig?.id ? { id: String(ig.id), username: String(ig.username || '') } : null;
+  }
+  // Suhbatdosh profili (Messenger: name; Instagram: name, username)
+  async getProfile(id: string, pageToken: string, fields: string): Promise<any> {
+    return this.get(`/${id}`, { access_token: pageToken, fields });
+  }
+  // Instagram post havolasi
+  async getMedia(mediaId: string, pageToken: string): Promise<{ permalink?: string }> {
+    return this.get(`/${mediaId}`, { access_token: pageToken, fields: 'permalink' });
+  }
+  // Messenger / Instagram Direct xabar yuborish: POST /{page-id}/messages
+  async sendMessage(pageId: string, pageToken: string, recipientId: string, text: string): Promise<{ message_id?: string; recipient_id?: string }> {
+    return this.post(`/${pageId}/messages`, {
+      recipient: JSON.stringify({ id: recipientId }),
+      message: JSON.stringify({ text }),
+      messaging_type: 'RESPONSE',
+      access_token: pageToken,
     });
-    return !!j.success;
+  }
+  // Izohga javob: Instagram POST /{comment-id}/replies, Facebook POST /{comment-id}/comments
+  async replyComment(channel: 'instagram' | 'facebook', commentId: string, pageToken: string, text: string): Promise<{ id?: string }> {
+    return this.post(`/${commentId}/${channel === 'instagram' ? 'replies' : 'comments'}`, { message: text, access_token: pageToken });
   }
   // Sahifaning obuna holati: token yaroqsiz bo'lsa xato tashlaydi; aks holda leadgen obunasi bormi
   async isPageSubscribed(pageId: string, pageToken: string, appId?: string): Promise<boolean> {
@@ -72,8 +115,13 @@ export class FacebookClient {
   // Ilova darajasidagi webhook obunasi (Meta panelida qo'lda sozlash shart emas)
   async subscribeApp(appId: string, appSecret: string, callbackUrl: string, verifyToken: string): Promise<boolean> {
     const j = await this.post(`/${appId}/subscriptions`, {
-      object: 'page', callback_url: callbackUrl, fields: 'leadgen', verify_token: verifyToken, access_token: `${appId}|${appSecret}`,
+      object: 'page', callback_url: callbackUrl, fields: PAGE_FIELDS, verify_token: verifyToken, access_token: `${appId}|${appSecret}`,
     });
+    try {
+      await this.post(`/${appId}/subscriptions`, {
+        object: 'instagram', callback_url: callbackUrl, fields: IG_FIELDS, verify_token: verifyToken, access_token: `${appId}|${appSecret}`,
+      });
+    } catch (e) { this.logger.warn('Instagram webhook obunasi xato: ' + (e as Error).message); }
     return !!j.success;
   }
   // Sahifadagi lead formalar ro'yxati

@@ -14,13 +14,17 @@ const cfg = () => ({
   appSecret: env('FB_APP_SECRET'),
   // Railway o'z domenini RAILWAY_PUBLIC_DOMAIN orqali beradi — alohida domen shart emas
   publicUrl: (env('CONNECTOR_PUBLIC_URL') || (env('RAILWAY_PUBLIC_DOMAIN') ? `https://${env('RAILWAY_PUBLIC_DOMAIN')}` : '')).replace(/\/+$/, ''),
-  graph: env('FB_GRAPH_BASE') || `https://graph.facebook.com/${env('FB_GRAPH_VERSION', 'v24.0')}`,
-  dialog: env('FB_DIALOG_BASE') || `https://www.facebook.com/${env('FB_GRAPH_VERSION', 'v24.0')}/dialog/oauth`,
-  fields: env('FB_SUBSCRIBED_FIELDS', 'leadgen'),
+  graph: env('FB_GRAPH_BASE') || `https://graph.facebook.com/${env('FB_GRAPH_VERSION', 'v26.0')}`,
+  dialog: env('FB_DIALOG_BASE') || `https://www.facebook.com/${env('FB_GRAPH_VERSION', 'v26.0')}/dialog/oauth`,
+  fields: env('FB_SUBSCRIBED_FIELDS', 'leadgen,messages,messaging_postbacks,message_reads,feed'),
+  // Instagram obunasi (ilova darajasida object=instagram va sahifa orqali subscribed_fields)
+  igFields: env('FB_IG_FIELDS', 'messages,comments'),
   insecure: env('ALLOW_INSECURE') === '1',
   retryBase: Number(env('RETRY_BASE_MS', '1000')),
 })
-const SCOPE = 'leads_retrieval,pages_show_list,pages_manage_metadata,pages_read_engagement,business_management'
+// Lead Ads + Messenger + Instagram (Direct va izohlar). FB_SCOPE env bilan o'zgartiriladi.
+const DEFAULT_SCOPE = 'leads_retrieval,pages_show_list,pages_manage_metadata,pages_read_engagement,business_management,pages_messaging,instagram_basic,instagram_manage_messages,instagram_manage_comments'
+const SCOPE = env('FB_SCOPE') || DEFAULT_SCOPE
 const START_TTL_MS = 10 * 60 * 1000
 const STATE_TTL_MS = 10 * 60 * 1000
 
@@ -63,10 +67,15 @@ function safeEq(a, b) {
 const db = new DatabaseSync(dbPath)
 db.exec(`
 CREATE TABLE IF NOT EXISTS instances (id TEXT PRIMARY KEY, url TEXT NOT NULL, secret_enc TEXT NOT NULL, created_at INTEGER NOT NULL);
-CREATE TABLE IF NOT EXISTS pages (page_id TEXT NOT NULL, instance_id TEXT NOT NULL, name TEXT NOT NULL, token_enc TEXT NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY (page_id, instance_id));
+CREATE TABLE IF NOT EXISTS pages (page_id TEXT NOT NULL, instance_id TEXT NOT NULL, name TEXT NOT NULL, token_enc TEXT NOT NULL, created_at INTEGER NOT NULL, ig_id TEXT, ig_username TEXT, PRIMARY KEY (page_id, instance_id));
 CREATE TABLE IF NOT EXISTS states (state TEXT PRIMARY KEY, instance_id TEXT NOT NULL, ret TEXT NOT NULL, exp INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS sessions (sid TEXT PRIMARY KEY, instance_id TEXT NOT NULL, ret TEXT NOT NULL, pages_enc TEXT NOT NULL, exp INTEGER NOT NULL);
 `)
+// Eski bazalar uchun ustunlar (Instagram akkaunt)
+for (const col of ['ig_id', 'ig_username']) {
+  try { db.exec(`ALTER TABLE pages ADD COLUMN ${col} TEXT`) } catch { /* mavjud */ }
+}
+db.exec('CREATE INDEX IF NOT EXISTS pages_ig_idx ON pages (ig_id)')
 const q = {
   getInstance: db.prepare('SELECT * FROM instances WHERE id = ?'),
   addInstance: db.prepare('INSERT INTO instances (id, url, secret_enc, created_at) VALUES (?,?,?,?)'),
@@ -77,8 +86,9 @@ const q = {
   getSession: db.prepare('SELECT * FROM sessions WHERE sid = ?'),
   delSession: db.prepare('DELETE FROM sessions WHERE sid = ?'),
   gc: [db.prepare('DELETE FROM states WHERE exp < ?'), db.prepare('DELETE FROM sessions WHERE exp < ?')],
-  upsertPage: db.prepare('INSERT INTO pages (page_id, instance_id, name, token_enc, created_at) VALUES (?,?,?,?,?) ON CONFLICT(page_id, instance_id) DO UPDATE SET name=excluded.name, token_enc=excluded.token_enc'),
+  upsertPage: db.prepare('INSERT INTO pages (page_id, instance_id, name, token_enc, created_at, ig_id, ig_username) VALUES (?,?,?,?,?,?,?) ON CONFLICT(page_id, instance_id) DO UPDATE SET name=excluded.name, token_enc=excluded.token_enc, ig_id=excluded.ig_id, ig_username=excluded.ig_username'),
   pagesByPage: db.prepare('SELECT * FROM pages WHERE page_id = ?'),
+  pagesByIg: db.prepare('SELECT * FROM pages WHERE ig_id = ?'),
   getPage: db.prepare('SELECT * FROM pages WHERE page_id = ? AND instance_id = ?'),
   delPage: db.prepare('DELETE FROM pages WHERE page_id = ? AND instance_id = ?'),
 }
@@ -173,7 +183,7 @@ function finishPage({ ok, pages = [], error = '', ret }) {
     `if(window.opener&&!window.opener.closed&&o){try{window.opener.postMessage(d,o);}catch(e){}window.close();}else if(f){location.replace(f);}})();</script></body></html>`
 }
 function selectPage(sid, pages) {
-  const rows = pages.map((p) => `<label class="r"><input type="checkbox" name="page" value="${esc(p.id)}" checked> <b>${esc(p.name)}</b></label>`).join('')
+  const rows = pages.map((p) => `<label class="r"><input type="checkbox" name="page" value="${esc(p.id)}" checked> <b>${esc(p.name)}${p.igUsername ? ` · @${esc(p.igUsername)}` : ''}</b></label>`).join('')
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Facebook</title>
 <style>body{font-family:-apple-system,Segoe UI,sans-serif;margin:0;background:#f4f5f7}.box{max-width:520px;margin:30px auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 1px 4px #0002}
 h1{font-size:18px;margin:0 0 14px}.r{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #eee;cursor:pointer}button{margin-top:18px;background:#1877f2;color:#fff;border:0;border-radius:6px;padding:10px 22px;font-size:15px;cursor:pointer}</style></head>
@@ -226,7 +236,15 @@ async function callback(req, res, url) {
     const short = (await graph('GET', '/oauth/access_token', { client_id: c.appId, client_secret: c.appSecret, redirect_uri: c.publicUrl + '/fb/callback', code })).access_token
     const long = await graph('GET', '/oauth/access_token', { grant_type: 'fb_exchange_token', client_id: c.appId, client_secret: c.appSecret, fb_exchange_token: short }).then((j) => j.access_token).catch(() => short)
     const j = await graph('GET', '/me/accounts', { access_token: long, fields: 'id,name,access_token', limit: '100' })
-    const pages = (Array.isArray(j.data) ? j.data : []).map((p) => ({ id: String(p.id), name: String(p.name), token: p.access_token }))
+    const pages = (Array.isArray(j.data) ? j.data : []).map((p) => ({ id: String(p.id), name: String(p.name), token: p.access_token, igId: '', igUsername: '' }))
+    // Har sahifaga ulangan Instagram biznes akkaunt (bo'lsa)
+    await Promise.all(pages.map(async (p) => {
+      try {
+        const r = await graph('GET', `/${p.id}`, { fields: 'instagram_business_account{id,username}', access_token: p.token })
+        const ig = r?.instagram_business_account
+        if (ig?.id) { p.igId = String(ig.id); p.igUsername = String(ig.username || '') }
+      } catch (e) { log('instagram akkaunt so\'rovi xato', p.id, e.message) }
+    }))
     if (!pages.length) return send(res, 200, finishPage({ ok: false, error: 'Facebook sahifa topilmadi', ret: st.ret }))
     const sid = rid(24)
     q.addSession.run(sid, st.instance_id, st.ret, enc(JSON.stringify(pages)), Date.now() + STATE_TTL_MS)
@@ -234,6 +252,21 @@ async function callback(req, res, url) {
   } catch (e) {
     log('callback xato', e.message)
     send(res, 200, finishPage({ ok: false, error: e.message, ret: st.ret }))
+  }
+}
+
+// Sahifani obuna qilish: Instagram ulangan bo'lsa Instagram maydonlari ham qo'shiladi.
+// Qo'shimcha maydonlar (ruxsat/versiya sababli) rad etilsa — asosiy maydonlar bilan qayta uriniladi.
+async function subscribePage(p) {
+  const c = cfg()
+  const base = c.fields.split(',').map((x) => x.trim()).filter(Boolean)
+  const withIg = p.igId ? [...new Set([...base, ...c.igFields.split(',').map((x) => x.trim()).filter(Boolean)])] : base
+  try {
+    await graph('POST', `/${p.id}/subscribed_apps`, { subscribed_fields: withIg.join(','), access_token: p.token })
+  } catch (e) {
+    if (withIg.length === base.length) throw e
+    log('instagram maydonlari bilan obuna xato, asosiy maydonlar bilan qayta uriniladi:', e.message)
+    await graph('POST', `/${p.id}/subscribed_apps`, { subscribed_fields: base.join(','), access_token: p.token })
   }
 }
 
@@ -253,18 +286,18 @@ async function select(req, res) {
   const errors = []
   for (const p of pages) {
     try {
-      await graph('POST', `/${p.id}/subscribed_apps`, { subscribed_fields: cfg().fields, access_token: p.token })
-      q.upsertPage.run(p.id, inst.id, p.name, enc(p.token), Date.now())
+      await subscribePage(p)
+      q.upsertPage.run(p.id, inst.id, p.name, enc(p.token), Date.now(), p.igId || null, p.igUsername || null)
       done.push(p)
     } catch (e) { errors.push(`${p.name}: ${e.message}`); log('subscribe xato', p.id, e.message) }
   }
   if (!done.length) return send(res, 200, finishPage({ ok: false, error: errors.join('; '), ret: ses.ret }))
   try {
-    await signedPost(inst, '/api/v1/facebook/connector/pages', { pages: done.map((p) => ({ id: p.id, name: p.name, accessToken: p.token })) })
+    await signedPost(inst, '/api/v1/facebook/connector/pages', { pages: done.map((p) => ({ id: p.id, name: p.name, accessToken: p.token, igId: p.igId || '', igUsername: p.igUsername || '' })) })
   } catch (e) {
     return send(res, 200, finishPage({ ok: false, error: 'CRM sahifalarni qabul qilmadi: ' + e.message, ret: ses.ret }))
   }
-  send(res, 200, finishPage({ ok: true, pages: done.map((p) => ({ id: p.id, name: p.name })), ret: ses.ret }))
+  send(res, 200, finishPage({ ok: true, pages: done.map((p) => ({ id: p.id, name: p.name, igUsername: p.igUsername || '' })), ret: ses.ret }))
 }
 
 async function disconnect(req, res) {
@@ -299,18 +332,42 @@ async function webhookPost(req, res) {
   send(res, 200, { ok: true }) // darhol javob — forward fonda (Facebook timeout bermasligi uchun)
   let body
   try { body = JSON.parse(raw.toString()) } catch { return }
+  const fwd = (rows, event) => {
+    for (const row of rows) {
+      const inst = q.getInstance.get(row.instance_id)
+      if (!inst) continue
+      const ev = { ...event, pageId: row.page_id }
+      signedPost(inst, '/api/v1/facebook/connector/event', ev)
+        .catch((e) => log('event forward xato', inst.id, e.message))
+    }
+  }
+  const isIg = body?.object === 'instagram'
   for (const entry of Array.isArray(body?.entry) ? body.entry : []) {
+    const entryId = String(entry?.id || '')
+    const rows = () => (isIg ? q.pagesByIg.all(entryId) : q.pagesByPage.all(entryId))
+    const base = isIg ? { channel: 'instagram', igId: entryId } : { channel: 'facebook' }
+    // Messenger / Instagram Direct: entry.messaging[]
+    for (const m of Array.isArray(entry?.messaging) ? entry.messaging : []) {
+      if (!m || (!m.message && !m.postback)) continue // delivery/read va boshqalar — hozircha e'tiborsiz
+      if (m.message?.is_echo) continue // sahifaning o'z xabarlari (CRM'dan yuborilgan) takrorlanmasin
+      fwd(rows(), { kind: 'message', ...base, igId: base.igId || '', payload: m })
+    }
     for (const ch of Array.isArray(entry?.changes) ? entry.changes : []) {
-      if (ch?.field !== 'leadgen') continue
-      const v = ch.value || {}
-      const pageId = String(v.page_id || entry.id || '')
-      const leadgenId = String(v.leadgen_id || '')
-      if (!pageId || !leadgenId) continue
-      for (const row of q.pagesByPage.all(pageId)) {
-        const inst = q.getInstance.get(row.instance_id)
-        if (!inst) continue
-        signedPost(inst, '/api/v1/facebook/connector/event', { pageId, leadgenId, formId: String(v.form_id || '') })
-          .catch((e) => log('event forward xato', inst.id, e.message))
+      const v = ch?.value || {}
+      if (!isIg && ch?.field === 'leadgen') {
+        const leadgenId = String(v.leadgen_id || '')
+        const pageId = String(v.page_id || entryId)
+        if (!pageId || !leadgenId) continue
+        const formId = String(v.form_id || '')
+        // leadgenId/formId yuqori darajada ham — eski CRM nusxalari bilan moslik uchun
+        fwd(q.pagesByPage.all(pageId), { kind: 'lead', channel: 'facebook', igId: '', leadgenId, formId, payload: { leadgenId, formId } })
+      } else if (!isIg && ch?.field === 'feed') {
+        if (v.item !== 'comment' || v.verb !== 'add' || !v.comment_id) continue
+        if (String(v.from?.id || '') === entryId) continue // sahifaning o'z izohi
+        fwd(rows(), { kind: 'comment', channel: 'facebook', igId: '', payload: v })
+      } else if (isIg && ch?.field === 'comments') {
+        if (!v.id) continue
+        fwd(rows(), { kind: 'comment', ...base, payload: v })
       }
     }
   }
@@ -321,10 +378,13 @@ export async function ensureAppSubscription() {
   const c = cfg()
   if (!c.appId || !c.appSecret || !c.publicUrl.startsWith('https://')) { log('webhook obunasi o\'tkazib yuborildi (https/kalit yo\'q)'); return }
   try {
-    await graph('POST', `/${c.appId}/subscriptions`, {
-      object: 'page', callback_url: c.publicUrl + '/fb/webhook', fields: c.fields, verify_token: hmac(c.appSecret, 'verify').slice(0, 32), access_token: `${c.appId}|${c.appSecret}`,
-    })
-    log('ilova webhook obunasi o\'rnatildi')
+    const common = { callback_url: c.publicUrl + '/fb/webhook', verify_token: hmac(c.appSecret, 'verify').slice(0, 32), access_token: `${c.appId}|${c.appSecret}` }
+    for (const [object, fields] of [['page', c.fields], ['instagram', c.igFields]]) {
+      try {
+        await graph('POST', `/${c.appId}/subscriptions`, { object, fields, ...common })
+        log(`ilova webhook obunasi o'rnatildi: ${object}`)
+      } catch (e) { log(`ilova webhook obunasi xato (${object}):`, e.message) }
+    }
   } catch (e) { log('ilova webhook obunasi xato:', e.message) }
 }
 
