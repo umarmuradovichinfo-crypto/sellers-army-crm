@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Query, Headers, Param, Post } from '@nestjs/common';
 
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
@@ -26,6 +26,7 @@ export class ChatController {
 
   @Get('chat-status') status() { return this.chat.enabled(); }
   @Get('conversations') conversations() { return this.chat.listConversations(); }
+  @Get('chat-stats') chatStats(@Query('from') from?: string, @Query('to') to?: string) { return this.chat.chatStats({ from, to }); }
   @Get('leads/:id/messages') messages(@Param('id') id: string) { return this.chat.listMessages(id); }
   @Post('leads/:id/messages') send(@Param('id') id: string, @Body() body: { text: string }, @CurrentUser() user: AuthUser) { return this.chat.sendMessage(id, body?.text, user); }
   @Post('telegram-webhook-setup') @RequirePermissions('crm.settings') setup(@Body() body: { url: string }) { return this.chat.setupWebhook(body?.url); }

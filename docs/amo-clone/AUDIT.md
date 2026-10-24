@@ -71,3 +71,9 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 4 | "НЕРАЗОБРАННОЕ" bloki: o'rtacha ishlov vaqti, kiruvchi arizalar (kanal bo'yicha), bitimga o'tganlar | yo'q | qo'shildi |
 | 5 | "ПРОГНОЗ ПРОДАЖ": hozir faol, 30/60/90 kun, sotuv sikli; kam ma'lumotda parda | yo'q | qo'shildi |
 | 6 | Tab "АКТИВНЫЕ" | "АКТИВНА" | tuzatildi |
+
+## 8. Ish stoli
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | "Среднее время ответа" (chatlar, davr uchun) va "Долго ждёт ответа" vidjetlari | yo'q | qo'shildi (/crm/chat-stats) |
+| 2 | "Amma" AI yordamchisi, AI-агенты | — | amoCRM'ning alohida mahsuloti, qo'shilmaydi |

@@ -256,6 +256,40 @@ export class ChatService {
     });
   }
 
+  /**
+   * Ish stoli chat vidjetlari (amoCRM): "Среднее время ответа" — davrda kelgan xabardan keyingi birinchi
+   * javobgacha o'rtacha vaqt (soniya); "Долго ждёт ответа" — oxirgi xabari mijozdan va 1 soatdan beri javobsiz suhbatlar.
+   */
+  async chatStats(q: { from?: string; to?: string }) {
+    const from = q.from ? new Date(q.from) : new Date(Date.now() - 30 * 86400000);
+    const to = q.to ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(q.to) ? q.to + 'T23:59:59' : q.to) : new Date();
+    if (isNaN(from.getTime()) || isNaN(to.getTime())) return { avgResponseSec: 0, answered: 0, waiting: 0 };
+    const msgs = await this.prisma.message.findMany({
+      where: { createdAt: { gte: from, lte: new Date(to.getTime() + 7 * 86400000) } },
+      orderBy: { createdAt: 'asc' }, select: { leadId: true, direction: true, createdAt: true },
+    });
+    const byLead = new Map<string, { direction: string; createdAt: Date }[]>();
+    for (const m of msgs) { if (!byLead.has(m.leadId)) byLead.set(m.leadId, []); byLead.get(m.leadId)!.push(m); }
+    const waits: number[] = [];
+    for (const list of byLead.values()) {
+      let pendingIn: Date | null = null;
+      for (const m of list) {
+        if (m.direction === 'in') { if (!pendingIn && m.createdAt >= from && m.createdAt <= to) pendingIn = m.createdAt; }
+        else if (pendingIn) { waits.push((m.createdAt.getTime() - pendingIn.getTime()) / 1000); pendingIn = null; }
+      }
+    }
+    // javobsiz kutayotganlar: har suhbatning oxirgi xabari
+    const last = await this.prisma.$queryRaw<{ direction: string; createdAt: Date }[]>`
+      SELECT DISTINCT ON ("leadId") direction, "createdAt" FROM crm_messages ORDER BY "leadId", "createdAt" DESC`;
+    const hourAgo = Date.now() - 3600000;
+    const waiting = last.filter((m) => m.direction === 'in' && new Date(m.createdAt).getTime() < hourAgo).length;
+    return {
+      avgResponseSec: waits.length ? Math.round(waits.reduce((a, b) => a + b, 0) / waits.length) : 0,
+      answered: waits.length,
+      waiting,
+    };
+  }
+
   // Suhbatlar inbox — xabari bor lidlar, oxirgi xabar bo'yicha (barcha kanallar)
   async listConversations() {
     const recent = await this.prisma.message.findMany({ orderBy: { createdAt: 'desc' }, take: 300 });

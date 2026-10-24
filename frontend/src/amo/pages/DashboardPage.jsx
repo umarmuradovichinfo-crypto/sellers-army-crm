@@ -96,6 +96,15 @@ function SourceRings({ items }) {
   )
 }
 
+// Javob vaqti: "45 с", "12 мин", "3 ч 5 мин"
+function fmtWait(sec, t) {
+  if (!sec) return '0'
+  if (sec < 60) return `${sec} ${t('son.')}`
+  const m = Math.round(sec / 60)
+  if (m < 60) return `${m} ${t('daq.')}`
+  return `${Math.floor(m / 60)} ${t('soat')} ${m % 60} ${t('daq.')}`
+}
+
 export default function DashboardPage() {
   const t = useT()
   const plural = usePlural()
@@ -146,6 +155,7 @@ export default function DashboardPage() {
     if (!r) return { total: 0, inbound: 0, outbound: 0, missed: 0, avgDuration: 0 }
     return { total: r.count, inbound: r.inCount, outbound: r.outCount, missed: r.missed, avgDuration: r.avgDur }
   }, [callsAll, mineId])
+  const { data: chatSt } = useApi(() => crmService.chatStats(range).catch(() => null), [range.from, range.to])
   const { data: taskData } = useApi(() => crmService.listTasks({ status: 'open' }), [])
   const { data: memberData } = useApi(() => crmService.listMembers(), [])
 
@@ -341,6 +351,9 @@ export default function DashboardPage() {
           <div className="ac-dash-cap">{t('Kiruvchi')} {calls?.inbound || 0} · {t('Chiquvchi')} {calls?.outbound || 0}</div></>))}
         {tile(t("O'tkazib yuborilgan qo'ng'iroqlar"), (<><div className="ac-dash-big ac-dash-big--sm">{calls?.missed || 0}</div>
           <div className="ac-dash-cap">{t("O'rtacha davomiylik")} {Math.floor((calls?.avgDuration || 0) / 60)}:{pad((calls?.avgDuration || 0) % 60)}</div></>))}
+        {/* amoCRM chat vidjetlari */}
+        {tile(t("O'rtacha javob vaqti"), (<><div className="ac-dash-big ac-dash-big--sm ac-dash-big--green">{fmtWait(chatSt?.avgResponseSec || 0, t)}</div><div className="ac-dash-cap">{t('davr uchun')}</div></>))}
+        {tile(t('Uzoq javob kutmoqda'), (<><div className="ac-dash-big ac-dash-big--sm">{chatSt?.waiting || 0}</div><hr className="ac-dash-hr" /></>))}
         {memberCount > 0 && tile(t('Xodimlar'), (<div className="ac-dash-big ac-dash-big--sm">{memberCount}</div>))}
       </div>
     </div>

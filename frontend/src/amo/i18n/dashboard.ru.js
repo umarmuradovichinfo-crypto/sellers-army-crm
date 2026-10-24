@@ -45,4 +45,10 @@ addRu({
   'oy uchun': 'за месяц',
   'davr uchun': 'за период',
   'hammasi': 'всего',
+  "O'rtacha javob vaqti": 'Среднее время ответа',
+  'Uzoq javob kutmoqda': 'Долго ждёт ответа',
+  'davr uchun': 'за период',
+  'son.': 'сек',
+  'daq.': 'мин',
+  'soat': 'ч',
 })

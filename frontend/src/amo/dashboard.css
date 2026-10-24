@@ -172,3 +172,5 @@
   .ac-dash-pipes { width: 100%; border-right: 0; border-bottom: 3px solid rgba(255, 255, 255, .85); display: flex; gap: 14px; overflow-x: auto; padding-bottom: 6px; }
   .ac-dash-sausages { width: 100%; }
 }
+
+.ac-dash-big--green { color: #4ccd6a !important; }
