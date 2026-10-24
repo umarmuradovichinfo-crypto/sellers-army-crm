@@ -9,6 +9,7 @@ import { applyTheme, getTheme } from './theme'
 import { useI18n, useT } from './i18n'
 import { setFormatPrefs } from './format'
 import { settingsService } from '../services/settings.service'
+import NetworkBar from './NetworkBar'
 
 export const NAV = [
   { key: 'dashboard', to: '/dashboard', title: 'Ish stoli', icon: 'dashboard' },
@@ -212,6 +213,7 @@ export default function AmoShell({ children }) {
       <LeadsFlyout open={flyout} onEnter={showFly} onLeave={hideFly} onPick={() => setFlyout(false)} />
       <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} onCount={setUnread} />
       <UserBar open={userOpen} onClose={() => setUserOpen(false)} />
+      <NetworkBar />
       {children}
     </div>
   )

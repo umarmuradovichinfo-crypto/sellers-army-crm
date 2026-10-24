@@ -75,6 +75,10 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     dizayn, joylashuv va ko'rinish bilan 1:1 qo'shiladi; so'ng hammasi qayta test qilinadi (faqat ko'rish, akkauntda hech narsa o'zgartirilmaydi)
 17. [ ] Yakuniy dizayn solishtirish 1:1: har bir ekran amoCRM bilan yonma-yon (o'lcham, rang, shrift, joylashuv, animatsiya; desktop + mobil), farqlar tuzatiladi
 
+18. [x] Tarmoq nazoratchisi / offline rejim: /health ping, GET retry, yozuvlar navbati (Idempotency-Key), banner, PWA app-shell
+19. [~] Bitimlar filtrlari/saralash/statistika amoCRM bilan 1:1 (FILTERS-SPEC.md) + to'g'rilik testi (ishlanmoqda)
+20. [~] Meta Connector Railway'da (sellers-army-crm-production.up.railway.app) — FB_APP_SECRET foydalanuvchi kiritadi
+
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
   matnlari tarjimasi; Sozlamalar → Umumiy sozlamalarga "Til" maydoni (9-bosqich).

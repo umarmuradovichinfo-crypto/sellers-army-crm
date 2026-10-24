@@ -3,11 +3,13 @@ import { join } from 'node:path';
 
 import { Logger, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ServeStaticModule } from '@nestjs/serve-static';
 
 import { AuthModule } from './auth/auth.module';
 import { CrmModule } from './crm/crm.module';
+import { HealthController } from './common/health.controller';
+import { IdempotencyInterceptor } from './common/idempotency.interceptor';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
 import { validateEnv } from './config/env.validation';
@@ -47,7 +49,9 @@ function resolveFrontendDist(): string {
     OnlinePbxModule,
     FacebookModule,
   ],
+  controllers: [HealthController],
   providers: [
+    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
     // Barcha endpointlar standart bo'yicha himoyalangan (@Public bilan ochiladi)
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },

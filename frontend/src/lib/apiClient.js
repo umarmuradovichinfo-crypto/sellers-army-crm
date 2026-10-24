@@ -3,6 +3,8 @@
 // Token eskirsa (401) — refresh token orqali avtomatik yangilanadi, so'rov qayta yuboriladi.
 // Faqat refresh ham ishlamasa — login sahifasiga.
 
+import { getState, markOnline, markServerUnreachable, subscribe as netSubscribe } from './network'
+
 const BASE = import.meta.env.VITE_API_BASE || '/api/v1'
 export const USE_MOCKS = String(import.meta.env.VITE_USE_MOCKS) === 'true'
 
@@ -85,18 +87,118 @@ async function rawFetch(method, path, body, opts) {
   const token = tokenStore.get()
   if (token) headers.Authorization = `Bearer ${token}`
   return fetch(`${BASE}${path}`, {
+    ...opts,
     method,
     headers,
     body: body != null ? JSON.stringify(body) : undefined,
-    ...opts,
   })
 }
 
+// ── Tarmoq chidamliligi ──
+const RETRY_DELAYS = [1000, 2000, 4000]
+const RETRY_STATUS = new Set([502, 503, 504])
+const QUEUE_KEY = 'sa_pending_queue'
+const QUEUE_MAX = 200
+export const retryConfig = { delays: RETRY_DELAYS, sleep: (ms) => new Promise((r) => setTimeout(r, ms)) }
+
+const isNetErr = (e) => e && (e.name === 'TypeError' || e.name === 'AbortError')
+const jitter = (ms) => Math.round(ms * (0.8 + Math.random() * 0.4))
+
+// Faqat GET: tarmoq xatosi / 502-504 bo'lsa eksponensial retry (1s, 2s, 4s + jitter)
+async function fetchWithRetry(method, path, body, opts) {
+  if (method !== 'GET') return rawFetch(method, path, body, opts)
+  let attempt = 0
+  for (;;) {
+    let res = null
+    let err = null
+    try { res = await rawFetch(method, path, body, opts) } catch (e) { err = e }
+    const failed = err ? isNetErr(err) : RETRY_STATUS.has(res.status)
+    if (!failed) {
+      if (err) throw err
+      markOnline()
+      return res
+    }
+    if (attempt >= retryConfig.delays.length) {
+      markServerUnreachable()
+      if (err) throw err
+      return res
+    }
+    await retryConfig.sleep(jitter(retryConfig.delays[attempt++]))
+  }
+}
+
+// ── Offline navbat (POST/PUT/PATCH/DELETE) ──
+const uuid = () => (globalThis.crypto && crypto.randomUUID ? crypto.randomUUID()
+  : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3) | 8).toString(16) }))
+
+const queueSubs = new Set()
+const qState = { sending: false, total: 0, done: 0 }
+function readQueue() { try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || [] } catch { return [] } }
+function writeQueue(q) { try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)) } catch { /* */ } queueNotify() }
+function queueNotify() { const snap = pendingQueue.status(); queueSubs.forEach((cb) => { try { cb(snap) } catch { /* */ } }) }
+
+export const pendingQueue = {
+  size: () => readQueue().length,
+  status: () => ({ size: readQueue().length, ...qState }),
+  subscribe: (cb) => { queueSubs.add(cb); return () => queueSubs.delete(cb) },
+  add(item) {
+    const q = readQueue()
+    if (q.length >= QUEUE_MAX) throw new ApiError(0, "Offline navbat to'lgan (200 ta)")
+    q.push(item)
+    writeQueue(q)
+  },
+  async flush() {
+    if (qState.sending) return
+    let q = readQueue()
+    if (!q.length) return
+    qState.sending = true; qState.total = q.length; qState.done = 0
+    queueNotify()
+    try {
+      while (q.length) {
+        const it = q[0]
+        let res
+        try {
+          res = await rawFetch(it.method, it.path, it.body, { headers: { 'Idempotency-Key': it.key } })
+        } catch (e) {
+          if (isNetErr(e)) { markServerUnreachable(); break } // keyinroq qayta uriniladi
+          throw e
+        }
+        if (RETRY_STATUS.has(res.status)) { markServerUnreachable(); break }
+        markOnline()
+        // 4xx — qayta yuborish foydasiz: yozuvni tashlaymiz; muvaffaqiyatda ham olib tashlaymiz
+        q = readQueue().slice(1)
+        writeQueue(q)
+        qState.done++
+        queueNotify()
+      }
+    } finally {
+      qState.sending = false
+      queueNotify()
+    }
+  },
+}
+
+if (typeof window !== 'undefined') {
+  const tryFlush = () => { if (getState() === 'online' && pendingQueue.size()) pendingQueue.flush().catch(() => {}) }
+  window.addEventListener('online', () => setTimeout(tryFlush, 300))
+  netSubscribe((s) => { if (s === 'online') tryFlush() })
+  window.addEventListener('load', () => setTimeout(tryFlush, 1500))
+}
+
 async function request(method, path, body, opts = {}) {
+  const isWrite = method !== 'GET'
+  // Offline bo'lsa yozuvchi so'rov navbatga tushadi (auth/upload'lar bundan mustasno)
+  if (isWrite && !path.startsWith('/auth/') && getState() === 'offline') {
+    const key = (opts.headers && opts.headers['Idempotency-Key']) || uuid()
+    pendingQueue.add({ method, path, body, key, at: Date.now() })
+    return { queued: true, offline: true }
+  }
+  if (isWrite) opts = { ...opts, headers: { 'Idempotency-Key': uuid(), ...(opts.headers || {}) } }
+
   // login va refresh — bularga refresh urinishi qilinmaydi (loop oldini olish).
   // /auth/me esa refresh qilinishi KERAK (eskirgan tokenda tiklash uchun).
   const noRefresh = path.startsWith('/auth/login') || path.startsWith('/auth/setup') || path.startsWith('/auth/refresh')
-  let res = await rawFetch(method, path, body, opts)
+  let res = await fetchWithRetry(method, path, body, opts)
 
   // Access token eskirgan bo'lsa (401) — refresh qilib, so'rovni bir marta qayta yuboramiz.
   if (res.status === 401 && !noRefresh && !opts.__retried) {

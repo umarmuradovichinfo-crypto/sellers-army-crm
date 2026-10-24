@@ -1,0 +1,17 @@
+/* Tarmoq banneri — yuqori panel ustida */
+.ac-net {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 2000;
+  min-height: 28px; padding: 5px 16px; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 13px; line-height: 18px; color: #fff; text-align: center;
+  transform: translateY(-100%); transition: transform 0.3s ease;
+  pointer-events: none;
+}
+.ac-net--show { transform: translateY(0); }
+.ac-net--offline { background: var(--palette-progress-bar-warning, #e6a700); color: #2b2100; }
+.ac-net--server { background: var(--palette-progress-bar-danger, #d4342c); }
+.ac-net--restored { background: var(--palette-progress-bar-success, #2fa84f); }
+.ac-net--sending { background: #2f7fd1; }
+.ac-net__spin { width: 14px; height: 14px; flex: none; }
+.ac-net__progress { position: absolute; left: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.85); transition: width 0.2s ease; }
+.ac-net .ac-net__spin { border-color: #fff; border-right-color: transparent; border-bottom-color: transparent; }
