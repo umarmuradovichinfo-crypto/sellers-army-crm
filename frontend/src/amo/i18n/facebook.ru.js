@@ -24,4 +24,8 @@ addRu({
   "Instagram Direct va izohlar imBox'ga tushadi, javobni CRM'dan yozasiz.": 'Instagram Direct и комментарии попадают в imBox, отвечать можно из CRM.',
   "Facebook Messenger suhbatlari imBox'da, javob CRM'dan.": 'Диалоги Facebook Messenger в imBox, ответы из CRM.',
   "Bu sahifaga Instagram biznes akkaunt ulanmagan": 'К этой странице не привязан бизнес-аккаунт Instagram',
+  'Lid qayerga tushadi': 'Куда попадает лид',
+  'Shu formadan kelgan lid qaysi voronkaning qaysi ustuniga tushishini tanlang:': 'Выберите, в какую воронку и на какой этап попадёт лид из этой формы:',
+  'Bosqich (ustun)': 'Этап',
+  'Saralanmagan': 'Неразобранное',
 })

@@ -7,7 +7,7 @@ import { Ico } from '../AmoIcons'
 import { useT } from '../i18n'
 import '../i18n/facebook.ru'
 
-const STEPS = ['Sahifa', 'Forma', 'Maydonlar', "Yo'nalish"]
+const STEPS = ['Sahifa', 'Forma', 'Maydonlar', 'Lid qayerga tushadi']
 const DOCS_URL = 'https://developers.facebook.com/docs/development/create-an-app'
 const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1'
 
@@ -53,6 +53,10 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
   const [cfg, setCfg] = useState(null)
   const [pstat, setPstat] = useState({})
   const [mappings, setMappings] = useState([])
+  // Formalar ro'yxatida "→ Voronka / Bosqich" ko'rsatish uchun barcha voronkalar bosqichlari
+  const [allStages, setAllStages] = useState([])
+  useEffect(() => { crmService.listStages().then((r) => setAllStages(r.stages || [])).catch(() => {}) }, [])
+  const stageName = (m) => m.stageKey ? (allStages.find((x) => (x.key || x.id) === m.stageKey)?.name || m.stageKey) : ''
   const [msg, setMsg] = useState(null)
   const [wiz, setWiz] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -249,6 +253,7 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
                   <div className="grow">
                     <div className="nm">{m.formName}</div>
                     <div className="ac-int-sub">{m.pageName || '—'} · {mapped} {t('maydon moslangan')}{m.source ? ` · ${m.source}` : ''}</div>
+                    <div className="ac-int-sub">→ {(pipelines.find((p) => p.id === m.pipelineId)?.name) || t('Asosiy voronka')} / {stageName(m) || t('Saralanmagan')}</div>
                   </div>
                   <span className={`ac-switch ${m.active !== false ? 'on' : ''}`} onClick={() => toggle(m)} />
                   <button className="ac-btn ac-btn--sm" onClick={() => setWiz({ ...m, fieldMap: safeParse(m.fieldMapJson) })}>{t('Tahrirlash')}</button>
@@ -398,14 +403,13 @@ function Wizard({ cfg, existing, stages, members, pipelines, initial, onCancel, 
       ))}
       {step === 3 && (
         <>
+          <div className="ac-int-lead">{t("Shu formadan kelgan lid qaysi voronkaning qaysi ustuniga tushishini tanlang:")}</div>
           <div className="ac-int-grid2">
-            {pipelines.length > 0 && (
-              <div className="ac-int-field"><label>{t('Voronka')}</label>
-                <select className="ac-select" value={pipelineId} onChange={(e) => setPipelineId(e.target.value)}>
-                  <option value="">{t('Asosiy voronka')}</option>{pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select></div>
-            )}
-            <div className="ac-int-field"><label>{t('Bosqich')}</label>
+            <div className="ac-int-field"><label>{t('Voronka')}</label>
+              <select className="ac-select" value={pipelineId} onChange={(e) => setPipelineId(e.target.value)}>
+                <option value="">{t('Asosiy voronka')}</option>{pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select></div>
+            <div className="ac-int-field"><label>{t('Bosqich (ustun)')}</label>
               <select className="ac-select" value={stageKey} onChange={(e) => setStageKey(e.target.value)}>
                 <option value="">{t('Saralanmagan')}</option>{pStages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select></div>

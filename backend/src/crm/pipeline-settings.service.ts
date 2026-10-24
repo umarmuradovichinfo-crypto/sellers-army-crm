@@ -118,7 +118,9 @@ export class PipelineSettingsService {
     const preferred = preferredStage ? stages.find((x) => x.key === preferredStage && x.kind === 'open') : undefined;
     const stage = preferred?.key || firstOpen?.key || preferredStage || 'new';
     const agg = await this.prisma.lead.aggregate({ where: { stage }, _max: { queue: true } });
-    return { stage, pipelineId: pid, unsorted: s.unsortedEnabled, queue: (agg._max.queue ?? -1) + 1 };
+    // Manba sozlamasida aniq bosqich tanlangan bo'lsa — lid to'g'ridan-to'g'ri o'sha ustunga (amoCRM: forma/Lead Ads "Этап");
+    // tanlanmagan bo'lsa — voronkaning "Saralanmagan" sozlamasi bo'yicha
+    return { stage, pipelineId: pid, unsorted: preferred ? false : s.unsortedEnabled, queue: (agg._max.queue ?? -1) + 1 };
   }
 
   // ── Dublikat qidirish va birlashtirish (kiruvchi lid oqimi) ──
