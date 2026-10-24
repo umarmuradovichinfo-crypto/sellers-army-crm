@@ -11,6 +11,7 @@ import { setFormatPrefs } from './format'
 import { settingsService } from '../services/settings.service'
 import NetworkBar from './NetworkBar'
 import { loadTaskTypes } from './taskTypes'
+import { trActivity } from './activityText'
 
 export const NAV = [
   { key: 'dashboard', to: '/dashboard', title: 'Ish stoli', icon: 'dashboard' },
@@ -83,7 +84,7 @@ function NotificationsPanel({ open, onClose, onCount }) {
                   <span className="ac-notif__title">{t(NOTIF_TITLE[n.type] || 'Xabar')}</span>
                   <span className="ac-notif__time">{timeLabel(n.at || n.createdAt, t)}</span>
                 </div>
-                {n.text && <div className="ac-notif__text">{n.text}</div>}
+                {n.text && <div className="ac-notif__text">{trActivity(n.text, t)}</div>}
               </div>
             </div>
           ))}
