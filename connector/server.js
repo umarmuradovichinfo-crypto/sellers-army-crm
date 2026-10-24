@@ -373,19 +373,27 @@ async function webhookPost(req, res) {
   }
 }
 
-// Ilova darajasidagi webhook obunasini o'zi o'rnatadi
+// Ilova darajasidagi webhook obunasini o'zi o'rnatadi; holati /health'da ko'rinadi (diagnostika)
+const webhookState = { status: 'pending', at: null, objects: [] }
 export async function ensureAppSubscription() {
   const c = cfg()
-  if (!c.appId || !c.appSecret || !c.publicUrl.startsWith('https://')) { log('webhook obunasi o\'tkazib yuborildi (https/kalit yo\'q)'); return }
+  webhookState.at = new Date().toISOString()
+  webhookState.objects = []
+  if (!c.appId || !c.appSecret || !c.publicUrl.startsWith('https://')) { webhookState.status = 'skipped'; log('webhook obunasi o\'tkazib yuborildi (https/kalit yo\'q)'); return }
   try {
     const common = { callback_url: c.publicUrl + '/fb/webhook', verify_token: hmac(c.appSecret, 'verify').slice(0, 32), access_token: `${c.appId}|${c.appSecret}` }
     for (const [object, fields] of [['page', c.fields], ['instagram', c.igFields]]) {
       try {
         await graph('POST', `/${c.appId}/subscriptions`, { object, fields, ...common })
         log(`ilova webhook obunasi o'rnatildi: ${object}`)
-      } catch (e) { log(`ilova webhook obunasi xato (${object}):`, e.message) }
+        webhookState.objects.push({ object, ok: true })
+      } catch (e) {
+        log(`ilova webhook obunasi xato (${object}):`, e.message)
+        webhookState.objects.push({ object, ok: false, error: e.message })
+      }
     }
   } catch (e) { log('ilova webhook obunasi xato:', e.message) }
+  webhookState.status = webhookState.objects.length && webhookState.objects.every((o) => o.ok) ? 'ok' : 'error'
 }
 
 // Meta talabi: maxfiylik siyosati va ma'lumotlarni o'chirish yo'riqnomasi sahifalari
