@@ -46,7 +46,8 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
    - [ ] Integratsiyalar: "O'rnatilganlar" tabida ulangan integratsiyalar ko'rinmayapti
    - [ ] O'z parolini o'zgartirish uchun /settings/me/password (joriy parol tekshiruvi bilan)
    - [ ] Umumiy sozlamalardagi sana/vaqt/valyuta formatlarini format.js ishlatishi
-10. [ ] Eski kodni tozalash: eski CRM.jsx, styles.css'dagi .amo-* va .crmsa-*, ishlatilmaydigan komponentlar
+10. [x] Eski kodni tozalash: 14 ta ishlatilmaydigan fayl (CRM.jsx, Settings.jsx, components/crm/*, FormBuilder), eski CSS 55KB→12KB (faqat Login/LeadForm/CallWidget/Dialog ishlatadigan qoidalar qoldi)
+    - [ ] Login sahifasi va CallWidget (telefoniya) dizaynini amoCRM uslubiga o'tkazish
 11. [ ] Yakuniy to'liq test va diagnostika: butun tizim, barcha bo'limlar o'zaro bog'liqligi (bitim → kontakt → vazifa → analitika), xatolar ro'yxati va tuzatish
 12. [ ] Funksiyalar pariteti: amoCRM'dagi har bir bo'lim, funksiya, tugma, detal ro'yxati (FEATURES.md) — bizda bor/yo'q;
     yo'qlari qo'shiladi
