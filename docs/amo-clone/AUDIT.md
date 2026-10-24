@@ -123,4 +123,4 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | # | amoCRM | Bizda edi | Holat |
 |---|--------|-----------|-------|
 | 1 | Maydon ma'lum bosqichlarda majburiy ("Обязательно N"): bitim shu bosqichga o'tkazilganda bo'sh bo'lsa — o'tkazilmaydi | faqat umumiy "majburiy" belgisi (formalar uchun) | qo'shildi (requiredStagesJson, moveLead/updateLead tekshiruvi, "Yo'qotilgan"ga o'tish erkin) |
-| 2 | Sozlash kartochka ichida ("Настроить" tabi — chap panelda) | alohida sahifa | rejada (ko'rinish farqi, funksiya bir xil) |
+| 2 | Sozlash kartochka ichida ("Настроить" tabi — chap panelda: guruh tablari, maydonlar, "Обязательно N") | alohida sahifaga o'tardi | tuzatildi |

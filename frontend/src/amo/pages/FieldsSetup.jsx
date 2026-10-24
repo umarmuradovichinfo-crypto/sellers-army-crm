@@ -19,10 +19,10 @@ const TYPES = [
   { v: 'text', l: 'Matn' }, { v: 'number', l: 'Raqam' }, { v: 'select', l: "Ro'yxat" }, { v: 'multiselect', l: 'Multiro\'yxat' },
   { v: 'date', l: 'Sana' }, { v: 'url', l: 'Havola' }, { v: 'checkbox', l: 'Checkbox' }, { v: 'phone', l: 'Telefon' }, { v: 'email', l: 'Email' },
 ]
-const typeLabel = (v) => TYPES.find((x) => x.v === v)?.l || (v === 'textarea' ? 'Matn (ko\'p qatorli)' : v)
+export const typeLabel = (v) => TYPES.find((x) => x.v === v)?.l || (v === 'textarea' ? 'Matn (ko\'p qatorli)' : v)
 const DEFAULT_GROUP = ''
 
-function FieldModal({ initial, defaultGroup, groups, onSave, onClose, entity, stageOpts }) {
+export function FieldModal({ initial, defaultGroup, groups, onSave, onClose, entity, stageOpts }) {
   const t = useT()
   const [f, setF] = useState({ label: initial?.label || '', type: initial?.type || 'text', options: initial?.options?.length ? initial.options : [''], group: initial?.group ?? defaultGroup ?? groups[0] ?? DEFAULT_GROUP, required: !!initial?.required, requiredStages: initial?.requiredStages || [] })
   const [newGroup, setNewGroup] = useState('')

@@ -9,6 +9,9 @@ import { DotsMenu, useOutside } from '../TopBar'
 import { feedDate, feedDateFull, dmy, relDay, currency, phoneFmt } from '../format'
 import { useT } from '../i18n'
 import { tagStyle } from '../tagColors'
+import { FieldModal } from './FieldsSetup'
+import { useFilterMeta } from '../filterState'
+import '../pipesetup.css'
 import '../i18n/leadcard.ru.js'
 import '../leadcard.css'
 
@@ -20,6 +23,57 @@ export const TASK_TYPES = [
 ]
 
 // Chap panel kengligini surish (amoCRM .card-holder__fields: width %, localStorage'da saqlanadi)
+// amoCRM "Настроить" (kartochka ichida): "Настройка свойств полей и групп" — guruh tablari, maydonlar, "Обязательно N"
+function CardFieldsSetup({ onClose, onChanged }) {
+  const t = useT()
+  const meta = useFilterMeta()
+  const [fields, setFields] = useState(null)
+  const [group, setGroup] = useState('')
+  const [modal, setModal] = useState(null)
+  const load = () => crmService.listFields('lead').then((r) => setFields((r.fields || []).map((f) => ({ ...f, group: f.group || '' })))).catch(() => setFields([]))
+  useEffect(() => { load() }, [])
+  const groups = useMemo(() => { const g = ['']; (fields || []).forEach((f) => { if (!g.includes(f.group)) g.push(f.group) }); return g }, [fields])
+  const stageOpts = useMemo(() => {
+    const pname = (pid) => (pid ? (meta.pipelines || []).find((p) => p.id === pid)?.name || '' : t('Asosiy voronka'))
+    return (meta.stages || []).filter((x) => x.kind !== 'lost').map((x) => ({ value: x.key, label: x.name, group: pname(x.pipelineId), color: x.color }))
+  }, [meta.stages, meta.pipelines]) // eslint-disable-line
+  const summary = (f) => {
+    const n = (f.options || []).length
+    if (f.type === 'select' || f.type === 'multiselect') return `${n} ${t('variant')}`
+    return '...'
+  }
+  const save = async (v) => {
+    if (modal?.initial) await crmService.updateField(modal.initial.id, v)
+    else await crmService.createField({ ...v, entity: 'lead' })
+    setModal(null); await load(); onChanged?.()
+  }
+  return (
+    <div className="ac-cfs">
+      <div className="ac-cfs__top">
+        <div className="ac-cfs__title">{t('Maydonlar va guruhlarni sozlash')}</div>
+        <button className="ac-cfs__x" onClick={onClose}><Ico name="close" size={20} /></button>
+        <div className="ac-cfs__desc">{t("O'z maydonlaringizni qo'shib, ulardan filtr va hisobotlarda foydalanishingiz mumkin.")}</div>
+        <div className="ac-cfs__tabs">
+          {groups.map((g) => <button key={g || '_'} className={group === g ? 'on' : ''} onClick={() => setGroup(g)}>{g || t('card§Asosiy')}</button>)}
+          <button className="ac-cfs__plus" title={t("Maydon qo'shish")} onClick={() => setModal({ initial: null, group })}><Ico name="plus" size={12} /></button>
+        </div>
+      </div>
+      <div className="ac-cfs__list">
+        {group === '' && <div className="ac-cfs__row fixed"><span className="nm">{t('Bitim byudjeti')}</span><span className="sm">0 {currency()}</span></div>}
+        {fields === null && <div className="ac-spinner" />}
+        {(fields || []).filter((f) => f.group === group).map((f) => (
+          <div key={f.id} className={`ac-cfs__row ${f.active === false ? 'off' : ''}`} onClick={() => setModal({ initial: f })}>
+            <span className="nm" title={f.label}>{f.label}</span>
+            <span className="sm">{summary(f)}</span>
+            {(f.requiredStages || []).length > 0 && <span className="ac-fs-req">{t('Majburiy')} {f.requiredStages.length}</span>}
+          </div>
+        ))}
+      </div>
+      {modal && <FieldModal initial={modal.initial} defaultGroup={modal.group} groups={groups} onSave={save} onClose={() => setModal(null)} entity="lead" stageOpts={stageOpts} />}
+    </div>
+  )
+}
+
 export function CardResizer() {
   const [on, setOn] = useState(false)
   useEffect(() => {
@@ -779,7 +833,7 @@ export default function LeadCard() {
           </div>
           <div className="ac-ctabs">
             {[['main', 'card§Asosiy'], ['stats', 'card§Statistika'], ['setup', 'card§Sozlash']].map(([k, l]) => (
-              <button key={k} className={`ac-ctabs__item ${tab === k ? 'on' : ''}`} onClick={() => k === 'setup' ? navigate('/settings/fields/leads') : setTab(k)}>{t(l)}</button>
+              <button key={k} className={`ac-ctabs__item ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}>{t(l)}</button>
             ))}
           </div>
 
@@ -825,6 +879,7 @@ export default function LeadCard() {
             <button className="ac-cf__decline" onClick={rejectLead}><Ico name="trash" size={16} /> {t('Rad etish')}</button>
           </div>
         )}
+        {tab === 'setup' && <CardFieldsSetup onClose={() => setTab('main')} onChanged={() => crmService.listFields('lead').then((fl) => setFields((fl.fields || []).filter((f) => f.active !== false))).catch(() => {})} />}
         <CardResizer />
         {dirty && (
           <div className="ac-cf__save">
