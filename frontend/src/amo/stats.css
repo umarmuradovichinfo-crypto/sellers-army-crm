@@ -181,3 +181,43 @@
 
 .ac-stats-col__top { position: relative; z-index: 0; }
 .ac-stats-col__arrow { z-index: 1; }
+
+/* Sotuv tahlili pastki voronkasi (bosqichlarga yetganlar + Gantt) */
+.ac-flow__wrap { padding: 10px 6px 14px; }
+.ac-flow { display: flex; flex-direction: column; gap: 8px; }
+.ac-flow__row { display: flex; align-items: center; gap: 10px; }
+.ac-flow__gantt { flex: 1; min-width: 0; position: relative; height: 30px; border-left: 1px solid var(--palette-border-primary); }
+.ac-flow__span { position: absolute; bottom: 0; height: 3px; background: var(--c, #99ccff); }
+.ac-flow__span i { position: absolute; right: 0; bottom: 6px; font: 13px var(--font-main); font-style: normal; color: var(--ac-stats-mut); white-space: nowrap; }
+.ac-flow__row .ac-stats-bar__pct { width: 80px; text-align: right; font: 300 28px var(--font-main); color: var(--palette-text-primary); }
+.ac-flow__svg { width: 320px; height: 30px; flex: none; }
+.ac-flow__row .ac-stats-bar__info { width: 220px; flex: none; }
+.ac-flow__avg { position: static; margin-top: 18px; }
+/* НЕРАЗОБРАННОЕ */
+.ac-unsbox { display: flex; gap: 30px; padding: 14px 14px 18px; background: var(--palette-background-secondary, rgba(255,255,255,0.03)); }
+.ac-unsbox__left { flex: 1; min-width: 0; }
+.ac-unsbox__days { margin-top: 4px; font: 300 15px var(--font-main); color: var(--palette-text-primary); }
+.ac-unsbox__days b { font: 400 26px var(--font-main); }
+.ac-unsbox__line { height: 3px; margin: 6px 0; background: var(--palette-text-secondary-light); max-width: 100%; }
+.ac-unsbox__cap { font-size: 13px; color: var(--palette-text-secondary-dark); }
+.ac-unsbox__right { width: 60%; flex: none; display: flex; flex-direction: column; gap: 10px; padding-top: 14px; }
+.ac-unsbox__row { display: flex; align-items: center; gap: 12px; }
+.ac-unsbox__row .num { width: 80px; text-align: right; font: 300 28px var(--font-main); color: var(--palette-text-primary); }
+.ac-unsbox__row .lbl { width: 200px; font-size: 14px; color: var(--palette-text-primary); }
+.ac-unsbox__bar { flex: 1; height: 30px; display: flex; clip-path: polygon(3% 0, 100% 0, 100% 100%, 0 100%); }
+.ac-unsbox__bar.in { background: #c9d9ea; }
+.ac-unsbox__bar.out { flex: none; margin-left: auto; background: linear-gradient(90deg, #4a90e2, #99ccff); }
+.ac-unsbox__bar span { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; color: #6b7a88; border-right: 1px solid rgba(255,255,255,0.6); position: relative; }
+.ac-unsbox__bar span em { position: absolute; top: -16px; font-style: normal; color: var(--palette-text-secondary-dark); }
+/* ПРОГНОЗ ПРОДАЖ */
+.ac-fcbox { position: relative; overflow: hidden; }
+.ac-fcbox__grid { display: grid; grid-template-columns: repeat(4, 1fr) 220px; align-items: center; padding: 10px 0 16px; }
+.ac-fcbox__col { padding: 0 14px; border-right: 1px solid var(--palette-border-primary); }
+.ac-fcbox__lbl { font-size: 13px; color: var(--palette-text-secondary-dark); min-height: 34px; }
+.ac-fcbox__val { font: 300 22px var(--font-main); color: var(--palette-text-primary); margin-top: 20px; }
+.ac-fcbox__sum { font-size: 14px; color: var(--palette-text-secondary-dark); }
+.ac-fcbox__ring { justify-self: center; width: 170px; height: 170px; border-radius: 50%; border: 10px solid #4a6a3c; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ac-fcbox__ring b { font: 300 46px var(--font-main); color: var(--palette-text-primary); }
+.ac-fcbox__ring small { font-size: 12px; color: var(--palette-text-secondary-dark); }
+.ac-fcbox.thin .ac-fcbox__grid { opacity: 0.18; filter: blur(0.5px); }
+.ac-fcbox__veil { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font: 300 22px var(--font-main); color: var(--palette-text-primary); text-align: center; }

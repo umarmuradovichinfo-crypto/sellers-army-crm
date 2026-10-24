@@ -131,6 +131,8 @@ export const crmService = {
   deleteAutomation: (id) => mockOr(() => api.del(`/crm/automations/${id}`), { ok: true }),
 
   // ── Analitika (amoCRM hisobotlari) ──
+  // Sotuv tahlili pastki bloklari: bosqichlarga yetganlar, saralanmagan arizalar, prognoz
+  analyticsFlow: (params) => api.get(`/crm/analytics/flow${qs(params)}`),
   analytics: (params) => mockOr(() => api.get(`/crm/analytics${qs(params)}`), (mock.crm.analytics || { cards: {}, funnel: [], bySource: [], byEmployee: [], lostReasons: [] })),
   analyticsCalls: (params) => mockOr(() => api.get(`/crm/analytics/calls${qs(params)}`), (mock.crm.analyticsCalls || { total: 0, inbound: 0, outbound: 0, missed: 0, answered: 0, totalDuration: 0, avgDuration: 0, byEmployee: [], byDay: [] })),
   analyticsEvents: (params) => mockOr(() => api.get(`/crm/analytics/events${qs(params)}`), (mock.crm.analyticsEvents || { items: [], byType: [] })),

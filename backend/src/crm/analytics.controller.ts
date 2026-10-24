@@ -18,6 +18,11 @@ export class CrmAnalyticsController {
     return this.s.overview(q, userId);
   }
 
+  @Get('flow')
+  flow(@Query() q: Record<string, any>, @CurrentUser('id') userId?: string) {
+    return this.s.pipelineFlow(q, userId);
+  }
+
   @Get('calls')
   calls(@Query('from') from?: string, @Query('to') to?: string, @Query('datePreset') datePreset?: string) {
     return this.s.calls({ from, to, datePreset });

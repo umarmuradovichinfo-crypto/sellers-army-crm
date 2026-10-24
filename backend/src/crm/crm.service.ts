@@ -558,9 +558,11 @@ export class CrmService {
   private async recordStageActivity(id: string, lead: LeadRow, kind: string, user?: AuthUser) {
     const st = await this.prisma.crmStage.findUnique({ where: { key: lead.stage } });
     const stageName = st?.name || lead.stage;
-    if (kind === 'won') await this.activity.record(id, 'won', { actorId: user?.id, actorName: user?.name, text: `🏆 Sotuv yopildi: ${fmtSum(lead.value)} so'm` });
-    else if (kind === 'lost') await this.activity.record(id, 'lost', { actorId: user?.id, actorName: user?.name, text: `Yo'qotildi${lead.lostReason ? ` — ${lead.lostReason}` : ''}` });
-    else await this.activity.record(id, 'stage', { actorId: user?.id, actorName: user?.name, text: `Bosqich: ${stageName}` });
+    // data.to — analitika (sotuv tahlili: bosqichga yetganlar va bosqichdagi vaqt) uchun bosqich kaliti
+    const data = { to: lead.stage };
+    if (kind === 'won') await this.activity.record(id, 'won', { actorId: user?.id, actorName: user?.name, text: `🏆 Sotuv yopildi: ${fmtSum(lead.value)} so'm`, data });
+    else if (kind === 'lost') await this.activity.record(id, 'lost', { actorId: user?.id, actorName: user?.name, text: `Yo'qotildi${lead.lostReason ? ` — ${lead.lostReason}` : ''}`, data });
+    else await this.activity.record(id, 'stage', { actorId: user?.id, actorName: user?.name, text: `Bosqich: ${stageName}`, data });
   }
 
   /** Bitimga kontakt biriktirish: asosiy kontakt bo'lmasa — asosiy bo'ladi, aks holda qo'shimcha. */

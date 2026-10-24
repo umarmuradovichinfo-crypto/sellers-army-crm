@@ -23,30 +23,93 @@ function Arrow({ fill, stroke }) {
   )
 }
 
-function FunnelBars({ stages, mode }) {
-  const t = useT()
+// amoCRM sotuv tahlili pastki voronkasi: har qator — bosqichga yetganlar % (jami ichida), chapda bosqichda o'rtacha turgan vaqt (Gantt)
+function FlowFunnel({ rows, mode }) {
   const plural = usePlural()
-  const vals = stages.map((s) => (mode === 'sum' ? s.sum : s.count))
-  const max = Math.max(1, ...vals)
+  const t = useT()
   const W = 320
+  const maxSum = Math.max(1, ...rows.map((r) => r.sum))
+  const totalDays = Math.max(1, rows.reduce((a, r) => a + (r.avgDays || 0), 0))
+  let acc = 0
   return (
-    <div className="ac-stats-fun__bars">
-      {stages.map((s, i) => {
-        const pct = Math.round((vals[i] / max) * 100)
+    <div className="ac-flow">
+      {rows.map((r, i) => {
+        const pct = mode === 'sum' ? Math.round((r.sum / maxSum) * 100) : r.pct
         const w = Math.max(4, (pct / 100) * W)
+        const left = (acc / totalDays) * 100
+        const width = ((r.avgDays || 0) / totalDays) * 100
+        acc += r.avgDays || 0
         return (
-          <div className="ac-stats-bar" key={s.key}>
+          <div className="ac-flow__row" key={r.key}>
+            <div className="ac-flow__gantt">
+              {r.avgDays != null && <div className="ac-flow__span" style={{ left: `${left}%`, width: `${Math.max(0.5, width)}%`, '--c': r.color }}><i>{Math.round(r.avgDays)}{t(' kun')}</i></div>}
+            </div>
             <div className="ac-stats-bar__pct">{pct}%</div>
-            <svg viewBox={`0 0 ${W} 30`}>
-              <polygon points={`${W - w},0 ${W},0 ${W},30 ${W - w + Math.min(10, w / 3)},30`} fill={stageColor(s, i)} style={{ transition: 'all .4s' }} />
+            <svg viewBox={`0 0 ${W} 30`} className="ac-flow__svg">
+              <polygon points={`${W - w},0 ${W},0 ${W},30 ${W - w + Math.min(10, w / 3)},30`} fill={r.color} style={{ transition: 'all .4s' }} />
             </svg>
             <div className="ac-stats-bar__info">
-              <div>{s.name}</div>
-              <div><u>{plural(s.count, 'bitim')}</u> {money(s.sum)}</div>
+              <div>{r.name}</div>
+              <div><u>{plural(r.count, 'bitim')}</u> {money(r.sum)}</div>
             </div>
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// "НЕРАЗОБРАННОЕ": o'rtacha ishlov vaqti, kelgan arizalar (kanal bo'yicha) va bitimga o'tganlar
+function UnsortedBox({ u }) {
+  const t = useT()
+  const max = Math.max(1, u.incoming)
+  const ch = Object.entries(u.byChannel || {})
+  const CH = { chat: 'Chat', form: 'Forma', phone: "Qo'ng'iroq", other: 'Boshqa' }
+  return (
+    <div className="ac-stats-box ac-unsbox">
+      <div className="ac-unsbox__left">
+        <div className="ac-stats-box__title">{t('Saralanmagan')}</div>
+        <div className="ac-unsbox__days"><b>{Math.round(u.avgDays)}</b> {t('kun')}</div>
+        <div className="ac-unsbox__line" style={{ width: `${Math.min(100, 10 + u.avgDays * 4)}%` }} />
+        <div className="ac-unsbox__cap">{t("Arizaga ishlov berishning o'rtacha vaqti")}</div>
+      </div>
+      <div className="ac-unsbox__right">
+        <div className="ac-unsbox__row">
+          <span className="num">{num(u.incoming)}</span>
+          <div className="ac-unsbox__bar in" style={{ width: '100%' }}>
+            {ch.map(([k, v]) => <span key={k} style={{ flex: v }} title={`${t(CH[k] || k)}: ${v}`}><em>{t(CH[k] || k)}</em>{v}</span>)}
+          </div>
+          <span className="lbl">{t('Kiruvchi arizalar')}</span>
+        </div>
+        <div className="ac-unsbox__row">
+          <span className="num">{num(u.converted)}</span>
+          <div className="ac-unsbox__bar out" style={{ width: `${Math.max(3, (u.converted / max) * 100)}%` }} />
+          <span className="lbl">{t("Bitimga o'tdi")}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// "ПРОГНОЗ ПРОДАЖ": hozirgi faol bitimlar va 30/60/90 kunlik prognoz; kam ma'lumotda — amoCRM kabi parda
+function ForecastBox({ f }) {
+  const t = useT()
+  const plural = usePlural()
+  const cols = [['now', 'Hozir faol bitimlarda', f.active], ['d30', 'Sotuv prognozi 30 kundan keyin', f.d30], ['d60', '60 kundan keyin', f.d60], ['d90', '90 kundan keyin', f.d90]]
+  return (
+    <div className={`ac-stats-box ac-fcbox ${f.enough ? '' : 'thin'}`}>
+      <div className="ac-stats-box__title">{t('Sotuv prognozi')}</div>
+      <div className="ac-fcbox__grid">
+        {cols.map(([k, l, v]) => (
+          <div key={k} className="ac-fcbox__col">
+            <div className="ac-fcbox__lbl">{t(l)}</div>
+            <div className="ac-fcbox__val">{plural(v.count, 'bitim')}</div>
+            <div className="ac-fcbox__sum">{money(v.sum)}</div>
+          </div>
+        ))}
+        <div className="ac-fcbox__ring"><small>{t('Sotuv sikli')}</small><b>{f.cycleDays}</b><small>{t('kun')}</small></div>
+      </div>
+      {!f.enough && <div className="ac-fcbox__veil"><Ico name="list" size={30} /><span>{t("Grafik qurish uchun ma'lumot kam")}</span></div>}
     </div>
   )
 }
@@ -58,14 +121,25 @@ function SalesPipeline({ filter, params }) {
   const pipelineId = params.pipelineId || 'main' // sotuv tahlili bitta voronka bo'yicha (aralash bosqichlar bo'lmasin)
   const cur = useApi(() => crmService.analytics({ pipelineId }), [pipelineId], null)
   const per = useApi(() => crmService.analytics({ ...params, pipelineId }), [JSON.stringify(params), pipelineId], null)
+  const flow = useApi(() => crmService.analyticsFlow({ ...params, pipelineId }), [JSON.stringify(params), pipelineId], null)
   if (!cur.data || !per.data) return <Spin />
   const funnel = cur.data.funnel || []
   const pf = per.data.funnel || []
   const pfBy = new Map(pf.map((f) => [f.key, f]))
   const open = funnel.filter((f) => f.kind !== 'won' && f.kind !== 'lost')
   const wonF = per.data.cards || {}
-  const shown = funnel.filter((f) => (tab === 'all' ? true : tab === 'active' ? f.kind !== 'won' && f.kind !== 'lost' : f.kind === 'won' || f.kind === 'lost'))
-  const avg = per.data.cards?.avgDays || 0
+  const fl = flow.data?.flow?.[tab]
+  const colorOf = new Map((flow.data?.stages || []).map((x, i) => [x.key, stageColor(x, i)]))
+  const nameOf = new Map((flow.data?.stages || []).map((x) => [x.key, x.name]))
+  const rows = fl ? [
+    ...(fl.unsorted.count > 0 ? [{ key: '_uns', name: t('Saralanmagan'), color: '#c1c1c1', ...fl.unsorted }] : []),
+    ...fl.stages.map((x) => ({ ...x, name: nameOf.get(x.key), color: colorOf.get(x.key) })),
+    ...(tab !== 'active' ? [
+      { key: '_won', name: t('Muvaffaqiyatli yopildi'), color: '#ccff66', ...fl.won, avgDays: null },
+      { key: '_lost', name: t('Yopildi va amalga oshmadi'), color: '#d5d8db', ...fl.lost, avgDays: null },
+    ] : []),
+  ] : []
+  const avg = Math.round(fl?.avgDays || 0)
   return (
     <div className="ac-stats-body">
       <div className="ac-stats-box">
@@ -105,17 +179,16 @@ function SalesPipeline({ filter, params }) {
 
       <div className="ac-stats-box">
         <div className="ac-stats-toolbar">
-          <Tabs value={tab} onChange={setTab} options={[['all', 'Barchasi'], ['active', 'Faol'], ['closed', 'Yopilgan']]} />
+          <Tabs value={tab} onChange={setTab} options={[['all', 'Barchasi'], ['active', 'stats§Faol'], ['closed', 'Yopilgan']]} />
           <Tabs value={mode} onChange={setMode} options={[['sum', "Byudjet bo'yicha"], ['count', "Soni bo'yicha"]]} />
         </div>
-        <div className="ac-stats-fun__wrap ac-stats-fun">
-          <div className="ac-stats-fun__left">
-            <div className="ac-stats-fun__line" style={{ width: `${Math.min(100, 20 + avg * 4)}%` }}><i>{avg}{t(' kun')}</i></div>
-            <div className="ac-stats-fun__avg"><b>{avg}{t(' kun')}</b><span>{t("Bitimning o'rtacha davomiyligi")}</span></div>
-          </div>
-          {shown.length === 0 ? <div className="ac-stats-empty">{t("Ma'lumot yo'q")}</div> : <FunnelBars stages={shown} mode={mode} />}
+        <div className="ac-flow__wrap">
+          {!flow.data ? <Spin /> : rows.length === 0 || !fl?.total ? <div className="ac-stats-empty">{t("Ma'lumot yo'q")}</div> : <FlowFunnel rows={rows} mode={mode} />}
+          <div className="ac-stats-fun__avg ac-flow__avg"><b>{avg}{t(' kun')}</b><span>{t("Bitimning o'rtacha davomiyligi")}</span></div>
         </div>
       </div>
+      {flow.data && <UnsortedBox u={flow.data.unsorted} />}
+      {flow.data && <ForecastBox f={flow.data.forecast} />}
     </div>
   )
 }

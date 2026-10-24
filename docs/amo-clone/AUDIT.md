@@ -67,3 +67,7 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 |---|--------|-----------|-------|
 | 1 | Chap menyu ☰ bilan yig'iladi (holat eslab qolinadi), yig'ilganda ☰ bosilsa kontent ustida ochiladi | doim ochiq | tuzatildi (SectionAside collapsible) |
 | 2 | /stats oxirgi ochilgan hisobotni ochadi | doim "Анализ продаж" | tuzatildi |
+| 3 | Sotuv tahlili pastki voronkasi: tanlangan bitimlar (Все/Активные/Закрытые) har bosqichga yetgani %, chapda bosqichda o'rtacha vaqt (Gantt), oxirida Успешно/не реализовано; davr filtriga bo'ysunadi | faqat yutilgan/yo'qotilgan, davr filtrisiz (10/2 vs 5/0 nomuvofiqlik) | tuzatildi (/crm/analytics/flow, bosqich tarixi Activity data.to) |
+| 4 | "НЕРАЗОБРАННОЕ" bloki: o'rtacha ishlov vaqti, kiruvchi arizalar (kanal bo'yicha), bitimga o'tganlar | yo'q | qo'shildi |
+| 5 | "ПРОГНОЗ ПРОДАЖ": hozir faol, 30/60/90 kun, sotuv sikli; kam ma'lumotda parda | yo'q | qo'shildi |
+| 6 | Tab "АКТИВНЫЕ" | "АКТИВНА" | tuzatildi |

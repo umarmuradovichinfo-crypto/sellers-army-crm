@@ -389,7 +389,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
         else if (target.kind === 'lost') { data.lostAt = new Date(); data.wonAt = null; }
         else { data.wonAt = null; data.lostAt = null; }
         await this.prisma.lead.update({ where: { id: leadId }, data });
-        await this.activity.record(leadId, 'stage', { actorName: 'Avtomatlashtirish', text: `Bosqich: ${target.name}` });
+        await this.activity.record(leadId, target.kind === 'won' || target.kind === 'lost' ? target.kind : 'stage', { actorName: 'Avtomatlashtirish', text: `Bosqich: ${target.name}`, data: { to: target.key } });
         await this.fire('stage_enter', leadId, { actorName: ctx.actorName, depth: ctx.depth + 1 });
         return `bosqich o'zgartirildi: ${target.name}`;
       }

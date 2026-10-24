@@ -23,6 +23,10 @@ function pipeVal(id?: string): string | null | undefined {
   if (!id) return undefined;
   return id === 'main' ? null : id;
 }
+// O'rtacha (bo'sh ro'yxat — 0), 1 kasr xonagacha
+function avg(xs: number[]): number {
+  return xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : 0;
+}
 function userList(v?: unknown): string[] {
   if (Array.isArray(v)) return v.flatMap((x) => userList(x));
   return String(v || '').split(',').map((x) => x.trim()).filter(Boolean);
@@ -161,6 +165,130 @@ export class CrmAnalyticsService {
       byEmployee,
       lostReasons,
     };
+  }
+
+  /**
+   * Sotuv tahlili pastki bloklari (amoCRM /stats/pipeline):
+   *  - flow: tanlangan bitimlar (all | active | closed) har bir bosqichga yetganlar soni/summasi, % va bosqichdagi o'rtacha kunlar;
+   *  - unsorted: saralanmagan arizalar — kelganlar (kanal bo'yicha), bitimga o'tganlar, o'rtacha ishlov vaqti;
+   *  - forecast: faol bitimlar va 30/60/90 kunlik prognoz (yutish ulushi va o'rtacha sikl bo'yicha).
+   * Bosqich tarixi: Activity (stage|won|lost, data.to = bosqich kaliti; eski yozuvlar — "Bosqich: NOM" matni bo'yicha).
+   */
+  async pipelineFlow(params: Record<string, any>, userId?: string) {
+    const pv = pipeVal(params.pipelineId || 'main') ?? null;
+    const { rows: leads } = await this.filteredLeads({ ...params, pipelineId: params.pipelineId || 'main' }, userId);
+    const stages = await this.prisma.crmStage.findMany({ where: { pipelineId: pv }, orderBy: { order: 'asc' } });
+    const open = stages.filter((s) => s.kind === 'open');
+    const kindOf = new Map(stages.map((s) => [s.key, s.kind]));
+    const orderOf = new Map(open.map((s, i) => [s.key, i]));
+    const keyByName = new Map(stages.map((s) => [s.name.toLowerCase(), s.key]));
+    const ids = leads.map((l) => l.id);
+    const acts = ids.length ? await this.prisma.activity.findMany({
+      where: { leadId: { in: ids }, type: { in: ['stage', 'won', 'lost', 'updated'] } },
+      orderBy: { createdAt: 'asc' }, select: { leadId: true, type: true, text: true, dataJson: true, createdAt: true },
+    }) : [];
+    const byLead = new Map<string, typeof acts>();
+    for (const a of acts) { const k = a.leadId as string; if (!byLead.has(k)) byLead.set(k, []); byLead.get(k)!.push(a); }
+    const stageOfAct = (a: { type: string; text: string | null; dataJson: string }) => {
+      try { const d = JSON.parse(a.dataJson || '{}'); if (d.to) return String(d.to); } catch { /* */ }
+      const m = /^Bosqich:\s*(.+)$/.exec(a.text || '');
+      return m ? keyByName.get(m[1].trim().toLowerCase()) : undefined;
+    };
+    const DAY = 86400000;
+    const now = Date.now();
+    type Info = { lead: any; maxOrder: number; unsorted: boolean; acceptedAt?: Date; dwell: Map<string, number> };
+    const infos: Info[] = leads.map((l) => {
+      const hist = byLead.get(l.id) || [];
+      const accepted = hist.find((a) => a.type === 'updated' && /saralanmagandan qabul/i.test(a.text || ''));
+      // bosqichlar ketma-ketligi: [bosqich, kirgan vaqt]
+      const seq: [string, number][] = [];
+      for (const a of hist) { const k = a.type === 'updated' ? undefined : stageOfAct(a); if (k) seq.push([k, a.createdAt.getTime()]); }
+      const start = (accepted?.createdAt || l.createdAt).getTime();
+      const first = seq.length ? null : l.stage;
+      const timeline: [string, number][] = first ? [[first, start]] : seq.length && seq[0][1] > start + 1000 && orderOf.has(seq[0][0]) && (orderOf.get(seq[0][0]) as number) > 0 ? [[open[0]?.key, start], ...seq] : seq;
+      const dwell = new Map<string, number>();
+      timeline.forEach(([k, at], i) => {
+        if (!k || !orderOf.has(k)) return;
+        const end = i + 1 < timeline.length ? timeline[i + 1][1] : (kindOf.get(l.stage) === 'open' ? now : at);
+        dwell.set(k, (dwell.get(k) || 0) + Math.max(0, end - at));
+      });
+      const kind = kindOf.get(l.stage) || 'open';
+      let maxOrder = -1;
+      for (const [k] of timeline) if (orderOf.has(k)) maxOrder = Math.max(maxOrder, orderOf.get(k) as number);
+      if (kind === 'open' && orderOf.has(l.stage)) maxOrder = Math.max(maxOrder, orderOf.get(l.stage) as number);
+      if (kind === 'won') maxOrder = open.length - 1;
+      if (maxOrder < 0) maxOrder = 0;
+      return { lead: l, maxOrder, unsorted: !!accepted || !!l.formId, acceptedAt: accepted?.createdAt, dwell };
+    });
+
+    const tabOf = (i: Info) => (kindOf.get(i.lead.stage) === 'won' || kindOf.get(i.lead.stage) === 'lost' ? 'closed' : 'active');
+    const flow: Record<string, any> = {};
+    for (const tab of ['all', 'active', 'closed'] as const) {
+      const set = infos.filter((i) => tab === 'all' || tabOf(i) === tab);
+      const total = set.length;
+      const row = (list: Info[]) => ({ count: list.length, sum: list.reduce((a, i) => a + (i.lead.value || 0), 0), pct: total ? Math.round((list.length / total) * 100) : 0 });
+      const unsortedList = set.filter((i) => i.unsorted);
+      flow[tab] = {
+        total,
+        unsorted: { ...row(unsortedList), avgDays: avg(unsortedList.filter((i) => i.acceptedAt).map((i) => (i.acceptedAt!.getTime() - i.lead.createdAt.getTime()) / DAY)) },
+        stages: open.map((s, idx) => {
+          const reached = set.filter((i) => i.maxOrder >= idx)
+          return { key: s.key, ...row(reached), avgDays: avg(reached.map((i) => (i.dwell.get(s.key) || 0) / DAY).filter((d) => d > 0)) };
+        }),
+        won: row(set.filter((i) => kindOf.get(i.lead.stage) === 'won')),
+        lost: row(set.filter((i) => kindOf.get(i.lead.stage) === 'lost')),
+        avgDays: avg(set.map((i) => {
+          const end = i.lead.wonAt || i.lead.lostAt || null;
+          return ((end ? new Date(end).getTime() : now) - i.lead.createdAt.getTime()) / DAY;
+        })),
+      };
+    }
+
+    // Saralanmagan arizalar: davrda kelganlar (hozir saralanmaganlar + qabul qilinganlar), kanal bo'yicha
+    const { from, to } = dateRangeOf(params);
+    const inRange = (d: Date) => (!from || d >= from) && (!to || d < to);
+    const pending = await this.prisma.lead.findMany({ where: { unsorted: true, pipelineId: pv }, select: { createdAt: true, source: true, formId: true } });
+    const acceptedLeads = infos.filter((i) => i.acceptedAt);
+    const chanOf = (src: string | null, formId: string | null) => {
+      const t = String(src || '').toLowerCase();
+      if (/qo.ng.iroq|telefon|phone|call|звон/.test(t)) return 'phone';
+      if (/telegram|instagram|chat|whatsapp|messenger|чат/.test(t)) return 'chat';
+      if (formId || /forma|form|sayt|web|facebook|meta|google|lead ads/.test(t)) return 'form';
+      return 'other';
+    };
+    const incoming = [
+      ...pending.filter((p) => inRange(p.createdAt)).map((p) => chanOf(p.source, p.formId)),
+      ...acceptedLeads.filter((i) => inRange(i.lead.createdAt)).map((i) => chanOf(i.lead.source, i.lead.formId)),
+    ];
+    const byChannel: Record<string, number> = {};
+    for (const c of incoming) byChannel[c] = (byChannel[c] || 0) + 1;
+    const unsorted = {
+      incoming: incoming.length,
+      byChannel,
+      converted: acceptedLeads.filter((i) => inRange(i.lead.createdAt)).length,
+      avgDays: avg(acceptedLeads.map((i) => (i.acceptedAt!.getTime() - i.lead.createdAt.getTime()) / DAY)),
+    };
+
+    // Prognoz: faol bitimlar × yutish ulushi; yopilish kutilgan sana = yaratilgan + o'rtacha sikl
+    const closed = infos.filter((i) => tabOf(i) === 'closed');
+    const won = closed.filter((i) => kindOf.get(i.lead.stage) === 'won');
+    const winRate = closed.length ? won.length / closed.length : 0;
+    const cycle = avg(won.filter((i) => i.lead.wonAt).map((i) => (new Date(i.lead.wonAt).getTime() - i.lead.createdAt.getTime()) / DAY)) || 30;
+    const active = infos.filter((i) => tabOf(i) === 'active');
+    // Har oyna alohida: 30 kungacha (muddati o'tganlar ham shu yerda), 30–60, 60–90 kun
+    const horizon = (days: number) => {
+      const lo = days === 30 ? -Infinity : now + (days - 30) * DAY;
+      const due = active.filter((i) => { const d = i.lead.createdAt.getTime() + cycle * DAY; return d > lo && d <= now + days * DAY; });
+      return { count: Math.round(due.length * winRate), sum: Math.round(due.reduce((a, i) => a + (i.lead.value || 0), 0) * winRate) };
+    };
+    const forecast = {
+      enough: won.length >= 5, // amoCRM: kam ma'lumotda "Мало данных для построения графика"
+      active: { count: active.length, sum: active.reduce((a, i) => a + (i.lead.value || 0), 0) },
+      d30: horizon(30), d60: horizon(60), d90: horizon(90),
+      cycleDays: Math.round(cycle),
+      winRate: Math.round(winRate * 100),
+    };
+    return { stages: open.map((s) => ({ key: s.key, name: s.name, color: s.color })), flow, unsorted, forecast };
   }
 
   // Davr filtri (createdAt/startedAt uchun): from/to yoki datePreset (biznes vaqti UTC+5), to — chegara ichida emas
