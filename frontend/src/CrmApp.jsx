@@ -26,6 +26,8 @@ import ImboxPage from './amo/pages/ImboxPage'
 import DashboardPage from './amo/pages/DashboardPage'
 import PipelineSetupPage from './amo/pages/PipelineSetupPage'
 import FieldsSetupPage from './amo/pages/FieldsSetup'
+import ImportPage from './amo/pages/ImportPage'
+import TagsPage from './amo/pages/TagsPage'
 import ContactCard from './amo/pages/ContactCard'
 import CompanyCard from './amo/pages/CompanyCard'
 import SettingsPage from './amo/pages/SettingsPage'
@@ -50,6 +52,7 @@ function CrmShell() {
           <Route path="/leads/detail/:id" element={<LeadCard />} />
           <Route path="/leads/add" element={<LeadCard />} />
           <Route path="/leads/list" element={<LeadsList />} />
+          <Route path="/leads/import" element={<ImportPage entity="leads" />} />
           <Route path="/leads/*" element={<Navigate to="/leads/pipeline" replace />} />
           <Route path="/imbox" element={<ImboxPage />} />
           <Route path="/imbox/:leadId" element={<ImboxPage />} />
@@ -60,6 +63,7 @@ function CrmShell() {
           <Route path="/companies/list" element={<ListsPage entity="companies" />} />
           <Route path="/contacts/detail/:id" element={<ContactCard />} />
           <Route path="/contacts/add" element={<ContactCard />} />
+          <Route path="/contacts/import" element={<ImportPage entity="contacts" />} />
           <Route path="/companies/detail/:id" element={<CompanyCard />} />
           <Route path="/companies/add" element={<CompanyCard />} />
           <Route path="/stats" element={<Navigate to="/stats/pipeline" replace />} />
@@ -76,6 +80,7 @@ function CrmShell() {
           <Route path="/settings/security" element={<SettingsPage section="security" />} />
           <Route path="/settings/pipeline/leads/:pipelineId" element={<PipelineSetupPage />} />
           <Route path="/settings/fields/:entity" element={<FieldsSetupPage />} />
+          <Route path="/settings/tags" element={<TagsPage />} />
           <Route path="/settings/*" element={<Navigate to="/settings/general" replace />} />
           <Route path="/amo-market" element={<IntegrationsPage />} />
           {/* Eski manzillar */}

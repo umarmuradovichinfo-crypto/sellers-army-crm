@@ -164,11 +164,33 @@ export class CrmSettingsService {
   }
 
   // ── Teglar katalogi ──
+  private async leadTagRows() {
+    const leads = await this.prisma.lead.findMany({ where: { NOT: { tagsJson: '[]' } }, select: { id: true, tagsJson: true } });
+    return leads.map((l) => ({ id: l.id, tags: parse<string[]>(l.tagsJson, []) })).filter((l) => l.tags.length);
+  }
+  // Bitimlarda teglarni almashtirish/olib tashlash: map(tag) -> yangi nom | null (olib tashlash)
+  private async rewriteLeadTags(map: (t: string) => string | null) {
+    let touched = 0;
+    for (const l of await this.leadTagRows()) {
+      const next = [...new Set(l.tags.map(map).filter((x): x is string => !!x))];
+      if (next.length === l.tags.length && next.every((t, i) => t === l.tags[i])) continue;
+      await this.prisma.lead.update({ where: { id: l.id }, data: { tagsJson: JSON.stringify(next) } });
+      touched++;
+    }
+    return touched;
+  }
   async listTags() {
-    return { tags: await this.prisma.crmTag.findMany({ orderBy: { name: 'asc' } }) };
+    const rows = await this.leadTagRows();
+    const usage = new Map<string, number>();
+    for (const l of rows) for (const t of l.tags) usage.set(t, (usage.get(t) || 0) + 1);
+    // bitimlarda bor, lekin katalogda yo'q teglar katalogga qo'shiladi
+    const missing = [...usage.keys()].filter(Boolean);
+    if (missing.length) await this.prisma.crmTag.createMany({ data: missing.map((name) => ({ name })), skipDuplicates: true });
+    const tags = await this.prisma.crmTag.findMany({ orderBy: { name: 'asc' } });
+    return { tags: tags.map((t) => ({ ...t, usage: usage.get(t.name) || 0 })) };
   }
   async upsertTag(dto: { name: string; color?: string }) {
-    const name = (dto.name || '').trim();
+    const name = (dto.name || '').trim().slice(0, 100);
     if (!name) throw new BadRequestException({ error: 'BAD_NAME', message: 'Nom majburiy' });
     const tag = await this.prisma.crmTag.upsert({
       where: { name },
@@ -177,10 +199,51 @@ export class CrmSettingsService {
     });
     return { tag };
   }
+  // Nomini/rangini o'zgartirish; nom o'zgarsa barcha bitimlarda yangilanadi
+  async updateTag(id: string, dto: { name?: string; color?: string }) {
+    const tag = await this.prisma.crmTag.findUnique({ where: { id } });
+    if (!tag) throw notFound('Teg');
+    const data: { name?: string; color?: string } = {};
+    if (dto.color) data.color = String(dto.color).slice(0, 20);
+    let renamed = 0;
+    if (dto.name !== undefined) {
+      const name = String(dto.name).trim().slice(0, 100);
+      if (!name) throw new BadRequestException({ error: 'BAD_NAME', message: 'Nom majburiy' });
+      if (name !== tag.name) {
+        if (await this.prisma.crmTag.findUnique({ where: { name }, select: { id: true } }))
+          throw new BadRequestException({ error: 'TAG_EXISTS', message: 'Bunday teg allaqachon bor' });
+        data.name = name;
+        renamed = await this.rewriteLeadTags((t) => (t === tag.name ? name : t));
+      }
+    }
+    const updated = await this.prisma.crmTag.update({ where: { id }, data });
+    return { tag: updated, updatedLeads: renamed };
+  }
   async deleteTag(id: string) {
-    if (!(await this.prisma.crmTag.findUnique({ where: { id }, select: { id: true } }))) throw notFound('Teg');
+    const tag = await this.prisma.crmTag.findUnique({ where: { id } });
+    if (!tag) throw notFound('Teg');
+    const removedFrom = await this.rewriteLeadTags((t) => (t === tag.name ? null : t));
     await this.prisma.crmTag.delete({ where: { id } });
-    return { ok: true };
+    return { ok: true, removedFrom };
+  }
+  async deleteTags(ids: string[]) {
+    const tags = await this.prisma.crmTag.findMany({ where: { id: { in: ids || [] } } });
+    if (!tags.length) return { ok: true, deleted: 0 };
+    const names = new Set(tags.map((t) => t.name));
+    await this.rewriteLeadTags((t) => (names.has(t) ? null : t));
+    await this.prisma.crmTag.deleteMany({ where: { id: { in: tags.map((t) => t.id) } } });
+    return { ok: true, deleted: tags.length };
+  }
+  // Teglarni birlashtirish: fromIds -> intoId (bitimlarda almashtiriladi, eskilari o'chadi)
+  async mergeTags(dto: { fromIds?: string[]; intoId?: string }) {
+    const into = dto.intoId ? await this.prisma.crmTag.findUnique({ where: { id: dto.intoId } }) : null;
+    if (!into) throw notFound('Teg');
+    const from = await this.prisma.crmTag.findMany({ where: { id: { in: (dto.fromIds || []).filter((x) => x !== into.id) } } });
+    if (!from.length) throw new BadRequestException({ error: 'NO_IDS', message: 'Birlashtiriladigan teg yo`q' });
+    const names = new Set(from.map((t) => t.name));
+    const updatedLeads = await this.rewriteLeadTags((t) => (names.has(t) ? into.name : t));
+    await this.prisma.crmTag.deleteMany({ where: { id: { in: from.map((t) => t.id) } } });
+    return { ok: true, merged: from.length, updatedLeads, tag: into };
   }
 
   // ── Saqlangan filtrlar ──

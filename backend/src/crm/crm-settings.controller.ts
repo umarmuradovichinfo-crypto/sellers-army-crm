@@ -39,6 +39,9 @@ export class CrmSettingsController {
   // ── Teglar katalogi ──
   @Get('tags') tags() { return this.s.listTags(); }
   @Post('tags') upsertTag(@Body() dto: any) { return this.s.upsertTag(dto); }
+  @Put('tags/:id') @RequirePermissions('crm.settings') updateTag(@Param('id') id: string, @Body() dto: any) { return this.s.updateTag(id, dto); }
+  @Post('tags/merge') @RequirePermissions('crm.settings') mergeTags(@Body() dto: any) { return this.s.mergeTags(dto); }
+  @Post('tags/bulk-delete') @RequirePermissions('crm.settings') deleteTags(@Body() dto: { ids?: string[] }) { return this.s.deleteTags(dto?.ids || []); }
   @Delete('tags/:id') @RequirePermissions('crm.settings') deleteTag(@Param('id') id: string) { return this.s.deleteTag(id); }
 
   // ── Saqlangan filtrlar ──

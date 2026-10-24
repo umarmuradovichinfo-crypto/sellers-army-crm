@@ -11,11 +11,9 @@ Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + q
 - [ ] [i18n/backend] Server yasagan matnlar (bildirishnomalar "Kechikkan vazifa: …", lenta voqealari "Lid yaratildi", "Bosqich: …") faqat o'zbekcha — backend tur+parametr qaytarishi, frontend tarjima qilishi kerak
 - [ ] [i18n] Bir xil kalit turli lug'atlarda turli tarjimada ('kun' → 'дня' / 'дн.') — global lug'atda oxirgisi yutadi
 - [ ] [imBox] Suhbat raqami (A####) va xabar muallifi backend'dan kelmaydi — hisoblangan qiymat ishlatilyapti
-- [ ] [Bitimlar] Import sahifasi (/leads/import) yo'q
-- [ ] [Filtr] "Teglar → Boshqarish" havolasi /settings/tags — sahifa yo'q (amoCRM: teglarni boshqarish oynasi)
 - [ ] [Saralanmagan] "Rad etish" tasdiqsiz o'chiradi — amoCRM'da rad etish sababi so'raladi, tekshirish kerak
 
-- [ ] [Ro'yxatlar] Kontaktlar importi (/contacts/import) yo'q — menyu bandi vaqtincha olib tashlangan
+- [ ] [Ro'yxatlar] Kontaktlar ro'yxati "…" menyusiga Import bandini qaytarish (/contacts/import tayyor); Sozlamalar chap paneliga "Teglarni boshqarish"
 - [ ] [Umumiy] Ba'zi sahifalar "bugun"ni hali brauzer vaqti bilan hisoblaydi (TasksPage, Dashboard) — format.dayKey ga o'tkazish
 - [ ] [Sozlamalar] Umumiy sozlamalar saqlanganda setFormatPrefs chaqirilishi (sahifa yangilanmasdan qo'llanishi)
 - [ ] [Backend] Ro'yxatlar 200/500 ta bilan cheklangan — server tomonida sahifalash kerak; kontakt kartochkasi lentasi uchun contactId filtri
@@ -32,7 +30,11 @@ Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + q
 
 - [ ] [Ish stoli] Voronka blokida har bosqich ostidagi "yo'qotilganlar" 0 — bosqichlar tarixi kerak (Activity before/after)
 
+- [ ] [Xavfsizlik] xlsx@0.18.5 (npm) — ma'lum zaifliklar (prototype pollution, ReDoS). Rasmiy tuzatilgan versiya faqat cdn.sheetjs.com'da (0.20.3); avtomatik ruxsat tizimi tashqi manbadan o'rnatishni blokladi — foydalanuvchi ruxsati kerak
+
 ## Tuzatilgan
+- [x] [Bitimlar/Kontaktlar] Import sahifasi (/leads/import, /contacts/import): CSV/XLSX, ustun moslash, dublikat rejimlari, 500 tadan partiya
+- [x] [Teglar] Teglarni boshqarish sahifasi (/settings/tags): nom, rang, o'chirish, birlashtirish, qo'llanish soni
 - [x] [Ish stoli] Dizayn amoCRM'ga 1:1 qayta yozildi: 208px to'r, 430px vidjetlar, rgba(12,37,61,.95) fon, Open Sans 45px #8275ff raqamlar, voronka kartalari 151x92, davr tanlagich, tabiiy fon sahnalari + o'z rasmini yuklash
 - [x] [Voronka sozlash] Digital Pipeline: barcha trigger/amallar, kechikish navbati, shartlar, saralanmagan switch va dublikat qoidalari backend'da ishlaydi
 - [x] [Xavfsizlik] Webhook SSRF — ichki manzillar (localhost, 10/172.16/192.168/169.254, ::1, butun son IP) bloklandi, DNS tekshiruvi

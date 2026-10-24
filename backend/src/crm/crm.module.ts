@@ -11,6 +11,8 @@ import { TelegramClient } from './telegram.client';
 import { ContactsController } from './contacts.controller';
 import { ContactsService } from './contacts.service';
 import { CrmController } from './crm.controller';
+import { CrmImportController } from './crm-import.controller';
+import { CrmImportService } from './crm-import.service';
 import { CrmService } from './crm.service';
 import { CrmFormsController, PublicCrmFormsController } from './crm-forms.controller';
 import { CrmFormsService } from './crm-forms.service';
@@ -29,6 +31,7 @@ import { ReminderService } from './reminder.service';
   controllers: [
     CrmController,
     CrmSettingsController,
+    CrmImportController,
     AutomationController,
     CrmAnalyticsController,
     ContactsController,
@@ -47,6 +50,7 @@ import { ReminderService } from './reminder.service';
     PipelineSettingsService,
     NotificationService,
     CrmSettingsService,
+    CrmImportService,
     CrmAnalyticsService,
     ContactsService,
     CrmFormsService,
