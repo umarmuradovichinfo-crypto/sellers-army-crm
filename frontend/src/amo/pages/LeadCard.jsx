@@ -14,6 +14,7 @@ import { useFilterMeta } from '../filterState'
 import '../pipesetup.css'
 import '../i18n/leadcard.ru.js'
 import '../leadcard.css'
+import '../entitycard.css'
 
 import { TASK_TYPES } from '../taskTypes'
 export { TASK_TYPES }
@@ -814,6 +815,8 @@ export default function LeadCard() {
       items.push({ at: a.at, kind: 'sys', a })
     }
     for (const n of lead.notes || []) items.push({ at: n.at, kind: 'note', n })
+    // bog'langan kontaktlarning eslatmalari (amoCRM: o'ng tomonda kontakt nomi havola sifatida)
+    for (const ct of lead.contacts || []) for (const n of ct.notes || []) items.push({ at: n.at, kind: 'note', n, ct })
     for (const c of feed.calls) items.push({ at: c.startedAt, kind: 'call', c })
     for (const tk of feed.tasks) if (tk.done) items.push({ at: tk.doneAt || tk.dueDate, kind: 'task', tk })
     for (const m of feed.messages) items.push({ at: m.createdAt, kind: 'msg', m })
@@ -944,7 +947,9 @@ export default function LeadCard() {
                     <span className="grow">{t(relDay(it.at) || '') || dmy(it.at)} {t(ACT_GROUP[it.type] || ACT_TEXT[it.type] || ACT_TEXT.updated)}: {it.items.length} {t(plEvents(it.items.length)).replace(/^voqea_.*/, 'voqea')} <a onClick={() => setExpanded((x) => ({ ...x, [gk]: true }))}>{t('Yoyish')}</a></span>
                   </div>
                 )
-              } else if (it.kind === 'note') el = <NoteItem key={`n${i}`} n={it.n} />
+              } else if (it.kind === 'note') el = it.ct
+                ? <div key={`n${i}`} className="ac-ec-wrap"><NoteItem n={it.n} /><a className="ac-ec-wrap__link" onClick={() => navigate(`/contacts/detail/${it.ct.id}`)}>{it.ct.name}</a></div>
+                : <NoteItem key={`n${i}`} n={it.n} />
               else if (it.kind === 'call') el = <CallNote key={`c${it.c.id}`} c={it.c} />
               else if (it.kind === 'task') el = <TaskNote key={`t${it.tk.id}`} task={it.tk} onDone={completeTask} />
               else if (it.kind === 'chat') el = <MsgGroup key={`g${it.msgs[0].id}`} msgs={it.msgs} leadId={lead.id} />

@@ -94,7 +94,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     - [x] Composer: rejim menyusida belgi, "qo'shish" havolasi vazifa rejimini ochadi
     - [x] Bitimga bir nechta kontakt (crm_lead_contacts; "Asosiy qilish", uzishda keyingisi asosiy bo'ladi; kontakt filtri ham hisobga oladi)
     - [x] Uzun lenta yozuvi bir qatorda, "⌄" bilan yoyiladi
-    - [ ] Lenta qatorining o'ng tomonida obyekt havolasi (kontakt nomi) — kontakt voqealari lentaga tushganda
+    - [x] Lenta qatorining o'ng tomonida obyekt havolasi (kontakt nomi) — kontakt voqealari lentaga tushganda
     - [x] Vazifa turi ikonkalari
     - [x] Composer'da sana tanlagich amoCRM uslubida ("31.10.2026" tugmasi, tezkor variantlar, sana+vaqt)
 25. [~] (USTUVOR, foydalanuvchi so'rovi 24.10) amoCRM'ni qaytadan to'liq ko'rib chiqish va CRM'ni har bo'lim bo'yicha

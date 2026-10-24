@@ -461,18 +461,22 @@ export class CrmService {
     const [activity, company, contact] = await Promise.all([
       this.activity.listForLead(id),
       l.companyId ? this.prisma.company.findUnique({ where: { id: l.companyId }, select: { id: true, name: true, phone: true, email: true, website: true } }) : Promise.resolve(null),
-      l.contactId ? this.prisma.contact.findUnique({ where: { id: l.contactId }, select: { id: true, name: true, phone: true, email: true, position: true, companyId: true } }) : Promise.resolve(null),
+      l.contactId ? this.prisma.contact.findUnique({ where: { id: l.contactId }, select: { id: true, name: true, phone: true, email: true, position: true, companyId: true, customJson: true } }) : Promise.resolve(null),
     ]);
     // qo'shimcha kontaktlar (amoCRM: bitimga bir nechta kontakt), asosiysi birinchi
     const extra = await this.prisma.leadContact.findMany({
       where: { leadId: id }, orderBy: { createdAt: 'asc' },
-      select: { contact: { select: { id: true, name: true, phone: true, email: true, position: true, companyId: true } } },
+      select: { contact: { select: { id: true, name: true, phone: true, email: true, position: true, companyId: true, customJson: true } } },
     });
     const all = [contact, ...extra.map((x) => x.contact)].filter((c): c is NonNullable<typeof contact> => !!c);
     // kontakt kartochkasidagi "Kompaniya" qatori uchun
     const coIds = [...new Set(all.map((c) => c.companyId).filter(Boolean))] as string[];
     const coNames = new Map((coIds.length ? await this.prisma.company.findMany({ where: { id: { in: coIds } }, select: { id: true, name: true } }) : []).map((c) => [c.id, c.name]));
-    const contacts = all.map((c) => ({ ...c, companyName: c.companyId ? coNames.get(c.companyId) || null : null, main: c.id === l.contactId }));
+    // kontakt eslatmalari bitim lentasida ham ko'rinadi (amoCRM: o'ngda kontakt nomi bilan)
+    const contacts = all.map(({ customJson, ...c }) => {
+      const notes = parse<any>(customJson, {})?.notes;
+      return { ...c, companyName: c.companyId ? coNames.get(c.companyId) || null : null, main: c.id === l.contactId, notes: Array.isArray(notes) ? notes.slice(-50) : [] };
+    });
     return {
       lead: {
         ...this.card(l, st?.kind || 'open', names),
