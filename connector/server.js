@@ -415,7 +415,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x')
   try {
     const k = `${req.method} ${url.pathname}`
-    if (k === 'GET /health') return send(res, 200, { ok: true })
+    if (k === 'GET /health') return send(res, 200, { ok: true, webhook: webhookState, graph: env('FB_GRAPH_VERSION', 'v26.0') })
     if (k === 'GET /privacy') return page(res, PRIVACY_HTML)
     if (k === 'GET /data-deletion') return page(res, DELETION_HTML)
     if (k === 'POST /instances/register') return await register(req, res)
