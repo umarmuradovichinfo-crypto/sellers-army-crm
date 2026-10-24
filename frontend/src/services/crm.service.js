@@ -44,7 +44,16 @@ export const crmService = {
   mergeLeads: (keepId, mergeIds) => mockOr(() => api.post('/crm/leads/merge', { keepId, mergeIds }), { ok: true }),
   checkDuplicate: (phone, email, excludeId) => mockOr(() => api.get(`/crm/leads-check${qs({ phone, email, excludeId })}`), { duplicates: [] }),
   importLeads: (rows) => mockOr(() => api.post('/crm/leads-import', { rows }), { ok: true, created: 0, skipped: 0 }),
-  exportUrl: () => '/crm/leads-export',
+  exportUrl: (params) => `/crm/leads-export${qs(params)}`,
+  // Filtr (listLeads parametrlari) + sort/dir bo'yicha CSV — auth bilan Blob sifatida
+  exportCsv: (params) => api.getBlob(`/crm/leads-export${qs(params)}`),
+  listStages: () => mockOr(() => api.get('/crm/stages'), { stages: [] }),
+  listSources: () => mockOr(() => api.get('/crm/sources'), { sources: [] }),
+  // GET /crm/leads-duplicates?by=phone|email|name -> { by, total, groups: [{ key, count, leads: [...] }] }
+  leadDuplicates: (by) => mockOr(() => api.get(`/crm/leads-duplicates${qs({ by })}`), { by, total: 0, groups: [] }),
+  // Foydalanuvchi sozlamasi (backend): kind = card | list -> { fields: [kalit] | null }
+  getLayout: (kind) => mockOr(() => api.get(`/crm/card-layout${qs({ kind })}`), { kind, fields: null, custom: false }),
+  saveLayout: (kind, fields) => mockOr(() => api.put(`/crm/card-layout${qs({ kind })}`, { fields }), { kind, fields, custom: true }),
 
   // ── Vazifalar (zadacha) ──
   listTasks: (params) => mockOr(() => api.get(`/crm/tasks${typeof params === 'string' ? (params ? `?status=${params}` : '') : qs(params)}`), { tasks: [] }),
@@ -132,7 +141,7 @@ export const crmService = {
   deleteForm: (id) => mockOr(() => api.del(`/crm/forms/${id}`), { ok: true }),
 
   // ── Saralanmagan inbox ──
-  listUnsorted: () => mockOr(() => api.get('/crm/unsorted'), { leads: [] }),
+  listUnsorted: (params) => mockOr(() => api.get(`/crm/unsorted${qs(params)}`), { leads: [], total: 0 }),
   acceptUnsorted: (id, payload) => mockOr(() => api.post(`/crm/unsorted/${id}/accept`, payload), { ok: true }),
 
   // ── Suhbat (Telegram / omnichannel) ──
@@ -171,7 +180,12 @@ export const crmService = {
 // ── Ommaviy lead-capture forma (login'siz) ──
 export const publicLeadForm = {
   get: (slug) => api.get(`/public/crm-forms/${slug}`),
-  submit: (slug, answers) => api.post(`/public/crm-forms/${slug}`, { answers }),
+  // UTM: sahifa URL'idagi utm_*, gclid, fbclid, yclid ... va referrer birga yuboriladi (lid customJson'iga yoziladi)
+  submit: (slug, answers) => {
+    const utm = {}
+    try { new URLSearchParams(window.location.search).forEach((v, k) => { utm[k] = v }) } catch { /* */ }
+    return api.post(`/public/crm-forms/${slug}`, { answers, utm, referrer: document.referrer || undefined })
+  },
 }
 
 // ── Bildirishnomalar ──

@@ -19,4 +19,9 @@ addRu({
   "Kengaytirilgan (o'z Meta ilovangiz)": 'Расширенные (собственное приложение Meta)',
   "Odatda kerak emas: ulanish markaziy xizmat orqali ishlaydi. Faqat o'z Meta ilovangizdan foydalanmoqchi bo'lsangiz kiriting.": 'Обычно не требуется: подключение работает через центральный сервис. Заполняйте, только если хотите использовать собственное приложение Meta.',
   "O'z ilovangiz faol": 'Ваше приложение активно',
+  "Instagram Direct xabarlari va izohlari imBox'ga tushadi, javobni CRM'dan yozasiz. Instagram biznes akkaunt Facebook sahifasiga ulangan bo'lishi kerak.": 'Сообщения Instagram Direct и комментарии попадают в imBox, отвечать можно из CRM. Бизнес-аккаунт Instagram должен быть привязан к странице Facebook.',
+  "Facebook Messenger suhbatlari imBox'ga tushadi, javobni CRM'dan yozasiz.": 'Диалоги Facebook Messenger попадают в imBox, отвечать можно из CRM.',
+  "Instagram Direct va izohlar imBox'ga tushadi, javobni CRM'dan yozasiz.": 'Instagram Direct и комментарии попадают в imBox, отвечать можно из CRM.',
+  "Facebook Messenger suhbatlari imBox'da, javob CRM'dan.": 'Диалоги Facebook Messenger в imBox, ответы из CRM.',
+  "Bu sahifaga Instagram biznes akkaunt ulanmagan": 'К этой странице не привязан бизнес-аккаунт Instagram',
 })

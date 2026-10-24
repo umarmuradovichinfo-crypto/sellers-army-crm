@@ -428,10 +428,14 @@ model Message {
   text       String
   senderName String?
   externalId String? // kanal xabar id
+  threadId   String? // kanal suhbat/mijoz id (Messenger PSID, Instagram IGSID) — lidni topish va javob uchun
+  pageId     String? // qaysi Facebook sahifa orqali (javob yuborish uchun)
+  kind       String   @default("message") // message | comment (Instagram/Facebook izoh)
   createdAt  DateTime @default(now())
 
   @@index([leadId])
   @@index([createdAt])
+  @@index([channel, threadId])
   @@map("crm_messages")
 }
 

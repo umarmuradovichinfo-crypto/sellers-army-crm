@@ -260,4 +260,21 @@ export class CrmSettingsService {
     await this.prisma.savedFilter.deleteMany({ where: { id, userId } });
     return { ok: true };
   }
+
+  // ── Karta ko'rinishi / ro'yxat ustunlari (AppSetting: layout:<kind>:<userId>) ──
+  private layoutKey(userId: string, kind?: string) {
+    return `layout:${kind === 'list' ? 'list' : 'card'}:${userId}`;
+  }
+  async getLayout(userId: string, kind?: string) {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: this.layoutKey(userId, kind) } });
+    let fields: string[] | null = null;
+    try { const v = JSON.parse(row?.value || 'null'); if (Array.isArray(v)) fields = v.map(String); } catch { /* standart */ }
+    return { kind: kind === 'list' ? 'list' : 'card', fields, custom: !!fields };
+  }
+  async saveLayout(userId: string, kind: string | undefined, fields?: string[]) {
+    const clean = [...new Set((Array.isArray(fields) ? fields : []).map((x) => String(x).trim().slice(0, 80)).filter(Boolean))].slice(0, 80);
+    const key = this.layoutKey(userId, kind);
+    await this.prisma.appSetting.upsert({ where: { key }, create: { key, value: JSON.stringify(clean) }, update: { value: JSON.stringify(clean) } });
+    return { kind: kind === 'list' ? 'list' : 'card', fields: clean, custom: true };
+  }
 }

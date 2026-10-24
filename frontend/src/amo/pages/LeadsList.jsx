@@ -6,9 +6,13 @@ import { useApi } from '../../lib/useApi'
 import TopBar from '../TopBar'
 import { Ico } from '../AmoIcons'
 import { money, dmy } from '../format'
-import LeadsFilter, { EMPTY_FILTER } from '../LeadsFilter'
+import LeadsFilter from '../LeadsFilter'
+import FieldsModal from '../FieldsModal'
+import BulkBar from '../BulkBar'
+import { useLeadsQuery, useFilterMeta, filterChips, sortMenuItem, downloadLeadsCsv, useLayout, LIST_COLUMNS, LIST_DEFAULT, withCustomFields, defaultDir } from '../filterState'
 import { useT, usePlural, addRu } from '../i18n'
 import { ViewSwitch } from './LeadsPipeline'
+import '../i18n/leadsfilter.ru.js'
 import '../leads.css'
 
 addRu({
@@ -30,22 +34,21 @@ addRu({
 })
 
 const PAGE = 50
-const SORT_KEY = { n: 'name', contact: 'contact', assignee: 'assignee', value: 'value', stage: 'stage', createdAt: 'createdAt' }
 
 export default function LeadsList() {
   const navigate = useNavigate()
   const t = useT()
   const plural = usePlural()
-  // Bosqichlar / teglar / mas'ullar — bir marta (bitimlarning o'zi server sahifalash bilan yuklanadi)
+  // Bosqichlar (ommaviy "bosqichni o'zgartirish" uchun) — bir marta; filtr ma'lumotlari useFilterMeta'da
   const { data } = useApi(async () => {
-    const [tags, mem, pipe] = await Promise.all([crmService.listTags(), crmService.listMembers(), crmService.getPipeline(undefined, { limit: 0 })])
-    return { tags: tags.tags || [], members: mem.members || [], stages: pipe.stages || [] }
+    const pipe = await crmService.getPipeline(undefined, { limit: 0 })
+    return { stages: pipe.stages || [] }
   }, [], 'amo-leads-list-meta', 60000)
-  const [search, setSearch] = useState('')
-  const [q, setQ] = useState('')
-  const [filter, setFilter] = useState(EMPTY_FILTER)
-  const [sort, setSort] = useState({ key: 'createdAt', dir: -1 })
-  const [bulkMode, setBulkMode] = useState(null)
+  const meta = useFilterMeta()
+  const Q = useLeadsQuery({ defaultSort: { key: 'createdAt', dir: 'desc' } })
+  const { filter, search, setSearch, sort } = Q
+  const cols = useLayout('list', LIST_DEFAULT)
+  const [colsModal, setColsModal] = useState(false)
   const [list, setList] = useState({ rows: [], next: null, total: 0, totalSum: 0, loading: true, error: '' })
   // Tanlash: sel — qo'lda belgilanganlar; allMode — filtrga mos HAMMA bitimlar (barcha sahifalar), excluded — undan olib tashlanganlar
   const [sel, setSel] = useState(new Set())
@@ -54,13 +57,8 @@ export default function LeadsList() {
   const sentinel = useRef(null)
   const seq = useRef(0)
 
-  useEffect(() => { const id = setTimeout(() => setQ(search.trim()), 300); return () => clearTimeout(id) }, [search])
-
-  // Filtr parametrlari (limit/cursor/sort'siz) — ro'yxat va ommaviy amallar uchun bir xil
-  const filterParams = useMemo(() => ({
-    unsorted: '0', search: q, preset: filter.preset, name: filter.name, period: filter.period, assigneeId: filter.assigneeId,
-    budgetFrom: filter.budgetFrom, budgetTo: filter.budgetTo, task: filter.task, tags: filter.tags?.length ? filter.tags.join(',') : '',
-  }), [q, filter])
+  // Filtr parametrlari (limit/cursor/sort'siz) — ro'yxat va ommaviy amallar uchun bir xil (URL query'dagi holat)
+  const filterParams = useMemo(() => ({ unsorted: '0', ...Q.params }), [Q.params])
   const paramsKey = JSON.stringify([filterParams, sort])
 
   const fetchPage = async (cursor, reset) => {
@@ -68,7 +66,7 @@ export default function LeadsList() {
     if (reset) setList((l) => ({ ...l, loading: true, error: '' }))
     else setList((l) => ({ ...l, loading: true }))
     try {
-      const r = await crmService.listLeads({ ...filterParams, sort: SORT_KEY[sort.key] || 'createdAt', dir: sort.dir > 0 ? 'asc' : 'desc', limit: PAGE, cursor })
+      const r = await crmService.listLeads({ ...filterParams, sort: sort.key || 'createdAt', dir: sort.dir, limit: PAGE, cursor })
       if (my !== seq.current) return
       setList((l) => {
         const base = reset ? [] : l.rows
@@ -104,12 +102,43 @@ export default function LeadsList() {
   const toggleAll = () => {
     if (allMode || allOn) { setAllMode(false); setExcluded(new Set()); setSel(new Set()) } else setSel(new Set(rows.map((r) => r.id)))
   }
-  const clearSel = () => { setSel(new Set()); setAllMode(false); setExcluded(new Set()); setBulkMode(null) }
-  const th = (key, label, style) => (
-    <th style={style} onClick={() => key && setSort((s) => ({ key, dir: s.key === key ? -s.dir : 1 }))}>
-      {t(label)}{sort.key === key ? (sort.dir > 0 ? ' ↑' : ' ↓') : ''}
+  const clearSel = () => { setSel(new Set()); setAllMode(false); setExcluded(new Set()) }
+  const th = (c, style) => (
+    <th key={c.key} style={style} onClick={() => c.sort && Q.setSort(c.sort, sort.key === c.sort ? (sort.dir === 'asc' ? 'desc' : 'asc') : defaultDir(c.sort))}>
+      {t(c.label)}{sort.key === c.sort ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}
     </th>
   )
+  const catalog = useMemo(() => withCustomFields(LIST_COLUMNS, meta.fields), [meta.fields])
+  const shownCols = cols.fields.map((k) => catalog.find((c) => c.key === k)).filter(Boolean)
+  const cell = (c, l) => {
+    switch (c.key) {
+      case 'name': return (
+        <td key={c.key}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="ac-dot" style={{ background: l.stageColor || '#c1c1c1' }} />
+            <a onClick={() => navigate(`/leads/detail/${l.id}`)} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.n}</a>
+            {!cols.fields.includes('tags') && (l.tags || []).slice(0, 3).map((tg) => <span key={tg} className="ac-tag ac-tag--sm">{tg}</span>)}
+          </div>
+        </td>
+      )
+      case 'contact': return <td key={c.key}>{l.contactName ? <span className="u" style={{ cursor: 'pointer' }} onClick={() => navigate(`/contacts/detail/${l.contactId}`)}>{l.contactName}</span> : ''}</td>
+      case 'company': return <td key={c.key}>{l.companyName || ''}</td>
+      case 'phone': return <td key={c.key}>{(l.contactPhone || l.phone) ? <a className="u" href={`tel:${l.contactPhone || l.phone}`}>{l.contactPhone || l.phone}</a> : ''}</td>
+      case 'email': return <td key={c.key}>{l.email || l.contactEmail || ''}</td>
+      case 'stage': return <td key={c.key}>{l.stageName}</td>
+      case 'budget': return <td key={c.key}>{l.value ? money(l.value) : ''}</td>
+      case 'assignee': return <td key={c.key}>{l.assigneeName || ''}</td>
+      case 'createdAt': return <td key={c.key}>{dmy(l.createdAt)}</td>
+      case 'updatedAt': return <td key={c.key}>{l.updatedAt ? dmy(l.updatedAt) : ''}</td>
+      case 'closedAt': return <td key={c.key}>{l.closedAt ? dmy(l.closedAt) : ''}</td>
+      case 'source': return <td key={c.key}>{l.source || ''}</td>
+      case 'tags': return <td key={c.key}>{(l.tags || []).map((tg) => <span key={tg} className="ac-tag ac-tag--sm" style={{ marginRight: 4 }}>{tg}</span>)}</td>
+      default: {
+        const v = l.custom?.[c.key.slice(3)]
+        return <td key={c.key}>{Array.isArray(v) ? v.join(', ') : v === true ? t('Ha') : v ?? ''}</td>
+      }
+    }
+  }
   const runBulk = async (action, value) => {
     if (!selCount) return
     try {
@@ -126,11 +155,15 @@ export default function LeadsList() {
         switcher={<ViewSwitch mode="list" />}
         search={search}
         onSearch={setSearch}
-        filterPanel={(close) => <LeadsFilter value={filter} tags={data?.tags || []} members={data?.members || []} onApply={(f) => { setFilter(f); close() }} />}
+        filterPanel={(close) => <LeadsFilter value={filter} meta={meta} onApply={(f) => { Q.applyFilter(f); close() }} />}
+        chips={filterChips(filter, meta, t).map((c) => ({ id: c.id, label: c.label, onRemove: () => Q.removeChip(c.clear) }))}
         count={<>{plural(list.total, 'bitim')}:<b>{money(list.totalSum)}</b></>}
         menu={[
           { label: t('Import'), icon: 'download', onClick: () => navigate('/leads/import') },
-          { label: t('Eksport'), icon: 'excel', onClick: () => window.open('/api/v1' + crmService.exportUrl(), '_blank') },
+          { label: t('Eksport'), icon: 'excel', onClick: () => downloadLeadsCsv({ ...filterParams, sort: sort.key, dir: sort.dir }).catch((e) => window.alert(e?.message || t('Xatolik yuz berdi'))) },
+          sortMenuItem(t, sort, Q.setSort),
+          { label: t('Ustunlarni sozlash'), icon: 'list', onClick: () => setColsModal(true) },
+          { label: t('Dublikatlarni qidirish'), icon: 'search', onClick: () => navigate('/leads/duplicates') },
         ]}
         actions={<>
           <button className="ac-btn" onClick={() => navigate('/settings/pipeline/leads/main')}>{t('Voronkani sozlash')}</button>
@@ -142,33 +175,15 @@ export default function LeadsList() {
           <thead>
             <tr>
               <th className="ac-chk"><input type="checkbox" className="ac-check" checked={allOn} onChange={toggleAll} /></th>
-              {th('n', 'Bitim nomi', { width: '34%' })}
-              {th('contact', 'Asosiy kontakt')}
-              {th(null, 'Telefon (kontakt)')}
-              {th('stage', 'Bosqich')}
-              {th('value', 'Byudjet')}
-              {th('assignee', "Mas'ul")}
-              {th('createdAt', 'Yaratilgan')}
+              {shownCols.map((c, i) => th(c, i === 0 ? { width: '30%' } : undefined))}
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && !list.loading && <tr><td colSpan={8} style={{ color: '#f37575' }}>{list.error || t('Bitimlar topilmadi')}</td></tr>}
+            {rows.length === 0 && !list.loading && <tr><td colSpan={shownCols.length + 1} style={{ color: '#f37575' }}>{list.error || t('Bitimlar topilmadi')}</td></tr>}
             {rows.map((l) => (
               <tr key={l.id} className={isOn(l.id) ? 'selected' : ''}>
                 <td className="ac-chk"><input type="checkbox" className="ac-check" checked={isOn(l.id)} onChange={() => toggle(l.id)} /></td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="ac-dot" style={{ background: l.stageColor || '#c1c1c1' }} />
-                    <a onClick={() => navigate(`/leads/detail/${l.id}`)} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.n}</a>
-                    {(l.tags || []).slice(0, 3).map((tg) => <span key={tg} className="ac-tag ac-tag--sm">{tg}</span>)}
-                  </div>
-                </td>
-                <td>{l.contactName ? <span className="u" style={{ cursor: 'pointer' }} onClick={() => navigate(`/contacts/detail/${l.contactId}`)}>{l.contactName}</span> : ''}</td>
-                <td>{(l.contactPhone || l.phone) ? <a className="u" href={`tel:${l.contactPhone || l.phone}`}>{l.contactPhone || l.phone}</a> : ''}</td>
-                <td>{l.stageName}</td>
-                <td>{l.value ? money(l.value) : ''}</td>
-                <td>{l.assigneeName || ''}</td>
-                <td>{dmy(l.createdAt)}</td>
+                {shownCols.map((c) => cell(c, l))}
               </tr>
             ))}
           </tbody>
@@ -177,28 +192,19 @@ export default function LeadsList() {
       </div>
 
       {selCount > 0 && (
-        <div className="ac-bulk">
-          <b>{t('Belgilandi')}: {selCount}</b>
-          {!allMode && list.total > sel.size && sel.size >= rows.length && <button onClick={() => { setAllMode(true); setExcluded(new Set()) }}>{t('Barchasini belgilash')} ({list.total})</button>}
-          {bulkMode === 'stage' ? (
-            <select className="ac-select" style={{ width: 220 }} autoFocus onChange={(e) => e.target.value && runBulk('stage', e.target.value)} defaultValue="">
-              <option value="">{t("Bosqichni o'zgartirish")}</option>
-              {(data?.stages || []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          ) : <button onClick={() => setBulkMode('stage')}>{t("Bosqichni o'zgartirish")}</button>}
-          {bulkMode === 'assignee' ? (
-            <select className="ac-select" style={{ width: 220 }} autoFocus onChange={(e) => e.target.value && runBulk('assignee', e.target.value)} defaultValue="">
-              <option value="">{t("Mas'ulni o'zgartirish")}</option>
-              {(data?.members || []).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
-          ) : <button onClick={() => setBulkMode('assignee')}>{t("Mas'ulni o'zgartirish")}</button>}
-          {bulkMode === 'tag' ? (
-            <input className="ac-input" style={{ width: 180 }} autoFocus placeholder={t("Teg qo'shish")} onKeyDown={(e) => e.key === 'Enter' && e.target.value.trim() && runBulk('add_tag', e.target.value.trim())} />
-          ) : <button onClick={() => setBulkMode('tag')}>{t("Teg qo'shish")}</button>}
-          <button className="danger" onClick={() => window.confirm(t("Tanlangan bitimlar o'chirilsinmi?") + (allMode ? ` (${selCount})` : '')) && runBulk('delete')}><Ico name="trash" /> {t("O'chirish")}</button>
-          <span style={{ flex: 1 }} />
-          <button onClick={clearSel}>{t('Bekor qilish')}</button>
-        </div>
+        <BulkBar count={selCount} selectedCount={sel.size} total={list.total} allMode={allMode} stages={data?.stages || []} members={meta.members}
+          onAll={() => { setAllMode(true); setExcluded(new Set()) }} onRun={runBulk} onClear={clearSel} />
+      )}
+
+      {colsModal && (
+        <FieldsModal
+          title="Ustunlarni sozlash"
+          options={catalog.map((c) => ({ key: c.key, label: c.label }))}
+          value={cols.fields}
+          defaults={LIST_DEFAULT}
+          onClose={() => setColsModal(false)}
+          onSave={async (next) => { await cols.save(next.length ? next : LIST_DEFAULT); setColsModal(false) }}
+        />
       )}
     </div>
   )

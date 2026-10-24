@@ -76,10 +76,12 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 17. [ ] Yakuniy dizayn solishtirish 1:1: har bir ekran amoCRM bilan yonma-yon (o'lcham, rang, shrift, joylashuv, animatsiya; desktop + mobil), farqlar tuzatiladi
 
 18. [x] Tarmoq nazoratchisi / offline rejim: /health ping, GET retry, yozuvlar navbati (Idempotency-Key), banner, PWA app-shell
-19. [~] Bitimlar filtrlari/saralash/statistika amoCRM bilan 1:1 (FILTERS-SPEC.md) + to'g'rilik testi (ishlanmoqda)
+19. [x] Bitimlar filtrlari/saralash/statistika amoCRM bilan 1:1 (FILTERS-SPEC.md) — 256 ta tekshiruv psql bilan mos (qa/filtrlar.md)
+    - [ ] Analitika sahifasiga ham to'liq filtr paneli (backend tayyor)
 20. [~] Meta Connector Railway'da (sellers-army-crm-production.up.railway.app) — FB_APP_SECRET foydalanuvchi kiritadi
 
-21. [~] Instagram Direct/izohlar + Facebook Messenger connector orqali (bir tugma) → imBox (ishlanmoqda)
+21. [x] Instagram Direct/izohlar + Facebook Messenger connector orqali (bir tugma) → imBox; Meta obunalari ok
+23. [~] CRM'ni Railway'ga joylash (HTTPS, Postgres) — haqiqiy Facebook ulanish testi uchun
 22. [ ] Sozlamalar → Chatlar va messenjerlar: amoCRM kabi "Javob shablonlari" (nom, tur, matn; chatda tanlash) va imBox/notif switch'lari
 
 ## Kutilayotgan so'rovlar (navbati kelganda)

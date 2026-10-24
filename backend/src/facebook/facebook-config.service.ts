@@ -11,6 +11,8 @@ export interface FbPage {
   name: string;
   accessToken: string; // Page Access Token (maxfiy)
   viaConnector?: boolean; // markaziy Meta Connector orqali ulangan
+  igId?: string; // ulangan Instagram biznes akkaunt ID
+  igUsername?: string;
 }
 export interface FbConfig {
   appId: string;
@@ -120,8 +122,15 @@ export class FacebookConfigService {
     return c.pages.find((p) => p.id === pageId)?.accessToken || null;
   }
 
+  /** Instagram akkaunt ID bo'yicha sahifa (Instagram webhook entry.id = IG ID). */
+  async pageByIg(igId: string): Promise<FbPage | null> {
+    const c = await this.get();
+    return c.pages.find((p) => p.igId && p.igId === igId) || null;
+  }
+
   async enabled(): Promise<boolean> {
     const c = await this.get();
     return c.pages.length > 0;
   }
 }
+

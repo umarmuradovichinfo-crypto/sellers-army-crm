@@ -105,3 +105,5 @@
 .ac-int-x { background: none; border: 0; color: var(--palette-text-secondary-light); cursor: pointer; padding: 4px; display: flex; }
 .ac-int-x:hover { color: var(--amo-danger); }
 .ac-int-copy { display: flex; gap: 8px; }
+
+.ac-int-ig { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; padding: 1px 7px; border-radius: 10px; background: #c13584; color: #fff; font: 600 11px/16px var(--font-main); vertical-align: middle; }

@@ -25,6 +25,10 @@ const CARDS = [
     desc: "Click-to-call, kiruvchi qo'ng'iroq oynasi va qo'ng'iroqlar tarixi." },
   { key: 'facebook', tab: 'chats', name: 'Facebook Lead Ads', cat: 'Chatlar va messenjerlar', color: '#1877f2', icon: 'send',
     desc: "Facebook va Instagram reklama formalaridan lidlar avtomatik CRM'ga tushadi." },
+  { key: 'instagram', tab: 'chats', name: 'Instagram', cat: 'Chatlar va messenjerlar', color: '#c13584', icon: 'instagram',
+    desc: "Instagram Direct va izohlar imBox'ga tushadi, javobni CRM'dan yozasiz." },
+  { key: 'messenger', tab: 'chats', name: 'Facebook Messenger', cat: 'Chatlar va messenjerlar', color: '#0084ff', icon: 'facebook',
+    desc: "Facebook Messenger suhbatlari imBox'da, javob CRM'dan." },
   { key: 'telegram', tab: 'chats', name: 'Telegram', cat: 'Chatlar va messenjerlar', color: '#2ca5e0', icon: 'telegram',
     desc: "Telegram bot orqali mijozlar bilan imBox'da yozishing." },
   { key: 'forms', tab: 'site', name: 'Lid formalari', cat: 'Saytga integratsiya', color: '#8cc051', icon: 'list',
@@ -36,7 +40,13 @@ export default function IntegrationsPage() {
   const [tab, setTab] = useState('installed')
   const [q, setQ] = useState('')
   // Facebook OAuth redirect'idan qaytganda (?fb=) modal avtomatik ochiladi
-  const [open, setOpen] = useState(() => (new URLSearchParams(window.location.search).get('fb') ? 'facebook' : null))
+  // ?open=instagram|messenger|facebook — voronka sozlamalari manbalar katalogidan keladi
+  const [open, setOpen] = useState(() => {
+    const p = new URLSearchParams(window.location.search)
+    const o = p.get('open')
+    if (['instagram', 'messenger', 'facebook'].includes(o)) return o
+    return p.get('fb') ? 'facebook' : null
+  })
   const [status, setStatus] = useState({})
   const [ready, setReady] = useState(false)
   const setOn = (k) => (v) => setStatus((s) => (s[k] === !!v ? s : { ...s, [k]: !!v }))
@@ -53,7 +63,10 @@ export default function IntegrationsPage() {
     const safe = (p, fn) => p.then((r) => { if (alive) fn(r) }).catch(() => {})
     Promise.all([
       safe(crmService.getPbxConfig(), (c) => setOn('pbx')(!!c.enabled)),
-      safe(facebookService.getConfig(), (c) => setOn('facebook')(!!c.enabled && (c.pages || []).length > 0)),
+      safe(facebookService.getConfig(), (c) => {
+        const any = !!c.enabled && (c.pages || []).length > 0
+        setOn('facebook')(any); setOn('messenger')(any); setOn('instagram')((c.pages || []).some((p) => p.igId))
+      }),
       safe(crmService.chatStatus(), (c) => setOn('telegram')(!!c.telegram)),
       safe(crmService.listForms(), (r) => setOn('forms')((r.forms || []).length > 0)),
     ]).then(() => { if (alive) setReady(true) })
@@ -101,7 +114,10 @@ export default function IntegrationsPage() {
       {card && (
         <WidgetModal card={card} onClose={() => setOpen(null)}>
           {card.key === 'pbx' && <IntegrationsPbx onStatus={setOn('pbx')} />}
-          {card.key === 'facebook' && <IntegrationsFacebook stages={stages} members={members} pipelines={pipelines} onStatus={setOn('facebook')} />}
+          {['facebook', 'instagram', 'messenger'].includes(card.key) && (
+            <IntegrationsFacebook variant={card.key === 'facebook' ? 'leads' : card.key} stages={stages} members={members} pipelines={pipelines}
+              onStatus={(v) => { setOn(card.key)(v); if (card.key !== 'instagram') { setOn('facebook')(v); setOn('messenger')(v) } }} />
+          )}
           {card.key === 'telegram' && <IntegrationsTelegram onStatus={setOn('telegram')} />}
           {card.key === 'forms' && <IntegrationsForms stages={stages} members={members} onStatus={setOn('forms')} />}
         </WidgetModal>

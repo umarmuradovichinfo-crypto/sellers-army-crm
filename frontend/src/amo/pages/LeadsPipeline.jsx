@@ -8,9 +8,13 @@ import { useApi } from '../../lib/useApi'
 import TopBar from '../TopBar'
 import { Ico } from '../AmoIcons'
 import { money, cardDate } from '../format'
-import LeadsFilter, { applyLeadFilter, EMPTY_FILTER } from '../LeadsFilter'
+import LeadsFilter from '../LeadsFilter'
+import FieldsModal from '../FieldsModal'
+import BulkBar from '../BulkBar'
+import { useLeadsQuery, useFilterMeta, filterChips, sortMenuItem, downloadLeadsCsv, useLayout, CARD_FIELDS, CARD_DEFAULT, withCustomFields } from '../filterState'
 import { useT, usePlural } from '../i18n'
 import '../i18n/leadcard.ru.js'
+import '../i18n/leadsfilter.ru.js'
 import '../leads.css'
 
 const PAGE = 50
@@ -43,24 +47,42 @@ function TaskMark({ s }) {
   return <span className={`ac-card__task ${kind}`}>{t(s.label)}<i /></span>
 }
 
-function LeadCard({ lead, onOpen, onPointerDown, dragging }) {
-  const title = lead.contactName || lead.n
+function LeadCard({ lead, onOpen, onPointerDown, dragging, fields, bulk, selected, onToggle }) {
+  const has = (k) => fields.includes(k)
+  const title = has('contact') ? lead.contactName || lead.n : lead.n
   const t = useT()
+  // Qo'shimcha qatorlar kartochka sozlamasidagi tartibda
+  const lines = fields.map((k) => {
+    if (k === 'company') return lead.company
+    if (k === 'phone') return lead.contactPhone || lead.phone
+    if (k === 'email') return lead.email
+    if (k === 'source') return lead.source
+    if (k === 'assignee') return lead.assigneeName
+    if (k.startsWith('cf:')) { const v = lead.custom?.[k.slice(3)]; return Array.isArray(v) ? v.join(', ') : v === true ? t('Ha') : v }
+    return null
+  })
   return (
-    <div className={`ac-card ${dragging ? 'dragging-src' : ''}`} onPointerDown={(e) => onPointerDown(e, lead)} data-lead={lead.id}>
-      <Avatar />
+    <div className={`ac-card ${dragging ? 'dragging-src' : ''} ${bulk ? 'ac-card--bulk' : ''} ${selected ? 'sel' : ''}`} onPointerDown={(e) => !bulk && onPointerDown(e, lead)} onClick={() => bulk && onToggle(lead.id)} data-lead={lead.id}>
+      {bulk && <input type="checkbox" className="ac-check ac-card__chk" readOnly checked={!!selected} />}
+      {has('avatar') && <Avatar />}
       <div className="ac-card__body">
         <div className="ac-card__row">
-          <span className="ac-card__name" onClick={(e) => { e.stopPropagation(); onOpen(lead) }} onPointerDown={(e) => e.stopPropagation()}>{title}</span>
-          <span className="ac-card__date">{cardDate(lead.createdAt, t)}</span>
+          <span className="ac-card__name" onClick={(e) => { if (bulk) return; e.stopPropagation(); onOpen(lead) }} onPointerDown={(e) => e.stopPropagation()}>{title}</span>
+          {has('date') && <span className="ac-card__date">{cardDate(lead.createdAt, t)}</span>}
         </div>
-        {lead.contactName && lead.contactName !== lead.n && <div className="ac-card__sub">{lead.n}</div>}
-        {lead.assigneeName && <div className="ac-card__sub">{lead.assigneeName}</div>}
-        {lead.value > 0 && <div className="ac-card__budget">{money(lead.value)}</div>}
-        <div className="ac-card__foot">
-          <div className="ac-card__tags">{(lead.tags || []).slice(0, 3).map((t) => <span key={t} className="ac-tag ac-tag--sm">{t}</span>)}</div>
-          <TaskMark s={lead.taskStatus} />
-        </div>
+        {has('contact') && lead.contactName && lead.contactName !== lead.n && <div className="ac-card__sub">{lead.n}</div>}
+        {fields.map((k, i) => {
+          if (k === 'budget') return lead.value > 0 ? <div key={k} className="ac-card__budget">{money(lead.value)}</div> : null
+          const v = lines[i]
+          if (v == null || v === '') return null
+          return <div key={k} className={k === 'assignee' ? 'ac-card__sub' : 'ac-card__extra'}>{v}</div>
+        })}
+        {(has('tags') || has('task')) && (
+          <div className="ac-card__foot">
+            <div className="ac-card__tags">{has('tags') && (lead.tags || []).slice(0, 3).map((x) => <span key={x} className="ac-tag ac-tag--sm">{x}</span>)}</div>
+            {has('task') && <TaskMark s={lead.taskStatus} />}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -215,32 +237,38 @@ export default function LeadsPipeline() {
   const { user } = useAuth()
   const t = useT()
   const plural = usePlural()
-  const [search, setSearch] = useState('')
-  const [q, setQ] = useState('')
-  const [filter, setFilter] = useState(EMPTY_FILTER)
+  const Q = useLeadsQuery()
+  const { filter, search, setSearch, sort } = Q
+  const meta = useFilterMeta()
+  const layout = useLayout('card', CARD_DEFAULT)
   const [lostAsk, setLostAsk] = useState(null)
-  useEffect(() => { const id = setTimeout(() => setQ(search.trim()), 300); return () => clearTimeout(id) }, [search])
+  const [cardModal, setCardModal] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(() => localStorage.getItem('amo_autorefresh') !== '0')
+  const [bulk, setBulk] = useState(false)
+  const [sel, setSel] = useState(new Set())
 
-  // Filtr serverda qo'llanadi: har bosqichdan dastlabki PAGE ta karta + bosqich bo'yicha jami son/summa
-  const filterParams = useMemo(() => ({
-    search: q, preset: filter.preset, name: filter.name, period: filter.period, assigneeId: filter.assigneeId,
-    budgetFrom: filter.budgetFrom, budgetTo: filter.budgetTo, task: filter.task, tags: filter.tags?.length ? filter.tags.join(',') : '',
-  }), [q, filter])
+  // Filtr serverda qo'llanadi (URL query'dagi holat): har bosqichdan dastlabki PAGE ta karta + bosqich bo'yicha jami son/summa
+  const filterParams = useMemo(() => ({ ...Q.params, ...Q.sortParams }), [Q.params, sort.key, sort.dir]) // eslint-disable-line
   const fKey = JSON.stringify(filterParams)
-  const isFiltered = Object.values(filterParams).some((v) => v && v !== 'open')
+  const isFiltered = Q.isFiltered || !!sort.key
   const fKeyRef = useRef(fKey)
   fKeyRef.current = fKey
   const { data, reload, setData } = useApi(async () => {
-    const [pipe, uns, lr, tags, mem] = await Promise.all([
-      crmService.getPipeline(pipelineId || undefined, { limit: PAGE, ...filterParams }), crmService.listUnsorted(), crmService.listLostReasons(), crmService.listTags(), crmService.listMembers(),
+    const { sort: _s, dir: _d, ...unsParams } = filterParams
+    const [pipe, uns, lr] = await Promise.all([
+      crmService.getPipeline(pipelineId || undefined, { limit: PAGE, ...filterParams }), crmService.listUnsorted(unsParams), crmService.listLostReasons(),
     ])
-    return { ...pipe, unsorted: uns.leads || [], reasons: lr.reasons || [], tags: tags.tags || [], members: mem.members || [] }
+    return { ...pipe, unsorted: uns.leads || [], unsortedTotal: uns.total ?? (uns.leads || []).length, reasons: lr.reasons || [] }
   }, [pipelineId, fKey], isFiltered ? `ac-pipeline-${pipelineId}-f${fKey}` : `ac-pipeline-${pipelineId}`)
 
   const stages = data?.stages || []
   const openStages = stages.filter((s) => s.kind === 'open')
   const shownKind = filter.preset === 'won' || filter.preset === 'lost' ? filter.preset : 'open'
-  const shownStages = stages.filter((s) => s.kind === shownKind)
+  // Bosqichlar filtri tanlangan bo'lsa — faqat tanlangan bosqichlar ustun bo'ladi (won/lost — shu turdagi barchasi)
+  const picked = new Set(filter.stages)
+  const shownStages = filter.stages.length
+    ? stages.filter((s) => picked.has(`${pipelineId || 'main'}:${s.id}`) || picked.has(s.kind))
+    : stages.filter((s) => s.kind === shownKind)
   const pipeName = (data?.pipelines || []).find((p) => String(p.id) === String(pipelineId))?.name || t(pipelineId ? 'Voronka' : 'Asosiy voronka')
 
   const cntOf = (s) => (s.count != null ? s.count : s.leads.length)
@@ -270,9 +298,10 @@ export default function LeadsPipeline() {
   // Fon yangilanishi: ochilgan qo'shimcha sahifalarni yo'qotmaslik uchun faqat birinchi sahifa ko'rinib turganda
   const dragRef = useRef(false)
   useEffect(() => {
+    if (!autoRefresh) return undefined
     const iv = setInterval(() => { if (!extraLoaded.current && !dragRef.current) reload() }, 60000)
     return () => clearInterval(iv)
-  }, [pipelineId, fKey]) // eslint-disable-line
+  }, [pipelineId, fKey, autoRefresh]) // eslint-disable-line
 
   // Optimistik ko'chirish: kartani + bosqich jamilarini (son/summa) yangilaydi
   const moveLocal = (lead, toStage, index) => {
@@ -329,8 +358,14 @@ export default function LeadsPipeline() {
   }
   const rejectUnsorted = async (lead) => { try { await crmService.deleteLead(lead.id) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')) } reload() }
   const openLead = (lead) => navigate(`/leads/detail/${lead.id}`)
+  const toggleSel = (id) => setSel((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const runBulk = async (action, value) => {
+    if (!sel.size) return
+    try { await crmService.bulk([...sel], action, value) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')); return }
+    setSel(new Set()); reload()
+  }
 
-  const unsorted = applyLeadFilter(data?.unsorted || [], { search }, user)
+  const unsorted = data?.unsorted || []
 
   return (
     <div className="ac-pipeline">
@@ -339,12 +374,17 @@ export default function LeadsPipeline() {
         switcher={<ViewSwitch mode="pipeline" />}
         search={search}
         onSearch={setSearch}
-        filterPanel={(close) => <LeadsFilter value={filter} tags={data?.tags || []} members={data?.members || []} onApply={(f) => { setFilter(f); close() }} />}
+        filterPanel={(close) => <LeadsFilter value={filter} meta={meta} onApply={(f) => { Q.applyFilter(f); close() }} />}
+        chips={filterChips(filter, meta, t).map((c) => ({ id: c.id, label: c.label, onRemove: () => Q.removeChip(c.clear) }))}
         count={<>{plural(totalCount, 'bitim')}:<b>{money(totalSum)}</b></>}
         menu={[
           { label: t('Import'), icon: 'download', onClick: () => navigate('/leads/import') },
-          { label: t('Eksport'), icon: 'excel', onClick: () => window.open('/api/v1' + crmService.exportUrl(), '_blank') },
-          { label: t('Dublikatlarni qidirish'), icon: 'search', onClick: () => navigate('/leads/list?duplicates=1') },
+          { label: t('Eksport'), icon: 'excel', onClick: () => downloadLeadsCsv({ ...filterParams, pipelineId: pipelineId || 'main', unsorted: '0' }).catch((e) => window.alert(e?.message || t('Xatolik yuz berdi'))) },
+          sortMenuItem(t, sort, Q.setSort),
+          { label: t("Kartochka ko'rinishi"), icon: 'edit', onClick: () => setCardModal(true) },
+          { label: t('Dublikatlarni qidirish'), icon: 'search', onClick: () => navigate('/leads/duplicates') },
+          { label: t('Ommaviy amallar'), icon: 'check', switch: bulk, onClick: () => { setBulk((v) => !v); setSel(new Set()) } },
+          { label: t('Avto-yangilash'), switch: autoRefresh, onClick: () => setAutoRefresh((v) => { localStorage.setItem('amo_autorefresh', v ? '0' : '1'); return !v }) },
         ]}
         actions={<>
           <button className="ac-btn" onClick={() => navigate(`/settings/pipeline/leads/${pipelineId || 'main'}`)}>{t('Voronkani sozlash')}</button>
@@ -357,7 +397,7 @@ export default function LeadsPipeline() {
             <div className="ac-col ac-col--unsorted">
               <div className="ac-col__head">
                 <div className="ac-col__title">{t('Saralanmagan')}</div>
-                <div className="ac-col__info">{t("So'rovlar")}: {unsorted.length}</div>
+                <div className="ac-col__info">{t("So'rovlar")}: {data?.unsortedTotal ?? unsorted.length}</div>
                 <div className="ac-col__line" />
               </div>
               <div className="ac-col__body">
@@ -383,7 +423,7 @@ export default function LeadsPipeline() {
                   {items.map((l, idx) => (
                     <React.Fragment key={l.id}>
                       {idx === phIndex && <div className="ac-drop-ph" style={{ height: drag.h }} />}
-                      <LeadCard lead={l} onOpen={openLead} dragging={drag?.lead.id === l.id} onPointerDown={(e, lead) => start(e, lead, s.id)} />
+                      <LeadCard lead={l} onOpen={openLead} dragging={drag?.lead.id === l.id} onPointerDown={(e, lead) => start(e, lead, s.id)} fields={layout.fields} bulk={bulk} selected={sel.has(l.id)} onToggle={toggleSel} />
                     </React.Fragment>
                   ))}
                   {isOver && phIndex >= items.length && <div className="ac-drop-ph" style={{ height: drag.h }} />}
@@ -403,6 +443,21 @@ export default function LeadsPipeline() {
 
       {drag && (
         <div className="ac-drag-ghost" style={{ left: drag.x - drag.dx, top: drag.y - drag.dy, width: drag.w }} dangerouslySetInnerHTML={{ __html: drag.html }} />
+      )}
+
+      {bulk && sel.size > 0 && (
+        <BulkBar count={sel.size} selectedCount={sel.size} total={sel.size} canAll={false} stages={stages} members={meta.members} onRun={runBulk} onClear={() => { setSel(new Set()); setBulk(false) }} />
+      )}
+
+      {cardModal && (
+        <FieldsModal
+          title="Kartochka ko'rinishi"
+          options={withCustomFields(CARD_FIELDS, meta.fields)}
+          value={layout.fields}
+          defaults={CARD_DEFAULT}
+          onClose={() => setCardModal(false)}
+          onSave={async (next) => { await layout.save(next); setCardModal(false) }}
+        />
       )}
 
       {lostAsk && (

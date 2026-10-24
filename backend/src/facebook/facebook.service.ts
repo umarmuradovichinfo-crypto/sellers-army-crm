@@ -1,14 +1,17 @@
 import { randomBytes, timingSafeEqual, createHmac } from 'crypto';
 
-import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
+import { ChatService } from '../crm/chat.service';
+import type { SocialChannel, SocialProvider } from '../crm/chat.service';
 import { CrmFormsService } from '../crm/crm-forms.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookClient, GRAPH_VERSION } from './facebook.client';
 import { FacebookConfigService } from './facebook-config.service';
+import type { FbPage } from './facebook-config.service';
 import { FacebookConnectorService } from './facebook-connector.service';
 
-const SCOPE = 'leads_retrieval,pages_show_list,pages_manage_metadata,pages_read_engagement,business_management';
+const SCOPE = (process.env.FB_SCOPE || 'leads_retrieval,pages_show_list,pages_manage_metadata,pages_read_engagement,business_management,pages_messaging,instagram_basic,instagram_manage_messages,instagram_manage_comments').trim();
 
 const STATE_PREFIX = 'fb_oauth_state:';
 const STATE_TTL_MS = 10 * 60 * 1000;
@@ -18,7 +21,7 @@ function parseJson<T>(s: string | null, fb: T): T {
 }
 
 @Injectable()
-export class FacebookService {
+export class FacebookService implements OnModuleInit, SocialProvider {
   private readonly logger = new Logger(FacebookService.name);
 
   constructor(
@@ -27,7 +30,12 @@ export class FacebookService {
     private readonly client: FacebookClient,
     private readonly connector: FacebookConnectorService,
     private readonly crmForms: CrmFormsService,
+    private readonly chat: ChatService,
   ) {}
+
+  onModuleInit() {
+    this.chat.registerSocial(this); // CRM'dan Instagram/Messenger javoblari shu orqali Graph'ga ketadi
+  }
 
   private baseUrl(): string {
     return (process.env.PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/+$/, '');
@@ -53,7 +61,7 @@ export class FacebookService {
       appIdSet: !!c.appId,
       appSecretSet: !!c.appSecret,
       verifyToken: managed ? '' : c.verifyToken || '',
-      pages: c.pages.map((p) => ({ id: p.id, name: p.name })),
+      pages: c.pages.map((p) => ({ id: p.id, name: p.name, igId: p.igId || '', igUsername: p.igUsername || '' })),
       enabled: c.pages.length > 0,
       webhookUrl: this.webhookUrl(),
       webhookStatus: c.webhook?.status || 'pending',
@@ -115,15 +123,19 @@ export class FacebookService {
     const userShort = await this.client.exchangeCode(code, this.callbackUrl(), c.appId, c.appSecret);
     const userLong = await this.client.longLived(userShort, c.appId, c.appSecret).catch(() => userShort);
     const pages = await this.client.getPages(userLong);
-    const stored = pages.map((p) => ({ id: p.id, name: p.name, accessToken: p.access_token }));
+    const stored: FbPage[] = [];
+    for (const p of pages) {
+      const ig = await this.client.getInstagramAccount(p.id, p.access_token).catch(() => null);
+      stored.push({ id: p.id, name: p.name, accessToken: p.access_token, igId: ig?.id || '', igUsername: ig?.username || '' });
+    }
     if (!stored.length) throw new BadRequestException({ error: 'NO_PAGES', message: 'Facebook sahifa topilmadi (sahifalarni tanlaganingizni tekshiring)' });
     await this.cfg.setPages(stored); // birlashtiradi: boshqa sahifalar o'chmaydi
     for (const p of stored) {
-      try { await this.client.subscribePage(p.id, p.accessToken); }
+      try { await this.client.subscribePage(p.id, p.accessToken, !!p.igId); }
       catch (e) { this.logger.warn(`Sahifa obuna xato (${p.name}): ${(e as Error).message}`); }
     }
     await this.ensureAppWebhook();
-    return { pages: stored.map((p) => ({ id: p.id, name: p.name })) };
+    return { pages: stored.map((p) => ({ id: p.id, name: p.name, igUsername: p.igUsername || '' })) };
   }
 
   /** Ilova darajasidagi webhook obunasi (faqat PUBLIC_URL https bo'lganda). */
@@ -150,9 +162,9 @@ export class FacebookService {
     const pages = await Promise.all(c.pages.map(async (p) => {
       try {
         const subscribed = await this.client.isPageSubscribed(p.id, p.accessToken, c.appId || undefined);
-        return { id: p.id, name: p.name, tokenValid: true, subscribed, active: subscribed };
+        return { id: p.id, name: p.name, igUsername: p.igUsername || '', tokenValid: true, subscribed, active: subscribed };
       } catch (e) {
-        return { id: p.id, name: p.name, tokenValid: false, subscribed: false, active: false, error: (e as Error).message };
+        return { id: p.id, name: p.name, igUsername: p.igUsername || '', tokenValid: false, subscribed: false, active: false, error: (e as Error).message };
       }
     }));
     return { pages };
@@ -164,18 +176,96 @@ export class FacebookService {
     if (!body) throw new ForbiddenException('Invalid signature');
     const pages = (Array.isArray(body.pages) ? body.pages : [])
       .filter((p: any) => p?.id && p?.accessToken)
-      .map((p: any) => ({ id: String(p.id), name: String(p.name || p.id), accessToken: String(p.accessToken), viaConnector: true }));
+      .map((p: any) => ({ id: String(p.id), name: String(p.name || p.id), accessToken: String(p.accessToken), viaConnector: true, igId: String(p.igId || ''), igUsername: String(p.igUsername || '') }));
     if (pages.length) await this.cfg.setPages(pages); // birlashtiradi
     return { ok: true, count: pages.length };
   }
   async connectorEvent(raw: Buffer | undefined, sig: string | undefined, instanceId: string | undefined) {
     const body = await this.connector.verifyIncoming(raw, sig, instanceId);
     if (!body) throw new ForbiddenException('Invalid signature');
-    const leadgenId = String(body.leadgenId || '');
-    if (!leadgenId) throw new BadRequestException('leadgenId kerak');
-    // Xato bo'lsa tashlanadi -> connector qayta uradi (processLead "ishlangan" belgisini olib tashlaydi)
-    await this.processLead(leadgenId, String(body.formId || ''), String(body.pageId || ''));
+    // Eski connector: kind yo'q, faqat leadgenId. Xato bo'lsa tashlanadi -> connector qayta uradi.
+    const kind = String(body.kind || (body.leadgenId ? 'lead' : ''));
+    const pageId = String(body.pageId || '');
+    const channel: SocialChannel = body.channel === 'instagram' ? 'instagram' : 'facebook';
+    const payload = body.payload || {};
+    if (kind === 'lead') {
+      const leadgenId = String(body.leadgenId || payload.leadgenId || '');
+      if (!leadgenId) throw new BadRequestException('leadgenId kerak');
+      await this.processLead(leadgenId, String(body.formId || payload.formId || ''), pageId);
+    } else if (kind === 'message') await this.onMessage(channel, pageId, String(body.igId || ''), payload);
+    else if (kind === 'comment') await this.onComment(channel, pageId, String(body.igId || ''), payload);
+    else throw new BadRequestException('kind noma\'lum');
     return { ok: true };
+  }
+
+  // ── Instagram / Messenger kiruvchi hodisalar ──
+  private nameCache = new Map<string, { name: string; exp: number }>();
+
+  private async senderName(channel: SocialChannel, senderId: string, token: string): Promise<string> {
+    const key = channel + ':' + senderId;
+    const hit = this.nameCache.get(key);
+    if (hit && hit.exp > Date.now()) return hit.name;
+    let name = '';
+    try {
+      const p = await this.client.getProfile(senderId, token, channel === 'instagram' ? 'name,username' : 'name');
+      name = String((channel === 'instagram' ? p?.username || p?.name : p?.name) || '').trim();
+    } catch (e) { this.logger.warn(`Profil olinmadi (${channel}/${senderId}): ${(e as Error).message}`); }
+    if (!name) return channel === 'instagram' ? 'Instagram foydalanuvchi' : 'Facebook foydalanuvchi'; // keshlanmaydi — keyingi xabarda qayta uriniladi
+    this.nameCache.set(key, { name, exp: Date.now() + 10 * 60 * 1000 });
+    return name;
+  }
+
+  private async onMessage(channel: SocialChannel, pageId: string, igId: string, m: any) {
+    const token = await this.cfg.pageToken(pageId);
+    if (!token) { this.logger.warn(`Xabar: sahifa tokeni yo'q (${pageId})`); return; }
+    const senderId = String(m?.sender?.id || '');
+    if (!senderId || senderId === pageId || (igId && senderId === igId) || m?.message?.is_echo) return; // o'zimizning xabarlar
+    const msg = m.message || m.postback || {};
+    const atts: any[] = Array.isArray(m.message?.attachments) ? m.message.attachments : [];
+    let text = String(m.message?.text || m.postback?.title || m.postback?.payload || '').trim();
+    if (!text && atts.length) text = atts.map((a) => `[${a?.type || 'fayl'}]${a?.payload?.url ? ' ' + a.payload.url : ''}`).join('\n');
+    if (!text) return; // reaksiya, o'qildi va h.k.
+    const name = await this.senderName(channel, senderId, token);
+    await this.chat.handleSocialMessage({
+      channel, pageId, senderId, senderName: name, text, mid: String(msg.mid || ''), at: m.timestamp ? new Date(Number(m.timestamp)) : undefined,
+    });
+  }
+
+  private async onComment(channel: SocialChannel, pageId: string, igId: string, v: any) {
+    const token = await this.cfg.pageToken(pageId);
+    if (!token) { this.logger.warn(`Izoh: sahifa tokeni yo'q (${pageId})`); return; }
+    const fromId = String(v?.from?.id || '');
+    if (!fromId || fromId === pageId || (igId && fromId === igId)) return; // o'zimizning javoblar
+    let commentId: string, text: string, fromName: string, postLink = '';
+    if (channel === 'instagram') {
+      commentId = String(v.id || ''); text = String(v.text || '').trim(); fromName = String(v.from?.username || '') || await this.senderName('instagram', fromId, token);
+      const mediaId = String(v.media?.id || '');
+      if (mediaId) postLink = String((await this.client.getMedia(mediaId, token).catch(() => ({ permalink: '' }))).permalink || '');
+    } else {
+      commentId = String(v.comment_id || ''); text = String(v.message || '').trim(); fromName = String(v.from?.name || '') || await this.senderName('facebook', fromId, token);
+      if (v.post_id) postLink = `https://www.facebook.com/${v.post_id}`;
+    }
+    if (!commentId || !text) return;
+    await this.chat.handleSocialComment({ channel, pageId, fromId, fromName, text, commentId, postLink, at: v.created_time ? new Date(typeof v.created_time === 'number' ? v.created_time * 1000 : v.created_time) : undefined });
+  }
+
+  // ── SocialProvider: CRM'dan javob (ChatService chaqiradi) ──
+  async connected() {
+    const c = await this.cfg.get();
+    return { facebook: c.pages.length > 0, instagram: c.pages.some((p) => !!p.igId) };
+  }
+  async hasPage(pageId: string) { return !!(await this.cfg.pageToken(pageId)); }
+  async sendMessage(a: { pageId: string; recipientId: string; text: string }) {
+    const token = await this.cfg.pageToken(a.pageId);
+    if (!token) throw new BadRequestException({ error: 'NO_PAGE', message: 'Sahifa ulanmagan' });
+    const r = await this.client.sendMessage(a.pageId, token, a.recipientId, a.text);
+    return { id: r.message_id };
+  }
+  async replyComment(a: { channel: SocialChannel; pageId: string; commentId: string; text: string }) {
+    const token = await this.cfg.pageToken(a.pageId);
+    if (!token) throw new BadRequestException({ error: 'NO_PAGE', message: 'Sahifa ulanmagan' });
+    const r = await this.client.replyComment(a.channel, a.commentId, token, a.text);
+    return { id: r.id };
   }
 
   // ── Qo'lda ulash (OAuthsiz — Page Access Token bilan) ──
@@ -184,7 +274,7 @@ export class FacebookService {
     const pageToken = (dto.pageToken || '').trim();
     if (!pageId || !pageToken) throw new BadRequestException({ error: 'BAD', message: 'Page ID va Page Access Token kerak' });
     await this.cfg.setPages([{ id: pageId, name: (dto.pageName || pageId).trim(), accessToken: pageToken }]);
-    try { await this.client.subscribePage(pageId, pageToken); }
+    try { await this.client.subscribePage(pageId, pageToken, false); }
     catch (e) { throw new BadRequestException({ error: 'SUBSCRIBE', message: 'Leadgen obunasi xato: ' + (e as Error).message }); }
     return this.getConfig();
   }
@@ -262,16 +352,28 @@ export class FacebookService {
 
   async handleWebhook(body: any) {
     const entries = Array.isArray(body?.entry) ? body.entry : [];
+    const isIg = body?.object === 'instagram';
+    const warn = (what: string) => (e: unknown) => this.logger.warn(`FB ${what} xato: ` + (e as Error).message);
     for (const entry of entries) {
-      const changes = Array.isArray(entry?.changes) ? entry.changes : [];
-      for (const ch of changes) {
-        if (ch?.field !== 'leadgen') continue;
-        const v = ch.value || {};
-        const leadgenId = String(v.leadgen_id || '');
-        const formId = String(v.form_id || '');
-        const pageId = String(v.page_id || entry.id || '');
-        if (!leadgenId) continue;
-        await this.processLead(leadgenId, formId, pageId).catch((e) => this.logger.warn('FB lead xato: ' + (e as Error).message));
+      const entryId = String(entry?.id || '');
+      // Instagram: entry.id = IG akkaunt ID -> sahifa; Facebook: entry.id = sahifa ID
+      const pageId = isIg ? (await this.cfg.pageByIg(entryId))?.id || '' : entryId;
+      const channel: SocialChannel = isIg ? 'instagram' : 'facebook';
+      const igId = isIg ? entryId : '';
+      for (const m of Array.isArray(entry?.messaging) ? entry.messaging : []) {
+        if (pageId && (m?.message || m?.postback)) await this.onMessage(channel, pageId, igId, m).catch(warn('xabar'));
+      }
+      for (const ch of Array.isArray(entry?.changes) ? entry.changes : []) {
+        const v = ch?.value || {};
+        if (!isIg && ch?.field === 'leadgen') {
+          const leadgenId = String(v.leadgen_id || '');
+          if (!leadgenId) continue;
+          await this.processLead(leadgenId, String(v.form_id || ''), String(v.page_id || entryId)).catch(warn('lead'));
+        } else if (!isIg && ch?.field === 'feed' && v.item === 'comment' && v.verb === 'add' && v.comment_id) {
+          await this.onComment('facebook', entryId, '', v).catch(warn('izoh'));
+        } else if (isIg && ch?.field === 'comments' && v.id && pageId) {
+          await this.onComment('instagram', pageId, igId, v).catch(warn('izoh'));
+        }
       }
     }
     return { ok: true };

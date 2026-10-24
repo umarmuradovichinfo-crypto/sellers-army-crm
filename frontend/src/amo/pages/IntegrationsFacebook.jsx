@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { facebookService } from '../../services/facebook.service'
 import { crmService } from '../../services/crm.service'
 import { useAuth } from '../../context/AuthContext'
+import { Ico } from '../AmoIcons'
 import { useT } from '../i18n'
 import '../i18n/facebook.ru'
 
@@ -37,8 +38,17 @@ function FbLogo({ size = 56 }) {
   )
 }
 
-export default function IntegrationsFacebook({ stages = [], members = [], pipelines = [], onStatus }) {
+// variant: 'leads' (Lead Ads, standart) | 'instagram' | 'messenger' — hammasi bitta "Facebook bilan ulash" oqimi
+const INTRO = {
+  leads: "Facebook / Instagram Lead Ads formalaridan yangi lidlar avtomatik CRM'ga, «Saralanmagan» bo'limiga tushadi.",
+  instagram: "Instagram Direct xabarlari va izohlari imBox'ga tushadi, javobni CRM'dan yozasiz. Instagram biznes akkaunt Facebook sahifasiga ulangan bo'lishi kerak.",
+  messenger: "Facebook Messenger suhbatlari imBox'ga tushadi, javobni CRM'dan yozasiz.",
+}
+
+export default function IntegrationsFacebook({ stages = [], members = [], pipelines = [], onStatus: onStatusProp, variant = 'leads' }) {
   const t = useT()
+  const withForms = variant === 'leads'
+  const onStatus = (v, c) => onStatusProp?.(variant === 'instagram' && c ? (c.pages || []).some((p) => p.igId) : v)
   const { can } = useAuth()
   const [cfg, setCfg] = useState(null)
   const [pstat, setPstat] = useState({})
@@ -60,7 +70,7 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
   const load = async () => {
     const c = await facebookService.getConfig()
     connOrigin.current = c.connectorOrigin || ''
-    setCfg(c); onStatus?.(c.enabled && c.pages.length > 0)
+    setCfg(c); onStatus(c.enabled && c.pages.length > 0, c)
     try { const m = await facebookService.listMappings(); setMappings(m.mappings || []) } catch { /* */ }
     if (c.pages.length > 0) loadStatus()
   }
@@ -116,7 +126,7 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
 
   const removePage = async (p) => {
     if (!window.confirm(`"${p.name}" — ${t('uzilsinmi?')}`)) return
-    try { const c = await facebookService.removePage(p.id); setCfg(c); onStatus?.(c.enabled && c.pages.length > 0) }
+    try { const c = await facebookService.removePage(p.id); setCfg(c); onStatus(c.enabled && c.pages.length > 0, c) }
     catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) }
   }
   const saveApp = async () => {
@@ -195,7 +205,7 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
       {!connected ? (
         <div style={{ textAlign: 'center', padding: '8px 0' }}>
           <FbLogo />
-          <div className="ac-int-lead" style={{ margin: '12px 0 16px' }}>{t("Facebook / Instagram Lead Ads formalaridan yangi lidlar avtomatik CRM'ga, «Saralanmagan» bo'limiga tushadi.")}</div>
+          <div className="ac-int-lead" style={{ margin: '12px 0 16px' }}>{t(INTRO[variant] || INTRO.leads)}</div>
           {connectBtn(t('Facebook bilan ulash'), 'ac-btn ac-btn--blue')}
           <div className="ac-muted" style={{ marginTop: 10, fontSize: 12 }}>{t("Facebook oynasida kirib, kerakli sahifalarni tanlaysiz — qolganini tizim o'zi qiladi.")}</div>
         </div>
@@ -205,7 +215,7 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
             <span className="ac-set-status ok">{t('Ulangan')} · {cfg.pages.length} {t('sahifa')}</span>
             <span style={{ display: 'flex', gap: 8 }}>
               {connectBtn(t("Yana sahifa qo'shish"), 'ac-btn')}
-              <button className="ac-btn ac-btn--blue" onClick={() => setWiz(true)}><span className="ac-btn__plus">+</span> {t("Forma qo'shish")}</button>
+              {withForms && <button className="ac-btn ac-btn--blue" onClick={() => setWiz(true)}><span className="ac-btn__plus">+</span> {t("Forma qo'shish")}</button>}
             </span>
           </div>
           {cfg.webhookStatus === 'error' && <div className="ac-int-msg err" style={{ marginTop: 8 }}>{t('Webhook obunasi o\'rnatilmadi')}: {cfg.webhookError}</div>}
@@ -215,7 +225,10 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
               const bad = st && !st.active
               return (
                 <div key={p.id} className="ac-int-list-item">
-                  <div className="grow"><div className="nm">{p.name}</div></div>
+                  <div className="grow">
+                    <div className="nm">{p.name}{p.igUsername && <span className="ac-int-ig" title="Instagram"><Ico name="instagram" size={11} />@{p.igUsername}</span>}</div>
+                    {variant === 'instagram' && !p.igId && <div className="ac-int-sub">{t("Bu sahifaga Instagram biznes akkaunt ulanmagan")}</div>}
+                  </div>
                   {st && (bad
                     ? <span className="ac-set-status" style={{ color: 'var(--palette-meta-badge-color-red)' }}>{t('Qayta ulash kerak')}</span>
                     : <span className="ac-set-status ok">{t('Faol')}</span>)}
@@ -225,8 +238,8 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
               )
             })}
           </div>
-          <div className="ac-caption" style={{ marginTop: 16 }}>{t('Formalar')}</div>
-          <div style={{ marginTop: 6 }}>
+          {withForms && <div className="ac-caption" style={{ marginTop: 16 }}>{t('Formalar')}</div>}
+          {withForms && <div style={{ marginTop: 6 }}>
             {mappings.length === 0 && <div className="ac-muted" style={{ padding: '20px 0' }}>{t("Hali forma ulanmagan.")}</div>}
             {mappings.map((m) => {
               const mapped = Object.values(safeParse(m.fieldMapJson)).filter(Boolean).length
@@ -242,7 +255,7 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
                 </div>
               )
             })}
-          </div>
+          </div>}
         </>
       )}
       {advanced}

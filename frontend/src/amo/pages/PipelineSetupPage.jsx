@@ -463,7 +463,7 @@ export default function PipelineSetupPage() {
       {hintsFor && <HintsModal stageName={hintsFor.name} hints={hintsFor.hints} onSave={saveHints} onClose={() => setHintsFor(null)} />}
       {dupOpen && <DupModal settings={settings} sources={sources} fields={fields} pipes={ctx.pipes} members={members} onClose={() => setDupOpen(false)}
         onSave={async (d) => { await patchSettings({ dups: { ...d, enabled: settings.dups.enabled } }); setDupOpen(false) }} />}
-      {srcOpen && <SourcesCatalog metaOn={metaOn} tgOn={tgOn} onClose={() => setSrcOpen(false)} onGo={() => navigate('/amo-market')} />}
+      {srcOpen && <SourcesCatalog metaOn={metaOn} tgOn={tgOn} onClose={() => setSrcOpen(false)} onGo={(k) => navigate(k === 'instagram' ? '/amo-market?open=instagram' : k === 'facebook' ? '/amo-market?open=messenger' : '/amo-market')} />}
       {confirmExit && <ConfirmModal title={t('Saqlanmagan o\'zgarishlar')} text={t("Bosqichlardagi o'zgarishlar saqlanmadi. Baribir chiqasizmi?")} yes={t('Saqlamasdan chiqish')} no={t('Qolish')} onYes={back} onNo={() => setConfirmExit(false)} />}
     </div>
   )

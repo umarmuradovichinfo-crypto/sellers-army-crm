@@ -29,4 +29,13 @@ addRu({
   'Xatolik yuz berdi': 'Произошла ошибка',
   'Bitim topilmadi': 'Сделка не найдена',
   "Suhbatlar yo'q": 'Нет диалогов',
+  'Instagram bilan chat': 'Чат в Instagram',
+  'Messenger bilan chat': 'Чат в Messenger',
+  'Telegram bilan chat': 'Чат в Telegram',
+  'Izohga javob': 'Ответ на комментарий',
+  '24 soatlik oyna': 'Окно 24 часа',
+  'javob yozish mumkin': 'отвечать можно',
+  'gacha': 'до',
+  "24 soatlik oyna yopilgan: mijoz 24 soatdan beri yozmagan, shuning uchun bu kanal orqali javob yozib bo'lmaydi. Mijoz yana yozguncha kuting.": 'Окно 24 часа закрыто: клиент не писал более 24 часов, поэтому ответить через этот канал нельзя. Дождитесь нового сообщения клиента.',
+  "Sahifa ulanmagan — Integratsiyalar bo'limida «Facebook bilan ulash»ni bosing.": 'Страница не подключена — нажмите «Подключить через Facebook» в разделе интеграций.',
 })

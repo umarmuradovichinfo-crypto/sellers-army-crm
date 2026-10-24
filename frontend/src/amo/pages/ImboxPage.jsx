@@ -40,17 +40,26 @@ function listDate(iso, t) {
   return r ? `${t(r)} ${hm(iso)}` : `${dmy(iso)} ${hm(iso)}`
 }
 
-function SrcIcon({ source }) {
-  const tg = /telegram/i.test(source || '')
-  return <span className={`ac-imbox-row__src ${tg ? 'ac-imbox-row__src--tg' : ''}`}><Ico name={tg ? 'telegram' : 'instagram'} size={8} /></span>
+// Manba ikonkasi: kanal (instagram | facebook | telegram), bo'lmasa manba nomidan
+function chanOf(c) {
+  if (c.channel) return c.channel
+  return /telegram/i.test(c.source || '') ? 'telegram' : /facebook|messenger/i.test(c.source || '') ? 'facebook' : 'instagram'
 }
+function SrcIcon({ channel }) {
+  return <span className={`ac-imbox-row__src ac-imbox-row__src--${channel}`}><Ico name={channel} size={8} /></span>
+}
+const CHAT_LABEL = { instagram: 'Instagram bilan chat', facebook: 'Messenger bilan chat', telegram: 'Telegram bilan chat' }
+const CHAN_NAME = { instagram: 'Instagram', facebook: 'Facebook Messenger', telegram: 'Telegram' }
 
 function Row({ c, on, onClick }) {
   const t = useT()
   const author = c.direction === 'out' ? t('Siz') : t('Mijoz')
   return (
     <div className={`ac-imbox-row ${on ? 'on' : ''}`} onClick={onClick}>
-      <div className="ac-imbox-row__avatar"><PersonAvatar size={36} /><SrcIcon source={c.source} /></div>
+      <div className="ac-imbox-row__avatar">
+        {c.avatar ? <img className="ac-imbox-row__img" src={c.avatar} alt="" /> : c.initial ? <span className="ac-imbox-row__letter">{c.initial}</span> : <PersonAvatar size={36} />}
+        <SrcIcon channel={chanOf(c)} />
+      </div>
       <div className="ac-imbox-row__body">
         <div className="ac-imbox-row__head">
           <span className="ac-imbox-row__num">{convNum(c.leadId)}</span>
@@ -108,7 +117,7 @@ function PipePicker({ lead, pipes, onPick }) {
 }
 
 // Ixcham composer: Chat / Eslatma
-function Composer({ lead, canChat, onSent }) {
+function Composer({ lead, canChat, channel, comment, onSent }) {
   const t = useT()
   const [mode, setMode] = useState(canChat ? 'chat' : 'note')
   const [modesOpen, setModesOpen] = useState(false)
@@ -130,7 +139,8 @@ function Composer({ lead, canChat, onSent }) {
       setText(''); setFocus(false); onSent()
     } catch (e) { setErr(e?.message || t('Xatolik yuz berdi')) } finally { setBusy(false) }
   }
-  const labels = { chat: 'Chat', note: 'Eslatma' }
+  const chatLabel = comment ? 'Izohga javob' : CHAT_LABEL[channel] || 'Chat'
+  const labels = { chat: chatLabel, note: 'Eslatma' }
   return (
     <div ref={wrap} className={`ac-compose ${focus ? 'focus' : ''}`} onClick={() => { setFocus(true); ref.current?.focus() }}>
       <div className="ac-compose__line">
@@ -143,7 +153,7 @@ function Composer({ lead, canChat, onSent }) {
             </div>
           )}
           <a onClick={(e) => { e.stopPropagation(); setModesOpen((v) => !v) }}>{t(labels[mode])}</a>
-          {mode === 'chat' && <> {t('bilan')} <a>{lead.contact?.name || lead.n}</a></>}:
+          {mode === 'chat' && !channel && <> {t('bilan')} <a>{lead.contact?.name || lead.n}</a></>}:
           <span className="ac-compose__caret" onClick={(e) => { e.stopPropagation(); setModesOpen((v) => !v) }}><Ico name="chevronDown" size={10} /></span>
         </span>
         <textarea ref={ref} className="ac-compose__text" rows={focus ? 3 : 1} placeholder={t('matn kiriting...')} value={text} maxLength={4000} onChange={(e) => { setText(e.target.value); setErr('') }} onFocus={() => setFocus(true)}
@@ -164,7 +174,7 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
   const t = useT()
   const navigate = useNavigate()
   const [lead, setLead] = useState(null)
-  const [feed, setFeed] = useState({ calls: [], tasks: [], messages: [], canReply: false })
+  const [feed, setFeed] = useState({ calls: [], tasks: [], messages: [], canReply: false, channel: null })
   const [missing, setMissing] = useState(false)
   const [err, setErr] = useState('')
   const alive = useRef(true)
@@ -179,11 +189,14 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
     ])
     if (!alive.current) return
     if (l?.lead) { setLead(l.lead); setMissing(false) } else setMissing(true)
-    setFeed({ calls: c.calls || [], tasks: tk.tasks || [], messages: m.messages || [], canReply: !!m.canReply })
+    setFeed({
+      calls: c.calls || [], tasks: tk.tasks || [], messages: m.messages || [], canReply: !!m.canReply,
+      channel: m.channel || null, replyKind: m.replyKind, windowOpen: m.windowOpen !== false, windowExpiresAt: m.windowExpiresAt || null, why: m.replyDisabledReason || null,
+    })
   }, [leadId])
 
   useEffect(() => {
-    setLead(null); setMissing(false); setFeed({ calls: [], tasks: [], messages: [], canReply: false })
+    setLead(null); setMissing(false); setFeed({ calls: [], tasks: [], messages: [], canReply: false, channel: null })
     load()
     const h = setInterval(load, REFRESH_MS)
     return () => clearInterval(h)
@@ -227,6 +240,7 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
       <div className="ac-imbox-view__top">
         <button className="ac-imbox-burger" onClick={onToggleList}><Ico name="burger" size={20} /></button>
         <span className="ac-imbox-view__title" title={t('Bitimni ochish')} onClick={() => navigate(`/leads/detail/${lead.id}`)}>{lead.n || `${t('Bitim')} #${String(lead.id).slice(-8)}`}</span>
+        {feed.channel && feed.channel !== 'telegram' && <span className={`ac-imbox-view__chan ac-imbox-view__chan--${feed.channel}`}><Ico name={feed.channel} size={11} />{CHAN_NAME[feed.channel]}</span>}
         <div className="ac-imbox-view__tags">{(lead.tags || []).map((tg) => <span key={tg} className="ac-tag">{tg}</span>)}</div>
         {pipes.length > 0 && <PipePicker lead={lead} pipes={pipes} onPick={pickStatus} />}
       </div>
@@ -250,7 +264,13 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
         </div>
       </div>
       <div className="ac-imbox-view__bottom">
-        <Composer key={lead.id} lead={lead} canChat={feed.canReply} onSent={() => { load(); onChanged && onChanged() }} />
+        {/* Meta 24 soatlik xabar oynasi */}
+        {feed.channel && feed.channel !== 'telegram' && feed.replyKind !== 'comment' && feed.windowOpen && feed.windowExpiresAt && (
+          <div className="ac-imbox-window">{t('24 soatlik oyna')}: {t('javob yozish mumkin')} {hm(feed.windowExpiresAt)} {t('gacha')}</div>
+        )}
+        {feed.why === 'WINDOW_CLOSED' && <div className="ac-imbox-window ac-imbox-window--closed">{t("24 soatlik oyna yopilgan: mijoz 24 soatdan beri yozmagan, shuning uchun bu kanal orqali javob yozib bo'lmaydi. Mijoz yana yozguncha kuting.")}</div>}
+        {feed.why === 'NOT_CONNECTED' && <div className="ac-imbox-window ac-imbox-window--closed">{t("Sahifa ulanmagan — Integratsiyalar bo'limida «Facebook bilan ulash»ni bosing.")}</div>}
+        <Composer key={lead.id} lead={lead} canChat={feed.canReply} channel={feed.channel !== 'telegram' ? feed.channel : null} comment={feed.replyKind === 'comment'} onSent={() => { load(); onChanged && onChanged() }} />
       </div>
     </div>
   )
@@ -272,7 +292,7 @@ export default function ImboxPage() {
   }, [])
   useEffect(() => {
     loadList()
-    crmService.chatStatus().then(setStatus).catch(() => setStatus({ telegram: false }))
+    crmService.chatStatus().then(setStatus).catch(() => setStatus({ telegram: false, facebook: false, instagram: false }))
     const h = setInterval(loadList, REFRESH_MS)
     return () => clearInterval(h)
   }, [loadList])
@@ -291,7 +311,7 @@ export default function ImboxPage() {
     return (convs || []).filter((c) => !s || `${c.name} ${c.last} ${convNum(c.leadId)}`.toLowerCase().includes(s))
   }, [convs, q])
 
-  const empty = convs && convs.length === 0 && status && !status.telegram
+  const empty = convs && convs.length === 0 && status && !status.telegram && !status.facebook && !status.instagram
 
   return (
     <div className={`ac-imbox ${leadId ? 'has-lead' : ''}`}>

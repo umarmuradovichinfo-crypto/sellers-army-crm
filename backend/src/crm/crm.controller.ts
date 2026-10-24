@@ -72,8 +72,8 @@ export class CrmController {
   @Get('leads-export')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @Header('Content-Disposition', 'attachment; filename="leads.csv"')
-  exportCsv() {
-    return this.crm.exportCsv();
+  exportCsv(@Query() q: Record<string, string>, @CurrentUser('id') userId?: string) {
+    return this.crm.exportCsv(q, userId);
   }
   @Post('leads-import')
   importLeads(@Body() body: { rows: any[] }, @CurrentUser() user: AuthUser) {
@@ -92,8 +92,16 @@ export class CrmController {
     return this.crm.mergeLeads(dto.keepId, dto.mergeIds || [], user);
   }
   @Get('unsorted')
-  unsorted() {
-    return this.crm.listUnsorted();
+  unsorted(@Query() q: Record<string, string>, @CurrentUser('id') userId?: string) {
+    return this.crm.listUnsorted(q, userId);
+  }
+  @Get('sources')
+  sources() {
+    return this.crm.listSources();
+  }
+  @Get('leads-duplicates')
+  duplicateGroups(@Query('by') by: string | undefined) {
+    return this.crm.duplicateGroups(by || 'phone');
   }
   @Post('unsorted/:id/accept')
   acceptUnsorted(@Param('id') id: string, @Body() dto: { assigneeId?: string; stageKey?: string; pipelineId?: string }, @CurrentUser() user: AuthUser) {

@@ -6,6 +6,7 @@ import { ActivityService } from './activity.service';
 import { AutomationService } from './automation.service';
 import { NotificationService } from './notification.service';
 import { PipelineSettingsService } from './pipeline-settings.service';
+import { pickUtm } from './utm';
 
 function parse<T>(s: string | null, fb: T): T {
   try { return JSON.parse(s || '') as T; } catch { return fb; }
@@ -88,7 +89,7 @@ export class CrmFormsService {
     return { title: f.title, description: f.description, fields: parse<any[]>(f.fieldsJson, []), settings: parse<Record<string, any>>(f.settingsJson, {}) };
   }
 
-  async submit(slug: string, answers: Record<string, any>) {
+  async submit(slug: string, answers: Record<string, any>, tracking: Record<string, any> = {}) {
     const f = await this.prisma.crmForm.findUnique({ where: { slug } });
     if (!f || !f.active) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Forma topilmadi' });
     const fields = parse<any[]>(f.fieldsJson, []);
@@ -109,6 +110,8 @@ export class CrmFormsService {
     }
 
     if (!name && !phone) throw new BadRequestException({ error: 'EMPTY', message: 'Ism yoki telefon kerak' });
+    // Reklama izlari (utm_*, gclid, fbclid, yclid, referrer ...): querystring/body'dan, forma maydonlaridan keyin (yashirin maydon bo'lsa — maydon ustun)
+    Object.assign(custom, { ...pickUtm(tracking), ...pickUtm(custom) });
 
     // Dublikat qoidalari (voronka sozlamalari): topilsa mavjud bitim yangilanadi/birlashtiriladi
     const dup = await this.pset.mergeIncoming(
@@ -145,10 +148,14 @@ export class CrmFormsService {
   // Tashqi manba (Facebook Lead Ads va h.k.) — lid yaratish (web forma bilan bir xil oqim: unsorted + avtomatika).
   async createExternalLead(input: {
     name?: string | null; phone?: string | null; email?: string | null;
-    custom?: Record<string, unknown>; source?: string;
+    custom?: Record<string, unknown>; utm?: Record<string, unknown>; source?: string;
     stageKey?: string | null; pipelineId?: string | null; assigneeId?: string | null; label?: string; formId?: string | null;
   }) {
     const src = input.source || 'Facebook';
+    // UTM: custom ichidagi utm_* + input.utm; Facebook/Meta manbasida utm_source/utm_medium bo'lmasa to'ldiriladi
+    const utm: Record<string, string> = { ...pickUtm(input.custom), ...pickUtm(input.utm) };
+    if (/facebook|meta/i.test(src)) { utm.utm_source ||= 'facebook'; utm.utm_medium ||= 'lead_ads'; }
+    input = { ...input, custom: { ...(input.custom || {}), ...utm } };
     const name = String(input.name || 'Nomsiz lid').slice(0, 200);
     const phone = input.phone ? String(input.phone).slice(0, 50) : null;
     const email = input.email ? String(input.email).slice(0, 120) : null;

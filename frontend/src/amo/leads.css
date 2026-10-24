@@ -87,3 +87,101 @@
 .ac-reasons__item { display: flex; align-items: center; gap: 8px; padding: 7px 0; cursor: pointer; font-size: 14px; }
 .ac-reasons__item:hover { color: #1691ff; }
 
+
+/* ── Filtr paneli: kengaytirilgan bloklar ── */
+.ac-filter .ac-filter__col--fields { flex: 0 0 340px; }
+.ac-filter__preset .lbl { flex: 1; min-width: 0; }
+.ac-filter__preset .edit { opacity: 0; transition: opacity 0.15s; display: inline-flex; margin-left: 6px; }
+.ac-filter__preset:hover .edit, .ac-filter__preset.on .edit { opacity: 1; }
+.ac-filter__preset .edit:hover { color: #1691ff; }
+.ac-filter__star { display: inline-flex; flex: none; }
+.ac-filter__cap { font: 700 11px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; color: var(--palette-text-secondary-dark); margin-bottom: 4px; }
+.ac-filter__block { display: flex; flex-direction: column; gap: 5px; }
+.ac-filter__sub { font-size: 12px; color: var(--palette-text-secondary-dark); margin-bottom: 3px; }
+.ac-filter__seg { display: flex; border: 1px solid var(--palette-border-primary); border-radius: 3px; overflow: hidden; }
+.ac-filter__seg button { flex: 1; height: 28px; border: 0; background: var(--palette-background-default); color: var(--palette-text-primary); font: 13px var(--font-main); cursor: pointer; border-right: 1px solid var(--palette-border-primary); }
+.ac-filter__seg button:last-child { border-right: 0; }
+.ac-filter__seg button.on { background: var(--base_button_active); color: #fff; }
+.ac-filter__utm { display: flex; align-items: center; gap: 4px; }
+.ac-filter__save { display: flex; gap: 6px; margin-top: 14px; }
+.ac-filter__save .ac-input { flex: 1; min-width: 0; }
+.ac-filter__foot { position: sticky; bottom: -14px; background: var(--palette-background-primary); padding: 10px 0 6px; z-index: 2; }
+
+/* ── Ko'p tanlovli ro'yxat ── */
+.ac-ms { position: relative; }
+.ac-ms__btn { width: 100%; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border: 1px solid var(--palette-border-primary); border-radius: 3px; background: var(--palette-background-default); color: var(--palette-text-primary); font: 13px var(--font-main); cursor: pointer; text-align: left; }
+.ac-ms__btn > span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-ms__btn .ph { color: var(--palette-text-secondary-light); }
+.ac-ms__btn svg { flex: none; color: var(--palette-text-secondary-light); transition: transform 0.15s; }
+.ac-ms.open .ac-ms__btn { border-color: var(--palette-link-primary); }
+.ac-ms.open .ac-ms__btn > svg { transform: rotate(180deg); }
+.ac-ms__x { display: inline-flex; padding: 3px; border-radius: 50%; }
+.ac-ms__x:hover { background: var(--palette-button-classic-hover-background); }
+.ac-ms__pop { margin-top: 3px; border: 1px solid var(--palette-border-primary); border-radius: 3px; background: var(--palette-background-primary); padding: 6px; display: flex; flex-direction: column; gap: 6px; animation: ac-fadeIn 0.15s ease both; }
+.ac-ms__quick { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; }
+.ac-ms__quick a { color: var(--palette-link-primary); cursor: pointer; }
+.ac-ms__quick a:hover { text-decoration: underline; }
+.ac-ms__list { max-height: 210px; overflow-y: auto; }
+.ac-ms__group { padding: 6px 4px 3px; font: 700 11px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; color: var(--palette-text-secondary-dark); }
+.ac-ms__item { display: flex; align-items: center; gap: 8px; padding: 5px 4px; font-size: 13px; cursor: pointer; border-radius: 3px; }
+.ac-ms__item:hover { background: var(--palette-button-classic-hover-background); }
+.ac-ms__item .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-ms__item .note { color: var(--palette-text-secondary-light); font-size: 12px; }
+.ac-ms__item .ac-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.ac-ms__radio { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--palette-border-default); flex: none; }
+.ac-ms__radio.on { border: 4px solid var(--base_button_active); }
+.ac-ms__empty { padding: 8px 4px; font-size: 13px; color: var(--palette-text-secondary-light); }
+
+/* ── Qidiruv satridagi filtr chip'lari ── */
+.ac-top__search .ac-chips { display: flex; align-items: center; gap: 5px; max-width: 70%; overflow: hidden; flex: none; flex-wrap: nowrap; }
+.ac-chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 4px 0 9px; border-radius: 12px; background: var(--palette-button-classic-hover-background); border: 1px solid var(--palette-border-primary); color: var(--palette-text-primary); font-size: 13px; white-space: nowrap; max-width: 260px; }
+.ac-chip > span { overflow: hidden; text-overflow: ellipsis; }
+.ac-chip button { display: inline-flex; width: 16px; height: 16px; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: transparent; color: var(--palette-text-secondary-dark); cursor: pointer; padding: 0; }
+.ac-chip button:hover { background: rgba(127, 139, 164, 0.3); color: var(--palette-text-primary); }
+
+/* ── "…" menyu: submenyu, switch, tanlangan variant ── */
+.ac-menu__sub { position: relative; }
+.ac-menu__sub > .ac-menu__item .arrow { margin-left: auto; color: var(--palette-text-secondary-light); }
+.ac-menu__subpop { position: absolute; top: -6px; right: 100%; margin-right: 2px; min-width: 210px; padding: 6px 0; background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); border-radius: var(--border-radius-default); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); animation: ac-fadeIn 0.15s ease both; }
+.ac-menu__item .grow { flex: 1; }
+.ac-menu__item .tick { width: 14px; color: #1691ff; flex: none; }
+.ac-menu__item.on { color: #1691ff; }
+
+/* ── Voronka kartasi: ommaviy rejimdagi belgilash ── */
+.ac-card--bulk { cursor: pointer; }
+.ac-card--bulk.sel { box-shadow: 0 0 0 1px #1691ff; }
+.ac-card__chk { align-self: center; }
+.ac-card__extra { font-size: 13px; line-height: 16px; color: var(--palette-text-secondary-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Dublikatlar sahifasi ── */
+.ac-dups { padding: 20px 30px 60px; max-width: 1100px; }
+.ac-dups__tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+.ac-dups__group { border: 1px solid var(--palette-border-primary); border-radius: var(--border-radius-default); margin-bottom: 14px; background: var(--palette-background-primary); }
+.ac-dups__head { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--palette-border-primary); font-size: 14px; }
+.ac-dups__head b { font-weight: 700; }
+.ac-dups__row { display: flex; align-items: center; gap: 14px; padding: 8px 14px; border-bottom: 1px solid var(--palette-border-primary); font-size: 14px; }
+.ac-dups__row:last-child { border-bottom: 0; }
+.ac-dups__row .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-dups__row a { color: #1691ff; cursor: pointer; }
+.ac-dups__row .muted { color: var(--palette-text-secondary-dark); font-size: 13px; }
+
+/* ── Maydonlar modali (karta ko'rinishi / ro'yxat ustunlari) ── */
+.ac-fieldsmodal__list { max-height: 55vh; overflow-y: auto; border: 1px solid var(--palette-border-primary); border-radius: 3px; }
+.ac-fieldsmodal__row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--palette-border-primary); font-size: 14px; cursor: pointer; }
+.ac-fieldsmodal__row:last-child { border-bottom: 0; }
+.ac-fieldsmodal__row:hover { background: var(--palette-button-classic-hover-background); }
+.ac-fieldsmodal__row .grow { flex: 1; }
+.ac-fieldsmodal__row .mv { display: inline-flex; gap: 2px; }
+.ac-fieldsmodal__row .mv button { background: none; border: 0; cursor: pointer; color: var(--palette-text-secondary-dark); padding: 2px 4px; }
+.ac-fieldsmodal__row .mv button:hover { color: #1691ff; }
+
+/* Filtr paneli .ac-top__search ichida — qidiruv inputi qoidalari (flex:1; height:100%; border:0) panel maydonlariga o'tmasligi uchun */
+.ac-filter__col > * { flex-shrink: 0; }
+.ac-filter .ac-input, .ac-filter .ac-select { flex: none; width: 100%; height: 28px; border: 1px solid var(--palette-border-primary); font: 13px var(--font-main); color: var(--palette-text-primary); }
+.ac-filter .ac-filter__range .ac-input { width: auto; flex: 1; min-width: 0; }
+.ac-filter .ac-filter__utm .ac-input { flex: 1; }
+.ac-filter input.ac-check { flex: none; width: 18px; height: 18px; border: 1px solid var(--palette-border-primary); background: var(--palette-background-default); }
+.ac-filter input.ac-check:checked { background: var(--base_button_active); border-color: var(--base_button_active_border); }
+.ac-filter .ac-filter__tags { flex: none; }
+.ac-filter__save .ac-input { width: auto; flex: 1; min-width: 0; }
+.ac-card__chk { flex: none; }

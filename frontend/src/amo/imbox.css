@@ -15,7 +15,14 @@
 :root:not([data-color-scheme="dark"]) .ac-imbox-row.on, :root:not([data-color-scheme="dark"]) .ac-imbox-row.on .ac-imbox-row__text { color: var(--palette-text-primary); }
 .ac-imbox-row__avatar { position: relative; width: 36px; height: 36px; flex: none; margin-top: 2px; }
 .ac-imbox-row__src { position: absolute; right: -3px; bottom: -3px; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #e1306c; color: #fff; border: 1px solid var(--palette-background-primary); }
-.ac-imbox-row__src--tg { background: #2aabee; }
+.ac-imbox-row__src--tg, .ac-imbox-row__src--telegram { background: #2aabee; }
+.ac-imbox-row__src--facebook { background: #1877f2; }
+.ac-imbox-row__letter { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #dcdfe3; color: #fff; font: 700 16px var(--font-main); }
+.ac-imbox-row__img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: block; }
+.ac-imbox-view__chan { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 11px; color: #fff; font: 600 12px var(--font-main); background: #e1306c; }
+.ac-imbox-view__chan--facebook { background: #1877f2; }
+.ac-imbox-window { padding: 6px 20px; font-size: 13px; color: var(--palette-text-secondary-dark); }
+.ac-imbox-window--closed { color: var(--palette-meta-badge-color-red); }
 .ac-imbox-row__body { flex: 1; min-width: 0; }
 .ac-imbox-row__head { display: flex; align-items: center; justify-content: space-between; height: 17px; }
 .ac-imbox-row__num { padding: 0 4px; border-radius: 2px; background: #55a868; color: #fff; font: 700 12px/17px var(--font-main); }

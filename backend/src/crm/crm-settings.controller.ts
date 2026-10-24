@@ -48,4 +48,8 @@ export class CrmSettingsController {
   @Get('filters') filters(@CurrentUser('id') userId: string) { return this.s.listFilters(userId); }
   @Post('filters') createFilter(@Body() dto: any, @CurrentUser('id') userId: string) { return this.s.createFilter(userId, dto); }
   @Delete('filters/:id') deleteFilter(@Param('id') id: string, @CurrentUser('id') userId: string) { return this.s.deleteFilter(userId, id); }
+
+  // ── Foydalanuvchi sozlamasi: karta ko'rinishi / ro'yxat ustunlari (kind = card | list) ──
+  @Get('card-layout') cardLayout(@Query('kind') kind: string | undefined, @CurrentUser('id') userId: string) { return this.s.getLayout(userId, kind); }
+  @Put('card-layout') saveCardLayout(@Query('kind') kind: string | undefined, @Body() dto: { fields?: string[] }, @CurrentUser('id') userId: string) { return this.s.saveLayout(userId, kind, dto?.fields); }
 }
