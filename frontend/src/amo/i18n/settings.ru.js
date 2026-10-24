@@ -197,4 +197,12 @@ addRu({
   "To'liq bloklanib qolmaslik uchun ro'yxatda joriy IP manzilingiz bo'lishi shart": 'В списке обязательно должен быть указан ваш текущий IP, чтобы избежать полной блокировки',
   'Joriy IP': 'Текущий IP',
   "set§Qo'shish": 'Добавить',
+  "Tanlangan hodisalar yuz berganda ko'rsatilgan manzilga POST so'rov (JSON) yuboriladi.": 'При наступлении выбранных событий на указанный адрес отправляется POST-запрос (JSON).',
+  "Bitim qo'shildi": 'Сделка добавлена',
+  "Bitim o'zgartirildi": 'Сделка изменена',
+  "Bitim bosqichi o'zgardi": 'У сделки сменился этап',
+  "Bitim o'chirildi": 'Сделка удалена',
+  "Bitimga eslatma qo'shildi": 'Примечание добавлено в сделку',
+  "Vazifa qo'shildi": 'Задача добавлена',
+  "Web hook qo'shish": 'Добавить hook',
 })

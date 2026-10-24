@@ -135,3 +135,12 @@
 .ac-set-iplist { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .ac-set-ip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: 1px solid var(--palette-border-default); border-radius: 3px; font-size: 14px; }
 .ac-set-ip button { border: 0; background: none; color: var(--palette-text-secondary-dark); cursor: pointer; display: flex; }
+
+/* Market → WEB HOOKS */
+.ac-int-hooksbtn { display: inline-flex; align-items: center; gap: 6px; }
+.ac-int-hookscnt { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--palette-border-default); font-size: 12px; }
+.ac-hook { padding: 12px 0; border-bottom: 1px solid var(--palette-border-primary); }
+.ac-hook__row { display: flex; gap: 8px; align-items: center; }
+.ac-hook__row .ac-input { flex: 1; }
+.ac-hook__events { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 14px; margin-top: 10px; font-size: 14px; }
+.ac-hook__events label { display: flex; align-items: center; gap: 6px; cursor: pointer; }

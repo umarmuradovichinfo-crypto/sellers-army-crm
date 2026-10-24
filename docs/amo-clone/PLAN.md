@@ -43,7 +43,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
    - [ ] Voqealar: "qiymat oldin/keyin" uchun backend activity'da before/after saqlash
 8. [ ] Ish stoli: vidjetlar, davr tanlagich, voronka statistikasi
 9. [~] Sozlamalar: [x] umumiy (til tanlash), foydalanuvchilar, chatlar, xavfsizlik; [x] Market/Integratsiyalar (OnlinePBX, Facebook, Telegram, formalar); [ ] voronka sozlash (bitim manbalari, digital pipeline); [ ] maydonlar sozlash (/settings/fields/leads)
-   - [ ] Integratsiyalar: "O'rnatilganlar" tabida ulangan integratsiyalar ko'rinmayapti
+   - [x] Integratsiyalar: "O'rnatilganlar" tabi ulangan integratsiyalarni ko'rsatadi (holat tekshiruvi bor)
    - [ ] O'z parolini o'zgartirish uchun /settings/me/password (joriy parol tekshiruvi bilan)
    - [ ] Umumiy sozlamalardagi sana/vaqt/valyuta formatlarini format.js ishlatishi
 10. [x] Eski kodni tozalash: 14 ta ishlatilmaydigan fayl (CRM.jsx, Settings.jsx, components/crm/*, FormBuilder), eski CSS 55KB→12KB (faqat Login/LeadForm/CallWidget/Dialog ishlatadigan qoidalar qoldi)

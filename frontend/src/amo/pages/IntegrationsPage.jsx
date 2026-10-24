@@ -1,6 +1,8 @@
 // amoМаркет o'rnida: "Integratsiyalar" (/amo-market) — kartochkalar grid'i, bosilganda vidjet oynasi (modal).
 import React, { useEffect, useMemo, useState } from 'react'
 import TopBar from '../TopBar'
+import { useAuth } from '../../context/AuthContext'
+import { api } from '../../lib/apiClient'
 import { Ico } from '../AmoIcons'
 import { useT } from '../i18n'
 import { useApi } from '../../lib/useApi'
@@ -35,9 +37,58 @@ const CARDS = [
     desc: "Saytga joylanadigan formalar: to'ldirilganda CRM'ga lid bo'lib tushadi." },
 ]
 
+const HOOK_EVENTS = [
+  ['add_lead', "Bitim qo'shildi"], ['update_lead', "Bitim o'zgartirildi"], ['status_lead', "Bitim bosqichi o'zgardi"],
+  ['delete_lead', "Bitim o'chirildi"], ['note_lead', "Bitimga eslatma qo'shildi"], ['add_task', "Vazifa qo'shildi"],
+]
+// Market → "WEB HOOKS": hodisa bo'lganda tashqi URL'ga JSON POST (amoCRM Web hooks)
+function WebhooksModal({ data, onClose, onSaved }) {
+  const t = useT()
+  const [list, setList] = useState(() => (data?.webhooks || []).map((x) => ({ ...x })))
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const upd = (i, patch) => setList((l) => l.map((x, j) => (j === i ? { ...x, ...patch } : x)))
+  const save = async () => {
+    setBusy(true); setErr('')
+    try { await api.put('/crm/webhooks', { webhooks: list }); onSaved(); onClose() } catch (e) { setErr(e?.message || t('Xatolik yuz berdi')) } finally { setBusy(false) }
+  }
+  return (
+    <div className="ac-modal-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="ac-modal" style={{ maxWidth: 720 }}>
+        <h2 className="ac-int-section" style={{ marginTop: 0 }}>Web hooks</h2>
+        <div className="ac-muted" style={{ marginBottom: 14, fontSize: 14 }}>{t("Tanlangan hodisalar yuz berganda ko'rsatilgan manzilga POST so'rov (JSON) yuboriladi.")}</div>
+        {list.map((h, i) => (
+          <div key={h.id || i} className="ac-hook">
+            <div className="ac-hook__row">
+              <input className="ac-input" placeholder="https://example.com/hook" value={h.url} onChange={(e) => upd(i, { url: e.target.value })} />
+              <button className="ac-top__dots" title={t("O'chirish")} onClick={() => setList((l) => l.filter((_, j) => j !== i))}><Ico name="trash" size={14} /></button>
+            </div>
+            <div className="ac-hook__events">
+              {HOOK_EVENTS.map(([k, l]) => (
+                <label key={k}><input type="checkbox" className="ac-check" checked={(h.events || []).includes(k)}
+                  onChange={(e) => upd(i, { events: e.target.checked ? [...(h.events || []), k] : (h.events || []).filter((x) => x !== k) })} /> {t(l)}</label>
+              ))}
+            </div>
+          </div>
+        ))}
+        <a className="ac-set-addlink" onClick={() => setList((l) => [...l, { url: '', events: ['add_lead', 'status_lead'], active: true }])}>+ {t("Web hook qo'shish")}</a>
+        {err && <div className="ac-set-err" style={{ marginTop: 10 }}>{err}</div>}
+        <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+          <button className="ac-btn ac-btn--blue" disabled={busy} onClick={save}>{t('Saqlash')}</button>
+          <button className="ac-btn ac-btn--plain" onClick={onClose}>{t('Bekor qilish')}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function IntegrationsPage() {
   const t = useT()
   const [tab, setTab] = useState('installed')
+  const { can } = useAuth()
+  const canHooks = can('settings.roles.manage')
+  const [hooksOpen, setHooksOpen] = useState(false)
+  const hooks = useApi(() => (canHooks ? api.get('/crm/webhooks') : Promise.resolve(null)), [], 'amo:int:webhooks')
   const [q, setQ] = useState('')
   // Facebook OAuth redirect'idan qaytganda (?fb=) modal avtomatik ochiladi
   // ?open=instagram|messenger|facebook — voronka sozlamalari manbalar katalogidan keladi
@@ -81,7 +132,9 @@ export default function IntegrationsPage() {
 
   return (
     <div className="ac-content">
-      <TopBar title={t('Integratsiyalar')} search={q} onSearch={setQ} searchPlaceholder="Qidiruv" />
+      <TopBar title={t('Integratsiyalar')} search={q} onSearch={setQ} searchPlaceholder="Qidiruv"
+        actions={canHooks && <button className="ac-btn ac-int-hooksbtn" onClick={() => setHooksOpen(true)}><span className="ac-btn__plus">+</span>WEB HOOKS{hooks.data?.webhooks?.length ? <span className="ac-int-hookscnt">{hooks.data.webhooks.length}</span> : null}</button>} />
+      {hooksOpen && <WebhooksModal data={hooks.data} onClose={() => setHooksOpen(false)} onSaved={() => hooks.reload()} />}
       <div className="ac-int-tabs">
         {TABS.map((x) => <button key={x.key} className={`ac-int-tab ${tab === x.key ? 'on' : ''}`} onClick={() => setTab(x.key)}>{t(x.label)}</button>)}
       </div>

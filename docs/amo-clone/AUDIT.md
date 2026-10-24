@@ -112,3 +112,9 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 1 | Yuqoridan tushadigan chiziq: ism, email (nusxalash), "профиль", "выйти", o'ngda mavzu auto/light/dark | chapdan yon panel, auto yo'q | tuzatildi (+ til UZ/RU shu chiziqda) |
 | 2 | "профиль" oynasi | yo'q | qo'shildi (til, o'z parolini o'zgartirish) |
 | 3 | Mavzu "auto" — tizim mavzusiga ergashadi | yo'q | qo'shildi |
+
+## 14. Market (Integratsiyalar)
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | "+ WEB HOOKS (n)": hodisalarda (bitim qo'shildi/o'zgardi/bosqich/o'chirildi, eslatma, vazifa) tashqi URL'ga POST | yo'q | qo'shildi (crm/webhooks, SSRF himoyasi, fon rejimida) |
+| 2 | Bannerlar, "Выбор amoCRM", "Амма и агенты", Email/SMS katalogi | — | amoCRM marketplace kontenti — qo'shilmaydi |

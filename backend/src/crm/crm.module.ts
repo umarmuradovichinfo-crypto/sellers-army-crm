@@ -1,3 +1,4 @@
+import { WebhooksController } from './webhooks.controller';
 import { Module } from '@nestjs/common';
 
 import { ActivityService } from './activity.service';
@@ -28,7 +29,7 @@ import { ProductsService } from './products.service';
 import { ReminderService } from './reminder.service';
 
 @Module({
-  controllers: [
+  controllers: [WebhooksController, 
     CrmController,
     CrmSettingsController,
     CrmImportController,

@@ -622,6 +622,7 @@ export class CrmService {
     if (!l) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
     await this.prisma.activity.deleteMany({ where: { leadId: id } });
     await this.prisma.lead.delete({ where: { id } });
+    void this.activity.hook('delete_lead', { leadId: id, name: l.name });
     return { success: true };
   }
 
