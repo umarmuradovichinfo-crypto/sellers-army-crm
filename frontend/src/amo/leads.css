@@ -196,3 +196,18 @@
 .ac-card__kv { display: flex; gap: 10px; font-size: 13px; line-height: 19px; }
 .ac-card__kv span { width: 92px; flex: none; color: var(--palette-text-secondary-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ac-card__kv b { flex: 1; min-width: 0; font-weight: 400; color: var(--palette-text-secondary-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* amoCRM filtr: ixcham qatorlar (.filter__custom_settings__item) */
+.ac-filter .ac-filter__col--fields { gap: 10px; }
+.ac-filter .ac-filter__col--fields > .ac-input, .ac-filter .ac-filter__col--fields .ac-ms__btn, .ac-filter .ac-filter__col--fields .ac-filter__range .ac-input { height: 30px; border-color: var(--palette-border-default); background: transparent; font-size: 13px; }
+.ac-ms__btn--amo { gap: 8px; }
+.ac-ms__btn--amo > svg:first-child { color: var(--palette-text-secondary-dark); }
+.ac-ms__btn--amo .ph { color: var(--palette-text-secondary-dark); }
+.ac-ms__box { flex: none; width: 13px; height: 13px; border: 1px solid var(--palette-text-secondary-light); border-radius: 2px; position: relative; }
+.ac-ms__box.some::after { content: ''; position: absolute; left: 2px; right: 2px; top: 5px; height: 1px; background: var(--palette-text-primary); }
+.ac-ms__box.all { background: var(--palette-link-primary); border-color: var(--palette-link-primary); }
+.ac-datepop { padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.ac-datepop .ac-filter__seg { flex-wrap: wrap; }
+.ac-filter__more { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--palette-link-primary); text-decoration: underline; cursor: pointer; }
+.ac-ms__btn--amo > span.ac-ms__box { flex: none; width: 13px; }
+.ac-ms__btn--amo > span.ac-ms__txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }

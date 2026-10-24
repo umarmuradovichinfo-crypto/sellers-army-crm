@@ -14,3 +14,9 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 7 | Tugma "НАСТРОИТЬ" | "НАСТРОИТЬ ВОРОНКУ" | tuzatildi |
 | 8 | "Архивные воронки" bo'limi | voronka arxivi yo'q | rejada (backend: voronkani arxivlash) |
 | 9 | Chap menyu: "AI-агенты и боты", "Покупатели" | yo'q | amoCRM'ning alohida mahsulotlari — qo'shilmaydi |
+| 10 | "…" menyu tartibi: Настроить воронку, Импорт, Экспорт, Внешний вид карточки, Поиск дублей, Массовые действия, Сортировка, Автообновление | "Voronkani sozlash" yo'q, saralash 3-o'rinda | tuzatildi |
+| 11 | Filtr o'rta ustuni: sarlavhasiz ixcham qatorlar ("Причины отказа: Все значения", kvadrat belgi), sana — bitta "📅 За все время" boshqaruvi, "Активные статусы", "Требующие внимания: Не учитывать" | sarlavhali bloklar, sana alohida tugmalar | tuzatildi |
+| 12 | UTM maydonlari ro'yxatda ochiq (har biri placeholder bilan) | "maydonni tanlang" orqali qo'shish | tuzatildi |
+| 13 | Teglar ustunida "Остальные теги" (ko'p bo'lsa), teglar rangli | rangsiz chegara | tuzatildi |
+| 14 | Saqlash (filtr nomi) qatori faqat filtr o'zgarganda | doim ko'rinardi | tuzatildi |
+| 15 | Internet uzilganda chap pastda "Нет подключения [Переподключиться]" | yuqorida NetworkBar | tekshirish kerak (keyingi qadam) |

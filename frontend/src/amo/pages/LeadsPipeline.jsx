@@ -419,12 +419,14 @@ export default function LeadsPipeline() {
         chips={filterChips(filter, meta, t).map((c) => ({ id: c.id, label: c.label, onRemove: () => Q.removeChip(c.clear) }))}
         count={<>{plural(totalCount, 'bitim')}:<b>{money(totalSum)}</b></>}
         menu={[
+          // amoCRM tartibi: Настроить воронку, Импорт, Экспорт, Внешний вид карточки, Поиск дублей, Массовые действия, Сортировка, Автообновление
+          { label: t('Voronkani sozlash'), icon: 'gear', onClick: () => navigate(`/settings/pipeline/leads/${pipelineId || 'main'}`) },
           { label: t('Import'), icon: 'download', onClick: () => navigate('/leads/import') },
           { label: t('Eksport'), icon: 'excel', onClick: () => downloadLeadsCsv({ ...filterParams, pipelineId: pipelineId || 'main', unsorted: '0' }).catch((e) => window.alert(e?.message || t('Xatolik yuz berdi'))) },
-          sortMenuItem(t, sort, Q.setSort),
           { label: t("Kartochka ko'rinishi"), icon: 'edit', onClick: () => setCardModal(true) },
           { label: t('Dublikatlarni qidirish'), icon: 'search', onClick: () => navigate('/leads/duplicates') },
           { label: t('Ommaviy amallar'), icon: 'check', switch: bulk, onClick: () => { setBulk((v) => !v); setSel(new Set()) } },
+          sortMenuItem(t, sort, Q.setSort),
           { label: t('Avto-yangilash'), switch: autoRefresh, onClick: () => setAutoRefresh((v) => { localStorage.setItem('amo_autorefresh', v ? '0' : '1'); return !v }) },
         ]}
         actions={<>

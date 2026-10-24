@@ -5,7 +5,8 @@ import { Ico } from './AmoIcons'
 import { useOutside } from './TopBar'
 import { useT } from './i18n'
 
-export default function MultiSelect({ options, value, onChange, placeholder, search = true, single = false, quick = null, groups = null }) {
+// label berilsa — amoCRM filtr uslubi: "Label: Все значения" / "Label: tanlangan", chapda kvadrat belgi, o'q yo'q
+export default function MultiSelect({ options, value, onChange, placeholder, search = true, single = false, quick = null, groups = null, label = null, emptyText = 'Barcha qiymatlar', chevron = false }) {
   const t = useT()
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
@@ -26,10 +27,13 @@ export default function MultiSelect({ options, value, onChange, placeholder, sea
   let lastGroup = null
   return (
     <div className={`ac-ms ${open ? 'open' : ''}`} ref={ref}>
-      <button type="button" className="ac-ms__btn" onClick={() => setOpen((v) => !v)}>
-        <span className={text ? '' : 'ph'}>{text || placeholder}</span>
+      <button type="button" className={`ac-ms__btn ${label != null ? 'ac-ms__btn--amo' : ''}`} onClick={() => setOpen((v) => !v)}>
+        {label != null && !single && <span className={`ac-ms__box ${shown.length ? (shown.length === options.length ? 'all' : 'some') : ''}`} />}
+        {label != null
+          ? <span className={`ac-ms__txt ${text ? '' : 'ph'}`}>{label ? `${label}: ` : ''}{text || t(emptyText)}</span>
+          : <span className={text ? '' : 'ph'}>{text || placeholder}</span>}
         {!single && shown.length > 0 && <span className="ac-ms__x" title={t('Bekor')} onClick={(e) => { e.stopPropagation(); onChange([]) }}><Ico name="close" size={9} /></span>}
-        <Ico name="chevronDown" size={10} />
+        {(label == null || chevron) && <Ico name="chevronDown" size={10} />}
       </button>
       {open && (
         <div className="ac-ms__pop">

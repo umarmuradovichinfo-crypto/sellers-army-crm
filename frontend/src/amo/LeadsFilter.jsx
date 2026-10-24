@@ -1,6 +1,7 @@
 // amoCRM filtr paneli (.filter-search): chapda presetlar + saqlangan filtrlar, o'rtada bitim xususiyatlari (FILTERS-SPEC tartibida), o'ngda teglar.
 import React, { useEffect, useMemo, useState } from 'react'
 import { Ico } from './AmoIcons'
+import { useOutside } from './TopBar'
 import { useT } from './i18n'
 import MultiSelect from './MultiSelect'
 import { crmService } from '../services/crm.service'
@@ -12,12 +13,7 @@ import './i18n/leadsfilter.ru.js'
 
 export { EMPTY_FILTER, PRESETS }
 
-function Block({ label, children }) {
-  const t = useT()
-  return <div className="ac-filter__block"><div className="ac-filter__cap">{t(label)}</div>{children}</div>
-}
-
-function Range({ from, to, onFrom, onTo, ph, type = 'text' }) {
+function Range({ from, to, onFrom, onTo, ph, type = 'text', raw }) {
   const t = useT()
   return (
     <div className="ac-filter__range">
@@ -28,37 +24,70 @@ function Range({ from, to, onFrom, onTo, ph, type = 'text' }) {
   )
 }
 
-// Maxsus maydon (turiga qarab)
+// Maxsus maydon (turiga qarab), amoCRM ixcham ko'rinishida
 function CustomField({ field, value, onChange }) {
   const t = useT()
   const ty = field.type
   if (ty === 'select' || ty === 'multiselect') {
     const opts = [...(field.options || []).map((o) => ({ value: o, label: o })), { value: 'empty', label: t("Bo'sh") }]
-    return <MultiSelect options={opts} value={value || []} onChange={onChange} placeholder={field.label} />
+    return <MultiSelect options={opts} value={value || []} onChange={onChange} label={field.label} />
   }
-  if (ty === 'number') return <div><div className="ac-filter__sub">{field.label}</div><Range from={value?.from} to={value?.to} onFrom={(v) => onChange({ ...value, from: v })} onTo={(v) => onChange({ ...value, to: v })} ph={t('dan')} /></div>
+  if (ty === 'number') return <Range from={value?.from} to={value?.to} onFrom={(v) => onChange({ ...value, from: v })} onTo={(v) => onChange({ ...value, to: v })} ph={field.label} raw />
   if (ty === 'date') {
     const v = value || {}
-    return (
-      <div>
-        <div className="ac-filter__sub">{field.label}</div>
-        <MultiSelect single search={false} options={DATE_PRESETS.map((d) => ({ value: d.key, label: t(d.label) }))} value={v.preset || ''} onChange={(p) => onChange({ preset: p })} placeholder={t('Butun vaqt uchun')} />
-        <Range type="date" from={v.from} to={v.to} onFrom={(x) => onChange({ from: x, to: v.to })} onTo={(x) => onChange({ from: v.from, to: x })} />
-      </div>
-    )
+    return <DateControl label={field.label} f={{ datePreset: v.preset || '', from: v.from || '', to: v.to || '' }}
+      setF={(fn) => { const n = fn({ datePreset: v.preset || '', from: v.from || '', to: v.to || '' }); onChange({ preset: n.datePreset || undefined, from: n.from || undefined, to: n.to || undefined }) }} />
   }
   if (ty === 'checkbox') {
-    return (
-      <MultiSelect single search={false} options={[{ value: '', label: t(field.label) }, { value: 'yes', label: t('Ha') }, { value: 'no', label: t("Yo'q") }]} value={value || ''} onChange={onChange} placeholder={field.label} />
-    )
+    return <MultiSelect single search={false} chevron options={[{ value: '', label: t('Hisobga olinmasin') }, { value: 'yes', label: t('Ha') }, { value: 'no', label: t("Yo'q") }]} value={value || ''} onChange={onChange} label={field.label} emptyText="Hisobga olinmasin" />
   }
   return <input className="ac-input" placeholder={field.label} value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} />
+}
+
+// Sana boshqaruvi (amoCRM: "📅 За все время" — ochilganda sana turi, davrlar va oraliq)
+function DateControl({ f, setF, dateFields = [], label }) {
+  const t = useT()
+  const [open, setOpen] = useState(false)
+  const ref = React.useRef(null)
+  useOutside(ref, () => setOpen(false), open)
+  const preset = DATE_PRESETS.find((d) => d.key === f.datePreset)
+  const range = f.from || f.to ? `${f.from || '…'} — ${f.to || '…'}` : ''
+  const kind = f.dateField && f.dateField !== 'created' ? (f.dateField === 'closed' ? t('Yopilgan') : dateFields.find((d) => d.key === f.dateField)?.label) : ''
+  const text = preset ? t(preset.label) : range || t('Butun vaqt uchun')
+  return (
+    <div className={`ac-ms ${open ? 'open' : ''}`} ref={ref}>
+      <button type="button" className="ac-ms__btn ac-ms__btn--amo" onClick={() => setOpen((v) => !v)}>
+        <Ico name="calendar" size={12} />
+        <span className={preset || range ? '' : 'ph'}>{label ? `${label}: ` : ''}{kind ? `${kind}: ` : ''}{text}</span>
+      </button>
+      {open && (
+        <div className="ac-ms__pop ac-datepop">
+          {!label && (
+            <div className="ac-filter__seg">
+              <button className={f.dateField === 'created' || !f.dateField ? 'on' : ''} onClick={() => setF((p) => ({ ...p, dateField: 'created' }))}>{t('Yaratilgan')}</button>
+              <button className={f.dateField === 'closed' ? 'on' : ''} onClick={() => setF((p) => ({ ...p, dateField: 'closed' }))}>{t('Yopilgan')}</button>
+              {dateFields.map((d) => <button key={d.key} className={f.dateField === d.key ? 'on' : ''} onClick={() => setF((p) => ({ ...p, dateField: d.key }))}>{d.label}</button>)}
+            </div>
+          )}
+          <div className="ac-ms__list">
+            {DATE_PRESETS.map((d) => (
+              <label key={d.key} className={`ac-ms__item ${f.datePreset === d.key ? 'on' : ''}`} onClick={(e) => { e.preventDefault(); setF((p) => ({ ...p, datePreset: d.key, from: '', to: '' })); setOpen(false) }}>
+                <span className={`ac-ms__radio ${f.datePreset === d.key ? 'on' : ''}`} /><span className="lbl">{t(d.label)}</span>
+              </label>
+            ))}
+          </div>
+          <Range type="date" from={f.from} to={f.to} onFrom={(v) => setF((p) => ({ ...p, from: v, datePreset: '' }))} onTo={(v) => setF((p) => ({ ...p, to: v, datePreset: '' }))} />
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function LeadsFilter({ value, meta, onApply }) {
   const [f, setF] = useState(value)
   const [tagQ, setTagQ] = useState('')
   const [saveName, setSaveName] = useState('')
+  const [allTags, setAllTags] = useState(false)
   const t = useT()
   useEffect(() => setF(value), [value])
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
@@ -117,68 +146,40 @@ export default function LeadsFilter({ value, meta, onApply }) {
             </div>
           )
         })}
-        <div className="ac-filter__save">
+        {JSON.stringify(f) !== JSON.stringify(value) && <div className="ac-filter__save">
           <input className="ac-input" placeholder={t('Filtr nomi')} value={saveName} onChange={(e) => setSaveName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveCurrent()} />
           <button className="ac-btn ac-btn--sm" disabled={!saveName.trim()} onClick={saveCurrent}>{t('Saqlash')}</button>
-        </div>
+        </div>}
       </div>
 
       <div className="ac-filter__col ac-filter__col--fields">
-        <div className="ac-filter__label">{t('Bitim xususiyatlari')}</div>
+        {/* amoCRM: sarlavhasiz ixcham qatorlar — "Nom: Все значения" yoki placeholder = nom */}
         <input className="ac-input" placeholder={t('Bitim nomi')} value={f.name} onChange={(e) => set('name', e.target.value)} />
+        <DateControl f={f} setF={setF} dateFields={dateFields} />
+        <MultiSelect options={stageOpts} groups value={f.stages} onChange={(v) => set('stages', v)} label="" emptyText="Faol bosqichlar"
+          quick={[{ label: 'Faol bosqichlar', pick: (o) => o.filter((x) => x.kind === 'open').map((x) => x.value) }]} />
+        <MultiSelect options={reasonOpts} value={f.lostReasons} onChange={(v) => set('lostReasons', v)} label={t('Rad etish sabablari')} />
+        <MultiSelect search={false} options={UNSORTED_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} value={f.unsortedCategory} onChange={(v) => set('unsortedCategory', v)} label={t('Saralanmagan turi')} />
+        <MultiSelect options={srcOpts} value={f.sources} onChange={(v) => set('sources', v)} label={t('Bitim manbasi')} />
+        <MultiSelect options={memNone} value={f.assigneeIds} onChange={(v) => set('assigneeIds', v)} label={t('Menejerlar')} />
+        <MultiSelect options={mem} value={f.createdByIds} onChange={(v) => set('createdByIds', v)} label={t('Kim yaratgan')} />
+        <MultiSelect options={mem} value={f.updatedByIds} onChange={(v) => set('updatedByIds', v)} label={t("Kim o'zgartirgan")} />
+        <MultiSelect search={false} options={TASK_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} value={f.tasks} onChange={(v) => set('tasks', v)} label={t('Vazifalar')} />
+        <Range from={f.budgetFrom} to={f.budgetTo} onFrom={(v) => set('budgetFrom', v.replace(/\D/g, ''))} onTo={(v) => set('budgetTo', v.replace(/\D/g, ''))} ph="Byudjet" />
+        <MultiSelect single search={false} chevron options={[['', 'Hisobga olinmasin'], ['no', "Yo'q"], ['yes', 'Bor']].map(([k, l]) => ({ value: k, label: t(l) }))}
+          value={f.attention} onChange={(v) => set('attention', v)} label={t("E'tibor talab")} emptyText="Hisobga olinmasin" />
 
-        <Block label="Sana">
-          <div className="ac-filter__seg">
-            <button className={f.dateField === 'created' || !f.dateField ? 'on' : ''} onClick={() => set('dateField', 'created')}>{t('Yaratilgan')}</button>
-            <button className={f.dateField === 'closed' ? 'on' : ''} onClick={() => set('dateField', 'closed')}>{t('Yopilgan')}</button>
-          </div>
-          {dateFields.length > 0 && (
-            <MultiSelect single search={false} options={dateFields.map((d) => ({ value: d.key, label: d.label }))} value={customDateOn ? f.dateField : ''} onChange={(v) => set('dateField', v || 'created')} placeholder={t('Boshqa sana maydoni')} />
-          )}
-          <MultiSelect single search={false} options={DATE_PRESETS.map((d) => ({ value: d.key, label: t(d.label) }))} value={f.datePreset} onChange={(v) => setF((p) => ({ ...p, datePreset: v, from: '', to: '' }))} placeholder={t('Butun vaqt uchun')} />
-          <Range type="date" from={f.from} to={f.to} onFrom={(v) => setF((p) => ({ ...p, from: v, datePreset: '' }))} onTo={(v) => setF((p) => ({ ...p, to: v, datePreset: '' }))} />
-        </Block>
+        {fields.map((fd) => <CustomField key={fd.key} field={fd} value={f.cf[fd.key]} onChange={(v) => setCf(fd.key, v)} />)}
 
-        <Block label="Bosqichlar">
-          <MultiSelect options={stageOpts} groups value={f.stages} onChange={(v) => set('stages', v)} placeholder={t('Bosqichlarni tanlang')}
-            quick={[{ label: 'Faol bosqichlar', pick: (o) => o.filter((x) => x.kind === 'open').map((x) => x.value) }]} />
-        </Block>
-        <Block label="Rad etish sababi"><MultiSelect options={reasonOpts} value={f.lostReasons} onChange={(v) => set('lostReasons', v)} placeholder={t('Sababni tanlang')} /></Block>
-        <Block label="Saralanmagan turi"><MultiSelect search={false} options={UNSORTED_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} value={f.unsortedCategory} onChange={(v) => set('unsortedCategory', v)} placeholder={t('Turini tanlang')} /></Block>
-        <Block label="Manba"><MultiSelect options={srcOpts} value={f.sources} onChange={(v) => set('sources', v)} placeholder={t('Manbani tanlang')} /></Block>
-        <Block label="Menejerlar"><MultiSelect options={memNone} value={f.assigneeIds} onChange={(v) => set('assigneeIds', v)} placeholder={t('Menejerni tanlang')} /></Block>
-        <Block label="Kim yaratgan"><MultiSelect options={mem} value={f.createdByIds} onChange={(v) => set('createdByIds', v)} placeholder={t('Foydalanuvchini tanlang')} /></Block>
-        <Block label="Kim o'zgartirgan"><MultiSelect options={mem} value={f.updatedByIds} onChange={(v) => set('updatedByIds', v)} placeholder={t('Foydalanuvchini tanlang')} /></Block>
-        <Block label="Vazifalar"><MultiSelect search={false} options={TASK_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} value={f.tasks} onChange={(v) => set('tasks', v)} placeholder={t('Barcha qiymatlar')} /></Block>
-        <Block label="Byudjet"><Range from={f.budgetFrom} to={f.budgetTo} onFrom={(v) => set('budgetFrom', v.replace(/\D/g, ''))} onTo={(v) => set('budgetTo', v.replace(/\D/g, ''))} ph="dan" /></Block>
-        <Block label="E'tibor talab">
-          <div className="ac-filter__seg">
-            {[['', 'Hisobga olinmasin'], ['no', "Yo'q"], ['yes', 'Bor']].map(([k, l]) => <button key={k} className={f.attention === k ? 'on' : ''} onClick={() => set('attention', k)}>{t(l)}</button>)}
-          </div>
-        </Block>
-
-        {fields.map((fd) => (
-          <Block key={fd.key} label={fd.label}>
-            <CustomField field={fd} value={f.cf[fd.key]} onChange={(v) => setCf(fd.key, v)} />
-          </Block>
+        {UTM_KEYS.map((k) => (
+          <input key={k} className="ac-input" placeholder={k} value={f.utm[k] || ''}
+            onChange={(e) => { const u = { ...f.utm, [k]: e.target.value }; if (!e.target.value) delete u[k]; set('utm', u) }} />
         ))}
 
-        <Block label="UTM">
-          <MultiSelect single search={false} options={UTM_KEYS.filter((k) => !(k in f.utm)).map((k) => ({ value: k, label: k }))} value="" onChange={(k) => k && set('utm', { ...f.utm, [k]: '' })} placeholder={t('Maydonni tanlang')} />
-          {Object.keys(f.utm).map((k) => (
-            <div key={k} className="ac-filter__utm">
-              <input className="ac-input" placeholder={k} value={f.utm[k]} onChange={(e) => set('utm', { ...f.utm, [k]: e.target.value })} />
-              <button className="ac-top__dots" style={{ width: 24, height: 24 }} onClick={() => { const u = { ...f.utm }; delete u[k]; set('utm', u) }}><Ico name="close" size={11} /></button>
-            </div>
-          ))}
-        </Block>
-
-        <div className="ac-filter__label" style={{ marginTop: 8 }}>{t('Kontakt xususiyatlari')}</div>
         <input className="ac-input" placeholder={t('Kontakt: F.I.Sh.')} value={f.contactName} onChange={(e) => set('contactName', e.target.value)} />
         <input className="ac-input" placeholder={t('Kontakt: telefon')} value={f.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} />
         <input className="ac-input" placeholder="Email" value={f.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} />
         <input className="ac-input" placeholder={t('Lavozim')} value={f.contactPosition} onChange={(e) => set('contactPosition', e.target.value)} />
-        <div className="ac-filter__label" style={{ marginTop: 8 }}>{t('Kompaniya xususiyatlari')}</div>
         <input className="ac-input" placeholder={t('Kompaniya nomi')} value={f.companyName} onChange={(e) => set('companyName', e.target.value)} />
 
         <div className="ac-filter__foot">
@@ -191,13 +192,14 @@ export default function LeadsFilter({ value, meta, onApply }) {
         <div className="ac-filter__label">{t('Teglar')} <a href="/settings/tags" onClick={(e) => e.stopPropagation()}>{t('Boshqarish')}</a></div>
         <input className="ac-input" style={{ width: 235 }} placeholder={t('Teg topish')} value={tagQ} onChange={(e) => setTagQ(e.target.value)} />
         <div className="ac-filter__tags">
-          {(meta.tags || []).filter((x) => !tagQ || x.name.toLowerCase().includes(tagQ.toLowerCase())).map((x) => (
+          {(meta.tags || []).filter((x) => !tagQ || x.name.toLowerCase().includes(tagQ.toLowerCase())).slice(0, allTags || tagQ ? undefined : 40).map((x) => (
             <span key={x.id || x.name} className="ac-filter__tagrow">
-              <span className={`ac-tag ${f.tags.includes(x.name) ? 'on' : ''}`} style={x.color ? { borderColor: x.color } : undefined} onClick={() => toggleTag(x.name)}>{x.name}</span>
+              <span className={`ac-tag ${x.color ? 'ac-tag--c' : ''} ${f.tags.includes(x.name) ? 'on' : ''}`} style={x.color ? { '--tag': x.color } : undefined} onClick={() => toggleTag(x.name)}>{x.name}</span>
               {x.usage != null && x.usage}
             </span>
           ))}
         </div>
+        {!allTags && !tagQ && (meta.tags || []).length > 40 && <a className="ac-filter__more" onClick={() => setAllTags(true)}>{t('Boshqa teglar')}</a>}
       </div>
     </>
   )
