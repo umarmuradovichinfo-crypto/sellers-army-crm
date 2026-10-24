@@ -1,6 +1,11 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Mening rasmim': 'Моё изображение',
+  'Rasm yuklash': 'Загрузить изображение',
+  "Muddati o'tgan vazifalar": 'Просроченные задачи',
+  'Bugungi vazifalar': 'Задачи на сегодня',
+  "O'tkazib yuborilgan qo'ng'iroqlar": 'Пропущенные звонки',
   'Voqealar': 'События',
   "Voqealar yo'q": 'Событий нет',
   'Bugun': 'Сегодня',

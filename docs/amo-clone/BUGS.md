@@ -30,7 +30,10 @@ Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + q
 - [ ] [Voronka sozlash] Dublikat qidiruvi barcha lidlarni yuklaydi — katta bazada indeks/so'rov kerak
 - [ ] [Voronka sozlash] Manbalar katalogida Instagram/WhatsApp/Pochta kartochkalari yo'q (integratsiyalar bosqichi)
 
+- [ ] [Ish stoli] Voronka blokida har bosqich ostidagi "yo'qotilganlar" 0 — bosqichlar tarixi kerak (Activity before/after)
+
 ## Tuzatilgan
+- [x] [Ish stoli] Dizayn amoCRM'ga 1:1 qayta yozildi: 208px to'r, 430px vidjetlar, rgba(12,37,61,.95) fon, Open Sans 45px #8275ff raqamlar, voronka kartalari 151x92, davr tanlagich, tabiiy fon sahnalari + o'z rasmini yuklash
 - [x] [Voronka sozlash] Digital Pipeline: barcha trigger/amallar, kechikish navbati, shartlar, saralanmagan switch va dublikat qoidalari backend'da ishlaydi
 - [x] [Xavfsizlik] Webhook SSRF — ichki manzillar (localhost, 10/172.16/192.168/169.254, ::1, butun son IP) bloklandi, DNS tekshiruvi
 - [x] [Formalar] Har yuborishda submissions 2 marta oshardi
