@@ -96,4 +96,7 @@ addRu({
   'Maydon nomini kiriting': 'Введите название поля',
   'Matnni kiriting': 'Введите текст',
   "To'g'ri URL kiriting (http:// yoki https://)": 'Введите корректный URL (http:// или https://)',
+  'Kamida bitta variant kiriting': 'Введите хотя бы один вариант',
+  'Guruh nomini kiriting': 'Введите название группы',
+  "maydon o'chirilsinmi?": 'удалить поле?',
 })

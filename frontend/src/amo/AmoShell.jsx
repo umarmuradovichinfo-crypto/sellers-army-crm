@@ -7,6 +7,8 @@ import { crmService, notifService as notificationsApi } from '../services/crm.se
 import { NavIcon, Ico } from './AmoIcons'
 import { applyTheme, getTheme } from './theme'
 import { useI18n, useT } from './i18n'
+import { setFormatPrefs } from './format'
+import { settingsService } from '../services/settings.service'
 
 export const NAV = [
   { key: 'dashboard', to: '/dashboard', title: 'Ish stoli', icon: 'dashboard' },
@@ -156,6 +158,10 @@ export default function AmoShell({ children }) {
   const hideTimer = useRef(null)
   const t = useT()
 
+  const [, setPrefsTick] = useState(0)
+  useEffect(() => {
+    settingsService.getGeneral?.().then((r) => { setFormatPrefs(r?.general || {}); setPrefsTick((n) => n + 1) }).catch(() => {})
+  }, [])
   useEffect(() => {
     document.body.classList.add('ac-body')
     applyTheme(getTheme())

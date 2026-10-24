@@ -6,7 +6,7 @@ import { crmService } from '../../services/crm.service'
 import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
-import { money, feedDate, dmy, hm, relDay } from '../format'
+import { money, feedDate, dmy, hm, relDay, currency } from '../format'
 import { useT } from '../i18n'
 import '../i18n/leadcard.ru.js'
 import '../leadcard.css'
@@ -546,7 +546,7 @@ export default function LeadCard() {
                 <FieldRow label={t('Byudjet')}>
                   <span className="ac-field__money">
                     <input className="ac-field__edit" inputMode="numeric" value={draft.value !== undefined ? draft.value : (v.value || 0).toLocaleString('en-US')} onChange={(e) => { const d = e.target.value.replace(/\D/g, '').slice(0, 10); set('value', d ? Math.min(Number(d), 2000000000).toLocaleString('en-US') : '0') }} />
-                    <span>so'm</span>
+                    <span>{currency()}</span>
                   </span>
                 </FieldRow>
                 {fields.map((f) => (

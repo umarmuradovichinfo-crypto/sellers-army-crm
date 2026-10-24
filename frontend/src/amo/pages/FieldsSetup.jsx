@@ -25,14 +25,19 @@ function FieldModal({ initial, defaultGroup, groups, onSave, onClose }) {
   const [f, setF] = useState({ label: initial?.label || '', type: initial?.type || 'text', options: initial?.options?.length ? initial.options : [''], group: initial?.group ?? defaultGroup ?? groups[0] ?? DEFAULT_GROUP, required: !!initial?.required })
   const [newGroup, setNewGroup] = useState('')
   const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
   const set = (p) => setF((x) => ({ ...x, ...p }))
   const hasOpts = f.type === 'select' || f.type === 'multiselect'
   const submit = async () => {
-    if (!f.label.trim()) return
-    setBusy(true)
+    if (!f.label.trim() || busy) return
+    const opts = hasOpts ? [...new Set(f.options.map((o) => o.trim()).filter(Boolean))] : []
+    if (hasOpts && opts.length === 0) { setErr(t("Kamida bitta variant kiriting")); return }
+    if (f.group === '__new' && !newGroup.trim()) { setErr(t('Guruh nomini kiriting')); return }
+    setBusy(true); setErr('')
     const group = f.group === '__new' ? newGroup.trim() : f.group
-    await onSave({ label: f.label.trim(), type: f.type, options: hasOpts ? f.options.map((o) => o.trim()).filter(Boolean) : [], group, required: f.required })
-    setBusy(false)
+    try { await onSave({ label: f.label.trim(), type: f.type, options: opts, group, required: f.required }) }
+    catch (e) { setErr(e?.message || t('Saqlanmadi')) }
+    finally { setBusy(false) }
   }
   return (
     <div className="ac-modal-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
@@ -71,6 +76,7 @@ function FieldModal({ initial, defaultGroup, groups, onSave, onClose }) {
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 14, cursor: 'pointer' }}>
           <input type="checkbox" className="ac-check" checked={f.required} onChange={(e) => set({ required: e.target.checked })} />{t('Majburiy maydon')}
         </label>
+        {err && <div style={{ color: 'var(--amo-danger)', fontSize: 13, marginTop: 10 }}>{err}</div>}
         <div className="ac-modal__foot">
           <button className="ac-btn ac-btn--blue" disabled={busy || !f.label.trim()} onClick={submit}>{t('Saqlash')}</button>
           <button className="ac-btn" onClick={onClose}>{t('Bekor qilish')}</button>
@@ -138,9 +144,9 @@ export default function FieldsSetupPage() {
     setModal(null); load()
   }
   const remove = async (f) => {
-    if (!window.confirm(t(`"${f.label}" maydoni o'chirilsinmi?`))) return
+    if (!window.confirm(`"${f.label}": ${t("maydon o'chirilsinmi?")}`)) return
     setFields((x) => x.filter((y) => y.id !== f.id))
-    try { await crmService.deleteField(f.id) } catch { load() }
+    try { await crmService.deleteField(f.id) } catch (e) { window.alert(e?.message || t('Xatolik')); load() }
   }
   const addGroup = () => {
     const name = window.prompt(t('Guruh nomi'))
