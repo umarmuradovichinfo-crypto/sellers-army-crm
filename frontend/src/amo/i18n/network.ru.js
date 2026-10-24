@@ -6,4 +6,7 @@ addRu({
   "Server bilan aloqa yo'q, qayta urinilmoqda…": 'Нет связи с сервером, повторная попытка…',
   "Kutilayotgan o'zgarishlar yuborilmoqda": 'Отправка ожидающих изменений',
   'Aloqa tiklandi': 'Связь восстановлена',
+  "Aloqa yo'q": 'Нет подключения',
+  'Qayta ulanish': 'Переподключиться',
+  "ta o'zgarish aloqa qaytganda yuboriladi": 'изм. будут отправлены после восстановления связи',
 })

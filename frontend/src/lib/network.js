@@ -39,8 +39,8 @@ export async function ping(fetchImpl) {
   const to = setTimeout(() => ctrl.abort(), PING_TIMEOUT_MS)
   try {
     const res = await (fetchImpl || fetch)(`${BASE}/health`, { method: 'GET', cache: 'no-store', signal: ctrl.signal })
-    if (res.status >= 502 && res.status <= 504) serverDown = true
-    else serverDown = false
+    // /health faqat 200 qaytaradi; boshqa har qanday javob (proxy 500, Railway 502–504) — server yetib bo'lmaydi
+    serverDown = !res.ok
   } catch {
     serverDown = true
   } finally {

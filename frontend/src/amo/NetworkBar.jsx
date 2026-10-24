@@ -1,6 +1,6 @@
-// Tarmoq nazoratchisi bannerи: ekran tepasida yupqa chiziq (offline / server-unreachable / tiklandi).
+// Tarmoq nazoratchisi: amoCRM kabi chap pastda xabar — aylanuvchi belgi, "Нет подключения", "Переподключиться".
 import React, { useEffect, useRef, useState } from 'react'
-import { getState, subscribe } from '../lib/network'
+import { getState, subscribe, ping } from '../lib/network'
 import { pendingQueue } from '../lib/apiClient'
 import { useT } from './i18n'
 import './i18n/network.ru'
@@ -34,11 +34,10 @@ export default function NetworkBar() {
   }, [net])
 
   if (!mode) return null
+  const bad = mode === 'offline' || mode === 'server'
   let text
-  if (mode === 'offline') {
-    text = t("Internet aloqasi yo'q. O'zgarishlar saqlanib turadi va aloqa qaytganda yuboriladi") + ` (${q.size} ` + t('ta kutilmoqda') + ')'
-  } else if (mode === 'server') {
-    text = t('Server bilan aloqa yo\'q, qayta urinilmoqda…')
+  if (bad) {
+    text = t("Aloqa yo'q")
   } else if (q.sending) {
     text = t('Kutilayotgan o\'zgarishlar yuborilmoqda') + ` ${q.done}/${q.total}`
   } else {
@@ -48,8 +47,12 @@ export default function NetworkBar() {
 
   return (
     <div className={`ac-net ac-net--${q.sending && mode === 'restored' ? 'sending' : mode} ${shown ? 'ac-net--show' : ''}`} role="status">
-      {mode === 'server' && <span className="ac-spinner ac-net__spin" />}
-      <span className="ac-net__text">{text}</span>
+      {(bad || q.sending) && <span className="ac-net__spin" />}
+      <span className="ac-net__text">
+        {text}
+        {bad && q.size > 0 && <small>{q.size} {t('ta o\'zgarish aloqa qaytganda yuboriladi')}</small>}
+      </span>
+      {bad && <button className="ac-net__btn" onClick={() => ping()}>{t('Qayta ulanish')}</button>}
       {q.sending && <span className="ac-net__progress" style={{ width: pct + '%' }} />}
     </div>
   )

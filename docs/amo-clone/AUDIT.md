@@ -19,4 +19,4 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 12 | UTM maydonlari ro'yxatda ochiq (har biri placeholder bilan) | "maydonni tanlang" orqali qo'shish | tuzatildi |
 | 13 | Teglar ustunida "Остальные теги" (ko'p bo'lsa), teglar rangli | rangsiz chegara | tuzatildi |
 | 14 | Saqlash (filtr nomi) qatori faqat filtr o'zgarganda | doim ko'rinardi | tuzatildi |
-| 15 | Internet uzilganda chap pastda "Нет подключения [Переподключиться]" | yuqorida NetworkBar | tekshirish kerak (keyingi qadam) |
+| 15 | Internet uzilganda chap pastda "Нет подключения [Переподключиться]" | yuqorida rangli chiziq; dev proxy 500 da server o'chganini sezmasdi | tuzatildi (/health ok bo'lmasa — aloqa yo'q) |
