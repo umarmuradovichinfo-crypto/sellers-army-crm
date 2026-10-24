@@ -13,6 +13,8 @@ import { useT, usePlural } from '../i18n'
 import '../i18n/leadcard.ru.js'
 import '../leads.css'
 
+const PAGE = 50
+
 export function ViewSwitch({ mode }) {
   const navigate = useNavigate()
   const { pipelineId } = useParams()
@@ -174,6 +176,21 @@ function useCardDrag({ onDrop }) {
   return { drag, start }
 }
 
+// Ustun oxiridagi kuzatuvchi: ko'rinish maydoniga kirsa keyingi sahifani so'raydi (cheksiz scroll)
+function ColumnMore({ onMore }) {
+  const ref = useRef(null)
+  const cb = useRef(onMore)
+  cb.current = onMore
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver((e) => { if (e[0].isIntersecting) cb.current() }, { rootMargin: '400px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  return <div ref={ref} className="ac-col__more" style={{ height: 36, display: 'flex', justifyContent: 'center', alignItems: 'center' }}><span className="ac-spinner" /></div>
+}
+
 function LostReasons({ reasons, at, onPick, onCancel }) {
   const t = useT()
   return (
@@ -198,15 +215,27 @@ export default function LeadsPipeline() {
   const { user } = useAuth()
   const t = useT()
   const plural = usePlural()
-  const { data, reload, setData } = useApi(async () => {
-    const [pipe, uns, lr, tags, mem] = await Promise.all([
-      crmService.getPipeline(pipelineId || undefined), crmService.listUnsorted(), crmService.listLostReasons(), crmService.listTags(), crmService.listMembers(),
-    ])
-    return { ...pipe, unsorted: uns.leads || [], reasons: lr.reasons || [], tags: tags.tags || [], members: mem.members || [] }
-  }, [pipelineId], `ac-pipeline-${pipelineId}`, 60000)
   const [search, setSearch] = useState('')
+  const [q, setQ] = useState('')
   const [filter, setFilter] = useState(EMPTY_FILTER)
   const [lostAsk, setLostAsk] = useState(null)
+  useEffect(() => { const id = setTimeout(() => setQ(search.trim()), 300); return () => clearTimeout(id) }, [search])
+
+  // Filtr serverda qo'llanadi: har bosqichdan dastlabki PAGE ta karta + bosqich bo'yicha jami son/summa
+  const filterParams = useMemo(() => ({
+    search: q, preset: filter.preset, name: filter.name, period: filter.period, assigneeId: filter.assigneeId,
+    budgetFrom: filter.budgetFrom, budgetTo: filter.budgetTo, task: filter.task, tags: filter.tags?.length ? filter.tags.join(',') : '',
+  }), [q, filter])
+  const fKey = JSON.stringify(filterParams)
+  const isFiltered = Object.values(filterParams).some((v) => v && v !== 'open')
+  const fKeyRef = useRef(fKey)
+  fKeyRef.current = fKey
+  const { data, reload, setData } = useApi(async () => {
+    const [pipe, uns, lr, tags, mem] = await Promise.all([
+      crmService.getPipeline(pipelineId || undefined, { limit: PAGE, ...filterParams }), crmService.listUnsorted(), crmService.listLostReasons(), crmService.listTags(), crmService.listMembers(),
+    ])
+    return { ...pipe, unsorted: uns.leads || [], reasons: lr.reasons || [], tags: tags.tags || [], members: mem.members || [] }
+  }, [pipelineId, fKey], isFiltered ? `ac-pipeline-${pipelineId}-f${fKey}` : `ac-pipeline-${pipelineId}`)
 
   const stages = data?.stages || []
   const openStages = stages.filter((s) => s.kind === 'open')
@@ -214,44 +243,84 @@ export default function LeadsPipeline() {
   const shownStages = stages.filter((s) => s.kind === shownKind)
   const pipeName = (data?.pipelines || []).find((p) => String(p.id) === String(pipelineId))?.name || t(pipelineId ? 'Voronka' : 'Asosiy voronka')
 
-  const visible = useMemo(() => {
-    const out = {}
-    for (const s of shownStages) out[s.id] = applyLeadFilter(s.leads, { ...filter, search }, user)
-    return out
-  }, [data, filter, search]) // eslint-disable-line
+  const cntOf = (s) => (s.count != null ? s.count : s.leads.length)
+  const sumOf = (s) => (s.sumValue != null ? s.sumValue : s.leads.reduce((a, l) => a + (l.value || 0), 0))
+  const totalCount = shownStages.reduce((a, s) => a + cntOf(s), 0)
+  const totalSum = shownStages.reduce((a, s) => a + sumOf(s), 0)
 
-  const totalCount = shownStages.reduce((a, s) => a + visible[s.id].length, 0)
-  const totalSum = shownStages.reduce((a, s) => a + visible[s.id].reduce((b, l) => b + (l.value || 0), 0), 0)
+  // Ustun pastiga aylantirilganda keyingi sahifa (kursor bo'yicha)
+  const busy = useRef({})
+  const extraLoaded = useRef(false)
+  const loadMore = async (s) => {
+    if (busy.current[s.id] || !s.nextCursor) return
+    busy.current[s.id] = true
+    const key = fKeyRef.current
+    try {
+      const r = await crmService.stageLeads({ stage: s.id, cursor: s.nextCursor, limit: PAGE, ...filterParams })
+      if (key !== fKeyRef.current) return
+      extraLoaded.current = true
+      setData((d) => ({ ...d, stages: d.stages.map((st) => {
+        if (st.id !== s.id) return st
+        const have = new Set(st.leads.map((l) => l.id))
+        return { ...st, leads: [...st.leads, ...(r.leads || []).filter((l) => !have.has(l.id))], nextCursor: r.nextCursor || null }
+      }) }))
+    } catch { /* keyingi aylantirishda qayta uriniladi */ } finally { busy.current[s.id] = false }
+  }
+  useEffect(() => { extraLoaded.current = false }, [pipelineId, fKey])
+  // Fon yangilanishi: ochilgan qo'shimcha sahifalarni yo'qotmaslik uchun faqat birinchi sahifa ko'rinib turganda
+  const dragRef = useRef(false)
+  useEffect(() => {
+    const iv = setInterval(() => { if (!extraLoaded.current && !dragRef.current) reload() }, 60000)
+    return () => clearInterval(iv)
+  }, [pipelineId, fKey]) // eslint-disable-line
 
+  // Optimistik ko'chirish: kartani + bosqich jamilarini (son/summa) yangilaydi
   const moveLocal = (lead, toStage, index) => {
     setData((d) => {
-      const st = d.stages.map((s) => ({ ...s, leads: s.leads.filter((l) => l.id !== lead.id) }))
+      const st = d.stages.map((s) => {
+        const had = s.leads.some((l) => l.id === lead.id)
+        let o = { ...s, leads: s.leads.filter((l) => l.id !== lead.id) }
+        if (had || s.id === lead.stage) {
+          // eski bosqichdan chiqdi (karta yuklangan yoki bu uning bosqichi bo'lsa)
+          if (s.id !== toStage && s.count != null) o = { ...o, count: Math.max(0, s.count - 1), sumValue: Math.max(0, (s.sumValue || 0) - (lead.value || 0)) }
+        }
+        return o
+      })
       const target = st.find((s) => s.id === toStage)
-      if (target) target.leads.splice(index ?? target.leads.length, 0, { ...lead, stage: toStage })
+      if (target) {
+        const from = d.stages.find((s) => s.id === lead.stage)
+        if (target.count != null && (!from || from.id !== toStage)) { target.count += 1; target.sumValue = (target.sumValue || 0) + (lead.value || 0) }
+        target.leads.splice(index ?? target.leads.length, 0, { ...lead, stage: toStage })
+      }
       return { ...d, stages: st }
     })
+  }
+  const dropLocal = (lead) => {
+    setData((d) => ({ ...d, stages: d.stages.map((s) => (s.id === lead.stage || s.leads.some((l) => l.id === lead.id)
+      ? { ...s, leads: s.leads.filter((l) => l.id !== lead.id), ...(s.count != null ? { count: Math.max(0, s.count - 1), sumValue: Math.max(0, (s.sumValue || 0) - (lead.value || 0)) } : {}) }
+      : s)) }))
   }
 
   const onDrop = async (lead, from, over) => {
     if (over.zone === 'delete') {
-      setData((d) => ({ ...d, stages: d.stages.map((s) => ({ ...s, leads: s.leads.filter((l) => l.id !== lead.id) })) }))
-      await crmService.deleteLead(lead.id).catch(() => {})
-      return reload()
+      dropLocal(lead)
+      await crmService.deleteLead(lead.id).catch(() => reload())
+      return
     }
     if (over.zone === 'won' || over.zone === 'lost') {
       const target = stages.find((s) => s.kind === over.zone)
       if (!target) return
       if (over.zone === 'lost') return setLostAsk({ lead, stage: target.id, at: { x: window.innerWidth / 2 - 160, y: window.innerHeight - 80 } })
       moveLocal(lead, target.id)
-      await crmService.moveLead(lead.id, target.id).catch(() => {})
-      return reload()
+      await crmService.moveLead(lead.id, target.id).catch(() => reload())
+      return
     }
     if (!over.stage || (over.stage === from && over.index == null)) return
     moveLocal(lead, over.stage, over.index)
-    await crmService.moveLead(lead.id, over.stage, over.index).catch(() => {})
-    reload()
+    await crmService.moveLead(lead.id, over.stage, over.index).catch(() => reload())
   }
   const { drag, start } = useCardDrag({ onDrop })
+  dragRef.current = !!drag
 
   const acceptUnsorted = async (lead) => {
     const first = openStages[0]
@@ -297,8 +366,8 @@ export default function LeadsPipeline() {
             </div>
           )}
           {shownStages.map((s, i) => {
-            const leads = visible[s.id]
-            const sum = leads.reduce((a, l) => a + (l.value || 0), 0)
+            const leads = s.leads
+            const sum = sumOf(s)
             const isOver = drag?.over?.stage === s.id
             const phIndex = isOver ? drag.over.index : -1
             const items = leads.filter((l) => !(drag && l.id === drag.lead.id && isOver))
@@ -306,7 +375,7 @@ export default function LeadsPipeline() {
               <div key={s.id} className={`ac-col ${isOver ? 'drop-target' : ''}`} data-stage={s.id}>
                 <div className="ac-col__head">
                   <div className="ac-col__title" title={s.name}>{s.name}</div>
-                  <div className="ac-col__info">{plural(leads.length, 'bitim')}: <b>{money(sum)}</b></div>
+                  <div className="ac-col__info">{plural(cntOf(s), 'bitim')}: <b>{money(sum)}</b></div>
                   <div className="ac-col__line" style={{ background: s.color || '#99ccff' }} />
                 </div>
                 <div className="ac-col__body">
@@ -318,6 +387,7 @@ export default function LeadsPipeline() {
                     </React.Fragment>
                   ))}
                   {isOver && phIndex >= items.length && <div className="ac-drop-ph" style={{ height: drag.h }} />}
+                  {s.nextCursor && <ColumnMore key={s.nextCursor} onMore={() => loadMore(s)} />}
                 </div>
               </div>
             )
@@ -344,8 +414,7 @@ export default function LeadsPipeline() {
             const { lead, stage } = lostAsk
             setLostAsk(null)
             moveLocal(lead, stage)
-            await crmService.moveLead(lead.id, stage, undefined, reason).catch(() => {})
-            reload()
+            await crmService.moveLead(lead.id, stage, undefined, reason).catch(() => reload())
           }}
         />
       )}

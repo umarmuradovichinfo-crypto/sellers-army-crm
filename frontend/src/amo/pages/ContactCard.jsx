@@ -34,7 +34,7 @@ function LinkSearch({ kind, onPick, onClose }) {
   useEffect(() => {
     if (!q.trim()) { setFound([]); return }
     const h = setTimeout(() => {
-      const p = kind === 'company' ? crmService.listCompanies(q) : crmService.listContacts(q)
+      const p = kind === 'company' ? crmService.listCompanies({ search: q, limit: 10 }) : crmService.listContacts({ search: q, limit: 10 })
       p.then((r) => setFound(r.companies || r.contacts || [])).catch(() => {})
     }, 250)
     return () => clearTimeout(h)
@@ -97,6 +97,7 @@ export function EntityCard({ kind }) {
   const [fields, setFields] = useState([])
   const [members, setMembers] = useState([])
   const [leads, setLeads] = useState([])
+  const [leadsTotal, setLeadsTotal] = useState(0)
   const [people, setPeople] = useState([]) // kompaniya kontaktlari
   const [company, setCompany] = useState(null) // kontaktning kompaniyasi
   const [feed, setFeed] = useState({ calls: [], tasks: [], acts: [] })
@@ -126,14 +127,10 @@ export function EntityCard({ kind }) {
   const loadFeed = async () => {
     if (isNew) return
     const seq = ++feedSeq.current
-    const all = (await crmService.listLeads({}).catch(() => ({ leads: [] }))).leads || []
-    let mine, personIds = []
-    if (isContact) mine = all.filter((l) => l.contactId === id)
-    else {
-      const r = await crmService.getCompany(id).catch(() => ({ contacts: [] }))
-      personIds = (r.contacts || []).map((c) => c.id)
-      mine = all.filter((l) => l.companyId === id || personIds.includes(l.contactId))
-    }
+    // Server filtri: kontaktning o'z bitimlari (contactId) yoki kompaniyaniki (companyId — kompaniya va uning kontaktlari bitimlari)
+    const res = await crmService.listLeads({ [isContact ? 'contactId' : 'companyId']: id, sort: 'createdAt', dir: 'desc', limit: 200 }).catch(() => ({ leads: [], total: 0 }))
+    const mine = res.leads || []
+    setLeadsTotal(res.total || mine.length)
     setLeads(mine)
     const top = mine.slice(0, 15)
     const per = await Promise.all(top.map(async (l) => {
@@ -164,7 +161,7 @@ export function EntityCard({ kind }) {
 
   useEffect(() => {
     feedSeq.current++
-    setDraft({}); setErr(''); setLoadErr(''); setTab('main'); setEnt(null); setLeads([]); setFeed({ calls: [], tasks: [], acts: [] })
+    setDraft({}); setErr(''); setLoadErr(''); setTab('main'); setEnt(null); setLeads([]); setLeadsTotal(0); setFeed({ calls: [], tasks: [], acts: [] })
     if (isNew) setEnt({ id: null, name: '', phone: '', email: '', position: '', website: '', companyId: '', custom: { _assigneeId: user?.id } })
     else loadEnt()
     ;(async () => {
@@ -291,7 +288,7 @@ export function EntityCard({ kind }) {
             {tabs.map(([k, l]) => (
               <button key={k} className={`ac-ctabs__item ${tab === k ? 'on' : ''}`} disabled={k === 'leads' && isNew}
                 onClick={() => k === 'setup' ? navigate(`/settings/fields/${isContact ? 'contacts' : 'companies'}`) : setTab(k)}>
-                {t(l)}{k === 'leads' && leads.length > 0 ? ` ${leads.length}` : ''}
+                {t(l)}{k === 'leads' && leadsTotal > 0 ? ` ${leadsTotal}` : ''}
               </button>
             ))}
           </div>

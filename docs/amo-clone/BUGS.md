@@ -16,7 +16,7 @@ Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + q
 - [ ] [Ro'yxatlar] Kontaktlar ro'yxati "…" menyusiga Import bandini qaytarish (/contacts/import tayyor); Sozlamalar chap paneliga "Teglarni boshqarish"
 - [ ] [Umumiy] Ba'zi sahifalar "bugun"ni hali brauzer vaqti bilan hisoblaydi (TasksPage, Dashboard) — format.dayKey ga o'tkazish
 - [ ] [Sozlamalar] Umumiy sozlamalar saqlanganda setFormatPrefs chaqirilishi (sahifa yangilanmasdan qo'llanishi)
-- [ ] [Backend] Ro'yxatlar 200/500 ta bilan cheklangan — server tomonida sahifalash kerak; kontakt kartochkasi lentasi uchun contactId filtri
+- [ ] [Unumdorlik] Ish stoli va bosqich ro'yxati kerak bo'lgan sahifalar hali getPipeline()'ni barcha kartalar bilan chaqiradi — limit:0 ga o'tkazish; 28k kontaktda kontakt nomi bo'yicha qidiruv uchun pg_trgm indeks
 - [ ] [Bitim kartochkasi] TaskNote natijani Enter bilan yuborganda trim qilmaydi
 
 - [ ] [Xavfsizlik] Parol o'zgarganda eski refresh tokenlar bekor qilinmaydi (auth moduli)
@@ -25,7 +25,6 @@ Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + q
 - [ ] [Analitika] Davr chegaralari UTC/server vaqtida — akkaunt mintaqasiga moslash
 
 - [ ] [Voronka sozlash] Vazifa triggerida "Foydalanuvchilar uchun tavsif" yo'q (LeadTask'da maydon yo'q)
-- [ ] [Voronka sozlash] Dublikat qidiruvi barcha lidlarni yuklaydi — katta bazada indeks/so'rov kerak
 - [ ] [Voronka sozlash] Manbalar katalogida Instagram/WhatsApp/Pochta kartochkalari yo'q (integratsiyalar bosqichi)
 
 - [ ] [Ish stoli] Voronka blokida har bosqich ostidagi "yo'qotilganlar" 0 — bosqichlar tarixi kerak (Activity before/after)
@@ -33,6 +32,7 @@ Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + q
 - [ ] [Xavfsizlik] xlsx@0.18.5 (npm) — ma'lum zaifliklar (prototype pollution, ReDoS). Rasmiy tuzatilgan versiya faqat cdn.sheetjs.com'da (0.20.3); avtomatik ruxsat tizimi tashqi manbadan o'rnatishni blokladi — foydalanuvchi ruxsati kerak
 
 ## Tuzatilgan
+- [x] [Unumdorlik] Server tomonida sahifalash (bitimlar/kontaktlar/kompaniyalar/voronka ustunlari), filtrlar backend'da, "barchasini belgilash" ommaviy amallari, indeksli dublikat qidiruvi — 5000 yozuvda barcha so'rovlar <300ms
 - [x] [Bitimlar/Kontaktlar] Import sahifasi (/leads/import, /contacts/import): CSV/XLSX, ustun moslash, dublikat rejimlari, 500 tadan partiya
 - [x] [Teglar] Teglarni boshqarish sahifasi (/settings/tags): nom, rang, o'chirish, birlashtirish, qo'llanish soni
 - [x] [Ish stoli] Dizayn amoCRM'ga 1:1 qayta yozildi: 208px to'r, 430px vidjetlar, rgba(12,37,61,.95) fon, Open Sans 45px #8275ff raqamlar, voronka kartalari 151x92, davr tanlagich, tabiiy fon sahnalari + o'z rasmini yuklash

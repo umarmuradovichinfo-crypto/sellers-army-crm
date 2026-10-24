@@ -134,6 +134,10 @@ model Lead {
   createdById  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  // Qidiruv ustunlari — DB trigger (leads_norm_trg) phone/email'dan avtomatik to'ldiradi, kodda yozilmaydi
+  phoneDigits  String? // telefon faqat raqamlar
+  phoneTail    String? // telefonning oxirgi 9 raqami (dublikat qidiruvi)
+  emailNorm    String? // lower(trim(email))
 
   tasks LeadTask[]
 
@@ -141,6 +145,14 @@ model Lead {
   @@index([pipelineId])
   @@index([assigneeId])
   @@index([companyId])
+  @@index([contactId])
+  @@index([phoneTail])
+  @@index([emailNorm])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([value])
+  @@index([name])
+  @@index([pipelineId, stage, queue])
   @@map("leads")
 }
 
@@ -182,6 +194,7 @@ model LeadTask {
   @@index([leadId])
   @@index([done])
   @@index([dueDate])
+  @@index([leadId, done, dueDate])
   @@map("lead_tasks")
 }
 
@@ -323,7 +336,12 @@ model Company {
   createdById String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  phoneDigits String? // trigger to'ldiradi: asosiy + qo'shimcha telefonlar raqamlari (probel bilan)
+  assigneeKey String? // trigger to'ldiradi: customJson._assigneeId, bo'lmasa createdById (mas'ul bo'yicha filtr/saralash)
 
+  @@index([name])
+  @@index([createdAt])
+  @@index([assigneeKey])
   @@map("crm_companies")
 }
 
@@ -339,8 +357,13 @@ model Contact {
   createdById String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  phoneDigits String? // trigger to'ldiradi: asosiy + qo'shimcha telefonlar raqamlari (probel bilan)
+  assigneeKey String? // trigger to'ldiradi: customJson._assigneeId, bo'lmasa createdById (mas'ul bo'yicha filtr/saralash)
 
   @@index([companyId])
+  @@index([name])
+  @@index([createdAt])
+  @@index([assigneeKey])
   @@map("crm_contacts")
 }
 

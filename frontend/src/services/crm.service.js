@@ -15,7 +15,11 @@ export function dialSoftphone(scheme, phone) {
 
 export const crmService = {
   // GET /crm/pipeline -> bosqichlar + lidlar + statistika + voronkalar
-  getPipeline: (pipelineId) => mockOr(() => api.get(`/crm/pipeline${pipelineId ? `?pipelineId=${pipelineId}` : ''}`), { stages: mock.crm.stages, stats: [], pipelines: [] }),
+  // params (ixtiyoriy): { limit (har bosqichdan N ta karta; 0 = faqat jamilar), preset, search, period, assigneeId, budgetFrom, budgetTo, tags, task, name }
+  // Har bosqichda: count/sumValue (filtrga mos jami), nextCursor (keyingi sahifa bo'lsa) — stageLeads bilan davom ettiriladi.
+  getPipeline: (pipelineId, params) => mockOr(() => api.get(`/crm/pipeline${qs({ pipelineId, ...params })}`), { stages: mock.crm.stages, stats: [], pipelines: [] }),
+  // GET /crm/pipeline/stage-leads -> { leads, nextCursor }
+  stageLeads: (params) => mockOr(() => api.get(`/crm/pipeline/stage-leads${qs(params)}`), { leads: [], nextCursor: null }),
 
   // GET /crm/members -> sotuvchilar (mas'ul uchun)
   listMembers: () => mockOr(() => api.get('/crm/members'), { members: [] }),
@@ -32,8 +36,11 @@ export const crmService = {
   deleteLead: (id) => mockOr(() => api.del(`/crm/leads/${id}`), { success: true }),
   moveLead: (id, stageId, position, lostReason) => mockOr(() => api.patch(`/crm/leads/${id}/move`, { stageId, position, lostReason }), { id, stageId }),
   addNote: (id, text) => mockOr(() => api.post(`/crm/leads/${id}/notes`, { text }), { notes: [] }),
-  listLeads: (params) => mockOr(() => api.get(`/crm/leads${qs(params)}`), { leads: [] }),
-  bulk: (ids, action, value) => mockOr(() => api.post('/crm/leads/bulk', { ids, action, value }), { ok: true, affected: 0 }),
+  // params: { limit, cursor, sort, dir, search, preset, period, assigneeId, budgetFrom, budgetTo, tags, pipelineId, stage, task, contactId, companyId, unsorted }
+  // limit berilsa -> { leads, nextCursor, total, totalSum }; parametrsiz -> eski shakl (birinchi 500 ta) + total
+  listLeads: (params) => mockOr(() => api.get(`/crm/leads${qs(params)}`), { leads: [], total: 0, totalSum: 0, nextCursor: null }),
+  // bulk(ids, action, value) yoki bulk(null, action, value, { all: true, filter, excludeIds }) — "barchasini belgilash"
+  bulk: (ids, action, value, extra) => mockOr(() => api.post('/crm/leads/bulk', { ids: ids || undefined, action, value, ...extra }), { ok: true, affected: 0 }),
   mergeLeads: (keepId, mergeIds) => mockOr(() => api.post('/crm/leads/merge', { keepId, mergeIds }), { ok: true }),
   checkDuplicate: (phone, email, excludeId) => mockOr(() => api.get(`/crm/leads-check${qs({ phone, email, excludeId })}`), { duplicates: [] }),
   importLeads: (rows) => mockOr(() => api.post('/crm/leads-import', { rows }), { ok: true, created: 0, skipped: 0 }),
@@ -146,12 +153,16 @@ export const crmService = {
   deleteProduct: (id) => mockOr(() => api.del(`/crm/products/${id}`), { ok: true }),
 
   // ── Kompaniya & Kontakt ──
-  listCompanies: (q) => mockOr(() => api.get(`/crm/companies${q ? `?q=${encodeURIComponent(q)}` : ''}`), { companies: [] }),
+  // q — matn (eski) yoki params obyekti { limit, cursor, sort, dir, search, ... }; javobda total/nextCursor ham bor
+  listCompanies: (q) => mockOr(() => api.get(`/crm/companies${typeof q === 'object' && q ? qs(q) : q ? `?q=${encodeURIComponent(q)}` : ''}`), { companies: [], total: 0, nextCursor: null }),
   getCompany: (id) => mockOr(() => api.get(`/crm/companies/${id}`), { company: {} }),
   createCompany: (payload) => mockOr(() => api.post('/crm/companies', payload), { company: {} }),
   updateCompany: (id, payload) => mockOr(() => api.put(`/crm/companies/${id}`, payload), { company: {} }),
   deleteCompany: (id) => mockOr(() => api.del(`/crm/companies/${id}`), { ok: true }),
-  listContacts: (q) => mockOr(() => api.get(`/crm/contacts${q ? `?q=${encodeURIComponent(q)}` : ''}`), { contacts: [] }),
+  listContacts: (q) => mockOr(() => api.get(`/crm/contacts${typeof q === 'object' && q ? qs(q) : q ? `?q=${encodeURIComponent(q)}` : ''}`), { contacts: [], total: 0, nextCursor: null }),
+  // Kontakt + kompaniya birlashgan ro'yxat: { kind: all|contacts|companies, limit, cursor, sort, dir, search, name, phone, email, assigneeId, period, preset } -> { items, nextCursor, total }
+  listEntities: (params) => mockOr(() => api.get(`/crm/entities${qs(params)}`), { items: [], nextCursor: null, total: 0 }),
+  bulkDeleteEntities: (body) => mockOr(() => api.post('/crm/entities/bulk-delete', body), { ok: true, affected: 0 }),
   createContact: (payload) => mockOr(() => api.post('/crm/contacts', payload), { contact: {} }),
   updateContact: (id, payload) => mockOr(() => api.put(`/crm/contacts/${id}`, payload), { contact: {} }),
   deleteContact: (id) => mockOr(() => api.del(`/crm/contacts/${id}`), { ok: true }),

@@ -8,7 +8,9 @@ import {
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { colorFromString } from '../common/utils/color';
 import { initialsOf } from '../common/utils/initials';
+import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { and, Cond, LeadCtx, LeadFilter, leadConds, leadOrder, parsePaging } from './list-query';
 import { ActivityService } from './activity.service';
 import { AutomationService } from './automation.service';
 import { NotificationService } from './notification.service';
@@ -132,28 +134,18 @@ export class CrmService {
   }
 
   // ── Pipeline (voronka) ko'rinishi ──
-  async getPipeline(pipelineId?: string) {
-    const pipelines = await this.prisma.crmPipeline.findMany({ orderBy: { order: 'asc' } });
-    // Tanlangan voronka: berilgan id, aks holda standart (null) yoki birinchi
-    const activePid = pipelineId || null;
-    const [allStages, leads] = await Promise.all([
-      this.prisma.crmStage.findMany({ orderBy: { order: 'asc' } }),
-      this.prisma.lead.findMany({ orderBy: [{ stage: 'asc' }, { queue: 'asc' }] }) as Promise<LeadRow[]>,
-    ]);
-    const stages = allStages.filter((s) => (s.pipelineId || null) === activePid);
-    const stageKeys = new Set(stages.map((s) => s.key));
-    const pipeLeads = leads.filter((l) => !l.unsorted && stageKeys.has(l.stage) && (l.pipelineId || null) === activePid);
-    const names = await this.userMap(pipeLeads.map((l) => l.assigneeId));
-
-    const openTasks = await this.prisma.leadTask.findMany({
-      where: { done: false, leadId: { in: pipeLeads.map((l) => l.id) } },
-      orderBy: { dueDate: 'asc' },
-    });
+  /** Kartochkalarni boyitish: mas'ul nomi, kontakt nomi, eng yaqin ochiq vazifa holati. */
+  private async buildCards(rows: LeadRow[], kindOf: (stage: string) => string) {
+    const names = await this.userMap(rows.map((l) => l.assigneeId));
+    const ids = rows.map((l) => l.id);
+    const openTasks = ids.length
+      ? await this.prisma.leadTask.findMany({ where: { done: false, leadId: { in: ids } }, orderBy: { dueDate: 'asc' } })
+      : [];
     const nextTaskByLead = new Map<string, { title: string; dueDate: Date | null }>();
     for (const t of openTasks) if (!nextTaskByLead.has(t.leadId)) nextTaskByLead.set(t.leadId, { title: t.title, dueDate: t.dueDate });
 
     // Kartochkadagi asosiy kontakt ismi (amoCRM: ko'k qator = kontakt, ostida lid nomi)
-    const contactIds = [...new Set(pipeLeads.map((l) => l.contactId).filter(Boolean))] as string[];
+    const contactIds = [...new Set(rows.map((l) => l.contactId).filter(Boolean))] as string[];
     const contacts = contactIds.length
       ? await this.prisma.contact.findMany({ where: { id: { in: contactIds } }, select: { id: true, name: true } })
       : [];
@@ -173,7 +165,6 @@ export class CrmService {
       if (ds === tomorrow) return { kind: 'future', label: 'Ertaga', title: nt.title };
       return { kind: 'future', label: ds.slice(8, 10) + '.' + ds.slice(5, 7), title: nt.title };
     };
-
     const fmtTaskWhen = (d: Date | null) => {
       if (!d) return '';
       const ds = bizDate(d);
@@ -182,8 +173,83 @@ export class CrmService {
       return ds.slice(5).replace('-', '.');
     };
 
-    const stagesOut = stages.map((s) => {
-      const sl = pipeLeads.filter((l) => l.stage === s.key);
+    return rows.map((l) => {
+      const nt = nextTaskByLead.get(l.id);
+      const c = {
+        ...this.card(l, kindOf(l.stage), names),
+        contactName: l.contactId ? contactNames.get(l.contactId) || null : null,
+        taskStatus: taskStatusOf(nt),
+      };
+      if (!nt) return c;
+      const w = fmtTaskWhen(nt.dueDate);
+      return { ...c, task: w ? `${nt.title} · ${w}` : nt.title, taskOpen: true };
+    });
+  }
+
+  private async leadCtx(userId?: string): Promise<LeadCtx> {
+    const stages = await this.prisma.crmStage.findMany({ select: { key: true, kind: true } });
+    return { userId, kinds: new Map(stages.map((s) => [s.key, s.kind])) };
+  }
+
+  /** Tartiblangan ID'lar (raw SQL) bo'yicha to'liq qatorlarni shu tartibda qaytaradi. */
+  private async rowsByIds(ids: string[]): Promise<LeadRow[]> {
+    if (!ids.length) return [];
+    const rows = (await this.prisma.lead.findMany({ where: { id: { in: ids } } })) as LeadRow[];
+    const m = new Map(rows.map((r) => [r.id, r]));
+    return ids.map((id) => m.get(id)).filter(Boolean) as LeadRow[];
+  }
+
+  /**
+   * Voronka. `limit` berilmasa — eski xulq (barcha kartalar); `limit=N` — har bosqichdan dastlabki N ta karta
+   * + bosqich bo'yicha jami son/summa (aggregate); `limit=0` — faqat bosqichlar va jamilar.
+   * Filtr parametrlari (preset, search, period, assigneeId, budgetFrom/To, tags, task, name) ro'yxatdagi bilan bir xil.
+   */
+  async getPipeline(pipelineId?: string, q: LeadFilter & { limit?: string } = {}, userId?: string) {
+    const pipelines = await this.prisma.crmPipeline.findMany({ orderBy: { order: 'asc' } });
+    // Tanlangan voronka: berilgan id, aks holda standart (null) yoki birinchi
+    const activePid = pipelineId || null;
+    const allStages = await this.prisma.crmStage.findMany({ orderBy: { order: 'asc' } });
+    const stages = allStages.filter((s) => (s.pipelineId || null) === activePid);
+    const stageKeys = stages.map((s) => s.key);
+    const ctx: LeadCtx = { userId, kinds: new Map(allStages.map((s) => [s.key, s.kind])) };
+    const kindOf = (k: string) => ctx.kinds.get(k) || 'open';
+
+    const lim = q.limit !== undefined && q.limit !== '' && Number.isFinite(Number(q.limit)) ? Math.max(0, Math.min(Math.floor(Number(q.limit)), 200)) : null;
+    const base: Cond[] = [Prisma.sql`l.unsorted = FALSE`, activePid ? Prisma.sql`l."pipelineId" = ${activePid}` : Prisma.sql`l."pipelineId" IS NULL`];
+    const scope = [...base]; // bosqich bo'yicha so'rovlar uchun (stage = X alohida beriladi — indeksdan to'g'ri foydalanish uchun)
+    if (stageKeys.length) base.push(Prisma.sql`l.stage IN (${Prisma.join(stageKeys)})`); else base.push(Prisma.sql`FALSE`);
+    // pipelineId/stage/unsorted bu yerda belgilangan — foydalanuvchi filtri ularni qayta yozmasin
+    const { pipelineId: _p, stage: _s, unsorted: _u, ...userFilter } = q as any;
+    const fconds = leadConds(userFilter, ctx);
+    const hasFilter = fconds.length > 0;
+
+    const aggOf = async (extra: Cond[]) => {
+      const rows = await this.prisma.$queryRaw<{ stage: string; c: number; s: number }[]>(
+        Prisma.sql`SELECT l.stage, count(*)::int AS c, coalesce(sum(l.value), 0)::float8 AS s FROM leads l WHERE ${and([...base, ...extra])} GROUP BY l.stage`,
+      );
+      return new Map(rows.map((r) => [r.stage, { c: Number(r.c), s: Number(r.s) }]));
+    };
+    const [aggAll, aggF] = await Promise.all([aggOf([]), hasFilter ? aggOf(fconds) : Promise.resolve(null)]);
+    const agg = aggF || aggAll;
+
+    const pageOf = async (stageKey: string) => {
+      if (lim === 0) return { ids: [] as string[], more: false };
+      const rows = await this.prisma.$queryRaw<{ id: string }[]>(
+        Prisma.sql`SELECT l.id FROM leads l WHERE ${and([...scope, ...fconds, Prisma.sql`l.stage = ${stageKey}`])} ORDER BY l.queue ASC, l.id ASC${lim === null ? Prisma.empty : Prisma.sql` LIMIT ${lim + 1}`}`,
+      );
+      const more = lim !== null && rows.length > lim;
+      return { ids: rows.slice(0, lim ?? rows.length).map((r) => r.id), more };
+    };
+    const pages = await Promise.all(stages.map((s) => pageOf(s.key)));
+    const allRows = await this.rowsByIds(pages.flatMap((p) => p.ids));
+    const cards = await this.buildCards(allRows, kindOf);
+    const cardById = new Map(cards.map((c) => [c.id, c]));
+    const rowById = new Map(allRows.map((r) => [r.id, r]));
+
+    const stagesOut = stages.map((s, i) => {
+      const a = agg.get(s.key) || { c: 0, s: 0 };
+      const leads = pages[i].ids.map((id) => cardById.get(id)).filter(Boolean) as any[];
+      const lastRow = pages[i].ids.length ? rowById.get(pages[i].ids[pages[i].ids.length - 1]) : undefined;
       return {
         id: s.key,
         name: s.name,
@@ -191,32 +257,50 @@ export class CrmService {
         kind: s.kind,
         isSystem: s.isSystem,
         hints: parse<Record<string, string>>(s.hintsJson, {}),
-        sum: fmtSum(sl.reduce((a, l) => a + l.value, 0)),
-        leads: sl.map((l) => {
-          const nt = nextTaskByLead.get(l.id);
-          const c = {
-            ...this.card(l, s.kind, names),
-            contactName: l.contactId ? contactNames.get(l.contactId) || null : null,
-            taskStatus: taskStatusOf(nt),
-          };
-          if (!nt) return c;
-          const w = fmtTaskWhen(nt.dueDate);
-          return { ...c, task: w ? `${nt.title} · ${w}` : nt.title, taskOpen: true };
-        }),
+        sum: fmtSum(a.s),
+        count: a.c,
+        sumValue: a.s,
+        nextCursor: pages[i].more && lastRow ? `${lastRow.queue}:${lastRow.id}` : null,
+        leads,
       };
     });
 
-    const open = pipeLeads.filter((l) => stages.find((s) => s.key === l.stage)?.kind === 'open');
-    const wonStage = stages.filter((s) => s.kind === 'won').map((s) => s.key);
-    const won = pipeLeads.filter((l) => wonStage.includes(l.stage));
+    const sumKind = (kind: string, field: 'c' | 's') =>
+      stages.filter((s) => s.kind === kind).reduce((a, s) => a + (aggAll.get(s.key)?.[field] || 0), 0);
     const stats = [
-      { lab: 'Faol lidlar', v: String(open.length) },
-      { lab: 'Voronka summasi', v: fmtSum(open.reduce((a, l) => a + l.value, 0)) },
-      { lab: 'Yopilgan (sotuv)', v: String(won.length) },
-      { lab: 'Sotuv summasi', v: fmtSum(won.reduce((a, l) => a + l.value, 0)) },
+      { lab: 'Faol lidlar', v: String(sumKind('open', 'c')) },
+      { lab: 'Voronka summasi', v: fmtSum(sumKind('open', 's')) },
+      { lab: 'Yopilgan (sotuv)', v: String(sumKind('won', 'c')) },
+      { lab: 'Sotuv summasi', v: fmtSum(sumKind('won', 's')) },
     ];
 
     return { stages: stagesOut, stats, pipelines, pipelineId: activePid };
+  }
+
+  /** Voronka ustunining keyingi sahifasi: kursor `${queue}:${id}` (keyset, drag-drop'dan keyin ham barqaror). */
+  async stageLeads(q: LeadFilter & { stage?: string; pipelineId?: string; cursor?: string; limit?: string }, userId?: string) {
+    if (!q.stage) throw new BadRequestException({ error: 'NO_STAGE', message: 'stage majburiy' });
+    const stage = await this.prisma.crmStage.findUnique({ where: { key: q.stage } });
+    if (!stage) throw new NotFoundException({ error: 'BAD_STAGE', message: 'Bosqich topilmadi' });
+    const ctx = await this.leadCtx(userId);
+    const { pipelineId: _p, stage: _s, unsorted: _u, ...userFilter } = q as any;
+    const pid = stage.pipelineId || null;
+    const conds: Cond[] = [
+      Prisma.sql`l.unsorted = FALSE`, Prisma.sql`l.stage = ${stage.key}`,
+      pid ? Prisma.sql`l."pipelineId" = ${pid}` : Prisma.sql`l."pipelineId" IS NULL`,
+      ...leadConds(userFilter, ctx),
+    ];
+    const m = /^(-?\d+):(.+)$/.exec(q.cursor || '');
+    if (m) conds.push(Prisma.sql`(l.queue, l.id) > (${Number(m[1])}, ${m[2]})`);
+    const limit = Math.max(1, Math.min(Number(q.limit) || 50, 200));
+    const ids = await this.prisma.$queryRaw<{ id: string }[]>(
+      Prisma.sql`SELECT l.id FROM leads l WHERE ${and(conds)} ORDER BY l.queue ASC, l.id ASC LIMIT ${limit + 1}`,
+    );
+    const more = ids.length > limit;
+    const rows = await this.rowsByIds(ids.slice(0, limit).map((r) => r.id));
+    const leads = await this.buildCards(rows, (k) => ctx.kinds.get(k) || 'open');
+    const last = rows[rows.length - 1];
+    return { leads, nextCursor: more && last ? `${last.queue}:${last.id}` : null, stage: stage.key };
   }
 
   async listMembers() {
@@ -298,16 +382,17 @@ export class CrmService {
   // Dublikat aniqlash (telefon oxirgi 9 raqam yoki email)
   async findDuplicates(phone?: string, email?: string, excludeId?: string) {
     const tail = digits(phone).slice(-9);
-    const all = await this.prisma.lead.findMany({
-      where: { id: excludeId ? { not: excludeId } : undefined },
+    const mail = (email || '').trim().toLowerCase();
+    const or: Record<string, unknown>[] = [];
+    if (tail.length >= 7) or.push({ phoneTail: tail }); // indekslangan (leads_phoneTail_idx)
+    if (mail) or.push({ emailNorm: mail }); // indekslangan (leads_emailNorm_idx)
+    if (!or.length) return { duplicates: [] };
+    const duplicates = await this.prisma.lead.findMany({
+      where: { OR: or, ...(excludeId ? { id: { not: excludeId } } : {}) },
       select: { id: true, name: true, phone: true, email: true, stage: true },
+      take: 10,
     });
-    const matches = all.filter((l) => {
-      if (tail.length >= 7 && digits(l.phone).slice(-9) === tail) return true;
-      if (email && l.email && l.email.toLowerCase() === email.toLowerCase()) return true;
-      return false;
-    });
-    return { duplicates: matches.slice(0, 10) };
+    return { duplicates };
   }
 
   private itemsValue(items: any[]): number {
@@ -482,11 +567,32 @@ export class CrmService {
         else { closeData.wonAt = null; closeData.lostAt = null; }
       }
       await tx.lead.update({ where: { id }, data: closeData });
-      const others = await tx.lead.findMany({ where: { stage: stageKey, id: { not: id } }, orderBy: { queue: 'asc' }, select: { id: true } });
-      const ids = others.map((o) => o.id);
-      const pos = position == null ? ids.length : Math.max(0, Math.min(position, ids.length));
-      ids.splice(pos, 0, id);
-      for (let i = 0; i < ids.length; i++) await tx.lead.update({ where: { id: ids[i] }, data: { queue: i, stage: stageKey } });
+      // Tartib: odatda faqat kerakli joydan keyingilarni 1 ga suramiz (butun bosqichni qayta raqamlash katta bazada sekin).
+      // Faqat navbat qiymatlari to'qnashgan (teng) bo'lsa — bosqich bo'yicha zich qayta raqamlash.
+      const cond = { stage: stageKey, id: { not: id } };
+      const order = [{ queue: 'asc' as const }, { id: 'asc' as const }];
+      let queue: number;
+      const pos = position == null ? null : Math.max(0, position);
+      const near = pos == null ? [] : await tx.lead.findMany({ where: { ...cond, unsorted: false }, orderBy: order, skip: Math.max(0, pos - 1), take: pos > 0 ? 2 : 1, select: { queue: true } });
+      const at = pos == null ? undefined : pos > 0 ? near[1] : near[0];
+      const tie = pos != null && pos > 0 && near.length === 2 && near[0].queue === near[1].queue;
+      if (tie) {
+        const others = await tx.lead.findMany({ where: cond, orderBy: order, select: { id: true, unsorted: true } });
+        const visible = others.filter((o) => !o.unsorted); // pozitsiya ko'rinadigan kartalar bo'yicha (saralanmaganlar hisobga olinmaydi)
+        const anchor = visible[pos!];
+        const ids = others.map((o) => o.id);
+        ids.splice(anchor ? ids.indexOf(anchor.id) : ids.length, 0, id);
+        for (let i = 0; i < ids.length; i++) await tx.lead.update({ where: { id: ids[i] }, data: { queue: i } });
+        return;
+      }
+      if (at) {
+        queue = at.queue;
+        await tx.lead.updateMany({ where: { ...cond, queue: { gte: queue } }, data: { queue: { increment: 1 } } });
+      } else {
+        const m = await tx.lead.aggregate({ where: cond, _max: { queue: true } });
+        queue = (m._max.queue ?? -1) + 1;
+      }
+      await tx.lead.update({ where: { id }, data: { queue } });
     });
 
     if (changed) {
@@ -509,46 +615,92 @@ export class CrmService {
   }
 
   // ── Ommaviy amallar (mass actions) ──
-  async bulk(dto: { ids: string[]; action: string; value?: any }, user?: AuthUser) {
-    const ids = Array.isArray(dto.ids) ? dto.ids : [];
+  async bulk(dto: { ids?: string[]; action: string; value?: any; all?: boolean; filter?: LeadFilter; excludeIds?: string[] }, user?: AuthUser) {
+    let ids = Array.isArray(dto.ids) ? dto.ids : [];
+    if (dto.all) {
+      // "Barchasini belgilash": filtrga mos hamma bitimlar (barcha sahifalar), excludeIds bundan mustasno
+      const ctx = await this.leadCtx(user?.id);
+      const found = await this.prisma.$queryRaw<{ id: string }[]>(
+        Prisma.sql`SELECT l.id FROM leads l WHERE ${and(leadConds(dto.filter || {}, ctx))}`,
+      );
+      const ex = new Set(Array.isArray(dto.excludeIds) ? dto.excludeIds : []);
+      ids = found.map((r) => r.id).filter((id) => !ex.has(id));
+    }
     if (!ids.length) throw new BadRequestException({ error: 'NO_IDS', message: 'Lid tanlanmagan' });
     let affected = 0;
+    const CHUNK = 5000; // Postgres bind-parametr limiti (32767) dan oshmaslik uchun
+    const chunks: string[][] = [];
+    for (let i = 0; i < ids.length; i += CHUNK) chunks.push(ids.slice(i, i + CHUNK));
     switch (dto.action) {
       case 'stage': {
-        for (const id of ids) { const ok = await this.moveLead(id, String(dto.value), undefined, user).then(() => true).catch(() => false); if (ok) affected++; }
+        // Paketli ko'chirish (har bitim uchun alohida tranzaksiya o'rniga): bosqich/yopilish sanalari + navbat oxiriga + faoliyat yozuvi
+        const target = await this.prisma.crmStage.findUnique({ where: { key: String(dto.value) } });
+        if (!target) throw new NotFoundException({ error: 'BAD_STAGE', message: "Noto'g'ri bosqich" });
+        let base = await this.nextQueue(target.key);
+        const stageName = target.name;
+        for (const part of chunks) {
+          const before = await this.prisma.lead.findMany({ where: { id: { in: part } }, select: { id: true, stage: true, value: true, lostReason: true } });
+          const found = before.map((b) => b.id);
+          if (!found.length) continue;
+          const changed = before.filter((b) => b.stage !== target.key);
+          if (changed.length) {
+            const data: Record<string, unknown> = { stage: target.key, pipelineId: target.pipelineId || null, lastActivityAt: new Date() };
+            if (target.kind === 'won') { data.wonAt = new Date(); data.lostAt = null; }
+            else if (target.kind === 'lost') data.lostAt = new Date(), data.wonAt = null;
+            else { data.wonAt = null; data.lostAt = null; }
+            await this.prisma.lead.updateMany({ where: { id: { in: changed.map((c) => c.id) } }, data });
+            await this.prisma.activity.createMany({
+              data: changed.map((c) => ({
+                leadId: c.id, type: target.kind === 'won' ? 'won' : target.kind === 'lost' ? 'lost' : 'stage', actorId: user?.id || null, actorName: user?.name || null, dataJson: '{}',
+                text: target.kind === 'won' ? `🏆 Sotuv yopildi: ${fmtSum(c.value)} so'm` : target.kind === 'lost' ? "Yo'qotildi" : `Bosqich: ${stageName}`,
+              })),
+            });
+          }
+          // navbat: qo'shilish tartibida bosqich oxiriga
+          await this.prisma.$executeRaw(Prisma.sql`UPDATE leads SET queue = ${base} + sub.rn FROM (SELECT id, (row_number() OVER (ORDER BY queue, id))::int AS rn FROM leads WHERE id IN (${Prisma.join(found)})) sub WHERE leads.id = sub.id`);
+          base += found.length;
+          affected += found.length;
+          for (let i = 0; i < changed.length; i += 20) {
+            await Promise.all(changed.slice(i, i + 20).map((c) => this.automation.fire('stage_enter', c.id, { actorName: user?.name })));
+          }
+        }
         break;
       }
       case 'assignee': {
-        const r = await this.prisma.lead.updateMany({ where: { id: { in: ids } }, data: { assigneeId: dto.value || null } });
-        affected = r.count;
-        for (const id of ids) {
-          await this.activity.record(id, 'assignee', { actorId: user?.id, actorName: user?.name, text: `Mas'ul (ommaviy)` });
-          await this.automation.fire('assignee_changed', id, { actorName: user?.name });
+        for (const part of chunks) {
+          const r = await this.prisma.lead.updateMany({ where: { id: { in: part } }, data: { assigneeId: dto.value || null, lastActivityAt: new Date() } });
+          affected += r.count;
+          await this.prisma.activity.createMany({
+            data: part.map((leadId) => ({ leadId, type: 'assignee', actorId: user?.id || null, actorName: user?.name || null, text: `Mas'ul (ommaviy)`, dataJson: '{}' })),
+          });
         }
+        for (const id of ids) await this.automation.fire('assignee_changed', id, { actorName: user?.name });
         if (dto.value) await this.notif.notify(dto.value, `Sizga ${affected} ta lid biriktirildi`, { type: 'lead', link: '/leads/pipeline' });
         break;
       }
       case 'add_tag': {
         const tag = String(dto.value || '').trim();
         if (tag) {
-          const leads = await this.prisma.lead.findMany({ where: { id: { in: ids } }, select: { id: true, tagsJson: true } });
-          for (const l of leads) {
-            const tags = [...new Set([...parse<string[]>(l.tagsJson, []), tag])];
-            await this.prisma.lead.update({ where: { id: l.id }, data: { tagsJson: JSON.stringify(tags) } });
-            affected++;
+          for (const part of chunks) {
+            const leads = await this.prisma.lead.findMany({ where: { id: { in: part } }, select: { id: true, tagsJson: true } });
+            for (const l of leads) {
+              const tags = [...new Set([...parse<string[]>(l.tagsJson, []), tag])];
+              await this.prisma.lead.update({ where: { id: l.id }, data: { tagsJson: JSON.stringify(tags) } });
+              affected++;
+            }
           }
         }
         break;
       }
       case 'hot': {
-        const r = await this.prisma.lead.updateMany({ where: { id: { in: ids } }, data: { hot: !!dto.value } });
-        affected = r.count;
+        for (const part of chunks) affected += (await this.prisma.lead.updateMany({ where: { id: { in: part } }, data: { hot: !!dto.value } })).count;
         break;
       }
       case 'delete': {
-        await this.prisma.activity.deleteMany({ where: { leadId: { in: ids } } });
-        const r = await this.prisma.lead.deleteMany({ where: { id: { in: ids } } });
-        affected = r.count;
+        for (const part of chunks) {
+          await this.prisma.activity.deleteMany({ where: { leadId: { in: part } } });
+          affected += (await this.prisma.lead.deleteMany({ where: { id: { in: part } } })).count;
+        }
         break;
       }
       default:
@@ -558,23 +710,29 @@ export class CrmService {
   }
 
   // ── List ko'rinishi + kengaytirilgan filtr ──
-  async listLeads(q: { search?: string; source?: string; assigneeId?: string; tag?: string; hot?: string; stage?: string; pipelineId?: string; minValue?: string; maxValue?: string }) {
-    const where: Record<string, any> = {};
-    if (q.source) where.source = q.source;
-    if (q.assigneeId) where.assigneeId = q.assigneeId === 'none' ? null : q.assigneeId;
-    if (q.stage) where.stage = q.stage;
-    if (q.pipelineId) where.pipelineId = q.pipelineId;
-    if (q.hot === 'true') where.hot = true;
-    if (q.minValue || q.maxValue) { where.value = {}; if (q.minValue) where.value.gte = Number(q.minValue); if (q.maxValue) where.value.lte = Number(q.maxValue); }
-    if (q.search) where.OR = [{ name: { contains: q.search, mode: 'insensitive' } }, { phone: { contains: q.search } }, { email: { contains: q.search, mode: 'insensitive' } }];
-
-    let leads = (await this.prisma.lead.findMany({ where, orderBy: { updatedAt: 'desc' }, take: 500 })) as LeadRow[];
-    if (q.tag) leads = leads.filter((l) => parse<string[]>(l.tagsJson, []).includes(q.tag!));
-    const names = await this.userMap(leads.map((l) => l.assigneeId));
+  /**
+   * Bitimlar ro'yxati. Parametrlar: limit, cursor, sort (name|createdAt|value|stage|assignee|contact|updatedAt), dir (asc|desc),
+   * search, preset, period, assigneeId, budgetFrom/To, tags, pipelineId, stage, task, contactId, companyId, unsorted ...
+   * `limit` berilsa — sahifalangan javob: { leads, nextCursor, total, totalSum }.
+   * `limit` berilmasa — eski shakl (birinchi 500 ta), total/totalSum qo'shimcha maydon sifatida.
+   * total/totalSum filtrga mos barcha bitimlar bo'yicha (SQL aggregate).
+   */
+  async listLeads(q: LeadFilter & { limit?: string; cursor?: string; sort?: string; dir?: string }, userId?: string) {
+    const ctx = await this.leadCtx(userId);
+    const where = and(leadConds(q, ctx));
+    const { paged, limit, offset } = parsePaging(q, 500, 200);
+    const { join, order } = leadOrder(q.sort, q.dir);
+    const [idRows, aggRows] = await Promise.all([
+      this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`SELECT l.id FROM leads l ${join} WHERE ${where} ${order} LIMIT ${limit + (paged ? 1 : 0)} OFFSET ${offset}`),
+      this.prisma.$queryRaw<{ c: number; s: number }[]>(Prisma.sql`SELECT count(*)::int AS c, coalesce(sum(l.value), 0)::float8 AS s FROM leads l WHERE ${where}`),
+    ]);
+    const more = paged && idRows.length > limit;
+    const leads = await this.rowsByIds(idRows.slice(0, limit).map((r) => r.id));
     const stages = await this.prisma.crmStage.findMany();
     const kindByKey = new Map(stages.map((s) => [s.key, s.kind]));
     const nameByKey = new Map(stages.map((s) => [s.key, s.name]));
     const colorByKey = new Map(stages.map((s) => [s.key, s.color]));
+    const names = await this.userMap(leads.map((l) => l.assigneeId));
     const cIds = [...new Set(leads.map((l) => l.contactId).filter(Boolean))] as string[];
     const cs = cIds.length ? await this.prisma.contact.findMany({ where: { id: { in: cIds } }, select: { id: true, name: true, phone: true } }) : [];
     const cMap = new Map(cs.map((c) => [c.id, c]));
@@ -591,6 +749,9 @@ export class CrmService {
           contactPhone: c?.phone || null,
         };
       }),
+      nextCursor: more ? String(offset + limit) : null,
+      total: Number(aggRows[0]?.c || 0),
+      totalSum: Number(aggRows[0]?.s || 0),
     };
   }
 

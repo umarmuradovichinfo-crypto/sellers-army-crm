@@ -137,7 +137,12 @@ export class PipelineSettingsService {
       const canEmail = s.matchEmail && !!email;
       if (!canPhone && !canEmail && !fieldVals.length) return null;
 
-      const all = await this.prisma.lead.findMany({ orderBy: { createdAt: 'asc' } });
+      // Indekslangan oldindan saralash (phoneTail / emailNorm / customJson) — barcha lidlarni yuklamaymiz
+      const or: Record<string, unknown>[] = [];
+      if (canPhone) or.push({ phoneTail: tail });
+      if (canEmail) or.push({ emailNorm: email });
+      for (const [, v] of fieldVals) or.push({ customJson: { contains: JSON.stringify(v).slice(1, -1), mode: 'insensitive' } });
+      const all = await this.prisma.lead.findMany({ where: { OR: or }, orderBy: { createdAt: 'asc' } });
       const matches = all.filter((l) => {
         const lp = l.pipelineId || 'main';
         if (s.pipelines && !s.pipelines.includes(lp)) return false;

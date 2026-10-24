@@ -33,8 +33,12 @@ export class CrmController {
   constructor(private readonly crm: CrmService) {}
 
   @Get('pipeline')
-  pipeline(@Query('pipelineId') pipelineId?: string) {
-    return this.crm.getPipeline(pipelineId);
+  pipeline(@Query() q: Record<string, string>, @CurrentUser('id') userId?: string) {
+    return this.crm.getPipeline(q.pipelineId, q, userId);
+  }
+  @Get('pipeline/stage-leads')
+  stageLeads(@Query() q: Record<string, string>, @CurrentUser('id') userId?: string) {
+    return this.crm.stageLeads(q, userId);
   }
 
   @Get('members')
@@ -62,8 +66,8 @@ export class CrmController {
 
   // ── Lidlar ──
   @Get('leads')
-  listLeads(@Query() q: Record<string, string>) {
-    return this.crm.listLeads(q);
+  listLeads(@Query() q: Record<string, string>, @CurrentUser('id') userId?: string) {
+    return this.crm.listLeads(q, userId);
   }
   @Get('leads-export')
   @Header('Content-Type', 'text/csv; charset=utf-8')

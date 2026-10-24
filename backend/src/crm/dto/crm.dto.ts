@@ -96,9 +96,13 @@ export class MoveLeadDto {
 }
 
 export class BulkDto {
-  @IsArray() ids!: string[];
+  @IsOptional() @IsArray() ids?: string[];
   @IsString() action!: string;
   @IsOptional() value?: any;
+  // "Barchasini belgilash": ids o'rniga filtr (GET /crm/leads bilan bir xil parametrlar), excludeIds — olib tashlanganlar
+  @IsOptional() @IsBoolean() all?: boolean;
+  @IsOptional() filter?: Record<string, any>;
+  @IsOptional() @IsArray() excludeIds?: string[];
 }
 
 export class AddNoteDto {

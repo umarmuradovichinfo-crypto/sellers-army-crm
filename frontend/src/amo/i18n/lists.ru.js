@@ -1,6 +1,7 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Barchasini belgilash': 'Выбрать все',
   'Barcha kontaktlar va kompaniyalar': 'Все контакты и компании',
   'Kontaktlar': 'Контакты',
   'Kompaniyalar': 'Компании',

@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
-import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../lib/useApi'
 import TopBar, { useOutside } from '../TopBar'
 import { Ico } from '../AmoIcons'
@@ -14,22 +13,7 @@ import '../lists.css'
 
 const PAGE = 50
 const EMPTY = { preset: 'all', name: '', phone: '', email: '', assigneeId: '', period: '' }
-const DAY = 86400000
-const digits = (v) => String(v || '').replace(/\D/g, '')
-// Mas'ul: kontakt/kompaniya customJson._assigneeId (kartochkada tanlanadi), bo'lmasa yaratuvchi
-const assigneeOf = (r) => r.custom?._assigneeId || r.createdById || ''
-
-function inPeriod(iso, period) {
-  if (!period || !iso) return true
-  const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  const t = new Date(iso).getTime()
-  if (period === 'today') return t >= start
-  if (period === 'yesterday') return t >= start - DAY && t < start
-  if (period === 'week') return t >= start - 6 * DAY
-  if (period === 'month') return t >= start - 29 * DAY
-  return true
-}
+const SORT_KEY = { name: 'name', companyName: 'companyName', phone: 'phone', assignee: 'assignee', email: 'email' }
 
 function ListFilter({ value, members, onApply }) {
   const [f, setF] = useState(value)
@@ -99,90 +83,101 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
   const [entity, setEntity] = useState(entityProp)
   useEffect(() => setEntity(entityProp), [entityProp])
   const navigate = useNavigate()
-  const { user } = useAuth()
   const t = useT()
   const plural = usePlural()
   const [search, setSearch] = useState('')
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState(EMPTY)
   const [sort, setSort] = useState({ key: 'name', dir: 1 })
+  const [list, setList] = useState({ rows: [], next: null, total: 0, loading: true, error: '' })
+  // Tanlash: sel — qo'lda belgilanganlar (kind:id); allMode — filtrga mos HAMMA yozuvlar (barcha sahifalar), excluded — undan olib tashlanganlar
   const [sel, setSel] = useState(() => new Set())
-  const [shown, setShown] = useState(PAGE)
+  const [allMode, setAllMode] = useState(false)
+  const [excluded, setExcluded] = useState(() => new Set())
   const sentinel = useRef(null)
+  const seq = useRef(0)
 
-  useEffect(() => { const id = setTimeout(() => setQ(search.trim()), 250); return () => clearTimeout(id) }, [search])
+  useEffect(() => { const id = setTimeout(() => setQ(search.trim()), 300); return () => clearTimeout(id) }, [search])
 
-  const { data, error, reload } = useApi(async () => {
-    const [c, co, mem] = await Promise.all([
-      entity === 'companies' ? { contacts: [] } : crmService.listContacts(q),
-      entity === 'contacts' ? { companies: [] } : crmService.listCompanies(q),
-      crmService.listMembers(),
-    ])
-    return { contacts: c.contacts || [], companies: co.companies || [], members: mem.members || [] }
-  }, [entity, q], `ac-lists-${entity}-${q}`)
-
-  const members = data?.members || []
+  const { data: meta } = useApi(async () => ({ members: (await crmService.listMembers()).members || [] }), [], 'ac-lists-members')
+  const members = meta?.members || []
   const memberName = (id) => members.find((m) => m.id === id)?.name || ''
 
-  const rows = useMemo(() => {
-    if (!data) return []
-    const companyById = Object.fromEntries(data.companies.map((c) => [c.id, c.name]))
-    let list = [
-      ...data.contacts.map((c) => ({ ...c, kind: 'contact', companyName: companyById[c.companyId] || '' })),
-      ...data.companies.map((c) => ({ ...c, kind: 'company', companyName: '' })),
-    ].map((r) => ({ ...r, key: `${r.kind}:${r.id}`, assigneeId: assigneeOf(r), assignee: memberName(assigneeOf(r)) }))
-    const has = (v, s) => (v || '').toLowerCase().includes(s.toLowerCase())
-    list = list.filter((r) => {
-      if (filter.preset === 'mine' && user && r.assigneeId !== user.id) return false
-      if (filter.name && !has(r.name, filter.name)) return false
-      if (filter.phone) {
-        const fd = digits(filter.phone)
-        const all = [r.phone, ...(r.custom?.phones || [])]
-        if (!all.some((p) => (fd ? digits(p).includes(fd) : has(p, filter.phone)))) return false
-      }
-      if (filter.email && !has(r.email, filter.email)) return false
-      if (filter.assigneeId && r.assigneeId !== filter.assigneeId) return false
-      if (!inPeriod(r.createdAt, filter.period)) return false
-      return true
-    })
-    const k = sort.key
-    list.sort((a, b) => {
-      const av = k === 'createdAt' ? a.createdAt || '' : (a[k] || '').toLowerCase()
-      const bv = k === 'createdAt' ? b.createdAt || '' : (b[k] || '').toLowerCase()
-      return av < bv ? -sort.dir : av > bv ? sort.dir : 0
-    })
-    return list
-  }, [data, filter, sort, user]) // eslint-disable-line
+  // Server parametrlari (limit/cursor/sort'siz) — ro'yxat, eksport va ommaviy o'chirish uchun bir xil
+  const filterParams = useMemo(() => ({
+    kind: entity, search: q, preset: filter.preset === 'mine' ? 'mine' : '', name: filter.name, phone: filter.phone, email: filter.email,
+    assigneeId: filter.assigneeId, period: filter.period,
+  }), [entity, q, filter])
+  const paramsKey = JSON.stringify([filterParams, sort])
 
-  useEffect(() => { setShown(PAGE); setSel(new Set()) }, [entity, q, filter, sort])
+  const decorate = (r) => ({ ...r, key: `${r.kind}:${r.id}`, assignee: memberName(r.assigneeId) })
+  const fetchPage = async (cursor, reset) => {
+    const my = ++seq.current
+    setList((l) => ({ ...l, loading: true, ...(reset ? { error: '' } : {}) }))
+    try {
+      const r = await crmService.listEntities({ ...filterParams, sort: SORT_KEY[sort.key] || 'name', dir: sort.dir > 0 ? 'asc' : 'desc', limit: PAGE, cursor })
+      if (my !== seq.current) return
+      setList((l) => {
+        const base = reset ? [] : l.rows
+        const have = new Set(base.map((x) => x.key))
+        const fresh = (r.items || []).map(decorate).filter((x) => !have.has(x.key))
+        return { rows: [...base, ...fresh], next: r.nextCursor || null, total: r.total || 0, loading: false, error: '' }
+      })
+    } catch (e) {
+      if (my === seq.current) setList((l) => ({ ...l, loading: false, error: e?.message || t('Xatolik yuz berdi') }))
+    }
+  }
+  const reload = () => fetchPage(undefined, true)
+  const clearSel = () => { setSel(new Set()); setAllMode(false); setExcluded(new Set()) }
 
-  // Cheksiz scroll: sahifa oxiriga yetganda keyingi bo'lakni ko'rsatish
+  useEffect(() => { clearSel(); fetchPage(undefined, true) }, [paramsKey]) // eslint-disable-line
+
+  // Mas'ul nomlari a'zolar yuklangach to'ldiriladi
+  const rows = useMemo(() => list.rows.map((r) => ({ ...r, assignee: memberName(r.assigneeId) })), [list.rows, members]) // eslint-disable-line
+
+  // Cheksiz scroll: sahifa oxiriga yetganda keyingi sahifani so'raymiz
   useEffect(() => {
     const el = sentinel.current
-    if (!el || shown >= rows.length) return
-    const io = new IntersectionObserver((es) => { if (es[0].isIntersecting) setShown((n) => n + PAGE) }, { rootMargin: '300px' })
+    if (!el || !list.next || list.loading) return
+    const io = new IntersectionObserver((es) => { if (es[0].isIntersecting) fetchPage(list.next, false) }, { rootMargin: '300px' })
     io.observe(el)
     return () => io.disconnect()
-  }, [shown, rows.length])
+  }, [list.next, list.loading, list.rows.length]) // eslint-disable-line
 
-  const visible = rows.slice(0, shown)
-  const allOn = visible.length > 0 && visible.every((r) => sel.has(r.key))
-  const toggleAll = () => setSel(allOn ? new Set() : new Set(visible.map((r) => r.key)))
-  const toggle = (key) => setSel((s) => { const n = new Set(s); n.has(key) ? n.delete(key) : n.add(key); return n })
+  const isOn = (key) => (allMode ? !excluded.has(key) : sel.has(key))
+  const selCount = allMode ? Math.max(0, list.total - excluded.size) : sel.size
+  const allOn = rows.length > 0 && rows.every((r) => isOn(r.key))
+  const toggleAll = () => { if (allMode || allOn) clearSel(); else setSel(new Set(rows.map((r) => r.key))) }
+  const toggle = (key) => {
+    if (allMode) setExcluded((s) => { const n = new Set(s); n.has(key) ? n.delete(key) : n.add(key); return n })
+    else setSel((s) => { const n = new Set(s); n.has(key) ? n.delete(key) : n.add(key); return n })
+  }
   const sortBy = (key) => setSort((s) => (s.key === key ? { key, dir: -s.dir } : { key, dir: 1 }))
 
   const open = (r) => navigate(r.kind === 'contact' ? `/contacts/detail/${r.id}` : `/companies/detail/${r.id}`)
   const removeSelected = async () => {
-    if (!window.confirm(t('Tanlanganlarni o\'chirishni tasdiqlaysizmi?'))) return
-    const chosen = rows.filter((r) => sel.has(r.key))
-    let failed = 0
-    await Promise.all(chosen.map((r) => (r.kind === 'contact' ? crmService.deleteContact(r.id) : crmService.deleteCompany(r.id)).catch(() => { failed++ })))
-    setSel(new Set())
-    if (failed) window.alert(`${t("O'chirib bo'lmadi")}: ${failed}`)
+    if (!window.confirm(t('Tanlanganlarni o\'chirishni tasdiqlaysizmi?') + (allMode ? ` (${selCount})` : ''))) return
+    try {
+      if (allMode) await crmService.bulkDeleteEntities({ all: true, filter: filterParams, excludeIds: [...excluded] })
+      else await crmService.bulkDeleteEntities({ items: rows.filter((r) => sel.has(r.key)).map((r) => ({ kind: r.kind, id: r.id })) })
+    } catch (e) { window.alert(`${t("O'chirib bo'lmadi")}: ${e?.message || ''}`) }
+    clearSel()
     reload()
   }
-  const exportCsv = () => {
-    const chosen = sel.size ? rows.filter((r) => sel.has(r.key)) : rows
+  const exportCsv = async () => {
+    // Belgilangan bo'lsa — shular; "hammasi" yoki hech narsa belgilanmagan bo'lsa — filtrga mos barcha yozuvlar (sahifa-sahifa yuklanadi)
+    let chosen
+    if (!allMode && sel.size) chosen = rows.filter((r) => sel.has(r.key))
+    else {
+      chosen = []
+      let cursor
+      do {
+        const r = await crmService.listEntities({ ...filterParams, sort: SORT_KEY[sort.key] || 'name', dir: sort.dir > 0 ? 'asc' : 'desc', limit: 200, cursor }).catch(() => ({ items: [] }))
+        chosen.push(...(r.items || []).map(decorate).map((x) => ({ ...x, assignee: memberName(x.assigneeId) })))
+        cursor = r.nextCursor
+      } while (cursor && chosen.length < 100000)
+      if (allMode) chosen = chosen.filter((r) => !excluded.has(r.key))
+    }
     // CSV-injection (=,+,-,@) dan himoya + qo'sh tirnoq ekranlash
     const esc = (v) => { let x = String(v ?? ''); if (/^[=+\-@\t\r]/.test(x) && !/^\+?[\d\s()-]+$/.test(x)) x = `'${x}`; return `"${x.replace(/"/g, '""')}"` }
     const head = [t('Nomi'), t('Kompaniya'), t('Telefon'), t("Mas'ul"), t('Email')]
@@ -205,7 +200,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
         search={search}
         onSearch={setSearch}
         filterPanel={(close) => <ListFilter value={filter} members={members} onApply={(f) => { setFilter(f); close() }} />}
-        count={plural(rows.length, 'element')}
+        count={plural(list.total, 'element')}
         menu={[
           { label: t('Eksport'), icon: 'excel', onClick: exportCsv },
         ]}
@@ -226,9 +221,9 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
             </tr>
           </thead>
           <tbody>
-            {visible.map((r) => (
-              <tr key={r.key} className={sel.has(r.key) ? 'selected' : ''}>
-                <td className="ac-chk"><input type="checkbox" className="ac-check" checked={sel.has(r.key)} onChange={() => toggle(r.key)} /></td>
+            {rows.map((r) => (
+              <tr key={r.key} className={isOn(r.key) ? 'selected' : ''}>
+                <td className="ac-chk"><input type="checkbox" className="ac-check" checked={isOn(r.key)} onChange={() => toggle(r.key)} /></td>
                 <td className="name">
                   {r.kind === 'company' ? <Ico name="company" size={14} className="ico" /> : <span className="ac-dot" />}
                   <a onClick={() => open(r)}>{r.name}</a>
@@ -241,14 +236,15 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
             ))}
           </tbody>
         </table>
-        {!data && !error && <div className="ac-lists-empty"><span className="ac-spinner" /></div>}
-        {!data && error && <div className="ac-lists-empty">{error?.message || t('Xatolik yuz berdi')}</div>}
-        {data && rows.length === 0 && <div className="ac-lists-empty">{t("Ma'lumot topilmadi")}</div>}
-        {shown < rows.length && <div ref={sentinel} className="ac-lists-more"><span className="ac-spinner" /></div>}
+        {rows.length === 0 && list.loading && <div className="ac-lists-empty"><span className="ac-spinner" /></div>}
+        {rows.length === 0 && !list.loading && list.error && <div className="ac-lists-empty">{list.error}</div>}
+        {rows.length === 0 && !list.loading && !list.error && <div className="ac-lists-empty">{t("Ma'lumot topilmadi")}</div>}
+        {(list.next || (list.loading && rows.length > 0)) && <div ref={sentinel} className="ac-lists-more"><span className="ac-spinner" /></div>}
       </div>
-      {sel.size > 0 && (
+      {selCount > 0 && (
         <div className="ac-bulk">
-          <span className="ac-lists-bulk-count">{t('Tanlangan: ')}{sel.size}</span>
+          <span className="ac-lists-bulk-count">{t('Tanlangan: ')}{selCount}</span>
+          {!allMode && list.total > sel.size && sel.size >= rows.length && <button onClick={() => { setAllMode(true); setExcluded(new Set()) }}>{t('Barchasini belgilash')} ({list.total})</button>}
           <button onClick={exportCsv}>{t('Eksport')}</button>
           <button className="danger" onClick={removeSelected}>{t("O'chirish")}</button>
         </div>
