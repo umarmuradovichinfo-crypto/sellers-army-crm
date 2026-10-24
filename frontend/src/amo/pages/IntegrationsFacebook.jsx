@@ -92,7 +92,7 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
                 <div key={m.id} className="ac-int-list-item">
                   <div className="grow">
                     <div className="nm">{m.formName}</div>
-                    <div className="sb">{m.pageName || '—'} · {mapped} {t('maydon moslangan')}{m.source ? ` · ${m.source}` : ''}</div>
+                    <div className="ac-int-sub">{m.pageName || '—'} · {mapped} {t('maydon moslangan')}{m.source ? ` · ${m.source}` : ''}</div>
                   </div>
                   <span className={`ac-switch ${m.active !== false ? 'on' : ''}`} onClick={() => toggle(m)} />
                   <button className="ac-btn ac-btn--sm" onClick={() => setWiz({ ...m, fieldMap: safeParse(m.fieldMapJson) })}>{t('Tahrirlash')}</button>
@@ -197,7 +197,7 @@ function Wizard({ cfg, existing, stages, members, pipelines, initial, onCancel, 
             const sel = ['name', 'phone', 'email'].includes(cur) ? cur : (cur === '' || cur === undefined ? '__skip__' : '__custom__')
             return (
               <div key={f.key} className="ac-int-list-item">
-                <div className="grow"><div className="nm">{f.label}</div><div className="sb">{f.key}</div></div>
+                <div className="grow"><div className="nm">{f.label}</div><div className="ac-int-sub">{f.key}</div></div>
                 <select className="ac-select" style={{ width: 210 }} value={sel}
                   onChange={(e) => setFieldMap((m) => ({ ...m, [f.key]: e.target.value === '__custom__' ? (f.label || f.key) : e.target.value === '__skip__' ? '' : e.target.value }))}>
                   <option value="name">{t('Ism (lid nomi)')}</option>

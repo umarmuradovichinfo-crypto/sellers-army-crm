@@ -134,10 +134,10 @@ textarea.ac-input { height: auto; min-height: 80px; padding: 8px 10px; resize: v
 .ac-table td { height: 35px; padding: 0 10px; border-bottom: 1px solid var(--palette-border-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 360px; }
 .ac-table tr:hover td { background: var(--palette-button-classic-hover-background); }
 .ac-table tr.selected td { background: rgba(76, 139, 247, 0.12); }
-.ac-table td.chk, .ac-table th.chk { width: 40px; padding: 0 0 0 12px; }
+.ac-table td.ac-chk, .ac-table th.ac-chk { width: 40px; padding: 0 0 0 12px; }
 .ac-table td a { cursor: pointer; }
 .ac-table td .u { text-decoration: underline; color: var(--palette-text-primary); }
-.ac-table .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.ac-table .ac-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
 
 /* Ommaviy amallar paneli (belgilanganda pastdan chiqadi) */
 .ac-bulk { position: fixed; left: var(--left-menu-width); right: 0; bottom: 0; z-index: 150; height: 56px; display: flex; align-items: center; gap: 22px; padding: 0 30px; background: var(--palette-background-primary); border-top: 1px solid var(--palette-border-primary); box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.25); animation: ac-bulk-in 0.2s ease both; font-size: 14px; }
@@ -161,7 +161,7 @@ textarea.ac-input { height: auto; min-height: 80px; padding: 8px 10px; resize: v
 .ac-filter__preset { display: flex; align-items: center; gap: 8px; min-height: 44px; border-bottom: 1px solid var(--palette-border-primary); font-size: 14px; cursor: pointer; color: var(--palette-text-primary); }
 .ac-filter__preset:hover { color: #1691ff; }
 .ac-filter__preset.on { color: #1691ff; }
-.ac-filter__preset .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.ac-filter__preset .ac-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
 .ac-filter__preset .edit { margin-left: auto; color: var(--palette-text-secondary-light); }
 .ac-filter__col { flex: 1; padding: 14px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .ac-filter__col--fields { flex: 0 0 305px; border-right: 1px solid var(--palette-border-primary); }

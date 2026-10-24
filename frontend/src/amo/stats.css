@@ -62,9 +62,9 @@
 .ac-stats-deals__new b { font: 300 52px/56px var(--font-main); }
 .ac-stats-deals__rows { width: 80px; flex: none; border-left: 1px solid var(--palette-border-primary); padding-left: 14px; display: flex; flex-direction: column; }
 .ac-stats-rowlab { font: 700 10px var(--font-caption); letter-spacing: 0.5px; text-transform: uppercase; color: var(--palette-text-secondary-dark); display: flex; align-items: center; }
-.ac-stats-deals__rows .r1 { height: 62px; margin-top: 22px; }
-.ac-stats-deals__rows .r2 { height: 82px; }
-.ac-stats-deals__rows .r3 { height: 32px; margin-top: 18px; }
+.ac-stats-deals__rows .r1 { height: 62px; margin-top: 15px; }
+.ac-stats-deals__rows .r2 { height: 82px; margin-top: 10px; }
+.ac-stats-deals__rows .r3 { height: 32px; margin-top: 45px; }
 .ac-stats-cols { display: flex; gap: 8px; margin-left: 12px; align-items: flex-start; flex: 1; min-width: 0; overflow-x: auto; padding-bottom: 6px; }
 .ac-stats-col { width: 167px; flex: none; }
 .ac-stats-col.won { margin-left: 18px; }
@@ -72,21 +72,23 @@
 .ac-stats-col__name { font-size: 15px; color: var(--palette-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 6px; }
 .ac-stats-col__val { font-size: 13px; line-height: 19px; color: var(--palette-text-primary); }
 .ac-stats-col__val:first-of-type { margin-top: 4px; }
-.ac-stats-col__arrow { position: relative; height: 82px; margin: 10px 0 0 -1px; color: var(--ac-stats-mut); display: flex; flex-direction: column; justify-content: center; text-align: center; font-size: 13px; line-height: 17px; }
+.ac-stats-col__arrow { position: relative; height: 82px; margin: -115px 0 0 -1px; color: var(--ac-stats-mut); display: flex; flex-direction: column; justify-content: center; text-align: center; font-size: 13px; line-height: 17px; }
 .ac-stats-col__arrow svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
 .ac-stats-col__arrow span { position: relative; z-index: 1; }
 .ac-stats-col__arrow b { display: block; font: 300 26px/28px var(--font-main); }
 .ac-stats-col.won .ac-stats-col__arrow { color: var(--palette-text-primary); }
-.ac-stats-col__lost { height: 32px; margin-top: 18px; border: 1px solid var(--palette-border-primary); background: var(--ac-stats-box); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--ac-stats-mut); clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); }
+.ac-stats-col__lost { height: 32px; margin-top: 51px; border: 1px solid var(--palette-border-primary); background: var(--ac-stats-box); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--ac-stats-mut); clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); }
 .ac-stats-col.won .ac-stats-col__lost { border: 0; background: transparent; clip-path: none; font-size: 15px; color: var(--palette-text-primary); }
 
 /* ── Voronka barlar ── */
 .ac-stats-fun { display: flex; padding: 10px 6px 4px; min-height: 280px; }
-.ac-stats-fun__left { flex: 1; position: relative; min-width: 0; padding-right: 20px; }
-.ac-stats-fun__avg { position: absolute; left: 0; bottom: 6px; }
+.ac-stats-fun__left { flex: 1; position: relative; min-width: 0; padding-right: 20px; align-self: stretch; min-height: 260px; }
+.ac-stats-fun__avg { position: absolute; left: 0; bottom: 4px; }
 .ac-stats-fun__avg b { display: block; font: 300 76px/80px var(--font-main); color: var(--palette-text-primary); }
 .ac-stats-fun__avg span { font: 300 24px var(--font-main); color: var(--palette-text-primary); }
-.ac-stats-fun__line { position: absolute; left: 0; top: 70px; height: 3px; background: var(--ac-stats-c6); width: 60%; }
+.ac-stats-fun__line { position: absolute; left: 0; top: 14px; height: 3px; background: var(--ac-stats-c6); width: 60%; }
+.ac-stats-fun__line i { position: absolute; right: 0; top: -17px; font: 13px var(--font-main); font-style: normal; color: var(--ac-stats-mut); transform: translateX(50%); }
+.ac-stats-fun__line::before { content: ''; position: absolute; left: 0; top: -6px; width: 1px; height: 15px; background: var(--ac-stats-mut); }
 .ac-stats-fun__bars { width: 62%; flex: none; display: flex; flex-direction: column; gap: 8px; }
 .ac-stats-bar { display: flex; align-items: center; height: 38px; }
 .ac-stats-bar__pct { flex: 1; text-align: right; padding-right: 2px; font: 300 24px var(--font-main); color: var(--palette-text-primary); }
@@ -99,7 +101,7 @@
 /* ── Umumiy hisobot ── */
 .ac-stats-chart svg { width: 100%; height: auto; display: block; }
 .ac-stats-chart text { fill: var(--ac-stats-mut); font: 10px var(--font-main); }
-.ac-stats-chart .grid { stroke: var(--palette-border-primary); stroke-width: 1; }
+.ac-stats-chart .ac-gridline { stroke: var(--palette-border-primary); stroke-width: 1; }
 .ac-stats-chart .ln { fill: none; stroke-width: 2; }
 .ac-stats-chart circle { stroke: var(--palette-background-primary); stroke-width: 2; cursor: default; }
 .ac-stats-chart circle:hover { r: 6; }
@@ -176,3 +178,6 @@
 
 .ac-stats-empty { padding: 40px; text-align: center; color: var(--ac-stats-mut); }
 .ac-stats-spin { display: flex; justify-content: center; padding: 60px 0; }
+
+.ac-stats-col__top { position: relative; z-index: 0; }
+.ac-stats-col__arrow { z-index: 1; }

@@ -59,7 +59,7 @@ export default function IntegrationsForms({ stages = [], members = [], onStatus 
           <div key={f.id} className="ac-int-list-item" style={{ opacity: f.active ? 1 : 0.6 }}>
             <div className="grow">
               <div className="nm">{f.title}</div>
-              <div className="sb">/lead/{f.slug} · {f.submissions || 0} {t('yuborilgan')} · {f.source || '—'}</div>
+              <div className="ac-int-sub">/lead/{f.slug} · {f.submissions || 0} {t('yuborilgan')} · {f.source || '—'}</div>
             </div>
             <button className="ac-btn ac-btn--sm" onClick={() => copy(f)}>{t('Havola')}</button>
             <span className={`ac-switch ${f.active ? 'on' : ''}`} onClick={() => toggle(f)} />

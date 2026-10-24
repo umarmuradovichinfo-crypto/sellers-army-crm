@@ -70,7 +70,7 @@ export default function SettingsUsers() {
           <table className="ac-table">
             <thead>
               <tr>
-                <th className="chk"><input type="checkbox" className="ac-check" checked={shown.length > 0 && sel.size === shown.length} onChange={toggleAll} /></th>
+                <th className="ac-chk"><input type="checkbox" className="ac-check" checked={shown.length > 0 && sel.size === shown.length} onChange={toggleAll} /></th>
                 <th>{t('Ism')}</th><th>{t('Guruh')}</th><th>E-mail</th><th>{t("Qo'shilgan sana")}</th>
                 <th>{t('Bitimlar / Xaridorlar')}</th><th>{t('Kontaktlar')}</th><th>{t('Kompaniyalar')}</th><th>{t('Vazifalar')}</th><th>{t('Bosqichlar')}</th>
               </tr>
@@ -78,7 +78,7 @@ export default function SettingsUsers() {
             <tbody>
               {shown.map((u) => (
                 <tr key={u.id} className={`${sel.has(u.id) ? 'selected' : ''} ${u.isActive ? '' : 'ac-set-inactive'}`}>
-                  <td className="chk"><input type="checkbox" className="ac-check" checked={sel.has(u.id)} onChange={() => toggleOne(u.id)} /></td>
+                  <td className="ac-chk"><input type="checkbox" className="ac-check" checked={sel.has(u.id)} onChange={() => toggleOne(u.id)} /></td>
                   <td><span className="name" onClick={() => setModal({ user: u })}>{u.name}</span></td>
                   <td>{u.roleName || u.roleKey}</td>
                   <td>{u.email}</td>

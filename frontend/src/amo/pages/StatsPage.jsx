@@ -93,7 +93,7 @@ function SalesPipeline({ filter, params }) {
               )
             })}
             <div className="ac-stats-col won">
-              <div className="ac-stats-col__top" style={{ '--c': 'var(--ac-stats-c2)', height: 'auto', paddingBottom: 8 }}>
+              <div className="ac-stats-col__top" style={{ '--c': 'var(--ac-stats-c2)' }}>
                 <div className="ac-stats-col__name">{t('Yutilgan')}</div>
               </div>
               <div className="ac-stats-col__arrow"><Arrow fill="var(--ac-stats-c2)" stroke="transparent" /><span><b>{num(wonF.won)}</b>{money(wonF.wonSum)}</span></div>
@@ -110,7 +110,7 @@ function SalesPipeline({ filter, params }) {
         </div>
         <div className="ac-stats-fun__wrap ac-stats-fun">
           <div className="ac-stats-fun__left">
-            <div className="ac-stats-fun__line" style={{ width: `${Math.min(100, 20 + avg * 10)}%` }} />
+            <div className="ac-stats-fun__line" style={{ width: `${Math.min(100, 20 + avg * 4)}%` }}><i>{avg}{t(' kun')}</i></div>
             <div className="ac-stats-fun__avg"><b>{avg}{t(' kun')}</b><span>{t("Bitimning o'rtacha davomiyligi")}</span></div>
           </div>
           {shown.length === 0 ? <div className="ac-stats-empty">{t("Ma'lumot yo'q")}</div> : <FunnelBars stages={shown} mode={mode} />}
@@ -148,11 +148,11 @@ function LineChart({ buckets, labelFmt }) {
     <svg viewBox={`0 0 ${W} ${H}`}>
       {ticks.map((v, i) => (
         <g key={i}>
-          <line className="grid" x1={L} x2={W - R} y1={y(v)} y2={y(v)} />
+          <line className="ac-gridline" x1={L} x2={W - R} y1={y(v)} y2={y(v)} />
           <text x={L - 6} y={y(v) + 3} textAnchor="end">{Number.isInteger(v) ? v : v.toFixed(1)}</text>
         </g>
       ))}
-      {buckets.map((b, i) => <line key={i} className="grid" x1={x(i)} x2={x(i)} y1={T} y2={H - B + 6} />)}
+      {buckets.map((b, i) => <line key={i} className="ac-gridline" x1={x(i)} x2={x(i)} y1={T} y2={H - B + 6} />)}
       {buckets.map((b, i) => (i % step === 0 ? <text key={i} x={x(i)} y={H - 6} textAnchor="middle">{labelFmt(b.date)}</text> : null))}
       {seg('created', 'var(--ac-stats-c1)')}
       {seg('won', 'var(--ac-stats-c2)')}

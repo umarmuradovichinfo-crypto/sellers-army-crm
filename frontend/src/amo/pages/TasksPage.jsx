@@ -180,7 +180,7 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
       <table className="ac-table ac-todo-table">
         <thead>
           <tr>
-            <th className="chk"><input type="checkbox" className="ac-check" disabled /></th>
+            <th className="ac-chk"><input type="checkbox" className="ac-check" disabled /></th>
             <th>{t('Bajarilish sanasi')}</th>
             <th>{t("Mas'ul")}</th>
             <th>{t("Ob'ekt")}</th>
@@ -196,7 +196,7 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
             const d = x.dueDate ? new Date(x.dueDate) : null
             return (
               <tr key={x.id} className={x.done ? 'ac-todo-row--done' : ''}>
-                <td className="chk"><input type="checkbox" className="ac-check" checked={!!x.done} disabled={x.done} onChange={() => setCompleting(x)} /></td>
+                <td className="ac-chk"><input type="checkbox" className="ac-check" checked={!!x.done} disabled={x.done} onChange={() => setCompleting(x)} /></td>
                 <td className={!x.done && d && d < new Date() ? 'ac-todo-overdue' : ''}>{d ? `${dmy(d)} ${hm(d)}` : '—'}</td>
                 <td>{x.assigneeName || '—'}</td>
                 <td><a className="u" onClick={() => openLead(x)}>{x.leadName || '—'}</a></td>

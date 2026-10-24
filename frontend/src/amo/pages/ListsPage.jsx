@@ -219,7 +219,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
         <table className="ac-table ac-lists-table">
           <thead>
             <tr>
-              <th className="chk"><input type="checkbox" className="ac-check" checked={allOn} onChange={toggleAll} /></th>
+              <th className="ac-chk"><input type="checkbox" className="ac-check" checked={allOn} onChange={toggleAll} /></th>
               {cols.map(([k, label]) => (
                 <th key={k} className="sortable" onClick={() => sortBy(k)}>{t(label)}{sort.key === k && <span className="arr">{sort.dir > 0 ? '▲' : '▼'}</span>}</th>
               ))}
@@ -228,9 +228,9 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
           <tbody>
             {visible.map((r) => (
               <tr key={r.key} className={sel.has(r.key) ? 'selected' : ''}>
-                <td className="chk"><input type="checkbox" className="ac-check" checked={sel.has(r.key)} onChange={() => toggle(r.key)} /></td>
+                <td className="ac-chk"><input type="checkbox" className="ac-check" checked={sel.has(r.key)} onChange={() => toggle(r.key)} /></td>
                 <td className="name">
-                  {r.kind === 'company' ? <Ico name="company" size={14} className="ico" /> : <span className="dot" />}
+                  {r.kind === 'company' ? <Ico name="company" size={14} className="ico" /> : <span className="ac-dot" />}
                   <a onClick={() => open(r)}>{r.name}</a>
                 </td>
                 <td>{r.companyName && <span className="u">{r.companyName}</span>}</td>

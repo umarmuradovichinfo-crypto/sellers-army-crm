@@ -16,7 +16,7 @@
 .ac-lists-table td.name a:hover { text-decoration: underline; }
 .ac-lists-table td.name .ico { vertical-align: -3px; margin-right: 6px; color: var(--palette-text-secondary-light); }
 .ac-lists-table td .u { cursor: pointer; }
-.ac-lists-table .dot { background: var(--palette-text-secondary-light); }
+.ac-lists-table .ac-dot { background: var(--palette-text-secondary-light); }
 .ac-lists-empty { padding: 60px 0; text-align: center; color: var(--palette-text-secondary-dark); font-size: 14px; }
 .ac-lists-more { padding: 16px; text-align: center; }
 .ac-lists-bulk-count { color: var(--palette-text-secondary-dark); }

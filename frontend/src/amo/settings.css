@@ -97,7 +97,7 @@
 .ac-int-list-item:first-child { border-top: 0; }
 .ac-int-list-item .grow { flex: 1; min-width: 0; }
 .ac-int-list-item .nm { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ac-int-list-item .sb { font-size: 12px; color: var(--palette-text-secondary-light); }
+.ac-int-list-item .ac-int-sub { font-size: 12px; color: var(--palette-text-secondary-light); }
 .ac-int-steps { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; font-size: 13px; }
 .ac-int-steps span { color: var(--palette-text-secondary-light); }
 .ac-int-steps span.on { color: var(--palette-link-primary); font-weight: 700; }

@@ -98,7 +98,7 @@ export default function LeadsList() {
         <table className="ac-table">
           <thead>
             <tr>
-              <th className="chk"><input type="checkbox" className="ac-check" checked={allOn} onChange={() => setSel(allOn ? new Set() : new Set(rows.map((r) => r.id)))} /></th>
+              <th className="ac-chk"><input type="checkbox" className="ac-check" checked={allOn} onChange={() => setSel(allOn ? new Set() : new Set(rows.map((r) => r.id)))} /></th>
               {th('n', 'Bitim nomi', { width: '34%' })}
               {th('contact', 'Asosiy kontakt')}
               {th(null, 'Telefon (kontakt)')}
@@ -112,10 +112,10 @@ export default function LeadsList() {
             {rows.length === 0 && <tr><td colSpan={8} style={{ color: '#f37575' }}>{t('Bitimlar topilmadi')}</td></tr>}
             {rows.slice(0, limit).map((l) => (
               <tr key={l.id} className={sel.has(l.id) ? 'selected' : ''}>
-                <td className="chk"><input type="checkbox" className="ac-check" checked={sel.has(l.id)} onChange={() => toggle(l.id)} /></td>
+                <td className="ac-chk"><input type="checkbox" className="ac-check" checked={sel.has(l.id)} onChange={() => toggle(l.id)} /></td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="dot" style={{ background: l.stageColor || '#c1c1c1' }} />
+                    <span className="ac-dot" style={{ background: l.stageColor || '#c1c1c1' }} />
                     <a onClick={() => navigate(`/leads/detail/${l.id}`)} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.n}</a>
                     {(l.tags || []).slice(0, 3).map((tg) => <span key={tg} className="ac-tag ac-tag--sm">{tg}</span>)}
                   </div>

@@ -3,7 +3,6 @@
 Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + qisqa izoh.
 
 ## Ochiq
-- [ ] [Analitika/Sotuv tahlili] Tor ekranda (≤800px) bloklar ustma-ust — /stats/pipeline
 - [ ] [Analitika/Voqealar] "Qiymat oldin" ustuni bo'sh — backend activity before/after saqlamaydi
 - [ ] [Ro'yxatlar] Kontakt/kompaniyada mas'ul (assigneeId) va teglar yo'q; ro'yxat 200 ta bilan cheklangan
 - [ ] [Bildirishnomalar] Panel ochilganda avtomatik o'qilgan qilinmaydi (amoCRM qiladi) — tekshirish kerak
@@ -30,6 +29,9 @@ Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + q
 - [ ] [Analitika] Davr chegaralari UTC/server vaqtida — akkaunt mintaqasiga moslash
 
 ## Tuzatilgan
+- [x] [Analitika/Sotuv tahlili] "12 kun" bloki tablar ustiga chiqardi (ota blok balandligi 0); "Bosqichga o'tdi" o'qi bosqich qutisidan tashqarida edi — amoCRM tuzilmasiga moslandi
+- [x] [Jadvallar] Checkbox ustunida yumaloq qo'sh ramka — eski styles.css `.chk` klassi; `ac-chk` ga o'tkazildi
+- [x] [Umumiy] Eski CSS bilan to'qnashgan klasslar: `.dot` (qizil absolut nuqta), `.grid`, `.sb` — prefiksli nomlarga o'tkazildi
 - [x] [Analitika/Sozlamalar/Market/Voronka sozlash/Ish stoli QA] 36 ta xato (batafsil: qa/analitika-sozlamalar.md) — keshdagi filtr natijalari, menejer filtri, ruxsatlar (sotuvchi o'z parolini /settings/me/password orqali), bosqich o'chirilganda bitimlar yo'qolishi, trigger xatolari, maydon validatsiyasi va h.k.
 - [x] [Market] "O'rnatilganlar" bo'sh edi — demo bazada integratsiya ulanmagani sababli; ulangan integratsiya ko'rinadi (tasdiqlandi)
 - [x] [Umumiy] Sana/vaqt akkaunt vaqt mintaqasida, sana/vaqt formati va valyuta Umumiy sozlamalardan (format.js setFormatPrefs)

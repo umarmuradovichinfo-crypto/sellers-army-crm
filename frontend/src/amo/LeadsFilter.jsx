@@ -61,7 +61,7 @@ export default function LeadsFilter({ value, tags = [], members = [], onApply })
       <div className="ac-filter__presets">
         {PRESETS.map((p) => (
           <div key={p.key} className={`ac-filter__preset ${f.preset === p.key ? 'on' : ''}`} onClick={() => onApply({ ...EMPTY_FILTER, preset: p.key })}>
-            {p.dot && <span className="dot" style={{ background: p.dot }} />}
+            {p.dot && <span className="ac-dot" style={{ background: p.dot }} />}
             {t(p.label)}
             {f.preset === p.key && <span className="edit"><Ico name="edit" size={13} /></span>}
           </div>
