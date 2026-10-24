@@ -68,7 +68,8 @@ function Row({ c, on, onClick }) {
       </div>
       <div className="ac-imbox-row__body">
         <div className="ac-imbox-row__head">
-          <span className="ac-imbox-row__num">{convNum(c.leadId)}</span>
+          <span className={`ac-imbox-row__num ${c.closed ? 'closed' : ''}`}>{convNum(c.leadId)}</span>
+          {c.fav && <Ico name="star" size={12} className="ac-imbox-row__fav" />}
           <span className="ac-imbox-row__date">{listDate(c.at, t)}</span>
         </div>
         <div className="ac-imbox-row__name">{c.name}</div>
@@ -199,6 +200,7 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
     setFeed({
       calls: c.calls || [], tasks: tk.tasks || [], messages: m.messages || [], canReply: !!m.canReply,
       channel: m.channel || null, replyKind: m.replyKind, windowOpen: m.windowOpen !== false, windowExpiresAt: m.windowExpiresAt || null, why: m.replyDisabledReason || null,
+      closed: !!m.closed, fav: !!m.fav,
     })
   }, [leadId])
 
@@ -246,6 +248,7 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
     <div className="ac-imbox-view">
       <div className="ac-imbox-view__top">
         <button className="ac-imbox-burger" onClick={onToggleList}><Ico name="burger" size={20} /></button>
+        <button className={`ac-imbox-view__fav ${feed.fav ? 'on' : ''}`} title={t('Sevimlilar')} onClick={() => crmService.conversationAction(lead.id, 'fav').then((r) => { setFeed((f) => ({ ...f, fav: !!r.fav })); onChanged && onChanged() })}><Ico name="star" size={16} /></button>
         <span className="ac-imbox-view__title" title={t('Bitimni ochish')} onClick={() => navigate(`/leads/detail/${lead.id}`)}>{lead.n || `${t('Bitim')} #${String(lead.id).slice(-8)}`}</span>
         {feed.channel && feed.channel !== 'telegram' && <span className={`ac-imbox-view__chan ac-imbox-view__chan--${feed.channel}`}><Ico name={feed.channel} size={11} />{CHAN_NAME[feed.channel]}</span>}
         <div className="ac-imbox-view__tags">{(lead.tags || []).map((tg) => <span key={tg} className="ac-tag">{tg}</span>)}</div>
@@ -265,7 +268,8 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
             } else if (it.kind === 'note') el = <NoteItem key={`n${i}`} n={it.n} />
             else if (it.kind === 'call') el = <CallNote key={`c${it.c.id}`} c={it.c} />
             else if (it.kind === 'task') el = <TaskNote key={`t${it.tk.id}`} task={it.tk} onDone={completeTask} />
-            else if (it.kind === 'chat') el = <MsgGroup key={`g${it.msgs[0].id}`} msgs={it.msgs} leadId={lead.id} />
+            else if (it.kind === 'chat') el = <MsgGroup key={`g${it.msgs[0].id}`} msgs={it.msgs} leadId={lead.id}
+              conv={it.msgs[it.msgs.length - 1].id === feed.messages[feed.messages.length - 1]?.id ? { closed: feed.closed, onClose: () => crmService.conversationAction(lead.id, 'close').then(() => { load(); onChanged && onChanged() }) } : null} />
             return <React.Fragment key={i}>{sep}{el}</React.Fragment>
           })}
         </div>
@@ -283,6 +287,62 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
   )
 }
 
+const IMBOX_PRESETS = [
+  ['unanswered', 'Javob berilmaganlar'], ['fav', 'Sevimlilar'], ['open', 'Ochiq suhbatlar'],
+  ['needs_reply', 'Javob talab qiladi'], ['mine', "Men mas'ul bo'lganlar"],
+]
+const IMBOX_PERIODS = [['', 'Butun vaqt uchun'], ['today', 'Bugun'], ['yesterday', 'Kecha'], ['week', 'Shu hafta'], ['month', 'Shu oy'], ['30d', "So'nggi 30 kun"]]
+
+/** amoCRM imBox "Фильтр": qidiruv + presetlar (Неотвеченные, Избранные, Открытые беседы, …), davr va bosqichlar. */
+function ImboxFilter({ value, q, setQ, pipes, open, setOpen, onApply }) {
+  const t = useT()
+  const ref = useRef(null)
+  const [f, setF] = useState(value)
+  useEffect(() => { if (open) setF(value) }, [open]) // eslint-disable-line
+  useOutside(ref, () => setOpen(false), open)
+  const active = value.preset || value.period || value.stages.length
+  const label = value.preset ? t(IMBOX_PRESETS.find((x) => x[0] === value.preset)?.[1] || '') : ''
+  const toggleStage = (k) => setF((p) => ({ ...p, stages: p.stages.includes(k) ? p.stages.filter((x) => x !== k) : [...p.stages, k] }))
+  return (
+    <div className="ac-imbox-fwrap" ref={ref}>
+      <label className={`ac-imbox-filter ${active ? 'on' : ''}`} onClick={() => setOpen(true)}>
+        <Ico name="filter" size={16} />
+        {label && !q ? <span className="ac-imbox-filter__chip">{label}</span> : null}
+        <input value={q} placeholder={label ? '' : t('Filtr')} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && (setQ(''), setOpen(false))} />
+      </label>
+      {open && (
+        <div className="ac-imbox-fpanel">
+          <div className="ac-imbox-fpanel__presets">
+            {IMBOX_PRESETS.map(([k, l]) => (
+              <div key={k} className={`ac-imbox-fpanel__preset ${f.preset === k ? 'on' : ''}`} onClick={() => onApply({ ...f, preset: f.preset === k ? '' : k })}>{t(l)}</div>
+            ))}
+          </div>
+          <div className="ac-imbox-fpanel__body">
+            <select className="ac-select" value={f.period} onChange={(e) => setF((p) => ({ ...p, period: e.target.value }))}>
+              {IMBOX_PERIODS.map(([k, l]) => <option key={k} value={k}>{t(l)}</option>)}
+            </select>
+            <div className="ac-imbox-fpanel__stages">
+              {pipes.map((p) => (
+                <div key={p.id || 'main'}>
+                  <div className="ac-imbox-fpanel__pipe">{p.name}</div>
+                  {p.stages.map((s) => {
+                    const k = `${p.id || 'main'}:${s.key || s.id}`
+                    return <label key={k} className="ac-imbox-fpanel__stage"><input type="checkbox" className="ac-check" checked={f.stages.includes(k)} onChange={() => toggleStage(k)} /><i style={{ background: s.color }} />{s.name}</label>
+                  })}
+                </div>
+              ))}
+            </div>
+            <div className="ac-imbox-fpanel__foot">
+              <button className="ac-btn ac-btn--blue ac-btn--sm" onClick={() => onApply(f)}>{t("Qo'llash")}</button>
+              <button className="ac-btn ac-btn--sm ac-btn--plain" onClick={() => onApply({ preset: '', period: '', stages: [] })}>{t('Tozalash')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ImboxPage() {
   const { leadId } = useParams()
   const navigate = useNavigate()
@@ -293,10 +353,14 @@ export default function ImboxPage() {
   const [q, setQ] = useState('')
   const [searching, setSearching] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  // amoCRM imBox filtri: preset + davr + bosqichlar; saralash "…" menyusida
+  const [flt, setFlt] = useState({ preset: '', period: '', stages: [] })
+  const [sort, setSort] = useState('new')
 
   const loadList = useCallback(() => {
-    crmService.conversations().then((r) => setConvs(r.conversations || [])).catch(() => setConvs((v) => v || []))
-  }, [])
+    crmService.conversations({ preset: flt.preset || undefined, period: flt.period || undefined, stages: flt.stages.join(',') || undefined, sort: sort === 'old' ? 'old' : undefined })
+      .then((r) => setConvs(r.conversations || [])).catch(() => setConvs((v) => v || []))
+  }, [flt, sort])
   useEffect(() => {
     loadList()
     crmService.chatStatus().then(setStatus).catch(() => setStatus({ telegram: false, facebook: false, instagram: false }))
@@ -329,15 +393,12 @@ export default function ImboxPage() {
     <div className={`ac-imbox ${leadId ? 'has-lead' : ''}`}>
       <div className={`ac-imbox-list ${collapsed ? 'collapsed' : ''}`}>
         <div className="ac-imbox-list__top">
-          {searching ? (
-            <label className="ac-imbox-filter"><Ico name="search" size={16} />
-              <input autoFocus value={q} placeholder={t('Filtr')} onChange={(e) => setQ(e.target.value)} onBlur={() => { if (!q) setSearching(false) }} onKeyDown={(e) => e.key === 'Escape' && (setQ(''), setSearching(false))} />
-            </label>
-          ) : (
-            <button className="ac-imbox-filter" onClick={() => setSearching(true)}><Ico name="search" size={16} />{t('Filtr')}</button>
-          )}
+          <ImboxFilter value={flt} q={q} setQ={setQ} pipes={pipes} open={searching} setOpen={setSearching} onApply={(f) => { setFlt(f); setSearching(false) }} />
           <span className="ac-imbox-list__count">{t('Jami')}: {(convs || []).length}</span>
-          <DotsMenu items={[{ label: t('Yangilash'), icon: 'clock', onClick: loadList }]} />
+          <DotsMenu items={[
+            { label: t('Yangilash'), icon: 'clock', onClick: loadList },
+            { label: t(sort === 'new' ? 'Avval eskilari' : 'Avval yangilari'), icon: 'list', onClick: () => setSort((v) => (v === 'new' ? 'old' : 'new')) },
+          ]} />
         </div>
         <div className="ac-imbox-list__scroll">
           {convs === null && [0, 1, 2, 3, 4].map((i) => <div key={i} className="ac-imbox-row"><div className="ac-plug" style={{ width: 36, height: 36, borderRadius: '50%' }} /><div style={{ flex: 1 }}><div className="ac-plug" style={{ height: 14, width: '60%', marginBottom: 8 }} /><div className="ac-plug" style={{ height: 12 }} /></div></div>)}

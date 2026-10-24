@@ -67,3 +67,26 @@
 }
 
 .ac-imbox-err { margin: 6px 20px; padding: 6px 10px; border: 1px solid var(--palette-info-bubble-error-border); background: var(--palette-info-bubble-error-background); color: var(--palette-text-primary); font-size: 13px; }
+
+/* amoCRM imBox filtri (presetlar chapda, davr va bosqichlar o'ngda) */
+.ac-imbox-fwrap { position: relative; flex: 1; min-width: 0; height: 100%; display: flex; }
+.ac-imbox-filter.on { color: var(--palette-link-primary); }
+.ac-imbox-filter__chip { flex: none; padding: 1px 6px; border-radius: 2px; background: rgba(76, 139, 247, 0.18); color: var(--palette-text-primary); font-size: 13px; }
+.ac-imbox-fpanel { position: absolute; top: 100%; left: -15px; z-index: 50; display: flex; width: 560px; max-width: calc(100vw - 80px); background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); font-size: 14px; }
+.ac-imbox-fpanel__presets { flex: 0 0 210px; border-right: 1px solid var(--palette-border-primary); }
+.ac-imbox-fpanel__preset { padding: 12px 18px; border-bottom: 1px solid var(--palette-border-primary); cursor: pointer; }
+.ac-imbox-fpanel__preset:hover, .ac-imbox-fpanel__preset.on { color: var(--palette-link-primary); }
+.ac-imbox-fpanel__body { flex: 1; min-width: 0; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.ac-imbox-fpanel__body .ac-select { width: 100%; height: 32px; }
+.ac-imbox-fpanel__stages { max-height: 260px; overflow-y: auto; }
+.ac-imbox-fpanel__pipe { font-weight: 700; font-size: 12px; text-transform: uppercase; color: var(--palette-text-secondary-dark); margin: 6px 0 4px; }
+.ac-imbox-fpanel__stage { display: flex; align-items: center; gap: 8px; min-height: 26px; cursor: pointer; }
+.ac-imbox-fpanel__stage i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.ac-imbox-fpanel__foot { display: flex; gap: 8px; }
+.ac-imbox-row__num.closed { background: #8a96a3; }
+.ac-imbox-row__fav { color: #f2c94c; margin-left: 4px; }
+.ac-imbox-view__fav { background: none; border: 0; padding: 4px; cursor: pointer; color: var(--palette-text-secondary-dark); display: inline-flex; }
+.ac-imbox-view__fav.on { color: #f2c94c; }
+.ac-imbox-view__fav.on svg path { fill: currentColor; }
+.ac-imbox-row__fav path { fill: currentColor; }
+@media (max-width: 760px) { .ac-imbox-fpanel { flex-direction: column; width: calc(100vw - 30px); } .ac-imbox-fpanel__presets { flex: none; border-right: 0; } }

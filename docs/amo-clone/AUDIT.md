@@ -60,7 +60,7 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 2 | Ro'yxatda oxirgi xabar "Yuboruvchi ismi: matn" | "Mijoz:/Siz:" | tuzatildi (senderName) |
 | 3 | Chat xabarlari "suhbat bloki"da: kanal sarlavhasi, pastda "Беседа № A6703" (lenta va bitim kartochkasida ham) | alohida pufakchalar | tuzatildi |
 | 4 | Xabar sarlavhasi: "13.07.2026 13:29:21.446 ISM" | "… · telegram" | tuzatildi |
-| 5 | Blok pastida "Закрыть" (suhbatni yopish), xabar holati (Ошибка) | yo'q | rejada (suhbat holati backend'da yo'q) |
+| 5 | Blok pastida "Закрыть" (suhbatni yopish), xabar holati (Ошибка) | yo'q | «Закрыть» qo'shildi (yangi kiruvchi xabar qayta ochadi); filtr presetlari (Неотвеченные, Избранные, Открытые беседы, Требует ответа, Где я ответственный), davr, bosqichlar, saralash, sevimlilar. Xabar «Ошибка» holati — rejada |
 
 ## 7. Analitika
 | # | amoCRM | Bizda edi | Holat |

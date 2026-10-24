@@ -8,6 +8,20 @@ import { NotificationService } from './notification.service';
 import { PipelineSettingsService } from './pipeline-settings.service';
 import { TelegramClient } from './telegram.client';
 
+const safeList = (v?: string | null): string[] => { try { const a = JSON.parse(v || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } };
+function periodStart(p?: string): Date | null {
+  const d0 = new Date(); d0.setHours(0, 0, 0, 0);
+  const day = 86400000;
+  switch (p) {
+    case 'today': return d0;
+    case 'yesterday': return new Date(d0.getTime() - day);
+    case 'week': { const d = new Date(d0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
+    case 'month': return new Date(d0.getFullYear(), d0.getMonth(), 1);
+    case '30d': return new Date(d0.getTime() - 30 * day);
+    default: return null;
+  }
+}
+
 /** Instagram / Facebook Messenger / izohlar uchun Graph provayderi (FacebookModule ro'yxatdan o'tkazadi; modullar orasida aylanma bog'liqlik bo'lmasligi uchun). */
 export type SocialChannel = 'instagram' | 'facebook';
 export interface SocialProvider {
@@ -152,6 +166,7 @@ export class ChatService {
     await this.prisma.message.create({
       data: { leadId: lead.id, channel: 'telegram', direction: 'in', text: String(text).slice(0, 4000), senderName: name, externalId: String(msg.message_id ?? '') },
     });
+    await this.reopenConversation(lead.id);
     await this.activity.record(lead.id, 'email', { actorName: name, text: `📨 Telegram: ${String(text).slice(0, 120)}` });
     await this.prisma.lead.update({ where: { id: lead.id }, data: { lastActivityAt: new Date() } }).catch(() => {});
 
@@ -169,12 +184,13 @@ export class ChatService {
     return this.prisma.message.findFirst({ where: { leadId, direction: 'in' }, orderBy: { createdAt: 'desc' } });
   }
 
-  async listMessages(leadId: string) {
+  async listMessages(leadId: string, userId?: string) {
     const messages = await this.prisma.message.findMany({ where: { leadId }, orderBy: { createdAt: 'asc' }, take: 200 });
     const lead = await this.prisma.lead.findUnique({ where: { id: leadId }, select: { telegramChatId: true } });
     const lastIn = [...messages].reverse().find((m) => m.direction === 'in');
     const tgOk = !!lead?.telegramChatId && this.tg.enabled();
-    const base = { messages, telegramLinked: !!lead?.telegramChatId, telegramEnabled: this.tg.enabled() };
+    const st = await this.prisma.conversationState.findUnique({ where: { leadId } });
+    const base = { messages, telegramLinked: !!lead?.telegramChatId, telegramEnabled: this.tg.enabled(), closed: !!st?.closed, closedAt: st?.closedAt?.toISOString() || null, fav: !!userId && safeList(st?.favJson).includes(userId) };
     // Instagram / Messenger: javob oxirgi kiruvchi xabar kanaliga
     if (lastIn && isSocial(lastIn.channel) && lastIn.threadId && lastIn.pageId && this.social) {
       const pageOk = await this.social.hasPage(lastIn.pageId).catch(() => false);
@@ -270,6 +286,7 @@ export class ChatService {
         threadId: a.threadId, pageId: a.pageId, kind: a.kind, ...(a.createdAt ? { createdAt: a.createdAt } : {}),
       },
     });
+    await this.reopenConversation(lead.id);
     const label = a.kind === 'comment' ? `${CH_LABEL[a.channel]} izoh` : CH_LABEL[a.channel];
     await this.activity.record(lead.id, 'email', { actorName: a.name, text: `📨 ${label}: ${a.text.slice(0, 120)}` });
     await this.prisma.lead.update({ where: { id: lead.id }, data: { lastActivityAt: new Date() } }).catch(() => {});
@@ -331,8 +348,13 @@ export class ChatService {
   }
 
   // Suhbatlar inbox — xabari bor lidlar, oxirgi xabar bo'yicha (barcha kanallar)
-  async listConversations() {
-    const recent = await this.prisma.message.findMany({ orderBy: { createdAt: 'desc' }, take: 300 });
+  /**
+   * amoCRM imBox ro'yxati. preset: unanswered (oxirgi xabar mijozdan) | open (yopilmagan) | needs_reply (ochiq va javobsiz)
+   * | fav (men sevimlilarga qo'shganlar) | mine (men mas'ul); period: today|yesterday|week|month|30d; stages: "pipeline:key,..."
+   */
+  async listConversations(q: { preset?: string; period?: string; stages?: string; sort?: string } = {}, userId?: string) {
+    const since = periodStart(q.period);
+    const recent = await this.prisma.message.findMany({ where: since ? { createdAt: { gte: since } } : {}, orderBy: { createdAt: 'desc' }, take: 1000 });
     const seen = new Set<string>();
     const order: string[] = [];
     const lastByLead = new Map<string, { text: string; direction: string; at: Date; channel: string; kind: string; senderName: string | null }>();
@@ -340,20 +362,59 @@ export class ChatService {
       if (!lastByLead.has(m.leadId)) lastByLead.set(m.leadId, { text: m.text, direction: m.direction, at: m.createdAt, channel: m.channel, kind: m.kind, senderName: m.senderName });
       if (!seen.has(m.leadId)) { seen.add(m.leadId); order.push(m.leadId); }
     }
-    const leads = await this.prisma.lead.findMany({ where: { id: { in: order } }, select: { id: true, name: true, source: true, assigneeId: true } });
+    const [leads, states] = await Promise.all([
+      this.prisma.lead.findMany({ where: { id: { in: order } }, select: { id: true, name: true, source: true, assigneeId: true, stage: true, pipelineId: true } }),
+      this.prisma.conversationState.findMany({ where: { leadId: { in: order } } }),
+    ]);
     const byId = new Map(leads.map((l) => [l.id, l]));
-    const conversations = order.map((id) => {
+    const stById = new Map(states.map((x) => [x.leadId, x]));
+    const stageSet = new Set(String(q.stages || '').split(',').filter(Boolean));
+    const list = order.map((id) => {
       const l = byId.get(id); const last = lastByLead.get(id);
       if (!l) return null;
+      const st = stById.get(id);
+      const fav = userId ? safeList(st?.favJson).includes(userId) : false;
       const name = (l.name || '').trim();
       return {
         leadId: id, name: l.name, source: l.source, last: last?.text || '', direction: last?.direction, at: last?.at?.toISOString(),
         channel: last?.channel || 'telegram', kind: last?.kind || 'message',
         senderName: last?.senderName || null, // amoCRM: ro'yxatda "Yuboruvchi: matn"
         avatar: null as string | null, initial: (name.replace(/^@/, '')[0] || '?').toUpperCase(), // rasm yo'q — bosh harf
+        closed: !!st?.closed, fav, unanswered: last?.direction === 'in',
+        assigneeId: l.assigneeId || null, stageToken: `${l.pipelineId || 'main'}:${l.stage}`,
       };
-    }).filter(Boolean);
-    return { conversations };
+    }).filter((c): c is NonNullable<typeof c> => !!c).filter((c) => {
+      if (stageSet.size && !stageSet.has(c.stageToken)) return false;
+      switch (q.preset) {
+        case 'unanswered': return c.unanswered;
+        case 'open': return !c.closed;
+        case 'needs_reply': return !c.closed && c.unanswered;
+        case 'fav': return c.fav;
+        case 'mine': return !!userId && c.assigneeId === userId;
+        default: return true;
+      }
+    });
+    if (q.sort === 'old') list.reverse();
+    return { conversations: list };
+  }
+
+  async setConversation(leadId: string, action: 'close' | 'reopen' | 'fav', user?: AuthUser) {
+    if (!(await this.prisma.lead.findUnique({ where: { id: leadId }, select: { id: true } }))) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Bitim topilmadi' });
+    const st = await this.prisma.conversationState.findUnique({ where: { leadId } });
+    const data: Record<string, unknown> = {};
+    if (action === 'close') Object.assign(data, { closed: true, closedAt: new Date(), closedById: user?.id || null });
+    if (action === 'reopen') Object.assign(data, { closed: false, closedAt: null, closedById: null });
+    if (action === 'fav' && user?.id) {
+      const favs = safeList(st?.favJson);
+      data.favJson = JSON.stringify(favs.includes(user.id) ? favs.filter((x) => x !== user.id) : [...favs, user.id]);
+    }
+    const row = await this.prisma.conversationState.upsert({ where: { leadId }, create: { leadId, ...data }, update: data });
+    if (action === 'close') await this.activity.record(leadId, 'updated', { actorId: user?.id, actorName: user?.name, text: 'Suhbat yopildi' });
+    return { closed: row.closed, fav: !!user?.id && safeList(row.favJson).includes(user.id) };
+  }
+
+  private async reopenConversation(leadId: string) {
+    await this.prisma.conversationState.updateMany({ where: { leadId, closed: true }, data: { closed: false, closedAt: null, closedById: null } });
   }
 
   async setupWebhook(url: string) {

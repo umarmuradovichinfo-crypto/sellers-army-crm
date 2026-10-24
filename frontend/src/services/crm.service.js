@@ -160,7 +160,9 @@ export const crmService = {
   chatSettings: () => api.get('/crm/chat-settings'),
   saveChatSettings: (payload) => api.put('/crm/chat-settings', payload),
   chatStats: (params) => api.get(`/crm/chat-stats${qs(params)}`),
-  conversations: () => mockOr(() => api.get('/crm/conversations'), { conversations: [] }),
+  conversations: (params) => mockOr(() => api.get(`/crm/conversations${qs(params || {})}`), { conversations: [] }),
+  // amoCRM: suhbatni yopish / qayta ochish / sevimlilar — action: close | reopen | fav
+  conversationAction: (leadId, action) => mockOr(() => api.post(`/crm/conversations/${leadId}/${action}`, {}), { ok: true }),
   leadMessages: (id) => mockOr(() => api.get(`/crm/leads/${id}/messages`), { messages: [], canReply: false }),
   sendMessage: (id, text) => mockOr(() => api.post(`/crm/leads/${id}/messages`, { text }), { message: {} }),
 

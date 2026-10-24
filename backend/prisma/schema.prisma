@@ -444,6 +444,18 @@ model Message {
   @@map("crm_messages")
 }
 
+// imBox suhbat holati (amoCRM: «Закрыть» beseda, «Избранные»). Yangi kiruvchi xabar suhbatni qayta ochadi.
+model ConversationState {
+  leadId     String    @id
+  closed     Boolean   @default(false)
+  closedAt   DateTime?
+  closedById String?
+  favJson    String    @default("[]") // sevimlilarga qo'shgan foydalanuvchilar
+  updatedAt  DateTime  @updatedAt
+
+  @@map("crm_conversations")
+}
+
 // Sotuv rejasi / maqsadlar (oylik, hodim yoki jamoa bo'yicha)
 model SalesGoal {
   id        String   @id @default(cuid())

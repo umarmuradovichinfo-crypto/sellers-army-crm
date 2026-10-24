@@ -477,7 +477,8 @@ export function TemplatePicker({ onPick }) {
   )
 }
 
-export function MsgGroup({ msgs, leadId }) {
+// conv — faqat oxirgi suhbat blokiga: { closed, onClose } (amoCRM: «Закрыть · Беседа № …»)
+export function MsgGroup({ msgs, leadId, conv }) {
   const t = useT()
   const ch = msgs[0]?.channel || 'telegram'
   const comment = msgs[0]?.kind === 'comment'
@@ -485,7 +486,10 @@ export function MsgGroup({ msgs, leadId }) {
     <div className="ac-chatblock">
       <div className="ac-chatblock__head"><Ico name={ch === 'facebook' ? 'facebook' : ch === 'instagram' ? 'instagram' : 'telegram'} size={12} /> {CHAN_TITLE[ch] || ch}{comment ? ` (${t('izohlar')})` : ''}</div>
       {msgs.map((m) => <MsgItem key={m.id} m={m} />)}
-      <div className="ac-chatblock__foot"><span>{t('Suhbat')} № {convNum(leadId)}</span></div>
+      <div className="ac-chatblock__foot">
+        {conv && (conv.closed ? <span className="ac-chatblock__closed">{t('Suhbat yopilgan')}</span> : <button className="ac-chatblock__close" onClick={conv.onClose}>{t('Yopish')}</button>)}
+        <span className={conv && !conv.closed ? 'open' : ''}>{t('Suhbat')} № {convNum(leadId)}</span>
+      </div>
     </div>
   )
 }
@@ -695,7 +699,7 @@ export default function LeadCard() {
       crmService.listLeadTasks(id).catch(() => ({ tasks: [] })),
       crmService.leadMessages(id).catch(() => ({ messages: [], canReply: false })),
     ])
-    setFeed({ calls: c.calls || [], tasks: tk.tasks || [], messages: m.messages || [], canReply: !!m.canReply })
+    setFeed({ calls: c.calls || [], tasks: tk.tasks || [], messages: m.messages || [], canReply: !!m.canReply, closed: !!m.closed })
   }
 
   useEffect(() => {
@@ -952,7 +956,8 @@ export default function LeadCard() {
                 : <NoteItem key={`n${i}`} n={it.n} />
               else if (it.kind === 'call') el = <CallNote key={`c${it.c.id}`} c={it.c} />
               else if (it.kind === 'task') el = <TaskNote key={`t${it.tk.id}`} task={it.tk} onDone={completeTask} />
-              else if (it.kind === 'chat') el = <MsgGroup key={`g${it.msgs[0].id}`} msgs={it.msgs} leadId={lead.id} />
+              else if (it.kind === 'chat') el = <MsgGroup key={`g${it.msgs[0].id}`} msgs={it.msgs} leadId={lead.id}
+                conv={it.msgs[it.msgs.length - 1].id === feed.messages[feed.messages.length - 1]?.id ? { closed: feed.closed, onClose: () => crmService.conversationAction(lead.id, 'close').then(loadFeed) } : null} />
               return <React.Fragment key={i}>{sep}{el}</React.Fragment>
             })}
           </div>
