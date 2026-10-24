@@ -81,10 +81,20 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 20. [~] Meta Connector Railway'da (sellers-army-crm-production.up.railway.app) — FB_APP_SECRET foydalanuvchi kiritadi
 
 21. [x] Instagram Direct/izohlar + Facebook Messenger connector orqali (bir tugma) → imBox; Meta obunalari ok
-23. [~] CRM'ni Railway'ga joylash (HTTPS, Postgres) — haqiqiy Facebook ulanish testi uchun
-24. [ ] Lid kartochkasi amoCRM bilan 1:1: akkauntdan har bir detal (sarlavha, teglar, status, tablar, maydonlar tartibi va ko'rinishi,
+23. [x] CRM'ni Railway'ga joylash (HTTPS, Postgres): https://crm-production-5e25.up.railway.app (servis `crm`, branch amo-clone)
+    - [ ] Foydalanuvchi birinchi admin yaratadi va "Facebook bilan ulash"ni haqiqiy sahifa bilan sinaydi
+24. [~] Lid kartochkasi amoCRM bilan 1:1: akkauntdan har bir detal (sarlavha, teglar, status, tablar, maydonlar tartibi va ko'rinishi,
     kontakt/kompaniya bloklari, lenta turlari, composer rejimlari, "…" menyu, pastki panel, hover/tahrirlash holatlari) olinadi;
     yetishmaganlari qo'shiladi, amoCRM'da yo'q ortiqcha narsalar olib tashlanadi; so'ng test
+    - [x] Sarlavha (nomsiz bo'lsa "Bitim #id" kulrang), teglar rangi, bosqichlar rangidagi bo'lakli progress
+    - [x] Kontakt bloki ("…": kartochkaga o'tish/ismni nusxalash/uzish; Kompaniya, Ish tel. havola, "yana"), kompaniya bloki
+    - [x] Statistika tabi (manba, ishdagi kunlar, qo'ng'iroq/vazifa/eslatma/chat sonlari, 19 ta UTM belgisi)
+    - [x] Saralanmagan bitimda pastki "Qabul qilish | Rad etish" paneli
+    - [x] Lenta: vaqt soniya.ms bilan, bir turdagi 3+ voqea "N voqea — Yoyish"; ochiq vazifalar composer ustida
+    - [x] Composer: rejim menyusida belgi, "qo'shish" havolasi vazifa rejimini ochadi
+    - [ ] Bitimga bir nechta kontakt (amoCRM'da ko'p; bizda bitta — schema: LeadContact)
+    - [ ] Lenta qatorining o'ng tomonida obyekt havolasi (kontakt nomi), uzun matnni yoyish "⌄"
+    - [ ] Vazifa turi ikonkalari (Связаться, Встреча ...) va composer'da sana tanlagich amoCRM uslubida
 22. [ ] Sozlamalar → Chatlar va messenjerlar: amoCRM kabi "Javob shablonlari" (nom, tur, matn; chatda tanlash) va imBox/notif switch'lari
 
 ## Kutilayotgan so'rovlar (navbati kelganda)

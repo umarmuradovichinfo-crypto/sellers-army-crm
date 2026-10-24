@@ -66,3 +66,15 @@ export function feedDate(d, t = (s) => s) {
   return `${r ? t(r) : dmy(d)} ${hm(d)}`
 }
 
+
+// Lenta tizim yozuvlari: amoCRM kabi soniya va millisekund bilan ("18:55:41.101")
+export function hmsms(d) {
+  const t = wall(d)
+  return `${hm(d)}:${pad(t.getUTCSeconds())}.${String(t.getUTCMilliseconds()).padStart(3, '0')}`
+}
+
+export function feedDateFull(d, t = (s) => s) {
+  if (!d) return ''
+  const r = relDay(d)
+  return `${r ? t(r) : dmy(d)} ${hmsms(d)}`
+}

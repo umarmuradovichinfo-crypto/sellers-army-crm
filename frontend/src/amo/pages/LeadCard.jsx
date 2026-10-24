@@ -6,7 +6,7 @@ import { crmService } from '../../services/crm.service'
 import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
-import { money, feedDate, dmy, hm, relDay, currency } from '../format'
+import { feedDate, feedDateFull, dmy, relDay, currency } from '../format'
 import { useT } from '../i18n'
 import '../i18n/leadcard.ru.js'
 import '../leadcard.css'
@@ -37,7 +37,6 @@ function StatusPicker({ lead, pipes, onPick }) {
   const st = stages[idx]
   const openStages = stages.filter((s) => s.kind === 'open')
   const pos = st?.kind === 'open' ? openStages.findIndex((s) => s.id === st.id) + 1 : openStages.length
-  const pct = openStages.length ? Math.round((pos / openStages.length) * 100) : 0
   const since = lead.stageSince ? relDay(lead.stageSince) || dmy(lead.stageSince) : null
   return (
     <div className="ac-status" ref={ref}>
@@ -48,7 +47,12 @@ function StatusPicker({ lead, pipes, onPick }) {
           <span className="ac-status__chev"><Ico name="chevronDown" /></span>
         </div>
       </button>
-      <div className="ac-status__bar"><div className="ac-status__fill" style={{ width: `${st?.kind === 'won' ? 100 : st?.kind === 'lost' ? 100 : pct}%`, background: st?.kind === 'lost' ? '#c5c5c5' : st?.color || '#99ccff' }} /></div>
+      {/* amoCRM: bosib o'tilgan har bir bosqich o'z rangida bo'lak (segment) bo'lib chiziladi */}
+      <div className="ac-status__bar">
+        {openStages.map((s, i) => (
+          <div key={s.id} className="ac-status__seg" style={{ background: st?.kind === 'lost' ? '#c5c5c5' : (st?.kind === 'won' || i < pos) ? s.color || '#99ccff' : 'transparent' }} />
+        ))}
+      </div>
       {(() => { // bosqich tavsifi (voronka sozlamalaridan): hozircha "Yangi boshlovchi", bo'lmasa keyingi daraja
         const h = st?.hints || {}
         const hint = h.novice || h.experienced || h.master
@@ -113,26 +117,52 @@ function ContactBlock({ contact, onLink, onUnlink, onChange }) {
     const h = setTimeout(() => crmService.listContacts(q).then((r) => setFound(r.contacts || [])).catch(() => {}), 250)
     return () => clearTimeout(h)
   }, [q, adding])
-  if (contact) {
+  const [more, setMore] = useState(false)
+  const [phoneEdit, setPhoneEdit] = useState(false)
+  if (contact && !adding) {
+    const open = () => contact.id && !contact.isNew && navigate(`/contacts/detail/${contact.id}`)
     return (
-      <div className="ac-linked">
-        <div className="ac-linked__head">
-          <div className="ac-linked__avatar"><PersonAvatar /></div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="ac-linked__name" onClick={() => navigate(`/contacts/detail/${contact.id}`)}>{contact.name}</div>
-            {contact.position && <div className="ac-linked__sub">{contact.position}</div>}
+      <>
+        <div className="ac-linked">
+          <div className="ac-linked__head">
+            <div className="ac-linked__avatar"><PersonAvatar size={36} /></div>
+            <div className="ac-linked__name" onClick={open}>{contact.name}</div>
+            <DotsMenu align="left" className="ac-linked__dots" items={[
+              !contact.isNew && { label: t("Kartochkaga o'tish"), icon: 'external', onClick: open },
+              { label: t('Ismni nusxalash'), icon: 'list', onClick: () => navigator.clipboard?.writeText(contact.name || '') },
+              { label: t('Uzish'), icon: 'link', onClick: onUnlink },
+            ]} />
           </div>
-          <DotsMenu items={[{ label: t('Bitimdan uzish'), icon: 'close', onClick: onUnlink }]} />
+          <div className="ac-linked__fields">
+            <FieldRow label={t('Kompaniya')}>
+              {contact.companyName ? <span className="ac-field__link">{contact.companyName}</span> : <span className="ac-field__ph">...</span>}
+            </FieldRow>
+            <FieldRow label={t('Ish tel.')}>
+              {contact.phone && !phoneEdit ? (
+                <span className="ac-field__phone">
+                  <span className="ac-field__plusmini" title={t("Telefon qo'shish")} onClick={() => setPhoneEdit(true)}><Ico name="plus" size={8} /></span>
+                  <a className="ac-field__link" href={`tel:${String(contact.phone).replace(/[^\d+]/g, '')}`}>{contact.phone}</a>
+                  <span className="ac-field__pen" onClick={() => setPhoneEdit(true)}><Ico name="edit" size={12} /></span>
+                </span>
+              ) : (
+                <input className="ac-field__edit" autoFocus={phoneEdit} value={contact.phone || ''} placeholder="..." onBlur={() => setPhoneEdit(false)} onChange={(e) => onChange({ ...contact, phone: e.target.value })} />
+              )}
+            </FieldRow>
+            {more && (
+              <>
+                <FieldRow label={t('Email ish.')}>
+                  <input className="ac-field__edit" value={contact.email || ''} placeholder="..." onChange={(e) => onChange({ ...contact, email: e.target.value })} />
+                </FieldRow>
+                <FieldRow label={t('Lavozim')}>
+                  <input className="ac-field__edit" value={contact.position || ''} placeholder="..." onChange={(e) => onChange({ ...contact, position: e.target.value })} />
+                </FieldRow>
+              </>
+            )}
+            <button className="ac-linked__more" onClick={() => setMore((v) => !v)}>{t(more ? 'yashirish' : 'yana')}</button>
+          </div>
         </div>
-        <div style={{ marginTop: 10 }}>
-          <FieldRow label={t('Ish tel.')}>
-            <input className="ac-field__edit" value={contact.phone || ''} placeholder="..." onChange={(e) => onChange({ ...contact, phone: e.target.value })} />
-          </FieldRow>
-          <FieldRow label="Email">
-            <input className="ac-field__edit" value={contact.email || ''} placeholder="..." onChange={(e) => onChange({ ...contact, email: e.target.value })} />
-          </FieldRow>
-        </div>
-      </div>
+        {/* amoCRM'da bitimga bir nechta kontakt biriktiriladi; bizda hozircha bitta (PLAN: ko'p kontakt) */}
+      </>
     )
   }
   if (!adding) {
@@ -157,12 +187,86 @@ function ContactBlock({ contact, onLink, onUnlink, onChange }) {
   )
 }
 
+// ── Kompaniya bloki (amoCRM: "КОМПАНИЯ" yorlig'i, nom, "…", ish tel./email/web) ──
+function CompanyBlock({ company, name }) {
+  const t = useT()
+  const navigate = useNavigate()
+  if (!company && !name) {
+    return (
+      <button className="ac-linked__add" onClick={() => navigate('/companies/add')}>
+        <span className="ac-linked__plus"><Ico name="plus" /></span>{t("Kompaniya qo'shish")}
+      </button>
+    )
+  }
+  const open = () => company?.id && navigate(`/companies/detail/${company.id}`)
+  const val = (v, href) => v ? (href ? <a className="ac-field__link" href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noreferrer">{v}</a> : v) : <span className="ac-field__ph">...</span>
+  return (
+    <div className="ac-linked">
+      <div className="ac-linked__head">
+        <div className="ac-linked__avatar ac-linked__avatar--co"><Ico name="company" size={16} /></div>
+        <div style={{ minWidth: 0 }}>
+          <div className="ac-linked__kind">{t('Kompaniya')}</div>
+          <div className="ac-linked__name" onClick={open}>{company?.name || name}</div>
+        </div>
+        {company?.id && <DotsMenu align="left" className="ac-linked__dots" items={[
+          { label: t("Kartochkaga o'tish"), icon: 'external', onClick: open },
+          { label: t('Ismni nusxalash'), icon: 'list', onClick: () => navigator.clipboard?.writeText(company.name || '') },
+        ]} />}
+      </div>
+      <div className="ac-linked__fields">
+        <FieldRow label={t('Ish tel.')}>{val(company?.phone, company?.phone && `tel:${company.phone.replace(/[^\d+]/g, '')}`)}</FieldRow>
+        <FieldRow label={t('Email ish.')}>{val(company?.email, company?.email && `mailto:${company.email}`)}</FieldRow>
+        <FieldRow label="Web">{val(company?.website, company?.website && (/^https?:/.test(company.website) ? company.website : `https://${company.website}`))}</FieldRow>
+      </div>
+    </div>
+  )
+}
+
+// ── Statistika tabi (amoCRM .card-statistic) ──
+const UTM_ALL = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utm_referrer', 'roistat', 'referrer',
+  'openstat_service', 'openstat_campaign', 'openstat_ad', 'openstat_source', 'from', 'gclientid', '_ym_uid', '_ym_counter', 'gclid', 'yclid', 'fbclid']
+
+function LeadStats({ lead, feed }) {
+  const t = useT()
+  const [showUtm, setShowUtm] = useState(false)
+  const days = Math.max(0, Math.floor((Date.now() - new Date(lead.createdAt)) / 86400000))
+  const callsIn = feed.calls.filter((c) => c.direction === 'in').length
+  const now = Date.now()
+  const doneTasks = feed.tasks.filter((x) => x.done).length
+  const overdue = feed.tasks.filter((x) => x.dueDate && new Date(x.done ? x.doneAt || x.dueDate : now) > new Date(x.dueDate)).length
+  const chats = feed.messages.length
+  const utm = UTM_ALL.filter((k) => lead.custom?.[k])
+  const Row = ({ l, sub, v }) => <div className="ac-cstats__row"><span>{t(l)} {sub && <small>{sub}</small>}</span><b>{v}</b></div>
+  return (
+    <div className="ac-cstats">
+      <div className="ac-cstats__src">
+        <b>{t('Manba')}:</b>
+        <div>{lead.source || '—'} / {dmy(lead.createdAt)}</div>
+      </div>
+      <div className="ac-cstats__days"><div className="ac-cstats__big">{days}</div><div>{t('Ishdagi kunlar')}</div></div>
+      <div className="ac-cstats__rows">
+        <Row l="Qo'ng'iroqlar" sub={t('kir. / chiq.')} v={`${callsIn}/${feed.calls.length - callsIn}`} />
+        <Row l="Xatlar" v={0} />
+        <Row l="Vazifalar" sub={<>{t('yopilgan')} / <span className="red">{t("muddati o'tgan")}</span></>} v={<>{doneTasks}/<span className="red">{overdue}</span></>} />
+        <Row l="Eslatmalar" v={(lead.notes || []).length} />
+        <Row l="Mijozlar bilan chatlar" v={chats} />
+        <Row l="Ichki chatlar" v={0} />
+      </div>
+      <div className="ac-cstats__utm">
+        <b>{t('Statistika tizimlari belgilari')}:</b>
+        <div>{t('{n} tadan {m} tasi to\'ldirilgan').replace('{n}', UTM_ALL.length).replace('{m}', utm.length)} <a onClick={() => setShowUtm((v) => !v)}>{t(showUtm ? 'Yashirish' : "Ko'rsatish")}</a></div>
+        {showUtm && UTM_ALL.map((k) => <FieldRow key={k} label={k}>{lead.custom?.[k] || <span className="ac-field__ph">...</span>}</FieldRow>)}
+      </div>
+    </div>
+  )
+}
+
 // ── Lenta elementlari ──
 export function SysLine({ at, who, text, link }) {
   const t = useT()
   return (
     <div className="ac-feed__sys">
-      <span className="grow">{feedDate(at, t)} {who && <b>{who}</b>} {text}</span>
+      <span className="grow">{feedDateFull(at, t)} {who && <b>{who}</b>} {text}</span>
       {link}
     </div>
   )
@@ -282,8 +386,18 @@ function actText(a, t) {
   return `${base}: ${txt}`
 }
 
+const ACT_GROUP = { created: 'Yaratish', field: "Maydon o'zgarishi", updated: "Maydon o'zgarishi", tag: "Teglar o'zgartirildi" }
+const dayOf = (d) => new Date(d).toDateString()
+// "3 события / 13 событий" — ruscha ko'plik i18n'da ("voqea" kalitlari)
+function plEvents(n) {
+  const m10 = n % 10, m100 = n % 100
+  if (m10 === 1 && m100 !== 11) return 'voqea'
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'voqea_few'
+  return 'voqea_many'
+}
+
 // ── Composer: Chat / Eslatma / Vazifa ──
-function Composer({ lead, canChat, members, onSent }) {
+function Composer({ lead, canChat, members, onSent, modeReq }) {
   const t = useT()
   const { user } = useAuth()
   const [mode, setMode] = useState(canChat ? 'chat' : 'note')
@@ -297,6 +411,8 @@ function Composer({ lead, canChat, members, onSent }) {
   const ref = useRef(null)
   const wrap = useRef(null)
   useOutside(wrap, () => { setModesOpen(false); if (!text) setFocus(false) }, focus || modesOpen)
+  // "Vazifa yo'q, qo'shishni tavsiya qilamiz" havolasi composer'ni vazifa rejimida ochadi
+  useEffect(() => { if (modeReq?.n) { setMode(modeReq.mode); setFocus(true) } }, [modeReq?.n]) // eslint-disable-line
 
   const send = async () => {
     if (busy) return
@@ -318,7 +434,9 @@ function Composer({ lead, canChat, members, onSent }) {
           {modesOpen && (
             <div className="ac-menu ac-compose__modes">
               {['chat', 'note', 'task'].filter((m) => m !== 'chat' || canChat).map((m) => (
-                <button key={m} className="ac-menu__item" onClick={(e) => { e.stopPropagation(); setMode(m); setModesOpen(false) }}>{t(labels[m])}</button>
+                <button key={m} className={`ac-menu__item ${mode === m ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); setMode(m); setModesOpen(false) }}>
+                  <span className="grow">{t(labels[m])}</span>{mode === m && <Ico name="check" size={12} />}
+                </button>
               ))}
             </div>
           )}
@@ -334,9 +452,11 @@ function Composer({ lead, canChat, members, onSent }) {
             <select value={assignee} onChange={(e) => setAssignee(e.target.value)}>
               {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
-            <select value={type} onChange={(e) => setType(e.target.value)}>
+            <span>:</span>
+            <select className="ac-compose__type" value={type} onChange={(e) => setType(e.target.value)}>
               {TASK_TYPES.map((x) => <option key={x.key} value={x.key}>{t(x.label)}</option>)}
             </select>
+            <span>:</span>
             <textarea ref={ref} className="ac-compose__text" rows={1} style={{ minWidth: 200 }} placeholder={t('matn kiriting...')} value={text} onChange={(e) => setText(e.target.value)} onFocus={() => setFocus(true)} />
           </div>
         ) : (
@@ -378,6 +498,9 @@ export default function LeadCard() {
   const [feedQ, setFeedQ] = useState('')
   const [tagInput, setTagInput] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [tagColors, setTagColors] = useState({})
+  const [modeReq, setModeReq] = useState(null)
+  const [expanded, setExpanded] = useState({}) // guruhlangan tizim voqealari ("Развернуть")
 
   const loadLead = async () => {
     if (isNew) return
@@ -404,6 +527,7 @@ export default function LeadCard() {
     loadFeed()
     ;(async () => {
       const [main, fl, mem] = await Promise.all([crmService.getPipeline(), crmService.listFields('lead'), crmService.listMembers()])
+      crmService.listTags().then((r) => setTagColors(Object.fromEntries((r.tags || []).map((x) => [x.name, x.color])))).catch(() => {})
       setFields((fl.fields || []).filter((f) => f.active !== false))
       setMembers(mem.members || [])
       const list = [{ id: '', name: t('Asosiy voronka'), stages: main.stages || [] }]
@@ -431,7 +555,7 @@ export default function LeadCard() {
         if (contactDraft.unlink) contactId = ''
         else {
           contactId = contactDraft.id
-          await crmService.updateContact(contactDraft.id, { name: contactDraft.name, phone: contactDraft.phone || '', email: contactDraft.email || '' })
+          await crmService.updateContact(contactDraft.id, { name: contactDraft.name, phone: contactDraft.phone || '', email: contactDraft.email || '', position: contactDraft.position || '' })
         }
       }
       const payload = { ...draft }
@@ -480,6 +604,19 @@ export default function LeadCard() {
     loadFeed(); loadLead()
   }
 
+  // Saralanmagan bitim: amoCRM pastki paneli "Принять / Отклонить"
+  const acceptLead = async () => {
+    const pipe = pipes.find((p) => (p.id || '') === (lead.pipelineId || '')) || pipes[0]
+    const first = (pipe?.stages || []).find((s) => s.kind === 'open')
+    try { await crmService.acceptUnsorted(lead.id, { stageKey: first?.id, pipelineId: pipe?.id || null, assigneeId: lead.assigneeId || user?.id }) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')); return }
+    loadLead()
+  }
+  const rejectLead = async () => {
+    if (!window.confirm(t('Bitimni rad etasizmi?'))) return
+    try { await crmService.deleteLead(lead.id) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')); return }
+    navigate('/leads/pipeline' + (lead.pipelineId ? `/${lead.pipelineId}` : ''))
+  }
+
   const deleteLead = async () => {
     if (!window.confirm(t("Bitimni o'chirishni tasdiqlaysizmi?"))) return
     await crmService.deleteLead(lead.id)
@@ -495,14 +632,22 @@ export default function LeadCard() {
     }
     for (const n of lead.notes || []) items.push({ at: n.at, kind: 'note', n })
     for (const c of feed.calls) items.push({ at: c.startedAt, kind: 'call', c })
-    for (const tk of feed.tasks) items.push({ at: tk.done ? tk.doneAt || tk.dueDate : tk.dueDate || new Date().toISOString(), kind: 'task', tk })
+    for (const tk of feed.tasks) if (tk.done) items.push({ at: tk.doneAt || tk.dueDate, kind: 'task', tk })
     for (const m of feed.messages) items.push({ at: m.createdAt, kind: 'msg', m })
   }
   const q = feedQ.trim().toLowerCase()
   const shown = items
     .filter((it) => !q || JSON.stringify(it).toLowerCase().includes(q))
     .sort((a, b) => new Date(a.at) - new Date(b.at))
-  const openTasks = feed.tasks.filter((x) => !x.done)
+  const openTasks = feed.tasks.filter((x) => !x.done).sort((a, b) => new Date(a.dueDate || 8e15) - new Date(b.dueDate || 8e15))
+  // amoCRM: ketma-ket kelgan bir turdagi tizim voqealari (3+) "Изменение поля: 13 событий Развернуть" bo'lib yig'iladi
+  const groups = []
+  for (const it of shown) {
+    const g = groups[groups.length - 1]
+    if (it.kind === 'sys' && g?.kind === 'grp' && g.type === it.a.type && dayOf(g.items[0].at) === dayOf(it.at)) g.items.push(it)
+    else if (it.kind === 'sys') groups.push({ kind: 'grp', type: it.a.type, at: it.at, items: [it] })
+    else groups.push(it)
+  }
   let lastDay = ''
 
   return (
@@ -512,7 +657,8 @@ export default function LeadCard() {
           <div className="ac-cf__top">
             <button className="ac-cf__back" onClick={() => navigate(-1)} title={t('Orqaga')}><Ico name="chevronLeft" /></button>
             <div className="ac-cf__namerow">
-              <input className="ac-cf__name" value={v.n || ''} placeholder={isNew ? `${t('Bitim')} #XXXXXX` : ''} onChange={(e) => set('n', e.target.value)} />
+              <textarea className="ac-cf__name" rows={1} value={v.n || ''} placeholder={isNew ? `${t('Bitim')} #XXXXXX` : `${t('Bitim')} #${String(lead.id).slice(-8)}`}
+                onChange={(e) => set('n', e.target.value.replace(/\n/g, ' '))} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} />
               {!isNew && (
                 <DotsMenu items={[
                   { label: t('Chop etish'), icon: 'print', onClick: () => window.print() },
@@ -522,11 +668,11 @@ export default function LeadCard() {
                 ]} />
               )}
             </div>
-            <div className="ac-cf__meta">
-              {!isNew && <span>#{String(lead.id).slice(-8)}</span>}
-              {(v.tags || []).map((tg) => <span key={tg} className="ac-cf__tagpill">{tg}<button onClick={() => removeTag(tg)}><Ico name="close" size={10} /></button></span>)}
+            <div className="ac-cf__meta" onClick={(e) => { if (e.target === e.currentTarget && tagInput === null) setTagInput('') }}>
+              {!isNew && v.n && <span>#{String(lead.id).slice(-8)}</span>}
+              {(v.tags || []).map((tg) => <span key={tg} className="ac-cf__tagpill" style={tagColors[tg] ? { background: tagColors[tg], borderColor: tagColors[tg], color: '#363b44' } : undefined}>{tg}<button onClick={() => removeTag(tg)}><Ico name="close" size={10} /></button></span>)}
               {tagInput === null
-                ? <button className="ac-cf__tagbtn" onClick={() => setTagInput('')}>#{t('Teglash')}</button>
+                ? <button className={`ac-cf__tagbtn ${(v.tags || []).length ? 'ac-cf__tagbtn--more' : ''}`} onClick={() => setTagInput('')}>{(v.tags || []).length ? '+' : `#${t('Teglash')}`}</button>
                 : <input autoFocus className="ac-input" style={{ width: 140, height: 22 }} value={tagInput} onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && tagInput.trim()) { addTag(tagInput); setTagInput('') } if (e.key === 'Escape') setTagInput(null) }}
                     onBlur={() => { if (tagInput.trim()) addTag(tagInput); setTagInput(null) }} />}
@@ -550,7 +696,7 @@ export default function LeadCard() {
                 </FieldRow>
                 <FieldRow label={t('Byudjet')}>
                   <span className="ac-field__money">
-                    <input className="ac-field__edit" inputMode="numeric" value={draft.value !== undefined ? draft.value : (v.value || 0).toLocaleString('en-US')} onChange={(e) => { const d = e.target.value.replace(/\D/g, '').slice(0, 10); set('value', d ? Math.min(Number(d), 2000000000).toLocaleString('en-US') : '0') }} />
+                    <input className="ac-field__edit" inputMode="numeric" style={{ width: `${String(draft.value !== undefined ? draft.value : (v.value || 0).toLocaleString('en-US')).length + 2}ch`, minWidth: 40, maxWidth: 220 }} value={draft.value !== undefined ? draft.value : (v.value || 0).toLocaleString('en-US')} onChange={(e) => { const d = e.target.value.replace(/\D/g, '').slice(0, 10); set('value', d ? Math.min(Number(d), 2000000000).toLocaleString('en-US') : '0') }} />
                     <span>{currency()}</span>
                   </span>
                 </FieldRow>
@@ -566,22 +712,18 @@ export default function LeadCard() {
                 onUnlink={() => setContactDraft({ id: lead.contact?.id || 'x', unlink: true })}
                 onChange={(c) => setContactDraft(c)}
               />
-              <button className="ac-linked__add" onClick={() => navigate('/companies/add')}>
-                <span className="ac-linked__plus"><Ico name="plus" /></span>{lead.companyName || t("Kompaniya qo'shish")}
-              </button>
+              <CompanyBlock company={lead.companyInfo} name={lead.companyName} />
             </>
           )}
-          {tab === 'stats' && !isNew && (
-            <div className="ac-cstats">
-              <div className="ac-cstats__row"><span>{t('Yaratilgan sana')}</span>{dmy(lead.createdAt)} {hm(lead.createdAt)}</div>
-              <div className="ac-cstats__row"><span>{t('Joriy bosqichda')}</span>{Math.max(0, Math.round((Date.now() - new Date(lead.stageSince)) / 86400000))} {t('kun')}</div>
-              <div className="ac-cstats__row"><span>{t('Manba')}</span>{lead.source || '—'}</div>
-              <div className="ac-cstats__row"><span>{t("Qo'ng'iroqlar")}</span>{feed.calls.length}</div>
-              <div className="ac-cstats__row"><span>{t('Vazifalar')}</span>{feed.tasks.length}</div>
-              <div className="ac-cstats__row"><span>{t('Byudjet')}</span>{money(lead.value)}</div>
-            </div>
-          )}
+          {tab === 'stats' && !isNew && <LeadStats lead={lead} feed={feed} />}
         </div>
+        {!dirty && lead.unsorted && (
+          <div className="ac-cf__unsorted">
+            <button className="ac-cf__accept" onClick={acceptLead}><Ico name="checkCircle" size={18} /> {t('Qabul qilish')}</button>
+            <span className="ac-cf__vsep" />
+            <button className="ac-cf__decline" onClick={rejectLead}><Ico name="trash" size={16} /> {t('Rad etish')}</button>
+          </div>
+        )}
         {dirty && (
           <div className="ac-cf__save">
             <button className="ac-btn ac-btn--blue ac-btn--plain" style={{ padding: '0 16px' }} disabled={saving} onClick={save}>{t('Saqlash')}</button>
@@ -600,13 +742,18 @@ export default function LeadCard() {
         </div>
         <div className="ac-feed__scroll">
           <div className="ac-feed__inner">
-            {shown.map((it, i) => {
-              const day = new Date(it.at).toDateString()
+            {groups.map((it, i) => {
+              const day = dayOf(it.at)
               const sep = day !== lastDay ? (lastDay = day, <div key={`s${i}`} className="ac-feed__sep"><span>{t(relDay(it.at) || '') || dmy(it.at)}</span></div>) : null
               let el = null
-              if (it.kind === 'sys') {
-                const a = it.a
-                el = <SysLine key={`a${a.id}`} at={a.at} who={a.actorName} text={actText(a, t)} />
+              if (it.kind === 'grp') {
+                const gk = `${it.type}:${it.at}`
+                const rows = it.items.map(({ a }) => <SysLine key={`a${a.id}`} at={a.at} who={a.actorName} text={actText(a, t)} />)
+                el = it.items.length < 3 || expanded[gk] ? rows : (
+                  <div className="ac-feed__sys">
+                    <span className="grow">{t(relDay(it.at) || '') || dmy(it.at)} {t(ACT_GROUP[it.type] || ACT_TEXT[it.type] || ACT_TEXT.updated)}: {it.items.length} {t(plEvents(it.items.length)).replace(/^voqea_.*/, 'voqea')} <a onClick={() => setExpanded((x) => ({ ...x, [gk]: true }))}>{t('Yoyish')}</a></span>
+                  </div>
+                )
               } else if (it.kind === 'note') el = <NoteItem key={`n${i}`} n={it.n} />
               else if (it.kind === 'call') el = <CallNote key={`c${it.c.id}`} c={it.c} />
               else if (it.kind === 'task') el = <TaskNote key={`t${it.tk.id}`} task={it.tk} onDone={completeTask} />
@@ -619,11 +766,12 @@ export default function LeadCard() {
           <div className="ac-feed__bottom">
             <div className="ac-feed__hint">
               {openTasks.length === 0 ? (
-                <span className="ac-notask"><Ico name="clock" size={13} /> {t("Rejalashtirilgan vazifalar yo'q, qo'shishni tavsiya qilamiz")}</span>
+                <span className="ac-notask"><Ico name="clock" size={13} /> {t("Rejalashtirilgan vazifalar yo'q, tavsiya qilamiz")} <a onClick={() => setModeReq({ mode: 'task', n: Date.now() })}>{t("qo'shish")}</a></span>
               ) : <span />}
               <span className="ac-feed__members">{t('Ishtirokchilar')}: 0</span>
             </div>
-            <Composer lead={lead} canChat={feed.canReply} members={members} onSent={() => { loadLead(); loadFeed() }} />
+            {openTasks.map((tk) => <TaskNote key={tk.id} task={tk} onDone={completeTask} />)}
+            <Composer lead={lead} canChat={feed.canReply} members={members} modeReq={modeReq} onSent={() => { loadLead(); loadFeed() }} />
           </div>
         )}
       </div>

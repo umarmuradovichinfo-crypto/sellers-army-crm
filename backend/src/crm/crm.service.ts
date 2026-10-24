@@ -456,17 +456,22 @@ export class CrmService {
     const st = await this.prisma.crmStage.findUnique({ where: { key: l.stage } });
     const [activity, company, contact] = await Promise.all([
       this.activity.listForLead(id),
-      l.companyId ? this.prisma.company.findUnique({ where: { id: l.companyId }, select: { id: true, name: true } }) : Promise.resolve(null),
-      l.contactId ? this.prisma.contact.findUnique({ where: { id: l.contactId }, select: { id: true, name: true, phone: true, email: true, position: true } }) : Promise.resolve(null),
+      l.companyId ? this.prisma.company.findUnique({ where: { id: l.companyId }, select: { id: true, name: true, phone: true, email: true, website: true } }) : Promise.resolve(null),
+      l.contactId ? this.prisma.contact.findUnique({ where: { id: l.contactId }, select: { id: true, name: true, phone: true, email: true, position: true, companyId: true } }) : Promise.resolve(null),
     ]);
+    // kontakt kartochkasidagi "Kompaniya" qatori uchun
+    const contactCompany = contact?.companyId
+      ? contact.companyId === company?.id ? company : await this.prisma.company.findUnique({ where: { id: contact.companyId }, select: { id: true, name: true } })
+      : null;
     return {
       lead: {
         ...this.card(l, st?.kind || 'open', names),
         notes: parse<unknown[]>(l.notesJson, []),
         activity,
         companyName: company?.name || null,
+        companyInfo: company,
         contactId: l.contactId || null,
-        contact,
+        contact: contact ? { ...contact, companyName: contactCompany?.name || null } : null,
       },
     };
   }
