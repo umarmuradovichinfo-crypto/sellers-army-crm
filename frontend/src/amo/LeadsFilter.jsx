@@ -10,6 +10,8 @@ import {
   EMPTY_FILTER, PRESETS, DATE_PRESETS, TASK_OPTIONS, UNSORTED_OPTIONS, UTM_KEYS, stageToken,
 } from './filterState'
 import './i18n/leadsfilter.ru.js'
+import TagsManage from './TagsManage'
+import { invalidateCache } from '../lib/useApi'
 
 export { EMPTY_FILTER, PRESETS }
 
@@ -88,6 +90,7 @@ export default function LeadsFilter({ value, meta, onApply }) {
   const [tagQ, setTagQ] = useState('')
   const [saveName, setSaveName] = useState('')
   const [allTags, setAllTags] = useState(false)
+  const [tagMan, setTagMan] = useState(false)
   const t = useT()
   useEffect(() => setF(value), [value])
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
@@ -189,7 +192,8 @@ export default function LeadsFilter({ value, meta, onApply }) {
       </div>
 
       <div className="ac-filter__col">
-        <div className="ac-filter__label">{t('Teglar')} <a href="/settings/tags" onClick={(e) => e.stopPropagation()}>{t('Boshqarish')}</a></div>
+        <div className="ac-filter__label">{t('Teglar')} <a onClick={(e) => { e.stopPropagation(); setTagMan(true) }}>{t('Boshqarish')}</a></div>
+        {tagMan && <TagsManage onClose={() => setTagMan(false)} onChanged={() => invalidateCache('amo-leads-filter-meta')} />}
         <input className="ac-input" style={{ width: 235 }} placeholder={t('Teg topish')} value={tagQ} onChange={(e) => setTagQ(e.target.value)} />
         <div className="ac-filter__tags">
           {(meta.tags || []).filter((x) => !tagQ || x.name.toLowerCase().includes(tagQ.toLowerCase())).slice(0, allTags || tagQ ? undefined : 40).map((x) => (

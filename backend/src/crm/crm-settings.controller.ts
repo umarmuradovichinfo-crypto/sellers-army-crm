@@ -38,7 +38,9 @@ export class CrmSettingsController {
 
   // ── Teglar katalogi ──
   @Get('tags') tags() { return this.s.listTags(); }
-  @Post('tags') upsertTag(@Body() dto: any) { return this.s.upsertTag(dto); }
+  @Post('tags') upsertTag(@Body() dto: any, @CurrentUser() user: AuthUser) { return this.s.upsertTag(dto, user); }
+  @Get('tags-settings') tagsSettings() { return this.s.getTagsSettings(); }
+  @Put('tags-settings') @RequirePermissions('crm.settings') saveTagsSettings(@Body() dto: { locked?: boolean }) { return this.s.saveTagsSettings(dto); }
   @Put('tags/:id') @RequirePermissions('crm.settings') updateTag(@Param('id') id: string, @Body() dto: any) { return this.s.updateTag(id, dto); }
   @Post('tags/merge') @RequirePermissions('crm.settings') mergeTags(@Body() dto: any) { return this.s.mergeTags(dto); }
   @Post('tags/bulk-delete') @RequirePermissions('crm.settings') deleteTags(@Body() dto: { ids?: string[] }) { return this.s.deleteTags(dto?.ids || []); }

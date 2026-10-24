@@ -14,6 +14,7 @@ import { and, columnOrder, Cond, LeadCtx, LeadFilter, leadConds, leadOrder, pars
 import { ActivityService } from './activity.service';
 import { AutomationService } from './automation.service';
 import { NotificationService } from './notification.service';
+import { assertNewTagsAllowed } from './tags-lock';
 import {
   AddNoteDto,
   CreateLeadDto,
@@ -412,6 +413,7 @@ export class CrmService {
   }
 
   async createLead(dto: CreateLeadDto & { email?: string; pipelineId?: string; custom?: Record<string, unknown>; items?: any[] }, user?: AuthUser) {
+    if (Array.isArray(dto.tags)) await assertNewTagsAllowed(this.prisma, dto.tags, user);
     const stage = dto.stage || 'new';
     const items = Array.isArray((dto as any).items) ? (dto as any).items : [];
     const value = items.length ? this.itemsValue(items) : (Number(dto.value) || 0);
@@ -494,6 +496,7 @@ export class CrmService {
   async updateLead(id: string, dto: UpdateLeadDto & { email?: string; pipelineId?: string; custom?: Record<string, unknown>; lostReason?: string }, user?: AuthUser) {
     const existing = (await this.prisma.lead.findUnique({ where: { id } })) as LeadRow | null;
     if (!existing) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
+    if (Array.isArray(dto.tags)) await assertNewTagsAllowed(this.prisma, dto.tags, user, parse<string[]>(existing.tagsJson, []));
     const data: Record<string, unknown> = {};
     if (dto.name !== undefined && dto.name !== existing.name) { data.name = dto.name; }
     if (dto.phone !== undefined) data.phone = dto.phone || null;
@@ -803,6 +806,7 @@ export class CrmService {
       }
       case 'add_tag': {
         const tag = String(dto.value || '').trim();
+        if (tag) await assertNewTagsAllowed(this.prisma, [tag], user);
         if (tag) {
           for (const part of chunks) {
             const leads = await this.prisma.lead.findMany({ where: { id: { in: part } }, select: { id: true, tagsJson: true } });

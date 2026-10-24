@@ -108,4 +108,7 @@ addRu({
   'Xatolik yuz berdi': 'Произошла ошибка',
   'ta bitimda': 'сделок',
   'Hech qaysi bitimda': 'Не используется',
+  'Foydalanuvchilarga yangi teg yaratishni taqiqlash': 'Запретить пользователям создавать новые теги',
+  "Topish yoki teg qo'shish": 'Найти или добавить тег',
+  "Tegni o'chirish": 'Удалить тег',
 })

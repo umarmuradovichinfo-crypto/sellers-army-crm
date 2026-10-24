@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import type { AuthUser } from '../common/decorators/current-user.decorator';
+import { TAGS_LOCK_KEY, assertNewTagsAllowed, tagsLocked } from './tags-lock';
 
 function slugify(name: string): string {
   return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'field';
@@ -196,9 +198,18 @@ export class CrmSettingsService {
     const tags = await this.prisma.crmTag.findMany({ orderBy: { name: 'asc' } });
     return { tags: tags.map((t) => ({ ...t, usage: usage.get(t.name) || 0 })) };
   }
-  async upsertTag(dto: { name: string; color?: string }) {
+  async getTagsSettings() {
+    return { locked: await tagsLocked(this.prisma) };
+  }
+  async saveTagsSettings(dto: { locked?: boolean }) {
+    const value = dto?.locked ? '1' : '0';
+    await this.prisma.appSetting.upsert({ where: { key: TAGS_LOCK_KEY }, create: { key: TAGS_LOCK_KEY, value }, update: { value } });
+    return { locked: value === '1' };
+  }
+  async upsertTag(dto: { name: string; color?: string }, user?: AuthUser) {
     const name = (dto.name || '').trim().slice(0, 100);
     if (!name) throw new BadRequestException({ error: 'BAD_NAME', message: 'Nom majburiy' });
+    await assertNewTagsAllowed(this.prisma, [name], user);
     const tag = await this.prisma.crmTag.upsert({
       where: { name },
       create: { name, color: dto.color || '#3F77DD' },

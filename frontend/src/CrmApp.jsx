@@ -23,7 +23,6 @@ import DashboardPage from './amo/pages/DashboardPage'
 import PipelineSetupPage from './amo/pages/PipelineSetupPage'
 import FieldsSetupPage from './amo/pages/FieldsSetup'
 import ImportPage from './amo/pages/ImportPage'
-import TagsPage from './amo/pages/TagsPage'
 import ContactCard from './amo/pages/ContactCard'
 import CompanyCard from './amo/pages/CompanyCard'
 import SettingsPage from './amo/pages/SettingsPage'
@@ -77,7 +76,7 @@ function CrmShell() {
           <Route path="/settings/security" element={<SettingsPage section="security" />} />
           <Route path="/settings/pipeline/leads/:pipelineId" element={<PipelineSetupPage />} />
           <Route path="/settings/fields/:entity" element={<FieldsSetupPage />} />
-          <Route path="/settings/tags" element={<TagsPage />} />
+          <Route path="/settings/tags" element={<Navigate to="/leads/list" replace />} />
           <Route path="/settings/*" element={<Navigate to="/settings/general" replace />} />
           <Route path="/amo-market" element={<IntegrationsPage />} />
           {/* Eski manzillar */}

@@ -134,3 +134,11 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
 | 3 | Telefon: yuqori panel qirqilardi (tugmalar ko'rinmasdi) | — | ikki qator: sarlavha+tugmalar / qidiruv |
 | 4 | Telefon: ichki menyu butunlay yashirilgan (Sozlamalar/Analitika bo'limlari orasida yurib bo'lmasdi) | — | ☰ bilan ochiladi |
 | 5 | Telefon: sozlamalar qatorlari, analitika bloklari sig'masdi | — | ustma-ust, Gantt yashiriladi |
+
+## 17. Teglarni boshqarish
+- amoCRM'da `/settings/tags` sahifasi YO'Q (ish stoliga qaytaradi). Teglar bitimlar filtridagi «ТЕГИ — Управление» havolasidan
+  ochiladigan «Управление тегами» modalida boshqariladi → bizdagi alohida sahifa olib tashlandi, eski manzil /leads/list'ga yo'naltiriladi.
+- Modal: «Запретить пользователям создавать новые теги» o'chirgichi (backend'da majburiy: sozlamalar huquqi yo'q foydalanuvchi
+  bitimga katalogda yo'q teg qo'ya olmaydi — yaratish, tahrirlash, ommaviy teg qo'shish), «Найти или добавить тег» (Enter — qo'shish),
+  ro'yxat ko'p ishlatilganidan boshlab (teg + soni), hover'da rang nuqtasi va o'chirish (tasdiq oynasi), teg ustiga bosib nomini o'zgartirish.
+- amoCRM'da teglarni birlashtirish yo'q → olib tashlandi.
