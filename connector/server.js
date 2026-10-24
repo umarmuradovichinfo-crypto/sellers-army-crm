@@ -384,7 +384,14 @@ export async function ensureAppSubscription() {
     const common = { callback_url: c.publicUrl + '/fb/webhook', verify_token: hmac(c.appSecret, 'verify').slice(0, 32), access_token: `${c.appId}|${c.appSecret}` }
     for (const [object, fields] of [['page', c.fields], ['instagram', c.igFields]]) {
       try {
-        await graph('POST', `/${c.appId}/subscriptions`, { object, fields, ...common })
+        // Meta callback'ni darhol tekshiradi; konteyner yangi ishga tushganda (#2200 timeout) bo'lishi mumkin — qayta urinamiz
+        for (let attempt = 0; ; attempt++) {
+          try { await graph('POST', `/${c.appId}/subscriptions`, { object, fields, ...common }); break }
+          catch (e) {
+            if (attempt >= 2 || !/#2200|timed out/i.test(e.message)) throw e
+            await new Promise((r) => setTimeout(r, attempt === 0 ? 10000 : 30000))
+          }
+        }
         log(`ilova webhook obunasi o'rnatildi: ${object}`)
         webhookState.objects.push({ object, ok: true })
       } catch (e) {
@@ -440,4 +447,9 @@ const server = http.createServer(async (req, res) => {
   }
 })
 const port = Number(env('PORT', '8100'))
-server.listen(port, () => { log(`ishlamoqda: :${port}`); void ensureAppSubscription() })
+server.listen(port, () => {
+  log(`ishlamoqda: :${port}`)
+  // Server so'rov qabul qila boshlaganidan keyin obuna (Meta callback'ni tekshiradi), so'ng har 6 soatda tekshirib turadi
+  setTimeout(() => void ensureAppSubscription(), 5000)
+  setInterval(() => void ensureAppSubscription(), 6 * 3600 * 1000).unref()
+})
