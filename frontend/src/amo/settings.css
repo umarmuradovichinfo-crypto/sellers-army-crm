@@ -107,3 +107,15 @@
 .ac-int-copy { display: flex; gap: 8px; }
 
 .ac-int-ig { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; padding: 1px 7px; border-radius: 10px; background: #c13584; color: #fff; font: 600 11px/16px var(--font-main); vertical-align: middle; }
+
+/* amoCRM "Сохранить": kulrang, o'zgarish bo'lsa ko'k */
+.ac-set-save { height: 36px; padding: 0 12px; border: 1px solid var(--palette-border-default); border-radius: 3px; background: var(--palette-button-classic-background, #2b3e50); color: var(--palette-text-secondary-dark); font: 700 14px var(--font-main); cursor: default; }
+.ac-set-save.on { background: #4c8bf7; border-color: #4c8bf7; color: #fff; cursor: pointer; }
+.ac-set-save.on:hover { background: #3a7ae8; }
+/* Chap menyu rolga qarab */
+.ac-set-navroles { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+.ac-set-navroles button { height: 28px; padding: 0 12px; border: 1px solid var(--palette-border-default); border-radius: 14px; background: transparent; color: var(--palette-text-secondary-dark); font: 700 12px var(--font-caption); text-transform: uppercase; letter-spacing: 0.4px; cursor: pointer; }
+.ac-set-navroles button.on { background: var(--palette-link-primary); border-color: var(--palette-link-primary); color: #fff; }
+.ac-set-navlist { display: flex; flex-direction: column; max-width: 420px; }
+.ac-set-navitem { display: flex; align-items: center; justify-content: space-between; height: 40px; border-bottom: 1px solid var(--palette-border-primary); font-size: 15px; color: var(--palette-text-primary); cursor: pointer; }
+.ac-set-navitem.off span:first-child { color: var(--palette-text-secondary-light); }

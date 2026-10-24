@@ -207,9 +207,19 @@ export class SettingsService {
 
   async saveGeneral(body: Record<string, unknown>) {
     const cur = (await this.getGeneral()).general;
-    const next: Record<string, string> = { ...(cur as Record<string, string>) };
+    const next: Record<string, unknown> = { ...(cur as Record<string, unknown>) };
     for (const k of SettingsService.GENERAL_FIELDS) {
       if (typeof body?.[k] === 'string') next[k] = (body[k] as string).trim().slice(0, 200);
+    }
+    // Chap menyu rolga qarab (amoCRM "Настройка левого меню"): { '*' | roleKey: [yashirin bo'lim kalitlari] }
+    if (body?.navHidden && typeof body.navHidden === 'object' && !Array.isArray(body.navHidden)) {
+      const ALLOWED = new Set(['dashboard', 'leads', 'imbox', 'todo', 'lists', 'stats', 'market']);
+      const nav: Record<string, string[]> = {};
+      for (const [role, keys] of Object.entries(body.navHidden as Record<string, unknown>).slice(0, 50)) {
+        if (!/^[\w*-]{1,64}$/.test(role) || !Array.isArray(keys)) continue;
+        nav[role] = [...new Set(keys.filter((k): k is string => typeof k === 'string' && ALLOWED.has(k)))];
+      }
+      next.navHidden = nav;
     }
     const value = JSON.stringify(next);
     await this.prisma.appSetting.upsert({

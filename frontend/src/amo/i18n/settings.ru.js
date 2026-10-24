@@ -167,4 +167,7 @@ addRu({
   'Bitta tanlov': 'Один из списка', 'Belgilash (checkbox)': 'Флажки (несколько)', "Ochiluvchi ro'yxat": 'Выпадающий список',
   "Kamida bitta maydon qo'shing": 'Добавьте хотя бы одно поле',
   'Tanlov maydonlari uchun variantlarni kiriting': 'Укажите варианты для полей выбора',
+  'Chap menyuni foydalanuvchi roliga qarab sozlash': 'Настройка левого меню с учетом роли пользователя',
+  'Barcha foydalanuvchilar': 'Все пользователи',
+  'card§Saqlash': 'Сохранить',
 })

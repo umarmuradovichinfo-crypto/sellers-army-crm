@@ -77,3 +77,11 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 |---|--------|-----------|-------|
 | 1 | "Среднее время ответа" (chatlar, davr uchun) va "Долго ждёт ответа" vidjetlari | yo'q | qo'shildi (/crm/chat-stats) |
 | 2 | "Amma" AI yordamchisi, AI-агенты | — | amoCRM'ning alohida mahsuloti, qo'shilmaydi |
+
+## 9. Sozlamalar → umumiy
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | Chap menyu ☰ bilan yig'iladi | doim ochiq | tuzatildi |
+| 2 | "Сохранить" — kulrang, o'zgarish bo'lsa faol | doim faol "СОХРАНИТЬ" | tuzatildi |
+| 3 | "Настройка левого меню с учетом роли пользователя" (Все пользователи + rollar, har bo'lim yoqish/o'chirish) | yo'q | qo'shildi (general.navHidden, chap menyu darhol yangilanadi) |
+| 4 | Периодические покупки, Счета, Товары, Личные чаты, Кабинет клиента, fayllar, amoAI, Счет и оплата | — | amoCRM'ning alohida xizmatlari — qo'shilmaydi |

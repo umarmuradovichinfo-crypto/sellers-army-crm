@@ -22,7 +22,7 @@ const ITEMS = [
 export default function SettingsPage({ section = 'general' }) {
   return (
     <>
-      <SectionAside title="Sozlamalar" items={ITEMS} />
+      <SectionAside title="Sozlamalar" items={ITEMS} collapsible="settings" />
       <div className="ac-content">
         {section === 'users' && <SettingsUsers />}
         {section === 'chats' && <ChatsSection />}
@@ -50,6 +50,9 @@ const DEFAULTS = {
   timeFormat: TIME_FORMATS[0], currency: CURRENCIES[0], nameOrder: NAME_ORDERS[0],
 }
 
+// Chap menyu bo'limlari (Sozlamalar yashirilmaydi)
+const NAV_ITEMS = [['dashboard', 'Ish stoli'], ['leads', 'Bitimlar'], ['imbox', 'imBox'], ['todo', 'Vazifalar'], ['lists', "Ro'yxatlar"], ['stats', 'Analitika'], ['market', 'Market']]
+
 function Row({ label, children }) {
   return <div className="ac-set-row"><div className="ac-set-row__label">{label}</div>{children}</div>
 }
@@ -65,7 +68,18 @@ function GeneralSection() {
   const [msg, setMsg] = useState(null)
   const { data } = useApi(() => (can('settings.view') ? settingsService.getGeneral() : Promise.resolve({ general: {} })), [], 'settings:general')
 
-  useEffect(() => { if (data?.general) setForm((f) => ({ ...DEFAULTS, ...f, ...data.general })) }, [data])
+  const [base, setBase] = useState({ ...DEFAULTS })
+  useEffect(() => { if (data?.general) { const g = { ...DEFAULTS, ...data.general }; setForm(g); setBase(g) } }, [data])
+  // amoCRM: "Сохранить" o'zgarish bo'lgandagina faol (ko'k)
+  const dirty = JSON.stringify(form) !== JSON.stringify(base) || uiLang !== lang
+  const access = useApi(() => (canManage ? settingsService.getAccess() : Promise.resolve({ roles: [] })), [], 'settings:access')
+  const [navRole, setNavRole] = useState('*')
+  const navHidden = form.navHidden || {}
+  const toggleNav = (key) => setForm((f) => {
+    const cur = new Set((f.navHidden || {})[navRole] || [])
+    cur.has(key) ? cur.delete(key) : cur.add(key)
+    return { ...f, navHidden: { ...(f.navHidden || {}), [navRole]: [...cur] } }
+  })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   const save = async () => {
@@ -73,6 +87,8 @@ function GeneralSection() {
     try {
       if (canManage) await settingsService.saveGeneral(form)
       if (uiLang !== lang) setLang(uiLang)
+      setBase(form)
+      window.dispatchEvent(new CustomEvent('amo:nav-hidden', { detail: form.navHidden || {} }))
       setMsg({ ok: true, m: t('Saqlandi') })
       setTimeout(() => setMsg(null), 2500)
     } catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) }
@@ -86,7 +102,7 @@ function GeneralSection() {
     <>
       <Head>
         {msg && <span className={msg.ok ? 'ac-set-saved' : 'ac-set-err'} style={msg.ok ? undefined : { margin: '0 14px 0 0' }}>{msg.m}</span>}
-        <button className="ac-btn" disabled={busy} onClick={save}>{t('Saqlash')}</button>
+        <button className={`ac-set-save ${dirty ? 'on' : ''}`} disabled={busy || !dirty} onClick={save}>{t('card§Saqlash')}</button>
       </Head>
       <div className="ac-set-body">
         <div className="ac-set-block">
@@ -107,6 +123,27 @@ function GeneralSection() {
           <Row label={t('Valyuta')}>{sel('currency', CURRENCIES, t)}</Row>
           <Row label={t('Kontakt ismlari tartibi')}>{sel('nameOrder', NAME_ORDERS, t)}</Row>
         </div>
+        {canManage && (
+          <div className="ac-set-block">
+            <h2 className="ac-set-block__title">{t('Chap menyuni foydalanuvchi roliga qarab sozlash')}</h2>
+            <div className="ac-set-navroles">
+              {[{ key: '*', name: t('Barcha foydalanuvchilar') }, ...((access.data?.roles || []))].map((r) => (
+                <button key={r.key} className={navRole === r.key ? 'on' : ''} onClick={() => setNavRole(r.key)}>{r.name}</button>
+              ))}
+            </div>
+            <div className="ac-set-navlist">
+              {NAV_ITEMS.map(([k, l]) => {
+                const hidden = (navHidden[navRole] || []).includes(k) || (navRole !== '*' && (navHidden['*'] || []).includes(k))
+                return (
+                  <label key={k} className={`ac-set-navitem ${hidden ? 'off' : ''}`}>
+                    <span>{t(l)}</span>
+                    <span className={`ac-switch ${hidden ? '' : 'on'}`} onClick={(e) => { e.preventDefault(); toggleNav(k) }} />
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </>
   )

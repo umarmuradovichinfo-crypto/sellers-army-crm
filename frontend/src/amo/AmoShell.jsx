@@ -17,7 +17,7 @@ export const NAV = [
   { key: 'imbox', to: '/imbox', title: 'imBox', icon: 'imbox' },
   { key: 'todo', to: '/todo/line', title: 'Vazifalar', icon: 'tasks' },
   { key: 'lists', to: '/contacts/list', title: "Ro'yxatlar", icon: 'lists', match: ['/contacts', '/companies'] },
-  { key: 'stats', to: '/stats/pipeline', title: 'Analitika', icon: 'stats', match: ['/stats', '/events'] },
+  { key: 'stats', to: '/stats', title: 'Analitika', icon: 'stats', match: ['/stats', '/events'] },
   { key: 'market', to: '/amo-market', title: 'Market', icon: 'market' },
   { key: 'settings', to: '/settings/general', title: 'Sozlamalar', icon: 'settings' },
 ]
@@ -161,8 +161,17 @@ export default function AmoShell({ children }) {
   const t = useT()
 
   const [, setPrefsTick] = useState(0)
+  // Sozlamalar → "Chap menyuni rolga qarab sozlash": barcha uchun ('*') + joriy rol uchun yashirilgan bo'limlar
+  const { user: me } = useAuth()
+  const [navHidden, setNavHidden] = useState({})
+  const hiddenNav = new Set([...(navHidden['*'] || []), ...(navHidden[me?.role] || [])])
   useEffect(() => {
-    settingsService.getGeneral?.().then((r) => { setFormatPrefs(r?.general || {}); setPrefsTick((n) => n + 1) }).catch(() => {})
+    const h = (e) => setNavHidden(e.detail || {})
+    window.addEventListener('amo:nav-hidden', h)
+    return () => window.removeEventListener('amo:nav-hidden', h)
+  }, [])
+  useEffect(() => {
+    settingsService.getGeneral?.().then((r) => { setFormatPrefs(r?.general || {}); setNavHidden(r?.general?.navHidden || {}); setPrefsTick((n) => n + 1) }).catch(() => {})
   }, [])
   useEffect(() => {
     document.body.classList.add('ac-body')
@@ -187,7 +196,7 @@ export default function AmoShell({ children }) {
           <div className="ac-nav__top-title">{t('Akkaunt')}</div>
         </div>
         <div className="ac-nav__menu">
-          {NAV.map((item) => {
+          {NAV.filter((item) => !hiddenNav.has(item.key)).map((item) => {
             const on = isActive(item, loc.pathname)
             return (
               <div
