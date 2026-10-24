@@ -18,7 +18,13 @@ Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + q
 - [ ] [Filtr] "Teglar → Boshqarish" havolasi /settings/tags — sahifa yo'q (amoCRM: teglarni boshqarish oynasi)
 - [ ] [Saralanmagan] "Rad etish" tasdiqsiz o'chiradi — amoCRM'da rad etish sababi so'raladi, tekshirish kerak
 
+- [ ] [Ro'yxatlar] Kontaktlar importi (/contacts/import) yo'q — menyu bandi vaqtincha olib tashlangan
+- [ ] [Umumiy] Vaqt brauzer mintaqasida ko'rsatiladi — sozlamalardagi vaqt mintaqasi (UTC+5) qo'llanishi kerak (format.js)
+- [ ] [Backend] Ro'yxatlar 200/500 ta bilan cheklangan — server tomonida sahifalash kerak; kontakt kartochkasi lentasi uchun contactId filtri
+- [ ] [Bitim kartochkasi] TaskNote natijani Enter bilan yuborganda trim qilmaydi
+
 ## Tuzatilgan
+- [x] [Vazifalar/Ro'yxatlar/Kartochkalar/imBox QA] 37 ta xato (batafsil: qa/vazifalar-royxatlar.md)
 - [x] [Bitimlar QA] 18 ta xato (batafsil: qa/bitimlar.md) — lenta prefiks takrori, byudjet chegarasi, noto'g'ri sana 500, bosqich o'zgarganda voronka moslashuvi, ikki marta bosish, xato xabarlari va h.k.
 - [x] [Qobiq] Akkaunt/bildirishnoma panellari Escape bilan yopilmasdi
 - [x] [Bildirishnomalar] Vaqt ko'rinmasdi (frontend createdAt, backend `at` qaytaradi)

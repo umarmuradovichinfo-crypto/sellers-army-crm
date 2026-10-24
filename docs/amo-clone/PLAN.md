@@ -55,7 +55,16 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 14. [ ] Voronka sozlamalari (Digital Pipeline) amoCRM'dagi BARCHA funksiyalari bilan: manbalar, saralanmagan, dublikat qoidalari,
     har bosqich uchun barcha trigger/amal turlari, bosqich tavsiflari (podskazki), yo'qotish sabablari va h.k. — avval amoCRM'dan
     to'liq ro'yxat olinadi; umumiy sozlamalar ham 1:1
-15. [ ] Yakuniy dizayn solishtirish 1:1: har bir ekran amoCRM bilan yonma-yon (o'lcham, rang, shrift, joylashuv, animatsiya; desktop + mobil), farqlar tuzatiladi
+15. [ ] Integratsiyalar amoCRM mantiqi bilan 1:1 (amoCRM'da qanday ulansa — xuddi shunday):
+    - Facebook Lead Ads: Meta OAuth → sahifa → formalar → maydon moslash → voronka/bosqich/mas'ul/teglar → lidlar real vaqtda (webhook),
+      dublikat qoidalari, manba sifatida voronka sozlamalarida ko'rinishi
+    - Instagram: Direct va izohlar (Meta Graph API, webhook) → imBox suhbatlari, saralanmaganga lid, javob yozish, manba kartochkasi
+    - Facebook Messenger: xuddi shunday
+    - Forma konstruktori (Конструктор форм) va sayt-vizitka: maydonlar, dizayn, saytga joylash kodi/havola, voronka/mas'ul/teglar,
+      dublikat nazorati, "rahmat" xabari, UTM yig'ish
+    - Telegram: amoCRM'dagi ulanish oqimi bilan bir xil
+    (Meta ilovasi va ruxsatlari foydalanuvchi bilan kelishiladi)
+16. [ ] Yakuniy dizayn solishtirish 1:1: har bir ekran amoCRM bilan yonma-yon (o'lcham, rang, shrift, joylashuv, animatsiya; desktop + mobil), farqlar tuzatiladi
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

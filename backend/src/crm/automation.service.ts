@@ -144,7 +144,8 @@ export class AutomationService {
       case 'create_task': {
         const dueInDays = Number(act.dueInDays);
         const dueDate = Number.isFinite(dueInDays) ? new Date(Date.now() + dueInDays * 86400000) : null;
-        const assigneeId = act.assignee === 'lead' || !act.assignee ? lead.assigneeId : act.assignee;
+        let assigneeId = act.assignee === 'lead' || !act.assignee ? lead.assigneeId : act.assignee;
+        if (assigneeId && assigneeId !== lead.assigneeId && !(await this.userExists(assigneeId))) assigneeId = lead.assigneeId;
         const t = await this.prisma.leadTask.create({
           data: { leadId, title: act.title || 'Avtomatik vazifa', type: act.taskType || 'task', dueDate, assigneeId: assigneeId || null },
         });
@@ -165,7 +166,7 @@ export class AutomationService {
       case 'set_assignee': {
         let assignee = act.assignee;
         if (assignee === 'round_robin') assignee = await this.roundRobin();
-        if (assignee) {
+        if (assignee && (await this.userExists(assignee))) {
           await this.prisma.lead.update({ where: { id: leadId }, data: { assigneeId: assignee } });
           await this.activity.record(leadId, 'assignee', { text: `⚙ ${ruleName}: mas'ul belgilandi`, actorName });
           await this.notif.notify(assignee, `Sizga lid biriktirildi: ${lead.name}`, { type: 'lead', link: `/leads/detail/${leadId}` });
@@ -213,6 +214,10 @@ export class AutomationService {
       default:
         break;
     }
+  }
+
+  private async userExists(id: string): Promise<boolean> {
+    return !!(await this.prisma.user.findFirst({ where: { id: String(id), isActive: true }, select: { id: true } }));
   }
 
   private async roundRobin(): Promise<string | null> {
