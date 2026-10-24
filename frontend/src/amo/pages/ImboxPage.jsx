@@ -10,6 +10,7 @@ import { SysLine, CallNote, TaskNote, NoteItem, MsgGroup, PersonAvatar, convNum,
 import '../i18n/imbox.ru.js'
 import '../leadcard.css'
 import '../imbox.css'
+import { trActivity } from '../activityText'
 
 const REFRESH_MS = 15000
 
@@ -264,7 +265,7 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
             if (it.kind === 'sys') {
               const a = it.a
               const base = t(ACT_TEXT[a.type] || ACT_TEXT.updated)
-              el = <SysLine key={`a${a.id}`} at={a.at} who={a.actorName} text={a.text && a.text !== base ? `${base}: ${a.text}` : base} />
+              el = <SysLine key={`a${a.id}`} at={a.at} who={a.actorName} text={a.text && a.text !== base ? `${base}: ${trActivity(a.text, t, a.data)}` : base} />
             } else if (it.kind === 'note') el = <NoteItem key={`n${i}`} n={it.n} />
             else if (it.kind === 'call') el = <CallNote key={`c${it.c.id}`} c={it.c} />
             else if (it.kind === 'task') el = <TaskNote key={`t${it.tk.id}`} task={it.tk} onDone={completeTask} />

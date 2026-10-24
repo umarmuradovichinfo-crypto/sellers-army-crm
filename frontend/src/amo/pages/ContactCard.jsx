@@ -13,6 +13,7 @@ import { CardResizer, PersonAvatar, FieldRow, CustomInput, SysLine, CallNote, Ta
 import '../i18n/entitycard.ru.js'
 import '../leadcard.css'
 import '../entitycard.css'
+import { trActivity } from '../activityText'
 
 const ACT_TEXT = {
   created: 'Bitim yaratildi', stage: 'Yangi bosqich', won: 'Bitim muvaffaqiyatli yopildi', lost: 'Bitim yopildi va amalga oshmadi',
@@ -420,7 +421,7 @@ export function EntityCard({ kind }) {
               if (it.kind === 'sys') {
                 const a = it.a
                 const b = t(ACT_TEXT[a.type] || ACT_TEXT.updated)
-                el = <SysLine key={`a${a.id}`} at={a.at} who={a.actorName} text={a.text && a.text !== b ? `${b}: ${a.text}` : b} link={ll} />
+                el = <SysLine key={`a${a.id}`} at={a.at} who={a.actorName} text={a.text && a.text !== b ? `${b}: ${trActivity(a.text, t, a.data)}` : b} link={ll} />
               } else if (it.kind === 'note') el = <NoteItem key={`n${i}`} n={it.n} />
               else if (it.kind === 'call') el = <div key={`c${it.c.id}`} className="ac-ec-wrap"><CallNote c={it.c} />{it.c._lead && <span className="ac-ec-wrap__link"><LeadLink lead={it.c._lead} navigate={navigate} /></span>}</div>
               else if (it.kind === 'task') el = <div key={`t${it.tk.id}`} className="ac-ec-wrap"><TaskNote task={it.tk} onDone={completeTask} /><span className="ac-ec-wrap__link"><LeadLink lead={it.tk._lead} navigate={navigate} /></span></div>

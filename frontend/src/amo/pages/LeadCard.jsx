@@ -17,6 +17,7 @@ import '../leadcard.css'
 import '../entitycard.css'
 
 import { TASK_TYPES } from '../taskTypes'
+import { trActivity } from '../activityText'
 export { TASK_TYPES }
 
 // Chap panel kengligini surish (amoCRM .card-holder__fields: width %, localStorage'da saqlanadi)
@@ -526,6 +527,7 @@ function actText(a, t) {
   const base = t(ACT_TEXT[a.type] || ACT_TEXT.updated)
   let txt = String(a.text || '').replace(/^🏆\s*/, '')
   if (['stage', 'created', 'task_created', 'task_done', 'won', 'lost'].includes(a.type)) txt = txt.replace(ACT_PREFIX, '')
+  else txt = trActivity(txt, t, a.data)
   if (!txt || txt === base || txt === ACT_TEXT[a.type]) return base
   return `${base}: ${txt}`
 }

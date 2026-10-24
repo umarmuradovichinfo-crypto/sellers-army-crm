@@ -8,6 +8,7 @@ import { Ico } from '../AmoIcons'
 import { cardDate, money } from '../format'
 import { useT, usePlural } from '../i18n'
 import { Seg, Spin, SERIES, byUsers, num, hms } from './StatsCommon'
+import { trActivity } from '../activityText'
 
 /* ── Voqealar ro'yxati ── */
 const EV = {
@@ -63,7 +64,7 @@ export function StatsEvents({ members }) {
                     <td title={e.text}>
                       {e.type === 'call'
                         ? <span className="ac-stats-ev__play">{e.text}<Ico name="play" size={16} className="ico" /><Ico name="download" size={16} className="ico" /></span>
-                        : e.fieldLabel ? (e.to || '—') : e.text}
+                        : e.fieldLabel ? (e.to || '—') : trActivity(e.text, t)}
                     </td>
                   </tr>
                 )
