@@ -101,7 +101,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     1:1 solishtirish: joylashuv, dizayn, funksiya, mantiq; har bir farq/xato docs/amo-clone/AUDIT.md ga yoziladi va tuzatiladi.
     Tartib: qobiq/menyu → Bitimlar voronka → ro'yxat → kartochka → Vazifalar → Ro'yxatlar (kontakt/kompaniya + kartochkalar)
     → imBox → Analitika → Ish stoli → Sozlamalar (har sahifa)
-27. [~] Facebook ulash xatosi (Meta ilovasiga instagram_basic, instagram_manage_messages, instagram_manage_comments qo'shildi — foydalanuvchi qayta sinashi kerak): "Invalid Scopes: instagram_basic, instagram_manage_messages, instagram_manage_comments".
+27. [x] Facebook ulash ishladi (domen/redirect, Instagram ruxsatlari, pages_manage_ads; formalar sahifa ostida ko'rinadi) — foydalanuvchi tasdiqladi: "Invalid Scopes: instagram_basic, instagram_manage_messages, instagram_manage_comments".
     Sabab: Meta ilovasida Instagram ruxsatlari (use case "Instagram'da xabar va kontentni boshqarish") qo'shilmagan.
     Tuzatish: ilovaga Instagram use case/ruxsatlarini qo'shish; connector so'raydigan scope'larni ilovada yoqilganlari bilan
     moslash (yoqilmaganini so'ramaslik), shunda Facebook Lead Ads ulanishi Instagram'siz ham ishlasin. Qilingan: App Domains va
