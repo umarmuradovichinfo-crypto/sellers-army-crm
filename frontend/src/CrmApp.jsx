@@ -63,7 +63,7 @@ function CrmShell() {
           <Route path="/contacts/import" element={<ImportPage entity="contacts" />} />
           <Route path="/companies/detail/:id" element={<CompanyCard />} />
           <Route path="/companies/add" element={<CompanyCard />} />
-          <Route path="/stats" element={<Navigate to="/stats/pipeline" replace />} />
+          <Route path="/stats" element={<StatsLast />} />
           <Route path="/stats/pipeline" element={<StatsPage section="pipeline" />} />
           <Route path="/stats/consolidated" element={<StatsPage section="consolidated" />} />
           <Route path="/stats/by_activities" element={<StatsPage section="by_activities" />} />
@@ -93,6 +93,14 @@ function CrmShell() {
       <CallWidget />
     </AmoShell>
   )
+}
+
+// amoCRM: /stats oxirgi ochilgan hisobotga olib boradi
+const STATS_SECTIONS = ['pipeline', 'consolidated', 'by_activities', 'calls', 'goals']
+function StatsLast() {
+  let last = 'pipeline'
+  try { const v = localStorage.getItem('amo_stats_last'); if (STATS_SECTIONS.includes(v)) last = v } catch { /* */ }
+  return <Navigate to={`/stats/${last}`} replace />
 }
 
 export default function CrmApp() {

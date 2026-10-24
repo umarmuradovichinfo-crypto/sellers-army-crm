@@ -1,5 +1,5 @@
 // amoCRM "Аналитика" — /stats/pipeline | /stats/consolidated | /stats/by_activities | /events/list | /stats/calls | /stats/goals
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
 import { useApi } from '../../lib/useApi'
@@ -298,6 +298,8 @@ const SECTIONS = {
 }
 
 export default function StatsPage({ section = 'pipeline' }) {
+  // /stats keyingi safar shu hisobotni ochadi (amoCRM)
+  useEffect(() => { try { localStorage.setItem('amo_stats_last', section) } catch { /* */ } }, [section])
   const cfg = SECTIONS[section] || SECTIONS.pipeline
   return <StatsInner key={section} section={section} cfg={cfg} />
 }
@@ -322,7 +324,7 @@ function StatsInner({ section, cfg }) {
   )
   return (
     <>
-      <SectionAside title="Analitika" items={ASIDE_ITEMS} />
+      <SectionAside title="Analitika" items={ASIDE_ITEMS} collapsible="stats" />
       <div className="ac-content ac-stats">
         {head}
         {section === 'pipeline' && <SalesPipeline filter={filter} params={params} />}

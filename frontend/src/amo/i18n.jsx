@@ -6,6 +6,8 @@ const KEY = 'amo_lang'
 
 const RU = {
   // Chap menyu
+  'Mahkamlash': 'Закрепить',
+  "Yig'ish": 'Свернуть',
   'Akkaunt': 'Аккаунт',
   'Ish stoli': 'Рабочий стол',
   'Bitimlar': 'Сделки',

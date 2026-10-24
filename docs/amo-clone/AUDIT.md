@@ -61,3 +61,9 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 3 | Chat xabarlari "suhbat bloki"da: kanal sarlavhasi, pastda "Беседа № A6703" (lenta va bitim kartochkasida ham) | alohida pufakchalar | tuzatildi |
 | 4 | Xabar sarlavhasi: "13.07.2026 13:29:21.446 ISM" | "… · telegram" | tuzatildi |
 | 5 | Blok pastida "Закрыть" (suhbatni yopish), xabar holati (Ошибка) | yo'q | rejada (suhbat holati backend'da yo'q) |
+
+## 7. Analitika
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | Chap menyu ☰ bilan yig'iladi (holat eslab qolinadi), yig'ilganda ☰ bosilsa kontent ustida ochiladi | doim ochiq | tuzatildi (SectionAside collapsible) |
+| 2 | /stats oxirgi ochilgan hisobotni ochadi | doim "Анализ продаж" | tuzatildi |
