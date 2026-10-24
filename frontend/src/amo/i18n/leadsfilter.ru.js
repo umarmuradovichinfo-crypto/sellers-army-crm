@@ -121,4 +121,6 @@ addRu({
   'dup§dan': 'из',
   "O'sish bo'yicha": 'По возрастанию',
   "Kamayish bo'yicha": 'По убыванию',
+  'Chop etish': 'Печать',
+  'Jadval sozlamalari': 'Настройки таблицы',
 })

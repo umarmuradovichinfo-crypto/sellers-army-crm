@@ -10,7 +10,7 @@ import { money, dmy, phoneFmt } from '../format'
 import LeadsFilter from '../LeadsFilter'
 import FieldsModal from '../FieldsModal'
 import BulkBar from '../BulkBar'
-import { useLeadsQuery, useFilterMeta, filterChips, sortMenuItem, downloadLeadsCsv, useLayout, LIST_COLUMNS, LIST_DEFAULT, withCustomFields } from '../filterState'
+import { useLeadsQuery, useFilterMeta, filterChips, downloadLeadsCsv, useLayout, LIST_COLUMNS, LIST_DEFAULT, withCustomFields } from '../filterState'
 import { useT, usePlural, addRu } from '../i18n'
 import { ViewSwitch } from './LeadsPipeline'
 import { useTagColors, tagStyle } from '../tagColors'
@@ -228,8 +228,8 @@ export default function LeadsList() {
         menu={[
           { label: t('Import'), icon: 'download', onClick: () => setImportOpen(true) },
           { label: t('Eksport'), icon: 'excel', onClick: () => downloadLeadsCsv({ ...filterParams, sort: sort.key, dir: sort.dir }).catch((e) => window.alert(e?.message || t('Xatolik yuz berdi'))) },
-          sortMenuItem(t, sort, Q.setSort),
-          { label: t('Ustunlarni sozlash'), icon: 'list', onClick: () => setColsModal(true) },
+          { label: t('Chop etish'), icon: 'print', onClick: () => window.print() },
+          { label: t('Jadval sozlamalari'), icon: 'list', onClick: () => setColsModal(true) },
           { label: t('Dublikatlarni qidirish'), icon: 'search', onClick: () => setDupOpen(true) },
         ]}
         actions={<>

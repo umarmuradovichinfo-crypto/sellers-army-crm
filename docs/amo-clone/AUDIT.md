@@ -163,3 +163,5 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
 - amoCRM: sarlavha bosilsa oynacha «Сортировка (По возрастанию / По убыванию) · Фильтр [maydon] · Применить / Отменить».
   Bizda bosish faqat saralashni almashtirardi → amoCRM kabi oynacha; matnli ustunlar (nom, kontakt, telefon, email, kompaniya,
   matnli qo'shimcha maydonlar) uchun filtr, natija filtr chipida ko'rinadi.
+- «…» menyusi amoCRM tartibida: Импорт, Экспорт, Печать (yangi — chop etishda faqat jadval), Настройки таблицы, Поиск дублей;
+  ortiqcha «Saralash» bandi olib tashlandi (saralash ustun sarlavhasida).

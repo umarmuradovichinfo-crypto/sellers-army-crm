@@ -255,3 +255,11 @@
 .ac-colmenu__opt:hover, .ac-colmenu__opt.on { color: var(--palette-link-primary); }
 .ac-colmenu .ac-input { width: 100%; height: 32px; }
 .ac-colmenu__foot { display: flex; gap: 8px; margin-top: 16px; }
+
+/* amoCRM «Печать»: faqat jadval, oq fon */
+@media print {
+  .ac-nav, .ac-aside, .ac-top__right, .ac-top button, .ac-table .ac-chk, .ac-bulk, .ac-net, .ac-colmenu { display: none !important; }
+  body, .ac-root, .ac-content, .ac-table, .ac-table th, .ac-table td { background: #fff !important; color: #000 !important; }
+  .ac-page, .ac-content { margin: 0 !important; padding: 0 !important; }
+  .ac-table td a { color: #000 !important; text-decoration: none !important; }
+}
