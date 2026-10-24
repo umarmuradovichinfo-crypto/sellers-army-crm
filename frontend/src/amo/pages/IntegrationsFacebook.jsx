@@ -234,6 +234,7 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
                     : <span className="ac-set-status ok">{t('Faol')}</span>)}
                   {bad && <button className="ac-btn ac-btn--sm" onClick={connect} disabled={busy}>{t('Qayta ulash')}</button>}
                   <button className="ac-btn ac-btn--sm" onClick={() => removePage(p)}>{t('Uzish')}</button>
+                  {withForms && <PageForms page={p} mappings={mappings} onPick={(f) => setWiz({ pageId: p.id, formId: f.id, formName: f.name, fieldMap: {}, fresh: true })} />}
                 </div>
               )
             })}
@@ -263,10 +264,38 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
   )
 }
 
+// Ulangan sahifaning Lead Ads formalari (amoCRM: sahifa ostida formalar ro'yxati, har biri "Ulash")
+function PageForms({ page, mappings, onPick }) {
+  const t = useT()
+  const [forms, setForms] = useState(null)
+  const [err, setErr] = useState('')
+  useEffect(() => {
+    let alive = true
+    facebookService.listForms(page.id).then((r) => alive && setForms(r.forms || [])).catch((e) => { if (alive) { setForms([]); setErr(e?.message || t('Xatolik yuz berdi')) } })
+    return () => { alive = false }
+  }, [page.id]) // eslint-disable-line
+  const mapped = new Set(mappings.filter((m) => m.pageId === page.id || !m.pageId).map((m) => m.formId))
+  return (
+    <div className="ac-int-pageforms">
+      {forms === null && <span className="ac-spinner" />}
+      {err && <div className="ac-int-msg err">{err}</div>}
+      {forms && !err && forms.length === 0 && <div className="ac-muted">{t('Bu sahifada lead forma topilmadi.')}</div>}
+      {(forms || []).map((f) => (
+        <div key={f.id} className="ac-int-pageform">
+          <span className="grow">{f.name}{f.status && f.status !== 'ACTIVE' ? <span className="ac-muted"> · {f.status}</span> : null}</span>
+          {mapped.has(f.id)
+            ? <span className="ac-set-status ok">{t('Ulangan')}</span>
+            : <button className="ac-btn ac-btn--sm ac-btn--blue" onClick={() => onPick(f)}>{t('Ulash')}</button>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function Wizard({ cfg, existing, stages, members, pipelines, initial, onCancel, onSaved }) {
   const t = useT()
-  const editing = !!initial
-  const [step, setStep] = useState(editing ? 2 : 0)
+  const editing = !!initial && !initial.fresh
+  const [step, setStep] = useState(initial ? 2 : 0) // tayyor forma tanlangan bo'lsa — darhol maydon moslash
   const [pageId, setPageId] = useState(initial?.pageId || cfg.pages[0]?.id || '')
   const [form, setForm] = useState(initial ? { id: initial.formId, name: initial.formName } : null)
   const [forms, setForms] = useState(null)
@@ -298,8 +327,8 @@ function Wizard({ cfg, existing, stages, members, pipelines, initial, onCancel, 
   useEffect(() => {
     if (step !== 1) return
     setForms(null)
-    facebookService.listForms(pageId).then((r) => setForms(r.forms || [])).catch(() => setForms([]))
-  }, [step, pageId])
+    facebookService.listForms(pageId).then((r) => setForms(r.forms || [])).catch((e) => { setForms([]); setErr(e?.message || t('Xatolik yuz berdi')) })
+  }, [step, pageId]) // eslint-disable-line
   useEffect(() => {
     if (step !== 2 || !form) return
     setFields(null)
