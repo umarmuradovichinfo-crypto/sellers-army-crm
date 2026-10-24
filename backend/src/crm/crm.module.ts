@@ -1,3 +1,4 @@
+import { IcalController } from './ical.controller';
 import { WebhooksController } from './webhooks.controller';
 import { Module } from '@nestjs/common';
 
@@ -29,7 +30,7 @@ import { ProductsService } from './products.service';
 import { ReminderService } from './reminder.service';
 
 @Module({
-  controllers: [WebhooksController, 
+  controllers: [IcalController, WebhooksController, 
     CrmController,
     CrmSettingsController,
     CrmImportController,

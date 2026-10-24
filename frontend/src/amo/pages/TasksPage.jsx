@@ -25,6 +25,33 @@ const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); r
 const sameDay = (a, b) => a.toDateString() === b.toDateString()
 const mondayOf = (d) => addDays(startOfDay(d), -((d.getDay() + 6) % 7))
 // "…" → Eksport: ekrandagi (filtrlangan) vazifalar CSV ko'rinishida
+// "Синхронизировать": maxfiy iCal havola (Google/Apple/Outlook kalendariga obuna)
+function IcalModal({ onClose }) {
+  const t = useT()
+  const [path, setPath] = useState('')
+  const [copied, setCopied] = useState(false)
+  React.useEffect(() => { api.get('/crm/ical-link').then((r) => setPath(r.path)).catch(() => {}) }, [])
+  const url = path ? `${window.location.origin}${path}` : ''
+  const copy = () => { navigator.clipboard?.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500) }
+  const reset = async () => { if (window.confirm(t("Eski havola ishlamay qoladi. Davom etasizmi?"))) { const r = await api.post('/crm/ical-link/reset', {}); setPath(r.path) } }
+  return (
+    <div className="ac-modal-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="ac-modal">
+        <h3 className="ac-modal__title">{t('Kalendar bilan sinxronlash')}</h3>
+        <div className="ac-muted" style={{ fontSize: 14, marginBottom: 12 }}>{t("Bu havolani Google Calendar (\"URL orqali qo'shish\"), Apple yoki Outlook kalendariga qo'shing — sizga biriktirilgan bajarilmagan vazifalar kalendarda ko'rinadi. Havolani boshqalarga bermang.")}</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input className="ac-input" style={{ flex: 1 }} readOnly value={url} onFocus={(e) => e.target.select()} />
+          <button className="ac-btn ac-btn--blue" disabled={!url} onClick={copy}>{t(copied ? 'Nusxalandi' : 'Nusxalash')}</button>
+        </div>
+        <div className="ac-modal__foot">
+          <button className="ac-btn" onClick={reset} disabled={!url}>{t('Havolani yangilash')}</button>
+          <button className="ac-btn ac-btn--plain" onClick={onClose}>{t('Yopish')}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // "Управление типами задач": standart turlar + o'z turlari (nom, ikonka)
 const TYPE_ICONS = ['clock', 'phone', 'users', 'send', 'check', 'star', 'calendar', 'note', 'dollar', 'external', 'telegram', 'instagram']
 function TaskTypesModal({ onClose }) {
@@ -181,6 +208,7 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
   // amoCRM: standart preset — "Faqat mening vazifalarim" (mas'ul = men, tugallanmagan)
   const [filter, setFilter] = useState(() => presetFilter('mine', user?.id))
   const [typesOpen, setTypesOpen] = useState(false)
+  const [icalOpen, setIcalOpen] = useState(false)
   useTaskTypes()
   const [cursor, setCursor] = useState(() => startOfDay(new Date()))
   const [dragTask, setDragTask] = useState(null)
@@ -368,6 +396,7 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
         menu={[
           { label: t('Vazifa turlarini boshqarish'), icon: 'gear', onClick: () => setTypesOpen(true) },
           { label: t('Eksport'), icon: 'excel', onClick: () => exportTasksCsv(tasks, t) },
+          { label: t('Kalendar bilan sinxronlash'), icon: 'calendar', onClick: () => setIcalOpen(true) },
         ]}
         actions={<button className="ac-btn ac-btn--blue" onClick={() => setAdding({})}><span className="ac-btn__plus">+</span>{t("Vazifa qo'shish")}</button>}
       />
@@ -377,6 +406,7 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
       {filter.preset === 'deleted' ? <DeletedTasks onRestored={reload} /> : mode === 'list' ? renderList() : mode === 'calendar' ? renderCalendar() : renderLine()}
       {adding && <AddTaskModal members={data?.members} defaultDate={adding.date} onClose={() => setAdding(null)} onCreated={reload} />}
       {typesOpen && <TaskTypesModal onClose={() => setTypesOpen(false)} />}
+      {icalOpen && <IcalModal onClose={() => setIcalOpen(false)} />}
       {completing && <CompleteModal task={completing} onClose={() => setCompleting(null)} onDone={complete} />}
     </div>
   )

@@ -78,4 +78,11 @@ addRu({
   'standart': 'стандартный',
   'Tur nomi': 'Название типа',
   "Tur qo'shish": 'Добавить тип',
+  'Kalendar bilan sinxronlash': 'Синхронизировать с календарём',
+  'Bu havolani Google Calendar ("URL orqali qo\'shish"), Apple yoki Outlook kalendariga qo\'shing — sizga biriktirilgan bajarilmagan vazifalar kalendarda ko\'rinadi. Havolani boshqalarga bermang.': 'Добавьте эту ссылку в Google Calendar («Добавить по URL»), Apple или Outlook — ваши незавершённые задачи появятся в календаре. Не передавайте ссылку другим.',
+  'Nusxalash': 'Копировать',
+  'Nusxalandi': 'Скопировано',
+  'Havolani yangilash': 'Обновить ссылку',
+  'Eski havola ishlamay qoladi. Davom etasizmi?': 'Старая ссылка перестанет работать. Продолжить?',
+  'Yopish': 'Закрыть',
 })
