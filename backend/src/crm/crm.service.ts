@@ -993,8 +993,8 @@ export class CrmService {
   // ── Vazifalar (zadacha) ──
   private taskView(t: {
     id: string; leadId: string; title: string; type: string; dueDate: Date | null;
-    done: boolean; doneAt: Date | null; result?: string | null; assigneeId: string | null;
-  }, extra?: { leadName?: string; stage?: string; assigneeName?: string | null }) {
+    done: boolean; doneAt: Date | null; result?: string | null; assigneeId: string | null; createdById?: string | null;
+  }, extra?: { leadName?: string; stage?: string; pipelineId?: string | null; assigneeName?: string | null }) {
     return {
       id: t.id,
       leadId: t.leadId,
@@ -1008,6 +1008,8 @@ export class CrmService {
       assigneeName: extra?.assigneeName ?? null,
       leadName: extra?.leadName,
       stage: extra?.stage,
+      pipelineId: extra?.pipelineId ?? null,
+      createdById: t.createdById ?? null, // vazifalar filtrida "Mualliflar"
     };
   }
 
@@ -1032,7 +1034,7 @@ export class CrmService {
     const tasks = await this.prisma.leadTask.findMany({
       where,
       orderBy: [{ done: 'asc' }, { dueDate: 'asc' }],
-      include: { lead: { select: { name: true, stage: true } } },
+      include: { lead: { select: { name: true, stage: true, pipelineId: true } } },
       take: 800,
     });
     const names = await this.userMap(tasks.map((t) => t.assigneeId));
@@ -1041,6 +1043,7 @@ export class CrmService {
         this.taskView(t, {
           leadName: t.lead?.name,
           stage: t.lead?.stage,
+          pipelineId: t.lead?.pipelineId ?? null,
           assigneeName: t.assigneeId ? names.get(t.assigneeId) || null : null,
         }),
       ),

@@ -9,6 +9,9 @@ import { Ico } from '../AmoIcons'
 import { dmy, hm } from '../format'
 import { useT, usePlural } from '../i18n'
 import { AddTaskModal, CompleteModal, TASK_TYPES } from './TasksModals'
+import TasksFilter, { presetFilter, matchTask, taskChips } from '../TasksFilter'
+import { useFilterMeta } from '../filterState'
+import { useAuth } from '../../context/AuthContext'
 import '../i18n/todo.ru'
 import '../todo.css'
 
@@ -19,6 +22,19 @@ const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); retur
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
 const sameDay = (a, b) => a.toDateString() === b.toDateString()
 const mondayOf = (d) => addDays(startOfDay(d), -((d.getDay() + 6) % 7))
+// "…" → Eksport: ekrandagi (filtrlangan) vazifalar CSV ko'rinishida
+function exportTasksCsv(tasks, t) {
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const head = [t('Muddat'), t('Turi'), t('Vazifa'), t('Bitim'), t("Mas'ul"), t('Holat'), t('Natija')]
+  const rows = tasks.map((x) => [x.dueDate ? `${dmy(x.dueDate)} ${hm(x.dueDate)}` : '', t(typeLabel(x.type)), x.title, x.leadName || '', x.assigneeName || '', x.done ? t('Bajarilgan') : t('Tugallanmagan'), x.result || ''])
+  const csv = '\ufeff' + [head, ...rows].map((r) => r.map(esc).join(';')).join('\n')
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  a.download = 'tasks.csv'
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+}
+
 const typeLabel = (k) => (TASK_TYPES.find((x) => x.key === k) || TASK_TYPES[2]).label
 
 function viewFromPath(path) {
@@ -86,7 +102,10 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
   }, [], 'ac-todo-tasks', 60000)
 
   const [search, setSearch] = useState('')
-  const [showDone, setShowDone] = useState(false)
+  const { user } = useAuth()
+  const fmeta = useFilterMeta()
+  // amoCRM: standart preset — "Faqat mening vazifalarim" (mas'ul = men, tugallanmagan)
+  const [filter, setFilter] = useState(() => presetFilter('mine', user?.id))
   const [cursor, setCursor] = useState(() => startOfDay(new Date()))
   const [dragTask, setDragTask] = useState(null)
   const [overKey, setOverKey] = useState(null)
@@ -98,8 +117,8 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
   const today = startOfDay(new Date())
   const tasks = useMemo(() => {
     const s = search.trim().toLowerCase()
-    return (data?.tasks || []).filter((x) => (showDone || !x.done) && (!s || `${x.title} ${x.leadName || ''} ${x.assigneeName || ''}`.toLowerCase().includes(s)))
-  }, [data, search, showDone])
+    return (data?.tasks || []).filter((x) => matchTask(x, filter) && (!s || `${x.title} ${x.leadName || ''} ${x.assigneeName || ''}`.toLowerCase().includes(s)))
+  }, [data, search, filter])
 
   const openLead = (task) => navigate(`/leads/detail/${task.leadId}`)
   // Xato bo'lsa CompleteModal ochiq qoladi va xatoni ko'rsatadi (throw qaytariladi)
@@ -267,8 +286,10 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
         search={search}
         onSearch={setSearch}
         searchPlaceholder="Filtr"
+        filterPanel={(close) => <TasksFilter value={filter} meta={{ ...fmeta, me: user?.id }} onApply={(f) => { setFilter(f); close() }} />}
+        chips={taskChips(filter, fmeta, t).map((c) => ({ ...c, onRemove: () => setFilter(presetFilter('all', user?.id)) }))}
         count={plural(tasks.length, 'vazifa')}
-        menu={[{ label: t(showDone ? 'Bajarilgan vazifalarni yashirish' : "Bajarilgan vazifalarni ko'rsatish"), icon: 'check', onClick: () => setShowDone((x) => !x) }]}
+        menu={[{ label: t('Eksport'), icon: 'excel', onClick: () => exportTasksCsv(tasks, t) }]}
         actions={<button className="ac-btn ac-btn--blue" onClick={() => setAdding({})}><span className="ac-btn__plus">+</span>{t("Vazifa qo'shish")}</button>}
       />
       {err && <div className="ac-todo-banner" onClick={() => setErr('')}>{err}</div>}

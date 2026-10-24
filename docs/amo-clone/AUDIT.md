@@ -28,3 +28,9 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 2 | Tugma "НАСТРОИТЬ" | "НАСТРОИТЬ ВОРОНКУ" | tuzatildi |
 | 3 | Saralanmagan bitimlar ro'yxatda: kulrang nom + "Веб Форма"/manba belgisi | ro'yxatdan chiqarilgan edi | tuzatildi |
 | 4 | Teglar rangli | rangsiz | tuzatildi |
+
+## 3. Vazifalar
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | Filtr: presetlar (Только мои задачи — standart, Просроченные, Выполненные, Все задачи, Удаленные) + sana, Все типы, Воронки/этапы, Не завершенные, Ответственные, Авторы | filtr paneli yo'q edi, hammaning vazifalari ko'rinardi | tuzatildi ("Удаленные" — vazifalar soft-delete qilinmaydi, rejada) |
+| 2 | "…": Управление типами задач, Экспорт, Синхронизировать | "bajarilganlarni ko'rsatish" | Eksport qo'shildi; turlarni boshqarish va kalendar sinxronizatsiyasi rejada |
