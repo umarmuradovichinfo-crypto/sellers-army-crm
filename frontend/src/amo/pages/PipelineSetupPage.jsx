@@ -23,31 +23,36 @@ function PipeName({ pid, pipes, name, onChanged }) {
   const [mode, setMode] = useState('list') // list | new | rename
   const [text, setText] = useState('')
   const ref = useRef(null)
+  const busy = useRef(false)
   useOutside(ref, () => { setOpen(false); setMode('list') }, open)
   const go = (id) => { setOpen(false); navigate(`/settings/pipeline/leads/${id || 'main'}`) }
   const isMain = pid === 'main'
   const submit = async () => {
     const v = text.trim()
-    if (!v) return
-    if (mode === 'new') {
-      const r = await crmService.createPipeline(v)
-      const id = r?.pipeline?.id
-      if (id) {
-        await crmService.createStage({ name: 'Birlamchi aloqa', kind: 'open', color: COLORS[1], pipelineId: id })
-        await crmService.createStage({ name: 'Muvaffaqiyatli', kind: 'won', color: '#c9efb0', pipelineId: id })
-        await crmService.createStage({ name: 'Muvaffaqiyatsiz', kind: 'lost', color: '#d0d0d0', pipelineId: id })
-        go(id)
+    if (!v || busy.current) return
+    busy.current = true
+    try {
+      if (mode === 'new') {
+        const r = await crmService.createPipeline(v)
+        const id = r?.pipeline?.id
+        if (id) {
+          await crmService.createStage({ name: 'Birlamchi aloqa', kind: 'open', color: COLORS[1], pipelineId: id })
+          await crmService.createStage({ name: 'Muvaffaqiyatli', kind: 'won', color: '#c9efb0', pipelineId: id })
+          await crmService.createStage({ name: 'Muvaffaqiyatsiz', kind: 'lost', color: '#d0d0d0', pipelineId: id })
+          go(id)
+        }
+      } else {
+        await crmService.updatePipeline(pid, { name: v })
+        onChanged()
       }
-    } else {
-      await crmService.updatePipeline(pid, { name: v })
-      onChanged()
-    }
-    setMode('list'); setOpen(false); setText('')
+      setMode('list'); setOpen(false); setText('')
+    } catch (e) { window.alert(e?.message || t('Xatolik')) }
+    finally { busy.current = false }
   }
   const remove = async () => {
     if (!window.confirm(t("Voronka o'chirilsinmi? Bosqichlar va bitimlar asosiy voronkaga o'tkaziladi."))) return
-    await crmService.deletePipeline(pid)
-    go('main')
+    try { await crmService.deletePipeline(pid); go('main') }
+    catch (e) { window.alert(e?.message || t('Xatolik')) }
   }
   return (
     <div ref={ref} className={`ac-ps-name ${open ? 'open' : ''}`} onClick={(e) => { if (e.target.closest('.ac-ps-menu')) return; setOpen((v) => !v) }}>
@@ -144,8 +149,17 @@ function Reasons() {
   const [text, setText] = useState('')
   const load = () => crmService.listLostReasons().then((r) => setList(r.reasons || [])).catch(() => {})
   useEffect(() => { load() }, [])
-  const add = async () => { const v = text.trim(); if (!v) return; setText(''); await crmService.createLostReason(v); load() }
-  const del = async (id) => { setList((x) => x.filter((r) => r.id !== id)); await crmService.deleteLostReason(id); load() }
+  const add = async () => {
+    const v = text.trim(); if (!v) return
+    setText('')
+    try { await crmService.createLostReason(v) } catch (e) { window.alert(e?.message || t('Xatolik')) }
+    load()
+  }
+  const del = async (id) => {
+    setList((x) => x.filter((r) => r.id !== id))
+    try { await crmService.deleteLostReason(id) } catch (e) { window.alert(e?.message || t('Xatolik')) }
+    load()
+  }
   return (
     <div className="ac-ps-reasons">
       <div className="ac-ps-reasons__title">{t("Yo'qotish sabablari")}</div>
@@ -232,15 +246,19 @@ export default function PipelineSetupPage() {
   const persistOrder = (list) => Promise.all(list.map((c, i) => crmService.updateStage(c.id, { order: (i + 1) * 10 })))
 
   const addStage = async (index) => {
-    const r = await crmService.createStage({ name: t('Yangi bosqich'), kind: 'open', color: COLORS[1], pipelineId: pid })
+    let r
+    try { r = await crmService.createStage({ name: t('Yangi bosqich'), kind: 'open', color: COLORS[1], pipelineId: pid }) }
+    catch (e) { window.alert(e?.message || t('Xatolik')); return }
     const s = r.stage
     if (!s) return
     const fresh = { id: s.key || s.id, name: s.name, color: s.color, kind: 'open', isSystem: false }
     const next = open.slice(); next.splice(index, 0, fresh)
     const all = [...next, ...tail]
-    setCols(all); setOrig(all)
+    // saqlanmagan nom/rang o'zgarishlari "saqlangan" deb belgilanib yo'qolmasin: orig = eski qiymatlar, yangi tartib
+    const oMap = new Map(orig.map((c) => [c.id, c]))
+    setCols(all); setOrig(all.map((c) => oMap.get(c.id) || c))
     setEditing(fresh.id)
-    await persistOrder(all)
+    try { await persistOrder(all) } catch (e) { window.alert(e?.message || t('Xatolik')) }
   }
 
   const removeStage = async (id) => {

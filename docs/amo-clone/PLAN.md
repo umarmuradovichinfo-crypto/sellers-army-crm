@@ -48,7 +48,14 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
    - [ ] Umumiy sozlamalardagi sana/vaqt/valyuta formatlarini format.js ishlatishi
 10. [ ] Eski kodni tozalash: eski CRM.jsx, styles.css'dagi .amo-* va .crmsa-*, ishlatilmaydigan komponentlar
 11. [ ] Yakuniy to'liq test va diagnostika: butun tizim, barcha bo'limlar o'zaro bog'liqligi (bitim → kontakt → vazifa → analitika), xatolar ro'yxati va tuzatish
-12. [ ] Yakuniy solishtirish: har bir ekran va funksiya amoCRM bilan yonma-yon (desktop + mobil), farqlar tuzatiladi
+12. [ ] Funksiyalar pariteti: amoCRM'dagi har bir bo'lim, funksiya, tugma, detal ro'yxati (FEATURES.md) — bizda bor/yo'q;
+    yo'qlari qo'shiladi
+13. [ ] Bog'liq mantiq testi: funksiyalar bir-biriga ta'siri (bitim bosqichi → avtomatlashtirish → vazifa → bildirishnoma → analitika;
+    kontakt ↔ bitim ↔ kompaniya; foydalanuvchi huquqlari → har bir bo'lim)
+14. [ ] Voronka sozlamalari (Digital Pipeline) amoCRM'dagi BARCHA funksiyalari bilan: manbalar, saralanmagan, dublikat qoidalari,
+    har bosqich uchun barcha trigger/amal turlari, bosqich tavsiflari (podskazki), yo'qotish sabablari va h.k. — avval amoCRM'dan
+    to'liq ro'yxat olinadi; umumiy sozlamalar ham 1:1
+15. [ ] Yakuniy dizayn solishtirish 1:1: har bir ekran amoCRM bilan yonma-yon (o'lcham, rang, shrift, joylashuv, animatsiya; desktop + mobil), farqlar tuzatiladi
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

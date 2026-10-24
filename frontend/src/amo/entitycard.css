@@ -6,7 +6,7 @@
 .ac-ec-leads .ac-linked__add { border-top: 1px solid var(--palette-border-primary); }
 .ac-ec-lead { padding: 12px 30px; border-bottom: 1px solid var(--palette-border-primary); cursor: pointer; transition: background 0.15s; }
 .ac-ec-lead:hover { background: var(--palette-button-classic-hover-background); }
-.ac-ec-lead__name { font: 700 15px var(--font-main); color: #1691ff; }
+.ac-ec-lead__name { font: 700 15px var(--font-main); color: var(--palette-link-primary); }
 .ac-ec-lead__row { display: flex; justify-content: space-between; margin-top: 4px; font-size: 14px; color: var(--palette-text-secondary-dark); }
 .ac-ec-lead__stage { display: inline-flex; align-items: center; gap: 6px; }
 .ac-ec-lead__stage i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
@@ -15,3 +15,5 @@
 .ac-ec-leadlink:hover { color: var(--palette-text-primary); }
 .ac-ec-wrap { position: relative; }
 .ac-ec-wrap__link { position: absolute; right: 12px; top: 10px; font-size: 13px; background: var(--palette-background-primary); padding-left: 6px; }
+
+.ac-ec-err { margin: 0 0 10px; padding: 8px 12px; border: 1px solid var(--palette-info-bubble-error-border); background: var(--palette-info-bubble-error-background); color: var(--palette-text-primary); font-size: 13px; cursor: pointer; }

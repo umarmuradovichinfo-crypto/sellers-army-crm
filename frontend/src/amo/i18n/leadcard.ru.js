@@ -2,6 +2,8 @@
 import { addRu } from '../i18n'
 
 addRu({
+  "Sanani to'g'ri kiriting": 'Введите корректную дату',
+  'Xatolik yuz berdi': 'Произошла ошибка',
   "Qo'ng'iroq": 'Звонок',
   'Uchrashuv': 'Встреча',
   'Kuzatish': 'Связаться',

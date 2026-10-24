@@ -65,3 +65,12 @@ export class ResetPasswordDto {
   @MinLength(6, { message: 'Parol kamida 6 belgi' })
   password!: string;
 }
+
+export class ChangeOwnPasswordDto {
+  @IsString()
+  currentPassword!: string;
+
+  @IsString()
+  @MinLength(6, { message: 'Parol kamida 6 belgi' })
+  password!: string;
+}

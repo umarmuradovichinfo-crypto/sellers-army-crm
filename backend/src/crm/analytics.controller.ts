@@ -9,8 +9,8 @@ export class CrmAnalyticsController {
   constructor(private readonly s: CrmAnalyticsService) {}
 
   @Get()
-  overview(@Query('from') from?: string, @Query('to') to?: string, @Query('pipelineId') pipelineId?: string) {
-    return this.s.overview({ from, to, pipelineId });
+  overview(@Query('from') from?: string, @Query('to') to?: string, @Query('pipelineId') pipelineId?: string, @Query('userIds') userIds?: string) {
+    return this.s.overview({ from, to, pipelineId, userIds });
   }
 
   @Get('calls')
@@ -35,8 +35,9 @@ export class CrmAnalyticsController {
     @Query('to') to?: string,
     @Query('pipelineId') pipelineId?: string,
     @Query('granularity') granularity?: string,
+    @Query('userIds') userIds?: string,
   ) {
-    return this.s.timeline({ from, to, pipelineId, granularity });
+    return this.s.timeline({ from, to, pipelineId, granularity, userIds });
   }
 
   @Get('employees')

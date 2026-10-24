@@ -15,6 +15,9 @@ import '../lists.css'
 const PAGE = 50
 const EMPTY = { preset: 'all', name: '', phone: '', email: '', assigneeId: '', period: '' }
 const DAY = 86400000
+const digits = (v) => String(v || '').replace(/\D/g, '')
+// Mas'ul: kontakt/kompaniya customJson._assigneeId (kartochkada tanlanadi), bo'lmasa yaratuvchi
+const assigneeOf = (r) => r.custom?._assigneeId || r.createdById || ''
 
 function inPeriod(iso, period) {
   if (!period || !iso) return true
@@ -109,7 +112,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
 
   useEffect(() => { const id = setTimeout(() => setQ(search.trim()), 250); return () => clearTimeout(id) }, [search])
 
-  const { data, reload } = useApi(async () => {
+  const { data, error, reload } = useApi(async () => {
     const [c, co, mem] = await Promise.all([
       entity === 'companies' ? { contacts: [] } : crmService.listContacts(q),
       entity === 'contacts' ? { companies: [] } : crmService.listCompanies(q),
@@ -127,14 +130,18 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
     let list = [
       ...data.contacts.map((c) => ({ ...c, kind: 'contact', companyName: companyById[c.companyId] || '' })),
       ...data.companies.map((c) => ({ ...c, kind: 'company', companyName: '' })),
-    ].map((r) => ({ ...r, key: `${r.kind}:${r.id}`, assignee: memberName(r.createdById) }))
+    ].map((r) => ({ ...r, key: `${r.kind}:${r.id}`, assigneeId: assigneeOf(r), assignee: memberName(assigneeOf(r)) }))
     const has = (v, s) => (v || '').toLowerCase().includes(s.toLowerCase())
     list = list.filter((r) => {
-      if (filter.preset === 'mine' && user && r.createdById !== user.id) return false
+      if (filter.preset === 'mine' && user && r.assigneeId !== user.id) return false
       if (filter.name && !has(r.name, filter.name)) return false
-      if (filter.phone && !has(r.phone, filter.phone)) return false
+      if (filter.phone) {
+        const fd = digits(filter.phone)
+        const all = [r.phone, ...(r.custom?.phones || [])]
+        if (!all.some((p) => (fd ? digits(p).includes(fd) : has(p, filter.phone)))) return false
+      }
       if (filter.email && !has(r.email, filter.email)) return false
-      if (filter.assigneeId && r.createdById !== filter.assigneeId) return false
+      if (filter.assigneeId && r.assigneeId !== filter.assigneeId) return false
       if (!inPeriod(r.createdAt, filter.period)) return false
       return true
     })
@@ -168,20 +175,25 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
   const removeSelected = async () => {
     if (!window.confirm(t('Tanlanganlarni o\'chirishni tasdiqlaysizmi?'))) return
     const chosen = rows.filter((r) => sel.has(r.key))
-    await Promise.all(chosen.map((r) => (r.kind === 'contact' ? crmService.deleteContact(r.id) : crmService.deleteCompany(r.id)).catch(() => {})))
+    let failed = 0
+    await Promise.all(chosen.map((r) => (r.kind === 'contact' ? crmService.deleteContact(r.id) : crmService.deleteCompany(r.id)).catch(() => { failed++ })))
     setSel(new Set())
+    if (failed) window.alert(`${t("O'chirib bo'lmadi")}: ${failed}`)
     reload()
   }
   const exportCsv = () => {
     const chosen = sel.size ? rows.filter((r) => sel.has(r.key)) : rows
-    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    // CSV-injection (=,+,-,@) dan himoya + qo'sh tirnoq ekranlash
+    const esc = (v) => { let x = String(v ?? ''); if (/^[=+\-@\t\r]/.test(x) && !/^\+?[\d\s()-]+$/.test(x)) x = `'${x}`; return `"${x.replace(/"/g, '""')}"` }
     const head = [t('Nomi'), t('Kompaniya'), t('Telefon'), t("Mas'ul"), t('Email')]
-    const csv = [head, ...chosen.map((r) => [r.name, r.companyName, r.phone, r.assignee, r.email])].map((l) => l.map(esc).join(',')).join('\n')
+    const csv = [head, ...chosen.map((r) => [r.name, r.companyName, r.phone, r.assignee, r.email])].map((l) => l.map(esc).join(',')).join('\r\n')
     const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
+    a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }))
     a.download = 'contacts.csv'
+    document.body.appendChild(a)
     a.click()
-    URL.revokeObjectURL(a.href)
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000)
   }
 
   const cols = [['name', 'Nomi'], ['companyName', 'Kompaniya'], ['phone', 'Telefon'], ['assignee', "Mas'ul"], ['email', 'Email']]
@@ -195,7 +207,6 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
         filterPanel={(close) => <ListFilter value={filter} members={members} onApply={(f) => { setFilter(f); close() }} />}
         count={plural(rows.length, 'element')}
         menu={[
-          { label: t('Import'), icon: 'download', onClick: () => navigate('/contacts/import') },
           { label: t('Eksport'), icon: 'excel', onClick: exportCsv },
         ]}
         actions={
@@ -230,7 +241,8 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
             ))}
           </tbody>
         </table>
-        {!data && <div className="ac-lists-empty"><span className="ac-spinner" /></div>}
+        {!data && !error && <div className="ac-lists-empty"><span className="ac-spinner" /></div>}
+        {!data && error && <div className="ac-lists-empty">{error?.message || t('Xatolik yuz berdi')}</div>}
         {data && rows.length === 0 && <div className="ac-lists-empty">{t("Ma'lumot topilmadi")}</div>}
         {shown < rows.length && <div ref={sentinel} className="ac-lists-more"><span className="ac-spinner" /></div>}
       </div>

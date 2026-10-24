@@ -36,6 +36,7 @@ export default function TriggerModal({ initial, trigger, members, onSave, onDele
   const [a, setA] = useState(first || { type: 'create_task', title: '', taskType: 'call', dueInDays: 1 })
   const [active, setActive] = useState(initial ? initial.active !== false : true)
   const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
   const set = (patch) => setA((p) => ({ ...p, ...patch }))
   const pick = (type) => {
     const base = { type }
@@ -43,12 +44,26 @@ export default function TriggerModal({ initial, trigger, members, onSave, onDele
     if (type === 'set_assignee') base.assignee = 'round_robin'
     setA(base)
   }
+  const problem = () => {
+    const has = (v) => String(v ?? '').trim() !== ''
+    if (a.type === 'create_task' && !has(a.title)) return 'Vazifa matnini kiriting'
+    if ((a.type === 'add_tag' || a.type === 'remove_tag') && !has(a.tag)) return 'Tegni kiriting'
+    if (a.type === 'set_field' && !has(a.field)) return 'Maydon nomini kiriting'
+    if ((a.type === 'add_note' || a.type === 'notify') && !has(a.text)) return 'Matnni kiriting'
+    if (a.type === 'webhook' && !/^https?:\/\/\S+$/i.test(String(a.url || '').trim())) return "To'g'ri URL kiriting (http:// yoki https://)"
+    return ''
+  }
   const submit = async () => {
-    setSaving(true)
+    if (saving) return
+    const pr = problem()
+    if (pr) { setErr(pr); return }
+    setSaving(true); setErr('')
     const act = { ...a }
+    if (a.type === 'webhook') act.url = String(a.url).trim()
     if (a.type === 'set_assignee') act.assigneeName = a.assignee === 'round_robin' ? '' : members.find((m) => m.id === a.assignee)?.name || ''
-    await onSave([act, ...(initial?.actions?.slice(1) || [])], active, actionMeta(a.type).l)
-    setSaving(false)
+    try { await onSave([act, ...(initial?.actions?.slice(1) || [])], active, actionMeta(a.type).l) }
+    catch (e) { setErr(e?.message || t('Saqlanmadi')) }
+    finally { setSaving(false) }
   }
   return (
     <div className="ac-modal-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
@@ -103,6 +118,7 @@ export default function TriggerModal({ initial, trigger, members, onSave, onDele
           <><label className="ac-ps-lbl">Webhook URL</label><input className="ac-input" value={a.url || ''} onChange={(e) => set({ url: e.target.value })} placeholder="https://..." /></>
         )}
 
+        {err && <div style={{ color: 'var(--amo-danger)', fontSize: 13, marginTop: 10 }}>{t(err)}</div>}
         <div className="ac-ps-modal-foot">
           <button className="ac-btn ac-btn--blue" disabled={saving} onClick={submit}>{t('Saqlash')}</button>
           <button className="ac-btn" onClick={onClose}>{t('Bekor qilish')}</button>
@@ -110,7 +126,7 @@ export default function TriggerModal({ initial, trigger, members, onSave, onDele
           {initial && (
             <>
               <button className={`ac-switch ${active ? 'on' : ''}`} style={{ border: 0, background: 'none', padding: 0 }} title={t('Faol')} onClick={() => setActive((v) => !v)} />
-              <button className="ac-btn ac-btn--plain" style={{ color: 'var(--amo-danger)' }} onClick={onDelete}>{t("O'chirish")}</button>
+              <button className="ac-btn ac-btn--plain" style={{ color: 'var(--amo-danger)' }} onClick={async () => { try { await onDelete() } catch (e) { setErr(e?.message || t('Xatolik')) } }}>{t("O'chirish")}</button>
             </>
           )}
         </div>

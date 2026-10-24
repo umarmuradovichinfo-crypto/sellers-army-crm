@@ -118,6 +118,7 @@ export class SettingsService {
     const name = (dto.name || '').trim();
     const email = (dto.email || '').trim().toLowerCase();
     if (!name) throw new BadRequestException({ error: 'BAD_NAME', message: 'Ism majburiy' });
+    if (name.length > 100) throw new BadRequestException({ error: 'BAD_NAME', message: 'Ism juda uzun (100 belgigacha)' });
     if (!this.validEmail(email)) throw new BadRequestException({ error: 'BAD_EMAIL', message: "Email noto'g'ri" });
     if ((dto.password || '').length < 6) throw new BadRequestException({ error: 'BAD_PASS', message: 'Parol kamida 6 belgi bo`lsin' });
     const exists = await this.prisma.user.findUnique({ where: { email } });
@@ -141,6 +142,8 @@ export class SettingsService {
     if (!existing) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Foydalanuvchi topilmadi' });
     if (id === currentUserId && dto.isActive === false)
       throw new BadRequestException({ error: 'SELF', message: "O'z hisobingizni o'chira olmaysiz" });
+    if (dto.name !== undefined && dto.name.trim().length > 100)
+      throw new BadRequestException({ error: 'BAD_NAME', message: 'Ism juda uzun (100 belgigacha)' });
 
     const data: Record<string, unknown> = {};
     if (dto.name !== undefined) {
@@ -158,6 +161,8 @@ export class SettingsService {
     if (dto.roleKey !== undefined) {
       const role = await this.prisma.role.findUnique({ where: { key: dto.roleKey } });
       if (!role) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Rol topilmadi' });
+      if (id === currentUserId && role.id !== existing.roleId)
+        throw new BadRequestException({ error: 'SELF', message: "O'z rolingizni o'zgartira olmaysiz" });
       data.roleId = role.id;
     }
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
@@ -178,6 +183,15 @@ export class SettingsService {
     const passwordHash = await bcrypt.hash(password, 10);
     await this.prisma.user.update({ where: { id }, data: { passwordHash } });
     return { success: true };
+  }
+
+  // O'z parolini o'zgartirish (har qanday rol) — joriy parol talab qilinadi
+  async changeOwnPassword(id: string, currentPassword: string, password: string) {
+    const me = await this.prisma.user.findUnique({ where: { id } });
+    if (!me) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Foydalanuvchi topilmadi' });
+    if (!currentPassword || !(await bcrypt.compare(currentPassword, me.passwordHash)))
+      throw new BadRequestException({ error: 'BAD_CURRENT', message: "Joriy parol noto'g'ri" });
+    return this.resetPassword(id, password);
   }
 
   // ── Umumiy sozlamalar (AppSetting 'general_settings' kaliti, JSON) ──

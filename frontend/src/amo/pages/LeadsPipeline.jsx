@@ -10,6 +10,7 @@ import { Ico } from '../AmoIcons'
 import { money, cardDate } from '../format'
 import LeadsFilter, { applyLeadFilter, EMPTY_FILTER } from '../LeadsFilter'
 import { useT, usePlural } from '../i18n'
+import '../i18n/leadcard.ru.js'
 import '../leads.css'
 
 export function ViewSwitch({ mode }) {
@@ -87,15 +88,19 @@ function UnsortedCard({ lead, onAccept, onReject, onOpen }) {
 function QuickAdd({ stage, pipelineId, onDone }) {
   const [open, setOpen] = useState(false)
   const [f, setF] = useState({ name: '', contact: '', phone: '', value: '' })
+  const [busy, setBusy] = useState(false)
   const ref = useRef(null)
   const t = useT()
   useEffect(() => { if (open) ref.current?.focus() }, [open])
   const save = async () => {
-    if (!f.name.trim() && !f.contact.trim()) return
-    await crmService.createLead({ name: f.name.trim() || f.contact.trim(), contactName: f.contact.trim() || undefined, phone: f.phone.trim() || undefined, value: Number(String(f.value).replace(/\D/g, '')) || 0, stage: stage.id, pipelineId: pipelineId || undefined })
-    setF({ name: '', contact: '', phone: '', value: '' })
-    setOpen(false)
-    onDone()
+    if (busy || (!f.name.trim() && !f.contact.trim())) return
+    setBusy(true)
+    try {
+      await crmService.createLead({ name: f.name.trim() || f.contact.trim(), contactName: f.contact.trim() || undefined, phone: f.phone.trim() || undefined, value: Math.min(Number(String(f.value).replace(/\D/g, '')) || 0, 2000000000), stage: stage.id, pipelineId: pipelineId || undefined })
+      setF({ name: '', contact: '', phone: '', value: '' })
+      setOpen(false)
+      onDone()
+    } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')) } finally { setBusy(false) }
   }
   if (!open) return <div className="ac-quick"><button className="ac-quick__btn" onClick={() => setOpen(true)}>{t("Tez qo'shish")}</button></div>
   const inp = (k, ph) => <input className="ac-input" placeholder={t(ph)} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setOpen(false) }} />
@@ -107,7 +112,7 @@ function QuickAdd({ stage, pipelineId, onDone }) {
         {inp('phone', 'Kontakt: telefon')}
         {inp('value', 'Byudjet')}
         <div className="ac-quick__row">
-          <button className="ac-btn ac-btn--blue ac-btn--sm" onClick={save}>{t("Qo'shish")}</button>
+          <button className="ac-btn ac-btn--blue ac-btn--sm" disabled={busy} onClick={save}>{t("Qo'shish")}</button>
           <button className="ac-btn ac-btn--sm ac-btn--plain" onClick={() => setOpen(false)}>{t('Bekor qilish')}</button>
         </div>
       </div>
@@ -205,16 +210,18 @@ export default function LeadsPipeline() {
 
   const stages = data?.stages || []
   const openStages = stages.filter((s) => s.kind === 'open')
+  const shownKind = filter.preset === 'won' || filter.preset === 'lost' ? filter.preset : 'open'
+  const shownStages = stages.filter((s) => s.kind === shownKind)
   const pipeName = (data?.pipelines || []).find((p) => String(p.id) === String(pipelineId))?.name || t(pipelineId ? 'Voronka' : 'Asosiy voronka')
 
   const visible = useMemo(() => {
     const out = {}
-    for (const s of openStages) out[s.id] = applyLeadFilter(s.leads, { ...filter, search }, user)
+    for (const s of shownStages) out[s.id] = applyLeadFilter(s.leads, { ...filter, search }, user)
     return out
   }, [data, filter, search]) // eslint-disable-line
 
-  const totalCount = openStages.reduce((a, s) => a + visible[s.id].length, 0)
-  const totalSum = openStages.reduce((a, s) => a + visible[s.id].reduce((b, l) => b + (l.value || 0), 0), 0)
+  const totalCount = shownStages.reduce((a, s) => a + visible[s.id].length, 0)
+  const totalSum = shownStages.reduce((a, s) => a + visible[s.id].reduce((b, l) => b + (l.value || 0), 0), 0)
 
   const moveLocal = (lead, toStage, index) => {
     setData((d) => {
@@ -248,10 +255,10 @@ export default function LeadsPipeline() {
 
   const acceptUnsorted = async (lead) => {
     const first = openStages[0]
-    await crmService.acceptUnsorted(lead.id, { stageKey: first?.id, pipelineId: pipelineId || null, assigneeId: user?.id })
+    try { await crmService.acceptUnsorted(lead.id, { stageKey: first?.id, pipelineId: pipelineId || null, assigneeId: user?.id }) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')) }
     reload()
   }
-  const rejectUnsorted = async (lead) => { await crmService.deleteLead(lead.id); reload() }
+  const rejectUnsorted = async (lead) => { try { await crmService.deleteLead(lead.id) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')) } reload() }
   const openLead = (lead) => navigate(`/leads/detail/${lead.id}`)
 
   const unsorted = applyLeadFilter(data?.unsorted || [], { search }, user)
@@ -289,7 +296,7 @@ export default function LeadsPipeline() {
               </div>
             </div>
           )}
-          {openStages.map((s, i) => {
+          {shownStages.map((s, i) => {
             const leads = visible[s.id]
             const sum = leads.reduce((a, l) => a + (l.value || 0), 0)
             const isOver = drag?.over?.stage === s.id
@@ -303,7 +310,7 @@ export default function LeadsPipeline() {
                   <div className="ac-col__line" style={{ background: s.color || '#99ccff' }} />
                 </div>
                 <div className="ac-col__body">
-                  {i === 0 && <QuickAdd stage={s} pipelineId={pipelineId} onDone={reload} />}
+                  {i === 0 && shownKind === 'open' && <QuickAdd stage={s} pipelineId={pipelineId} onDone={reload} />}
                   {items.map((l, idx) => (
                     <React.Fragment key={l.id}>
                       {idx === phIndex && <div className="ac-drop-ph" style={{ height: drag.h }} />}

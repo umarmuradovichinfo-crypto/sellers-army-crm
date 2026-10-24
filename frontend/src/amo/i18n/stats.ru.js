@@ -20,6 +20,8 @@ addRu({
   'Oraliq': 'Период',
   'Voronka': 'Воронка',
   'Barcha voronkalar': 'Все воронки',
+  'Asosiy voronka': 'Основная воронка',
+  'Saqlanmadi': 'Не удалось сохранить',
   'Menejerlar': 'Менеджеры',
   'Hammasi': 'Все',
   'Qo\'llash': 'Применить',

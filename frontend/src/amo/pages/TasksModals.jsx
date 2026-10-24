@@ -35,17 +35,20 @@ export function CompleteModal({ task, onClose, onDone }) {
   const t = useT()
   const [result, setResult] = useState('')
   const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
   const ref = useRef(null)
   useEffect(() => { ref.current?.focus() }, [])
   const submit = async () => {
+    if (busy) return
     setBusy(true)
-    try { await onDone(task, result.trim()) } finally { setBusy(false) }
+    try { await onDone(task, result.trim()) } catch (e) { setErr(e?.message || t('Xatolik yuz berdi')); setBusy(false); return }
     onClose()
   }
   return (
     <Modal title={t('Vazifani bajarish')} onClose={onClose}>
       <div className="ac-todo-modal__text">{task.title}</div>
-      <textarea ref={ref} className="ac-input" placeholder={t("Natija qo'shing")} value={result} onChange={(e) => setResult(e.target.value)} />
+      <textarea ref={ref} className="ac-input" placeholder={t("Natija qo'shing")} value={result} maxLength={1000} onChange={(e) => setResult(e.target.value)} />
+      {err && <div className="ac-todo-form__err">{err}</div>}
       <div className="ac-modal__foot">
         <button className="ac-btn ac-btn--blue" disabled={busy} onClick={submit}>{t('Bajarish')}</button>
         <button className="ac-btn ac-btn--plain" onClick={onClose}>{t('Bekor qilish')}</button>
@@ -91,14 +94,17 @@ export function AddTaskModal({ members, defaultDate, defaultAssignee, onClose, o
   const save = async () => {
     if (!lead) return setErr(t('Bitimni tanlang'))
     if (!text.trim()) return setErr(t('Vazifa matnini kiriting'))
+    if (!date) return setErr(t('Muddatni kiriting'))
+    const due = new Date(`${date}T${time || '09:00'}`)
+    if (Number.isNaN(due.getTime())) return setErr(t('Muddat noto\'g\'ri'))
+    if (busy) return
     setBusy(true)
     try {
-      const due = new Date(`${date}T${time || '09:00'}`)
       await crmService.createTask(lead.id, { title: text.trim(), type, dueDate: due.toISOString(), assigneeId: assigneeId || undefined })
       onCreated()
       onClose()
     } catch (e) {
-      setErr(e?.message || 'Error')
+      setErr(e?.message || t('Xatolik yuz berdi'))
       setBusy(false)
     }
   }
@@ -115,12 +121,12 @@ export function AddTaskModal({ members, defaultDate, defaultAssignee, onClose, o
             </div>
           ) : (
             <>
-              <input className="ac-input" placeholder={t('Bitim qidirish')} value={q} onFocus={() => setOpen(true)} onChange={(e) => { setQ(e.target.value); setOpen(true) }} />
+              <input className="ac-input" placeholder={t('Bitim qidirish')} value={q} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)} onChange={(e) => { setQ(e.target.value); setOpen(true) }} />
               {open && (
                 <div className="ac-menu ac-todo-lead__list">
                   {found.length === 0 && <div className="ac-todo-lead__empty">{t('Bitim topilmadi')}</div>}
                   {found.map((l) => (
-                    <button key={l.id} className="ac-menu__item" onClick={() => { setLead(l); setOpen(false); setErr('') }}>{l.contactName && l.contactName !== l.n ? `${l.n} — ${l.contactName}` : l.n}</button>
+                    <button key={l.id} className="ac-menu__item" onMouseDown={(e) => e.preventDefault()} onClick={() => { setLead(l); setOpen(false); setErr('') }}>{l.contactName && l.contactName !== l.n ? `${l.n} — ${l.contactName}` : l.n}</button>
                   ))}
                 </div>
               )}
@@ -156,7 +162,7 @@ export function AddTaskModal({ members, defaultDate, defaultAssignee, onClose, o
         </div>
 
         <label className="ac-todo-form__label ac-caption">{t('Vazifa matni')}</label>
-        <textarea className="ac-input" placeholder={t('Vazifa matni...')} value={text} onChange={(e) => { setText(e.target.value); setErr('') }} />
+        <textarea className="ac-input" placeholder={t('Vazifa matni...')} maxLength={1000} value={text} onChange={(e) => { setText(e.target.value); setErr('') }} />
         {err && <div className="ac-todo-form__err">{err}</div>}
       </div>
       <div className="ac-modal__foot">

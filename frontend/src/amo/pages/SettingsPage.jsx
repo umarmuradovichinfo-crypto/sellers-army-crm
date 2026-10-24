@@ -57,13 +57,13 @@ function Row({ label, children }) {
 function GeneralSection() {
   const t = useT()
   const { lang, setLang } = useI18n()
-  const { user } = useAuth()
-  const canManage = user?.role === 'super_admin'
+  const { can } = useAuth()
+  const canManage = can('settings.roles.manage')
   const [form, setForm] = useState({ ...DEFAULTS })
   const [uiLang, setUiLang] = useState(lang)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
-  const { data } = useApi(() => settingsService.getGeneral(), [], 'settings:general')
+  const { data } = useApi(() => (can('settings.view') ? settingsService.getGeneral() : Promise.resolve({ general: {} })), [], 'settings:general')
 
   useEffect(() => { if (data?.general) setForm((f) => ({ ...DEFAULTS, ...f, ...data.general })) }, [data])
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -71,7 +71,7 @@ function GeneralSection() {
   const save = async () => {
     setBusy(true); setMsg(null)
     try {
-      await settingsService.saveGeneral(form)
+      if (canManage) await settingsService.saveGeneral(form)
       if (uiLang !== lang) setLang(uiLang)
       setMsg({ ok: true, m: t('Saqlandi') })
       setTimeout(() => setMsg(null), 2500)
@@ -145,18 +145,19 @@ function ChatsSection() {
 function SecuritySection() {
   const t = useT()
   const { user } = useAuth()
+  const [cur, setCur] = useState('')
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
-  const bad = pw.length < 6 || pw !== pw2
+  const bad = !cur || pw.length < 6 || pw !== pw2
 
   const save = async () => {
-    if (bad || !user?.id) return
+    if (bad || busy || !user?.id) return
     setBusy(true); setMsg(null)
     try {
-      await settingsService.resetUserPassword(user.id, pw)
-      setPw(''); setPw2(''); setMsg({ ok: true, m: t('Parol o\'zgartirildi') })
+      await settingsService.changeOwnPassword(cur, pw)
+      setCur(''); setPw(''); setPw2(''); setMsg({ ok: true, m: t('Parol o\'zgartirildi') })
     } catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) }
     finally { setBusy(false) }
   }
@@ -170,6 +171,7 @@ function SecuritySection() {
         <div className="ac-set-block">
           <h2 className="ac-set-block__title">{t("Parolni o'zgartirish")}</h2>
           <div className="ac-set-block__desc">{t('Yangi parol kamida 6 belgidan iborat bo\'lsin.')}</div>
+          <Row label={t('Joriy parol')}><input className="ac-input" type="password" autoComplete="current-password" value={cur} onChange={(e) => setCur(e.target.value)} /></Row>
           <Row label={t('Yangi parol')}><input className="ac-input" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} /></Row>
           <Row label={t('Parolni takrorlang')}><input className="ac-input" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></Row>
           {pw2 && pw !== pw2 && <div className="ac-set-err">{t('Parollar mos kelmadi')}</div>}

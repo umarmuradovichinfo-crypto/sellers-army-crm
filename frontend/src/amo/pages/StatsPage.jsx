@@ -196,8 +196,9 @@ function Consolidated({ filter, params }) {
     const back = gran === 'day' ? 30 : gran === 'week' ? 30 * 7 : 365
     return { from: iso(new Date(d.getTime() - back * 86400000)), to: iso(d) }
   }, [filter, params.from, params.to, gran])
-  const tl = useApi(() => crmService.analyticsTimeline({ ...range, pipelineId: params.pipelineId, granularity: gran === 'week' ? 'week' : 'day' }), [JSON.stringify(range), params.pipelineId, gran], 'stats-tl')
-  const ov = useApi(() => crmService.analytics(params), [JSON.stringify(params)], 'stats-cons')
+  const userIds = filter.userIds.join(',') || undefined
+  const tl = useApi(() => crmService.analyticsTimeline({ ...range, pipelineId: params.pipelineId, granularity: gran === 'week' ? 'week' : 'day', userIds }), [JSON.stringify(range), params.pipelineId, gran, userIds], 'stats-tl')
+  const ov = useApi(() => crmService.analytics({ ...params, userIds }), [JSON.stringify(params), userIds], 'stats-cons')
   const emp = useApi(() => crmService.analyticsEmployees(params), [JSON.stringify(params)], 'stats-cons-emp')
   const buckets = useMemo(() => {
     const b = tl.data?.buckets || []

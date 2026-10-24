@@ -36,7 +36,7 @@ export default function LeadsList() {
   const { user } = useAuth()
   const { data, reload } = useApi(async () => {
     const [l, tags, mem, pipe] = await Promise.all([crmService.listLeads({}), crmService.listTags(), crmService.listMembers(), crmService.getPipeline()])
-    return { leads: l.leads || [], tags: tags.tags || [], members: mem.members || [], stages: pipe.stages || [] }
+    return { leads: (l.leads || []).filter((x) => !x.unsorted), tags: tags.tags || [], members: mem.members || [], stages: pipe.stages || [] }
   }, [], 'amo-leads-list', 60000)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState(EMPTY_FILTER)
@@ -59,7 +59,7 @@ export default function LeadsList() {
     const io = new IntersectionObserver((e) => { if (e[0].isIntersecting) setLimit((n) => n + 50) })
     io.observe(el)
     return () => io.disconnect()
-  }, [rows.length])
+  }, [rows.length, limit])
 
   const total = rows.reduce((a, l) => a + (l.value || 0), 0)
   const allOn = rows.length > 0 && rows.every((r) => sel.has(r.id))
@@ -70,7 +70,9 @@ export default function LeadsList() {
     </th>
   )
   const runBulk = async (action, value) => {
-    await crmService.bulk([...sel], action, value)
+    const ids = rows.filter((r) => sel.has(r.id)).map((r) => r.id)
+    if (!ids.length) return
+    try { await crmService.bulk(ids, action, value) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')); return }
     setSel(new Set()); setBulkMode(null); reload()
   }
 

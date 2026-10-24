@@ -58,3 +58,5 @@
   .ac-imbox-list { width: 100%; }
   .ac-imbox.has-lead .ac-imbox-list.collapsed { display: none; }
 }
+
+.ac-imbox-err { margin: 6px 20px; padding: 6px 10px; border: 1px solid var(--palette-info-bubble-error-border); background: var(--palette-info-bubble-error-background); color: var(--palette-text-primary); font-size: 13px; }

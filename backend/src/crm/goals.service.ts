@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -8,6 +8,7 @@ export class GoalsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(period?: string) {
+    if (period && !/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) throw new BadRequestException({ error: 'INVALID_PERIOD', message: 'Davr YYYY-MM ko\'rinishida bo\'lishi kerak' });
     const p = period || new Date().toISOString().slice(0, 7);
     const [goals, users, stages] = await Promise.all([
       this.prisma.salesGoal.findMany({ where: { period: p } }),
@@ -54,6 +55,12 @@ export class GoalsService {
     const userId = dto.userId || null;
     const metric = dto.metric || 'revenue';
     const period = dto.period;
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(period || ''))) throw new BadRequestException({ error: 'INVALID_PERIOD', message: 'Davr YYYY-MM ko\'rinishida bo\'lishi kerak' });
+    if (!['revenue', 'count'].includes(metric)) throw new BadRequestException({ error: 'INVALID_METRIC', message: 'metric: revenue yoki count' });
+    const tgt = Number(dto.target);
+    if (!Number.isFinite(tgt) || tgt < 0 || tgt > 2000000000) throw new BadRequestException({ error: 'INVALID_TARGET', message: 'Maqsad 0 dan 2 000 000 000 gacha son bo\'lishi kerak' });
+    dto.target = Math.round(tgt);
+    if (userId && !(await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } }))) throw new NotFoundException({ error: 'USER_NOT_FOUND', message: 'Foydalanuvchi topilmadi' });
     const existing = await this.prisma.salesGoal.findFirst({ where: { userId, period, metric } });
     const goal = existing
       ? await this.prisma.salesGoal.update({ where: { id: existing.id }, data: { target: Number(dto.target) || 0 } })
@@ -62,6 +69,8 @@ export class GoalsService {
   }
 
   async remove(id: string) {
+    const g = await this.prisma.salesGoal.findUnique({ where: { id } });
+    if (!g) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Maqsad topilmadi' });
     await this.prisma.salesGoal.delete({ where: { id } });
     return { ok: true };
   }

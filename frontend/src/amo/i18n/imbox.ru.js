@@ -26,4 +26,7 @@ addRu({
   'Bugun': 'Сегодня',
   'Kecha': 'Вчера',
   'Bitimni ochish': 'Открыть сделку',
+  'Xatolik yuz berdi': 'Произошла ошибка',
+  'Bitim topilmadi': 'Сделка не найдена',
+  "Suhbatlar yo'q": 'Нет диалогов',
 })

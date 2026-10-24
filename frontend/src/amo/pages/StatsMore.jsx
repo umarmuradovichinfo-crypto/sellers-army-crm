@@ -122,8 +122,10 @@ function GoalsModal({ rows, metric, period, onClose, onSaved }) {
   const t = useT()
   const [vals, setVals] = useState(() => Object.fromEntries(rows.map((r) => [r.key, r.goal ? String(r.goal.target) : ''])))
   const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
   const save = async () => {
-    setBusy(true)
+    if (busy) return
+    setBusy(true); setErr('')
     try {
       for (const r of rows) {
         const v = Number(String(vals[r.key] || '').replace(/\D/g, '')) || 0
@@ -133,7 +135,8 @@ function GoalsModal({ rows, metric, period, onClose, onSaved }) {
         else if (v) await crmService.upsertGoal({ userId: r.userId || undefined, period, metric, target: v })
       }
       onSaved()
-    } finally { setBusy(false) }
+    } catch (e) { setErr(e?.message || t('Saqlanmadi')) }
+    finally { setBusy(false) }
   }
   return (
     <div className="ac-modal-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
@@ -144,10 +147,11 @@ function GoalsModal({ rows, metric, period, onClose, onSaved }) {
           {rows.map((r) => (
             <div className="ac-stats-gm__row" key={r.key}>
               <span>{r.name}</span>
-              <input className="ac-input" placeholder={t('Maqsadni kiriting')} value={vals[r.key]} onChange={(e) => setVals({ ...vals, [r.key]: e.target.value })} />
+              <input className="ac-input" placeholder={t('Maqsadni kiriting')} value={vals[r.key]} inputMode="numeric" onChange={(e) => setVals({ ...vals, [r.key]: e.target.value.replace(/[^\d\s]/g, '') })} />
             </div>
           ))}
         </div>
+        {err && <div style={{ margin: '8px 0', color: 'var(--amo-danger)', fontSize: 13 }}>{err}</div>}
         <div className="ac-modal__foot">
           <button className="ac-btn ac-btn--blue" disabled={busy} onClick={save}>{t('Saqlash')}</button>
           <button className="ac-btn ac-btn--plain" onClick={onClose}>{t('Bekor qilish')}</button>

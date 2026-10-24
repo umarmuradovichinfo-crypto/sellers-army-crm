@@ -77,7 +77,7 @@ function NotificationsPanel({ open, onClose, onCount }) {
               <div className="ac-notif__body">
                 <div className="ac-notif__head">
                   <span className="ac-notif__title">{t(NOTIF_TITLE[n.type] || 'Xabar')}</span>
-                  <span className="ac-notif__time">{timeLabel(n.createdAt, t)}</span>
+                  <span className="ac-notif__time">{timeLabel(n.at || n.createdAt, t)}</span>
                 </div>
                 {n.text && <div className="ac-notif__text">{n.text}</div>}
               </div>
@@ -162,6 +162,11 @@ export default function AmoShell({ children }) {
     return () => document.body.classList.remove('ac-body')
   }, [])
   useEffect(() => { setNotifOpen(false); setUserOpen(false); setFlyout(false) }, [loc.pathname])
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') { setNotifOpen(false); setUserOpen(false); setFlyout(false) } }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   const showFly = () => { clearTimeout(hideTimer.current); setFlyout(true) }
   const hideFly = () => { clearTimeout(hideTimer.current); hideTimer.current = setTimeout(() => setFlyout(false), 180) }

@@ -69,6 +69,13 @@ function fmtSum(v: number): string {
   return String(v);
 }
 
+function toDate(v?: string | null): Date | null {
+  if (!v) return null;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) throw new BadRequestException({ error: 'BAD_DATE', message: "Sana noto'g'ri" });
+  return d;
+}
+
 function slugify(name: string): string {
   return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'bosqich';
 }
@@ -242,7 +249,11 @@ export class CrmService {
     const st = await this.prisma.crmStage.findUnique({ where: { key } });
     if (!st) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Bosqich topilmadi' });
     const data: Record<string, unknown> = {};
-    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.name !== undefined) {
+      const n = String(dto.name).trim();
+      if (!n) throw new BadRequestException({ error: 'BAD_NAME', message: 'Nom majburiy' });
+      data.name = n.slice(0, 100);
+    }
     if (dto.color !== undefined) data.color = dto.color;
     if (dto.kind !== undefined) data.kind = dto.kind;
     if (dto.order !== undefined) data.order = dto.order;
@@ -254,9 +265,21 @@ export class CrmService {
     const st = await this.prisma.crmStage.findUnique({ where: { key } });
     if (!st) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Bosqich topilmadi' });
     if (st.isSystem) throw new BadRequestException({ error: 'SYSTEM', message: "Tizim bosqichini o'chirib bo'lmaydi" });
-    await this.prisma.lead.updateMany({ where: { stage: key }, data: { stage: 'new' } });
-    await this.prisma.crmStage.delete({ where: { key } });
-    return { success: true };
+    // Shu voronkada shu turdagi oxirgi bosqichni o'chirib bo'lmaydi (voronka yutuq/yo'qotishsiz qolmasin)
+    const siblings = await this.prisma.crmStage.findMany({ where: { pipelineId: st.pipelineId ?? null, key: { not: key } }, orderBy: { order: 'asc' } });
+    if (!siblings.some((x) => x.kind === st.kind))
+      throw new BadRequestException({ error: 'LAST_OF_KIND', message: "Voronkadagi bu turdagi oxirgi bosqichni o'chirib bo'lmaydi" });
+    // Bitimlar shu voronkaning birinchi ochiq bosqichiga o'tadi (yo'q bo'lsa — asosiy voronkadagi 'new')
+    const target = siblings.find((x) => x.kind === 'open');
+    await this.prisma.$transaction([
+      this.prisma.lead.updateMany({
+        where: { stage: key },
+        data: target ? { stage: target.key } : { stage: 'new', pipelineId: null },
+      }),
+      this.prisma.automation.deleteMany({ where: { stageKey: key } }),
+      this.prisma.crmStage.delete({ where: { key } }),
+    ]);
+    return { success: true, movedTo: target?.key || 'new' };
   }
 
   // ── Lidlar ──
@@ -312,7 +335,7 @@ export class CrmService {
         customJson: JSON.stringify((dto as any).custom || {}),
         hot: !!dto.hot,
         nextTask: dto.nextTask || null,
-        nextTaskDate: dto.nextTaskDate ? new Date(dto.nextTaskDate) : null,
+        nextTaskDate: toDate(dto.nextTaskDate),
         queue: await this.nextQueue(stage),
         createdById: user?.id || null,
         contactId,
@@ -372,7 +395,7 @@ export class CrmService {
     if ((dto as any).custom !== undefined) data.customJson = JSON.stringify((dto as any).custom || {});
     if (dto.hot !== undefined) data.hot = !!dto.hot;
     if (dto.nextTask !== undefined) data.nextTask = dto.nextTask || null;
-    if (dto.nextTaskDate !== undefined) data.nextTaskDate = dto.nextTaskDate ? new Date(dto.nextTaskDate) : null;
+    if (dto.nextTaskDate !== undefined) data.nextTaskDate = toDate(dto.nextTaskDate);
     if ((dto as any).lostReason !== undefined) data.lostReason = (dto as any).lostReason || null;
 
     let assigneeChanged = false;
@@ -385,6 +408,10 @@ export class CrmService {
     if (dto.stage !== undefined && dto.stage !== existing.stage) {
       data.stage = dto.stage;
       stageChanged = true;
+      if ((dto as any).pipelineId === undefined) {
+        const tg = await this.prisma.crmStage.findUnique({ where: { key: dto.stage } });
+        if (tg) data.pipelineId = tg.pipelineId || null;
+      }
       await this.applyStageClose(dto.stage, data, (dto as any).lostReason);
     }
 
@@ -440,7 +467,7 @@ export class CrmService {
     const changed = before.stage !== stageKey;
 
     await this.prisma.$transaction(async (tx) => {
-      const closeData: Record<string, unknown> = { stage: stageKey };
+      const closeData: Record<string, unknown> = { stage: stageKey, pipelineId: target.pipelineId || null };
       if (changed) {
         if (target.kind === 'won') { closeData.wonAt = new Date(); closeData.lostAt = null; }
         else if (target.kind === 'lost') { closeData.lostAt = new Date(); closeData.wonAt = null; if (lostReason !== undefined) closeData.lostReason = lostReason || null; }
@@ -480,14 +507,14 @@ export class CrmService {
     let affected = 0;
     switch (dto.action) {
       case 'stage': {
-        for (const id of ids) { await this.moveLead(id, String(dto.value), undefined, user).catch(() => {}); affected++; }
+        for (const id of ids) { const ok = await this.moveLead(id, String(dto.value), undefined, user).then(() => true).catch(() => false); if (ok) affected++; }
         break;
       }
       case 'assignee': {
         const r = await this.prisma.lead.updateMany({ where: { id: { in: ids } }, data: { assigneeId: dto.value || null } });
         affected = r.count;
         for (const id of ids) await this.activity.record(id, 'assignee', { actorId: user?.id, actorName: user?.name, text: `Mas'ul (ommaviy)` });
-        if (dto.value) await this.notif.notify(dto.value, `Sizga ${affected} ta lid biriktirildi`, { type: 'lead', link: '/crm' });
+        if (dto.value) await this.notif.notify(dto.value, `Sizga ${affected} ta lid biriktirildi`, { type: 'lead', link: '/leads/pipeline' });
         break;
       }
       case 'add_tag': {
@@ -688,7 +715,8 @@ export class CrmService {
       where: { leadId },
       orderBy: [{ done: 'asc' }, { dueDate: 'asc' }],
     });
-    return { tasks: tasks.map((t) => this.taskView(t)) };
+    const names = await this.userMap(tasks.map((t) => t.assigneeId));
+    return { tasks: tasks.map((t) => this.taskView(t, { assigneeName: t.assigneeId ? names.get(t.assigneeId) || null : null })) };
   }
 
   // amoCRM Zadachalar ro'yxati — holat/mas'ul/tur filtrlari bilan
@@ -721,12 +749,15 @@ export class CrmService {
   async createTask(leadId: string, dto: CreateLeadTaskDto, user?: AuthUser) {
     const lead = await this.prisma.lead.findUnique({ where: { id: leadId } });
     if (!lead) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
+    const title = (dto.title || '').trim();
+    if (!title) throw new BadRequestException({ error: 'VALIDATION_ERROR', message: 'Vazifa nomi majburiy' });
+    if (title.length > 1000) throw new BadRequestException({ error: 'VALIDATION_ERROR', message: 'Vazifa matni juda uzun (1000 belgigacha)' });
     const t = await this.prisma.leadTask.create({
       data: {
         leadId,
-        title: dto.title,
+        title,
         type: dto.type || 'task',
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+        dueDate: toDate(dto.dueDate),
         assigneeId: dto.assigneeId || lead.assigneeId || user?.id || null,
         createdById: user?.id || null,
       },
@@ -740,9 +771,14 @@ export class CrmService {
     const existing = await this.prisma.leadTask.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Vazifa topilmadi' });
     const data: Record<string, unknown> = {};
-    if (dto.title !== undefined) data.title = dto.title;
+    if (dto.title !== undefined) {
+      const title = (dto.title || '').trim();
+      if (!title) throw new BadRequestException({ error: 'VALIDATION_ERROR', message: 'Vazifa nomi majburiy' });
+      if (title.length > 1000) throw new BadRequestException({ error: 'VALIDATION_ERROR', message: 'Vazifa matni juda uzun (1000 belgigacha)' });
+      data.title = title;
+    }
     if (dto.type !== undefined) data.type = dto.type;
-    if (dto.dueDate !== undefined) data.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+    if (dto.dueDate !== undefined) data.dueDate = toDate(dto.dueDate);
     if (dto.assigneeId !== undefined) data.assigneeId = dto.assigneeId || null;
     if ((dto as any).result !== undefined) data.result = (dto as any).result || null;
     if (dto.done !== undefined) {

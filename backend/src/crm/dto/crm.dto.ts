@@ -5,6 +5,8 @@ import {
   IsInt,
   IsObject,
   IsOptional,
+  Max,
+  Min,
   IsString,
   MinLength,
 } from 'class-validator';
@@ -44,7 +46,7 @@ export class CreateLeadDto {
   @IsOptional() @IsString() company?: string;
   @IsOptional() @IsString() companyId?: string;
   @IsOptional() @IsString() source?: string;
-  @IsOptional() @IsInt() value?: number;
+  @IsOptional() @IsInt() @Min(0, { message: 'Byudjet manfiy bo`lmaydi' }) @Max(2000000000, { message: 'Byudjet juda katta' }) value?: number;
   @IsOptional() @IsString() stage?: string;
   @IsOptional() @IsString() pipelineId?: string;
   @IsOptional() @IsString() assigneeId?: string;
@@ -65,7 +67,7 @@ export class UpdateLeadDto {
   @IsOptional() @IsString() company?: string;
   @IsOptional() @IsString() companyId?: string;
   @IsOptional() @IsString() source?: string;
-  @IsOptional() @IsInt() value?: number;
+  @IsOptional() @IsInt() @Min(0, { message: 'Byudjet manfiy bo`lmaydi' }) @Max(2000000000, { message: 'Byudjet juda katta' }) value?: number;
   @IsOptional() @IsString() stage?: string;
   @IsOptional() @IsString() pipelineId?: string;
   @IsOptional() @IsString() assigneeId?: string;

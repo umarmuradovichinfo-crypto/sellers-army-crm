@@ -167,6 +167,7 @@ export function CallNote({ c }) {
   const t = useT()
   const [audio, setAudio] = useState(null)
   const [err, setErr] = useState(false)
+  useEffect(() => () => { if (audio) URL.revokeObjectURL(audio) }, [audio])
   const dur = c.durationSec || 0
   const mmss = `${String(Math.floor(dur / 3600)).padStart(2, '0')}:${String(Math.floor((dur % 3600) / 60)).padStart(2, '0')}:${String(dur % 60).padStart(2, '0')}`
   const out = c.direction !== 'in'
@@ -205,6 +206,8 @@ export function taskKind(task) {
 export function TaskNote({ task, onDone }) {
   const t = useT()
   const [res, setRes] = useState('')
+  const [busy, setBusy] = useState(false)
+  const finish = async () => { if (busy) return; setBusy(true); try { await onDone(task, res) } finally { setBusy(false) } }
   const kind = taskKind(task)
   const typeLabel = TASK_TYPES.find((x) => x.key === task.type)?.label || 'Kuzatish'
   return (
@@ -216,8 +219,8 @@ export function TaskNote({ task, onDone }) {
         {task.done && task.result && <div className="ac-note__text ac-muted" style={{ textDecoration: 'none' }}>{t('Natija')}: {task.result}</div>}
         {!task.done && (
           <div className="ac-task-result">
-            <input className="ac-input" placeholder={t("Natija qo'shing")} value={res} onChange={(e) => setRes(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onDone(task, res)} />
-            <button className="ac-btn" onClick={() => onDone(task, res)}>{t('Bajarish')}</button>
+            <input className="ac-input" placeholder={t("Natija qo'shing")} value={res} onChange={(e) => setRes(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && finish()} />
+            <button className="ac-btn" disabled={busy} onClick={finish}>{t('Bajarish')}</button>
           </div>
         )}
       </div>
@@ -264,6 +267,16 @@ const ACT_TEXT = {
   updated: "O'zgartirildi",
 }
 
+// Server matnidagi takroriy prefiksni olib tashlash: "Yangi bosqich: Bosqich: X" -> "Yangi bosqich: X"
+const ACT_PREFIX = /^(Bosqich|Lid yaratildi|Vazifa bajarildi|Vazifa|Sotuv yopildi|Yo'qotildi)\s*[:—-]?\s*/
+function actText(a, t) {
+  const base = t(ACT_TEXT[a.type] || ACT_TEXT.updated)
+  let txt = String(a.text || '').replace(/^🏆\s*/, '')
+  if (['stage', 'created', 'task_created', 'task_done', 'won', 'lost'].includes(a.type)) txt = txt.replace(ACT_PREFIX, '')
+  if (!txt || txt === base || txt === ACT_TEXT[a.type]) return base
+  return `${base}: ${txt}`
+}
+
 // ── Composer: Chat / Eslatma / Vazifa ──
 function Composer({ lead, canChat, members, onSent }) {
   const t = useT()
@@ -283,13 +296,14 @@ function Composer({ lead, canChat, members, onSent }) {
   const send = async () => {
     if (busy) return
     if (mode !== 'task' && !text.trim()) return
+    if (mode === 'task' && (!due || isNaN(new Date(due).getTime()))) { window.alert(t("Sanani to'g'ri kiriting")); return }
     setBusy(true)
     try {
       if (mode === 'chat') await crmService.sendMessage(lead.id, text.trim())
       else if (mode === 'note') await crmService.addNote(lead.id, text.trim())
       else await crmService.createTask(lead.id, { title: text.trim() || t(TASK_TYPES.find((x) => x.key === type).label), type, dueDate: new Date(due).toISOString(), assigneeId: assignee || undefined })
       setText(''); setFocus(false); onSent()
-    } finally { setBusy(false) }
+    } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')) } finally { setBusy(false) }
   }
   const labels = { chat: 'Chat', note: 'Eslatma', task: 'Vazifa' }
   return (
@@ -432,10 +446,16 @@ export default function LeadCard() {
 
   const pickStatus = async (pipelineId, stage) => {
     if (isNew) { setLead((l) => ({ ...l, pipelineId, stage: stage.id })); return }
-    if ((lead.pipelineId || '') !== pipelineId) await crmService.updateLead(lead.id, { pipelineId: pipelineId || '' })
     let reason
-    if (stage.kind === 'lost') reason = window.prompt(t("Yo'qotish sababi")) || undefined
-    await crmService.moveLead(lead.id, stage.id, undefined, reason)
+    if (stage.kind === 'lost') {
+      const r = window.prompt(t("Yo'qotish sababi"))
+      if (r === null) return
+      reason = r || undefined
+    }
+    try {
+      if ((lead.pipelineId || '') !== pipelineId) await crmService.updateLead(lead.id, { pipelineId: pipelineId || '' })
+      await crmService.moveLead(lead.id, stage.id, undefined, reason)
+    } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')) }
     await loadLead()
   }
 
@@ -451,7 +471,7 @@ export default function LeadCard() {
   }
 
   const completeTask = async (task, result) => {
-    await crmService.updateTask(task.id, { done: true, result: result || undefined })
+    try { await crmService.updateTask(task.id, { done: true, result: result?.trim() || undefined }) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')); return }
     loadFeed(); loadLead()
   }
 
@@ -525,7 +545,7 @@ export default function LeadCard() {
                 </FieldRow>
                 <FieldRow label={t('Byudjet')}>
                   <span className="ac-field__money">
-                    <input className="ac-field__edit" value={draft.value !== undefined ? draft.value : (v.value || 0).toLocaleString('en-US')} onChange={(e) => set('value', e.target.value)} />
+                    <input className="ac-field__edit" inputMode="numeric" value={draft.value !== undefined ? draft.value : (v.value || 0).toLocaleString('en-US')} onChange={(e) => { const d = e.target.value.replace(/\D/g, '').slice(0, 10); set('value', d ? Math.min(Number(d), 2000000000).toLocaleString('en-US') : '0') }} />
                     <span>so'm</span>
                   </span>
                 </FieldRow>
@@ -581,8 +601,7 @@ export default function LeadCard() {
               let el = null
               if (it.kind === 'sys') {
                 const a = it.a
-                const base = t(ACT_TEXT[a.type] || ACT_TEXT.updated)
-                el = <SysLine key={`a${a.id}`} at={a.at} who={a.actorName} text={a.text && a.text !== base ? `${base}: ${a.text}` : base} />
+                el = <SysLine key={`a${a.id}`} at={a.at} who={a.actorName} text={actText(a, t)} />
               } else if (it.kind === 'note') el = <NoteItem key={`n${i}`} n={it.n} />
               else if (it.kind === 'call') el = <CallNote key={`c${it.c.id}`} c={it.c} />
               else if (it.kind === 'task') el = <TaskNote key={`t${it.tk.id}`} task={it.tk} onDone={completeTask} />

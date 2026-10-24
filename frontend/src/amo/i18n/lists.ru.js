@@ -24,4 +24,6 @@ addRu({
   'Oxirgi 7 kun': 'Последние 7 дней',
   'Oxirgi 30 kun': 'Последние 30 дней',
   'Butun vaqt uchun': 'За все время',
+  "O'chirib bo'lmadi": 'Не удалось удалить',
+  'Xatolik yuz berdi': 'Произошла ошибка',
 })

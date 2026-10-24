@@ -1,6 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+
+// Davr chegarasini xavfsiz o'qish: noto'g'ri sana 500 emas, 400 qaytaradi
+function parseFrom(v?: string): Date | undefined {
+  if (!v) return undefined;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) throw new BadRequestException({ error: 'INVALID_DATE', message: `Noto'g'ri sana: ${v}` });
+  return d;
+}
+function parseTo(v?: string): Date | undefined {
+  if (!v) return undefined;
+  const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(v) ? v + 'T23:59:59' : v);
+  if (isNaN(d.getTime())) throw new BadRequestException({ error: 'INVALID_DATE', message: `Noto'g'ri sana: ${v}` });
+  return d;
+}
+
+// 'main' = asosiy voronka (pipelineId = null), boshqa qiymat — voronka id'si
+function pipeVal(id?: string): string | null | undefined {
+  if (!id) return undefined;
+  return id === 'main' ? null : id;
+}
+function userList(v?: string): string[] {
+  return (v || '').split(',').map((x) => x.trim()).filter(Boolean);
+}
 
 /**
  * CRM analitika — voronka konversiyasi, win/loss, manba/sotuvchi kesimi,
@@ -10,14 +33,19 @@ import { PrismaService } from '../prisma/prisma.service';
 export class CrmAnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async overview(params: { from?: string; to?: string; pipelineId?: string }) {
+  async overview(params: { from?: string; to?: string; pipelineId?: string; userIds?: string }) {
     const where: Record<string, any> = {};
     if (params.from || params.to) {
       where.createdAt = {};
-      if (params.from) where.createdAt.gte = new Date(params.from);
-      if (params.to) where.createdAt.lte = new Date(params.to + 'T23:59:59');
+      const f = parseFrom(params.from);
+      const e = parseTo(params.to);
+      if (f) where.createdAt.gte = f;
+      if (e) where.createdAt.lte = e;
     }
-    if (params.pipelineId) where.pipelineId = params.pipelineId;
+    const pv = pipeVal(params.pipelineId);
+    if (pv !== undefined) where.pipelineId = pv;
+    const uids = userList(params.userIds);
+    if (uids.length) where.assigneeId = { in: uids };
 
     const [stages, leads, users] = await Promise.all([
       this.prisma.crmStage.findMany({ orderBy: { order: 'asc' } }),
@@ -25,7 +53,7 @@ export class CrmAnalyticsService {
       this.prisma.user.findMany({ where: { isActive: true }, select: { id: true, name: true } }),
     ]);
 
-    const stageList = params.pipelineId ? stages.filter((s) => (s.pipelineId || null) === params.pipelineId) : stages;
+    const stageList = pv !== undefined ? stages.filter((s) => (s.pipelineId || null) === pv) : stages;
     const kindByKey = new Map(stages.map((s) => [s.key, s.kind]));
 
     // Voronka: har bosqich bo'yicha lid soni + summa + konversiya
@@ -123,8 +151,10 @@ export class CrmAnalyticsService {
   private range(field: string, from?: string, to?: string): Record<string, any> {
     if (!from && !to) return {};
     const r: Record<string, any> = {};
-    if (from) r.gte = new Date(from);
-    if (to) r.lte = new Date(to + 'T23:59:59');
+    const f = parseFrom(from);
+    const e = parseTo(to);
+    if (f) r.gte = f;
+    if (e) r.lte = e;
     return { [field]: r };
   }
 
@@ -200,7 +230,7 @@ export class CrmAnalyticsService {
     if (params.userId) where.actorId = params.userId;
 
     const [rows, byTypeRaw] = await Promise.all([
-      this.prisma.activity.findMany({ where, orderBy: { createdAt: 'desc' }, take: Math.min(params.limit || 100, 300) }),
+      this.prisma.activity.findMany({ where, orderBy: { createdAt: 'desc' }, take: Math.min(Math.max(Math.floor(params.limit || 0) || 100, 1), 300) }),
       this.prisma.activity.groupBy({ by: ['type'], where, _count: { _all: true } }),
     ]);
 
@@ -227,11 +257,17 @@ export class CrmAnalyticsService {
   }
 
   // ── Sotuv dinamikasi (vaqt qatori) ──
-  async timeline(params: { from?: string; to?: string; pipelineId?: string; granularity?: string }) {
-    const from = params.from ? new Date(params.from) : new Date(Date.now() - 90 * 86400000);
-    const to = params.to ? new Date(params.to + 'T23:59:59') : new Date();
+  async timeline(params: { from?: string; to?: string; pipelineId?: string; granularity?: string; userIds?: string }) {
+    const to = parseTo(params.to) ?? new Date();
+    let from = parseFrom(params.from) ?? new Date(Date.now() - 90 * 86400000);
+    const minFrom = new Date(to.getTime() - 800 * 86400000); // juda keng davr — minglab bucket yaratmaslik uchun
+    if (from < minFrom) from = minFrom;
     const week = params.granularity === 'week';
-    const pipeWhere = params.pipelineId ? { pipelineId: params.pipelineId } : {};
+    const pv = pipeVal(params.pipelineId);
+    const uids = userList(params.userIds);
+    const pipeWhere: Record<string, any> = {};
+    if (pv !== undefined) pipeWhere.pipelineId = pv;
+    if (uids.length) pipeWhere.assigneeId = { in: uids };
 
     const [created, wonLeads] = await Promise.all([
       this.prisma.lead.findMany({ where: { ...pipeWhere, createdAt: { gte: from, lte: to } }, select: { createdAt: true } }),
@@ -274,7 +310,8 @@ export class CrmAnalyticsService {
   // ── Chuqur sotuvchi hisoboti (lid + qo'ng'iroq + vazifa) ──
   async employees(params: { from?: string; to?: string; pipelineId?: string }) {
     const leadWhere: Record<string, any> = { ...this.range('createdAt', params.from, params.to) };
-    if (params.pipelineId) leadWhere.pipelineId = params.pipelineId;
+    const pv = pipeVal(params.pipelineId);
+    if (pv !== undefined) leadWhere.pipelineId = pv;
 
     const [stages, leads, nameById, callLogs, tasks, openTasks, notes] = await Promise.all([
       this.prisma.crmStage.findMany({ select: { key: true, kind: true } }),

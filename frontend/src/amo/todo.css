@@ -57,7 +57,7 @@
 .ac-todo-cal--week .ac-todo-cell, .ac-todo-cal--day .ac-todo-cell { overflow-y: auto; }
 .ac-todo-cell__num { text-align: right; font-size: 14px; color: var(--palette-text-primary); margin-bottom: 4px; }
 .ac-todo-cell.out .ac-todo-cell__num { color: var(--palette-text-secondary-disabled-dark); }
-.ac-todo-cell.today { background: #284e7d; }
+.ac-todo-cell.today { background: var(--palette-tasks-date-today-element); }
 .ac-todo-cell.drop-target { background: rgba(76, 139, 247, 0.18); }
 .ac-todo-cell__tasks { flex: 1; min-height: 0; overflow-y: auto; }
 .ac-todo-cal__foot { flex: none; display: flex; justify-content: flex-end; align-items: center; height: 58px; padding: 0 90px 0 30px; }
@@ -78,3 +78,7 @@
 .ac-todo-lead__empty { padding: 10px 14px; font-size: 14px; color: var(--palette-text-secondary-dark); }
 .ac-todo-lead__picked { display: flex; align-items: center; justify-content: space-between; height: 38px; padding: 0 10px; border: 1px solid var(--palette-border-default); border-radius: var(--border-radius-default); font-size: 14px; }
 .ac-todo-lead__picked button { background: none; border: 0; cursor: pointer; color: var(--palette-text-secondary-light); display: flex; }
+
+/* Xato / yuklanish */
+.ac-todo-banner { margin: 8px 30px 0; padding: 8px 12px; border: 1px solid var(--palette-info-bubble-error-border); background: var(--palette-info-bubble-error-background); color: var(--palette-text-primary); font-size: 14px; cursor: pointer; }
+.ac-todo-loading { display: flex; justify-content: center; padding: 30px 0; }

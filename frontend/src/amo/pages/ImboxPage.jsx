@@ -115,6 +115,7 @@ function Composer({ lead, canChat, onSent }) {
   const [text, setText] = useState('')
   const [focus, setFocus] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
   const ref = useRef(null)
   const wrap = useRef(null)
   useOutside(wrap, () => { setModesOpen(false); if (!text) setFocus(false) }, focus || modesOpen)
@@ -122,12 +123,12 @@ function Composer({ lead, canChat, onSent }) {
 
   const send = async () => {
     if (busy || !text.trim()) return
-    setBusy(true)
+    setBusy(true); setErr('')
     try {
       if (mode === 'chat') await crmService.sendMessage(lead.id, text.trim())
       else await crmService.addNote(lead.id, text.trim())
       setText(''); setFocus(false); onSent()
-    } finally { setBusy(false) }
+    } catch (e) { setErr(e?.message || t('Xatolik yuz berdi')) } finally { setBusy(false) }
   }
   const labels = { chat: 'Chat', note: 'Eslatma' }
   return (
@@ -145,9 +146,10 @@ function Composer({ lead, canChat, onSent }) {
           {mode === 'chat' && <> {t('bilan')} <a>{lead.contact?.name || lead.n}</a></>}:
           <span className="ac-compose__caret" onClick={(e) => { e.stopPropagation(); setModesOpen((v) => !v) }}><Ico name="chevronDown" size={10} /></span>
         </span>
-        <textarea ref={ref} className="ac-compose__text" rows={focus ? 3 : 1} placeholder={t('matn kiriting...')} value={text} onChange={(e) => setText(e.target.value)} onFocus={() => setFocus(true)}
+        <textarea ref={ref} className="ac-compose__text" rows={focus ? 3 : 1} placeholder={t('matn kiriting...')} value={text} maxLength={4000} onChange={(e) => { setText(e.target.value); setErr('') }} onFocus={() => setFocus(true)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send() }} />
       </div>
+      {err && <div className="ac-imbox-err">{err}</div>}
       {focus && (
         <div className="ac-compose__foot" onClick={(e) => e.stopPropagation()}>
           <button className="ac-btn ac-btn--blue ac-btn--plain" style={{ height: 34, lineHeight: '32px', padding: '0 14px' }} disabled={busy} onClick={send}>{t('Yuborish')}</button>
@@ -158,11 +160,15 @@ function Composer({ lead, canChat, onSent }) {
   )
 }
 
-function Conversation({ leadId, pipes, onToggleList }) {
+function Conversation({ leadId, pipes, onToggleList, onChanged }) {
   const t = useT()
   const navigate = useNavigate()
   const [lead, setLead] = useState(null)
   const [feed, setFeed] = useState({ calls: [], tasks: [], messages: [], canReply: false })
+  const [missing, setMissing] = useState(false)
+  const [err, setErr] = useState('')
+  const alive = useRef(true)
+  useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
 
   const load = useCallback(async () => {
     const [l, c, tk, m] = await Promise.all([
@@ -171,29 +177,37 @@ function Conversation({ leadId, pipes, onToggleList }) {
       crmService.listLeadTasks(leadId).catch(() => ({ tasks: [] })),
       crmService.leadMessages(leadId).catch(() => ({ messages: [], canReply: false })),
     ])
-    if (l?.lead) setLead(l.lead)
+    if (!alive.current) return
+    if (l?.lead) { setLead(l.lead); setMissing(false) } else setMissing(true)
     setFeed({ calls: c.calls || [], tasks: tk.tasks || [], messages: m.messages || [], canReply: !!m.canReply })
   }, [leadId])
 
   useEffect(() => {
-    setLead(null); setFeed({ calls: [], tasks: [], messages: [], canReply: false })
+    setLead(null); setMissing(false); setFeed({ calls: [], tasks: [], messages: [], canReply: false })
     load()
     const h = setInterval(load, REFRESH_MS)
     return () => clearInterval(h)
   }, [load])
 
   const pickStatus = async (pipelineId, stage) => {
-    if ((lead.pipelineId || '') !== pipelineId) await crmService.updateLead(lead.id, { pipelineId: pipelineId || '' })
-    let reason
-    if (stage.kind === 'lost') reason = window.prompt(t("Yo'qotish sababi")) || undefined
-    await crmService.moveLead(lead.id, stage.id, undefined, reason)
-    load()
+    try {
+      let reason
+      if (stage.kind === 'lost') {
+        reason = window.prompt(t("Yo'qotish sababi"))
+        if (reason === null) return // bekor qilindi — holat o'zgarmaydi
+        reason = reason || undefined
+      }
+      setErr('')
+      if ((lead.pipelineId || '') !== pipelineId) await crmService.updateLead(lead.id, { pipelineId: pipelineId || '' })
+      await crmService.moveLead(lead.id, stage.id, undefined, reason)
+      load(); onChanged && onChanged()
+    } catch (e) { setErr(e?.message || t('Xatolik yuz berdi')) }
   }
   const completeTask = async (task, result) => {
-    await crmService.updateTask(task.id, { done: true, result: result || undefined })
-    load()
+    try { await crmService.updateTask(task.id, { done: true, result: result || undefined }); load() } catch (e) { setErr(e?.message || t('Xatolik yuz berdi')) }
   }
 
+  if (!lead && missing) return <div className="ac-imbox-view"><div className="ac-imbox-empty"><div className="ac-imbox-empty__title">{t('Bitim topilmadi')}</div></div></div>
   if (!lead) return <div className="ac-imbox-view"><div className="ac-imbox-empty"><div className="ac-spinner" /></div></div>
 
   const items = []
@@ -216,6 +230,7 @@ function Conversation({ leadId, pipes, onToggleList }) {
         <div className="ac-imbox-view__tags">{(lead.tags || []).map((tg) => <span key={tg} className="ac-tag">{tg}</span>)}</div>
         {pipes.length > 0 && <PipePicker lead={lead} pipes={pipes} onPick={pickStatus} />}
       </div>
+      {err && <div className="ac-imbox-err" onClick={() => setErr('')}>{err}</div>}
       <div className="ac-imbox-view__feed">
         <div className="ac-feed__inner">
           {items.map((it, i) => {
@@ -235,7 +250,7 @@ function Conversation({ leadId, pipes, onToggleList }) {
         </div>
       </div>
       <div className="ac-imbox-view__bottom">
-        <Composer key={lead.id} lead={lead} canChat={feed.canReply} onSent={load} />
+        <Composer key={lead.id} lead={lead} canChat={feed.canReply} onSent={() => { load(); onChanged && onChanged() }} />
       </div>
     </div>
   )
@@ -294,12 +309,13 @@ export default function ImboxPage() {
         </div>
         <div className="ac-imbox-list__scroll">
           {convs === null && [0, 1, 2, 3, 4].map((i) => <div key={i} className="ac-imbox-row"><div className="ac-plug" style={{ width: 36, height: 36, borderRadius: '50%' }} /><div style={{ flex: 1 }}><div className="ac-plug" style={{ height: 14, width: '60%', marginBottom: 8 }} /><div className="ac-plug" style={{ height: 12 }} /></div></div>)}
+          {convs && convs.length === 0 && <div className="ac-imbox-list__empty">{t("Suhbatlar yo'q")}</div>}
           {convs && convs.length > 0 && shown.length === 0 && <div className="ac-imbox-list__empty">{t('Suhbatlar topilmadi')}</div>}
           {shown.map((c) => <Row key={c.leadId} c={c} on={c.leadId === leadId} onClick={() => navigate(`/imbox/${c.leadId}`)} />)}
         </div>
       </div>
       {leadId
-        ? <Conversation key={leadId} leadId={leadId} pipes={pipes} onToggleList={() => setCollapsed((v) => !v)} />
+        ? <Conversation key={leadId} leadId={leadId} pipes={pipes} onChanged={loadList} onToggleList={() => setCollapsed((v) => !v)} />
         : <div className="ac-imbox-view"><div className="ac-imbox-empty">{empty ? <NotConnected /> : <div className="ac-imbox-empty__title">{t('Suhbatni tanlang')}</div>}</div></div>}
     </div>
   )

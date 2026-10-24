@@ -20,4 +20,7 @@ addRu({
   'Teg nomi': 'Название тега',
   "Kontaktni o'chirishni tasdiqlaysizmi?": 'Удалить контакт?',
   "Kompaniyani o'chirishni tasdiqlaysizmi?": 'Удалить компанию?',
+  'Xatolik yuz berdi': 'Произошла ошибка',
+  'Nomini kiriting': 'Укажите название',
+  "Email noto'g'ri": 'Некорректный email',
 })

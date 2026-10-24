@@ -28,8 +28,8 @@ function Dots({ flags, t }) {
 
 export default function SettingsUsers() {
   const t = useT()
-  const { user } = useAuth()
-  const canManage = user?.role === 'super_admin'
+  const { user, can } = useAuth()
+  const canManage = can('settings.roles.manage')
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(() => new Set())
   const [modal, setModal] = useState(null) // { create:true } | { user }
@@ -64,7 +64,9 @@ export default function SettingsUsers() {
         )}
       />
       <div className="ac-table-wrap ac-set-users">
-        {users.loading && !users.data ? <div className="ac-spinner" style={{ margin: '40px auto' }} /> : (
+        {users.loading && !users.data ? <div className="ac-spinner" style={{ margin: '40px auto' }} /> : users.error && !users.data ? (
+          <div className="ac-muted" style={{ textAlign: 'center', padding: 40 }}>{users.error.message || t('Xatolik')}</div>
+        ) : (
           <table className="ac-table">
             <thead>
               <tr>
@@ -95,7 +97,7 @@ export default function SettingsUsers() {
       </div>
       {modal && (
         <UserDrawer
-          initial={modal.user} roles={roles} canManage={canManage}
+          initial={modal.user} roles={roles} canManage={canManage} selfId={user?.id}
           onClose={() => setModal(null)}
           onChanged={() => { users.reload(); access.reload() }}
         />
@@ -104,7 +106,7 @@ export default function SettingsUsers() {
   )
 }
 
-function UserDrawer({ initial, roles, canManage, onClose, onChanged }) {
+function UserDrawer({ initial, roles, canManage, selfId, onClose, onChanged }) {
   const t = useT()
   const editing = !!initial
   const [name, setName] = useState(initial?.name || '')
@@ -147,7 +149,7 @@ function UserDrawer({ initial, roles, canManage, onClose, onChanged }) {
   }
 
   const submit = async () => {
-    if (invalid) return
+    if (invalid || busy) return
     setBusy(true); setErr(null)
     try {
       if (editing) {
@@ -181,7 +183,7 @@ function UserDrawer({ initial, roles, canManage, onClose, onChanged }) {
           </div>
           <div className="ac-set-field"><label>{t('Guruh')}</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              <select className="ac-select" value={roleKey} onChange={(e) => { setRoleKey(e.target.value); setPerms(null) }} disabled={!canManage}>
+              <select className="ac-select" value={roleKey} onChange={(e) => { setRoleKey(e.target.value); setPerms(null) }} disabled={!canManage || (editing && initial.id === selfId)}>
                 {allRoles.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}
               </select>
               {canManage && <button className="ac-btn" title={t('Yangi guruh')} onClick={addRole}><Ico name="plus" /></button>}
@@ -192,7 +194,7 @@ function UserDrawer({ initial, roles, canManage, onClose, onChanged }) {
           </div>
           {editing && (
             <label className="ac-set-checkrow">
-              <input type="checkbox" className="ac-check" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} disabled={!canManage} />
+              <input type="checkbox" className="ac-check" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} disabled={!canManage || initial.id === selfId} />
               {t('Faol (tizimga kira oladi)')}
             </label>
           )}

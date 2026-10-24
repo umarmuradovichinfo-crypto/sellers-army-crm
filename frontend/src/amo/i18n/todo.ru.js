@@ -49,5 +49,9 @@ addRu({
   'yan': 'янв', 'fev': 'фев', 'mar': 'мар', 'apr': 'апр', 'may': 'май', 'iyn': 'июн',
   'iyl': 'июл', 'avg': 'авг', 'sen': 'сен', 'okt': 'окт', 'noy': 'ноя', 'dek': 'дек',
   'Du': 'Пн', 'Se': 'Вт', 'Ch': 'Ср', 'Pa': 'Чт', 'Ju': 'Пт', 'Sh': 'Сб', 'Ya': 'Вс',
+  'Xatolik yuz berdi': 'Произошла ошибка',
+  "Vazifani o'chirishni tasdiqlaysizmi?": 'Подтвердите удаление задачи',
+  'Muddatni kiriting': 'Укажите срок',
+  "Muddat noto'g'ri": 'Некорректный срок',
   'Mas\'ul tayinlanmagan': 'Не назначен',
 })

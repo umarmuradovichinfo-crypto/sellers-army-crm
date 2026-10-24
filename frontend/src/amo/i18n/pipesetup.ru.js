@@ -89,4 +89,11 @@ addRu({
   'Checkbox': 'Флаг',
   'Telefon': 'Телефон',
   "Matn (ko'p qatorli)": 'Многострочный текст',
+  'Xatolik': 'Ошибка',
+  'Saqlanmadi': 'Не удалось сохранить',
+  'Vazifa matnini kiriting': 'Введите текст задачи',
+  'Tegni kiriting': 'Введите тег',
+  'Maydon nomini kiriting': 'Введите название поля',
+  'Matnni kiriting': 'Введите текст',
+  "To'g'ri URL kiriting (http:// yoki https://)": 'Введите корректный URL (http:// или https://)',
 })

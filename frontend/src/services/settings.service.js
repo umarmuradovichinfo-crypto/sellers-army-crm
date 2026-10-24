@@ -31,6 +31,9 @@ export const settingsService = {
   // POST /settings/users/:id/password { password }
   resetUserPassword: (id, password) => mockOr(() => api.post(`/settings/users/${id}/password`, { password }), { success: true }),
 
+  // POST /settings/me/password { currentPassword, password } — har qanday rol o'z parolini o'zgartiradi
+  changeOwnPassword: (currentPassword, password) => mockOr(() => api.post('/settings/me/password', { currentPassword, password }), { success: true }),
+
   // GET/PUT /settings/general -> { general: { accountName, address, timezone, country, dateFormat, timeFormat, currency, nameOrder } }
   getGeneral: () => mockOr(() => api.get('/settings/general'), { general: {} }),
   saveGeneral: (payload) => mockOr(() => api.put('/settings/general', payload), { general: payload }),

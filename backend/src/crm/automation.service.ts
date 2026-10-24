@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { ActivityService } from './activity.service';
@@ -43,10 +43,17 @@ export class AutomationService {
       order: a.order,
     };
   }
+  private checkTrigger(trigger?: string) {
+    if (trigger !== undefined && !['stage_enter', 'lead_created', 'tag_added', 'no_task'].includes(trigger))
+      throw new BadRequestException({ error: 'BAD_TRIGGER', message: `Noma'lum trigger: ${trigger}` });
+  }
   async create(dto: any, userId?: string) {
+    this.checkTrigger(dto.trigger);
+    if ((dto.trigger || 'stage_enter') === 'stage_enter' && !dto.stageKey)
+      throw new BadRequestException({ error: 'BAD_STAGE', message: 'Bosqich ko\'rsatilmagan' });
     const a = await this.prisma.automation.create({
       data: {
-        name: (dto.name || 'Avtomatlashtirish').trim(),
+        name: String(dto.name || 'Avtomatlashtirish').trim().slice(0, 200) || 'Avtomatlashtirish',
         pipelineId: dto.pipelineId || null,
         trigger: dto.trigger || 'stage_enter',
         stageKey: dto.stageKey || null,
@@ -60,8 +67,11 @@ export class AutomationService {
     return { automation: this.view(a) };
   }
   async update(id: string, dto: any) {
+    this.checkTrigger(dto.trigger);
+    if (!(await this.prisma.automation.findUnique({ where: { id }, select: { id: true } })))
+      throw new NotFoundException({ error: 'NOT_FOUND', message: 'Avtomatlashtirish topilmadi' });
     const data: Record<string, unknown> = {};
-    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.name !== undefined) data.name = String(dto.name).trim().slice(0, 200) || 'Avtomatlashtirish';
     if (dto.pipelineId !== undefined) data.pipelineId = dto.pipelineId || null;
     if (dto.trigger !== undefined) data.trigger = dto.trigger;
     if (dto.stageKey !== undefined) data.stageKey = dto.stageKey || null;
@@ -73,6 +83,8 @@ export class AutomationService {
     return { automation: this.view(a) };
   }
   async remove(id: string) {
+    if (!(await this.prisma.automation.findUnique({ where: { id }, select: { id: true } })))
+      throw new NotFoundException({ error: 'NOT_FOUND', message: 'Avtomatlashtirish topilmadi' });
     await this.prisma.automation.delete({ where: { id } });
     return { ok: true };
   }
@@ -87,11 +99,15 @@ export class AutomationService {
       const all = await this.prisma.automation.findMany({ where: { active: true, trigger }, orderBy: { order: 'asc' } });
       for (const a of all) {
         if (trigger === 'stage_enter' && a.stageKey && a.stageKey !== lead.stage) continue;
-        if (a.pipelineId && a.pipelineId !== (lead.pipelineId || null)) continue;
+        // lead_created qoidasi voronka bo'yicha cheklangan (null = asosiy voronka); boshqalarda pipelineId bo'lsa tekshiriladi
+        if (trigger === 'lead_created' ? (a.pipelineId || null) !== (lead.pipelineId || null) : a.pipelineId && a.pipelineId !== (lead.pipelineId || null)) continue;
         const conds = parse<Cond[]>(a.conditionsJson, []);
         if (!this.matches(conds, lead)) continue;
         const actions = parse<Action[]>(a.actionsJson, []);
-        for (const act of actions) await this.exec(act, leadId, a.name, actorName);
+        for (const act of actions) {
+          try { await this.exec(act, leadId, a.name, actorName); } // bitta action xatosi qolganlarini to'xtatmasin
+          catch (e) { this.logger.warn(`Action "${act?.type}" xato: ${(e as Error).message}`); }
+        }
       }
     } catch (e) {
       this.logger.warn('Automation run xato: ' + (e as Error).message);
@@ -184,7 +200,7 @@ export class AutomationService {
         break;
       }
       case 'webhook': {
-        if (act.url) {
+        if (act.url && /^https?:\/\//i.test(String(act.url))) {
           fetch(act.url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

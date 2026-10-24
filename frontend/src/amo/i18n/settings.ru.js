@@ -2,6 +2,7 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Maydonlar': 'Поля',
   // Chap panel / umumiy
   'Umumiy sozlamalar': 'Общие настройки',
   'Foydalanuvchilar': 'Пользователи',
@@ -81,6 +82,7 @@ addRu({
   "Parolni o'zgartirish": 'Смена пароля',
   "Yangi parol kamida 6 belgidan iborat bo'lsin.": 'Новый пароль должен содержать минимум 6 символов.',
   'Yangi parol': 'Новый пароль',
+  'Joriy parol': 'Текущий пароль',
   'Parolni takrorlang': 'Повторите пароль',
   'Parollar mos kelmadi': 'Пароли не совпадают',
   "Parol o'zgartirildi": 'Пароль изменён',

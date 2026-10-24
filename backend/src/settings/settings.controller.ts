@@ -3,6 +3,7 @@ import { Body, Controller, Get, Param, Patch, Post, Put } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import {
+  ChangeOwnPasswordDto,
   CreateRoleDto,
   CreateUserDto,
   ResetPasswordDto,
@@ -57,6 +58,12 @@ export class SettingsController {
   @RequirePermissions('settings.roles.manage')
   resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto) {
     return this.settings.resetPassword(id, dto.password);
+  }
+
+  // O'z parolini o'zgartirish (ruxsat talab qilinmaydi — faqat login)
+  @Post('me/password')
+  changeOwnPassword(@CurrentUser('id') uid: string, @Body() dto: ChangeOwnPasswordDto) {
+    return this.settings.changeOwnPassword(uid, dto.currentPassword, dto.password);
   }
 
   // Umumiy sozlamalar (akkaunt nomi, mintaqa, formatlar)

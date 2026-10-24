@@ -24,7 +24,6 @@ export class ReminderService implements OnModuleInit {
 
   async tick() {
     const todayStr = new Date().toISOString().slice(0, 10);
-    const startOfToday = new Date(todayStr + 'T00:00:00');
     const endOfToday = new Date(todayStr + 'T23:59:59');
     const now = new Date();
 
@@ -35,24 +34,26 @@ export class ReminderService implements OnModuleInit {
     });
     if (!tasks.length) return { sent: 0 };
 
-    // Bugun yuborilgan vazifa-eslatmalari (link bo'yicha) — dedupe
-    const todaysNotifs = await this.prisma.notification.findMany({
-      where: { type: 'task', createdAt: { gte: startOfToday } },
-      select: { link: true },
+    // Har bir vazifa uchun bitta "bugungi" va bitta "kechikkan" eslatma (amoCRM kabi, har kuni takrorlanmaydi)
+    const links = tasks.map((t) => `/leads/detail/${t.leadId}?task=${t.id}`);
+    const prev = await this.prisma.notification.findMany({
+      where: { type: 'task', link: { in: links } },
+      select: { link: true, text: true },
     });
-    const sentLinks = new Set(todaysNotifs.map((n) => n.link));
+    const sentKeys = new Set(prev.map((n) => `${n.link}|${n.text.startsWith('Kechikkan') ? 'o' : 't'}`));
 
     let sent = 0;
     for (const t of tasks) {
-      const link = `/leads/detail/${t.leadId}`;
-      if (sentLinks.has(link)) continue;
-      const overdue = t.dueDate && t.dueDate < now;
+      const link = `/leads/detail/${t.leadId}?task=${t.id}`;
+      const overdue = !!t.dueDate && t.dueDate < now;
+      const key = `${link}|${overdue ? 'o' : 't'}`;
+      if (sentKeys.has(key)) continue;
       const label = overdue ? 'Kechikkan vazifa' : 'Bugungi vazifa';
       await this.notif.notify(t.assigneeId!, `${label}: ${t.title}${t.lead?.name ? ` (${t.lead.name})` : ''}`, {
         type: 'task',
         link,
       });
-      sentLinks.add(link);
+      sentKeys.add(key);
       sent++;
     }
     if (sent) this.logger.log(`${sent} ta vazifa eslatmasi yuborildi`);

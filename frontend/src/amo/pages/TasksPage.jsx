@@ -80,7 +80,7 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
   const mode = modeProp || v.mode
   const cal = calProp || v.cal || 'month'
 
-  const { data, reload, setData } = useApi(async () => {
+  const { data, error, reload, setData } = useApi(async () => {
     const [tk, mem] = await Promise.all([crmService.listTasks({}), crmService.listMembers()])
     return { tasks: tk.tasks || [], members: mem.members || [] }
   }, [], 'ac-todo-tasks', 60000)
@@ -92,6 +92,8 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
   const [overKey, setOverKey] = useState(null)
   const [adding, setAdding] = useState(null)
   const [completing, setCompleting] = useState(null)
+  const [err, setErr] = useState('')
+  const fail = (e) => { setErr(e?.message || t('Xatolik yuz berdi')); reload() }
 
   const today = startOfDay(new Date())
   const tasks = useMemo(() => {
@@ -100,24 +102,26 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
   }, [data, search, showDone])
 
   const openLead = (task) => navigate(`/leads/detail/${task.leadId}`)
+  // Xato bo'lsa CompleteModal ochiq qoladi va xatoni ko'rsatadi (throw qaytariladi)
   const complete = async (task, result) => {
     await crmService.updateTask(task.id, { done: true, ...(result ? { result } : {}) })
+    setErr('')
     reload()
   }
   const remove = async (task) => {
+    if (!window.confirm(t("Vazifani o'chirishni tasdiqlaysizmi?"))) return
     setData({ ...data, tasks: data.tasks.filter((x) => x.id !== task.id) })
-    await crmService.deleteTask(task.id)
-    reload()
+    try { await crmService.deleteTask(task.id); setErr(''); reload() } catch (e) { fail(e) }
   }
   // Vazifani boshqa kunga ko'chirish — vaqt saqlanadi
   const moveTo = async (task, day) => {
     const old = task.dueDate ? new Date(task.dueDate) : null
+    if (old && sameDay(old, day)) return // o'sha kunga tashlansa — o'zgarish yo'q
     const nd = startOfDay(day)
     nd.setHours(old ? old.getHours() : 9, old ? old.getMinutes() : 0, 0, 0)
     const iso = nd.toISOString()
     setData({ ...data, tasks: data.tasks.map((x) => (x.id === task.id ? { ...x, dueDate: iso } : x)) })
-    await crmService.updateTask(task.id, { dueDate: iso })
-    reload()
+    try { await crmService.updateTask(task.id, { dueDate: iso }); setErr(''); reload() } catch (e) { fail(e) }
   }
   const dropOn = (e, day, key) => {
     e.preventDefault()
@@ -267,6 +271,9 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
         menu={[{ label: t(showDone ? 'Bajarilgan vazifalarni yashirish' : "Bajarilgan vazifalarni ko'rsatish"), icon: 'check', onClick: () => setShowDone((x) => !x) }]}
         actions={<button className="ac-btn ac-btn--blue" onClick={() => setAdding({})}><span className="ac-btn__plus">+</span>{t("Vazifa qo'shish")}</button>}
       />
+      {err && <div className="ac-todo-banner" onClick={() => setErr('')}>{err}</div>}
+      {!data && error && <div className="ac-todo-banner">{error?.message || t('Xatolik yuz berdi')}</div>}
+      {!data && !error && <div className="ac-todo-loading"><span className="ac-spinner" /></div>}
       {mode === 'list' ? renderList() : mode === 'calendar' ? renderCalendar() : renderLine()}
       {adding && <AddTaskModal members={data?.members} defaultDate={adding.date} onClose={() => setAdding(null)} onCreated={reload} />}
       {completing && <CompleteModal task={completing} onClose={() => setCompleting(null)} onDone={complete} />}

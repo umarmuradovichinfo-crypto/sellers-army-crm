@@ -23,7 +23,7 @@ const digits = (s) => String(s || '').replace(/\D/g, '')
 
 function LeadLink({ lead, navigate }) {
   const t = useT()
-  return <a className="ac-ec-leadlink" onClick={() => navigate(`/leads/detail/${lead.id}`)}>{t('Bitim')} #{String(lead.id).slice(-6)}</a>
+  return <a className="ac-ec-leadlink" onClick={() => navigate(`/leads/detail/${lead.id}`)}>{t('Bitim')} #{String(lead.id).slice(-8)}</a>
 }
 
 // Bog'lash uchun qidiruv (kompaniya yoki kontakt)
@@ -46,7 +46,7 @@ function LinkSearch({ kind, onPick, onClose }) {
         {q.trim() && (
           <div className="ac-linked__results">
             {found.map((c) => <div key={c.id} className="ac-linked__result" onMouseDown={() => onPick(c)}>{c.name} <span className="ac-muted">{c.phone || ''}</span></div>)}
-            <div className="ac-linked__result" style={{ color: '#1691ff' }} onMouseDown={() => onPick({ name: q.trim(), isNew: true })}>+ {t(kind === 'company' ? 'Yangi kompaniya' : 'Yangi kontakt')}: {q.trim()}</div>
+            <div className="ac-linked__result" style={{ color: 'var(--palette-link-primary)' }} onMouseDown={() => onPick({ name: q.trim(), isNew: true })}>+ {t(kind === 'company' ? 'Yangi kompaniya' : 'Yangi kontakt')}: {q.trim()}</div>
           </div>
         )}
       </div>
@@ -104,19 +104,28 @@ export function EntityCard({ kind }) {
   const [feedQ, setFeedQ] = useState('')
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
+  const [loadErr, setLoadErr] = useState('')
+  const [busyLead, setBusyLead] = useState(false)
+  const feedSeq = React.useRef(0)
+  const guard = (fn) => async (...a) => { try { setErr(''); return await fn(...a) } catch (e) { setErr(e?.message || t('Xatolik yuz berdi')) } }
 
   const loadEnt = async () => {
     if (isNew) return
-    if (isContact) {
-      const r = await api.get(`/crm/contacts/${id}`)
-      setEnt(r.contact); setCompany(r.company || null)
-    } else {
-      const r = await crmService.getCompany(id)
-      setEnt(r.company); setPeople(r.contacts || [])
-    }
+    try {
+      if (isContact) {
+        const r = await api.get(`/crm/contacts/${id}`)
+        setEnt(r.contact); setCompany(r.company || null)
+      } else {
+        const r = await crmService.getCompany(id)
+        setEnt(r.company); setPeople(r.contacts || [])
+      }
+      setLoadErr('')
+    } catch (e) { setLoadErr(e?.message || t('Xatolik yuz berdi')) }
   }
   const loadFeed = async () => {
     if (isNew) return
+    const seq = ++feedSeq.current
     const all = (await crmService.listLeads({}).catch(() => ({ leads: [] }))).leads || []
     let mine, personIds = []
     if (isContact) mine = all.filter((l) => l.contactId === id)
@@ -150,11 +159,12 @@ export function EntityCard({ kind }) {
         if (d && phones.some((p) => d.endsWith(p.slice(-9))) && !calls.some((x) => x.id === c.id)) calls.push(c)
       }
     }
-    setFeed({ calls, tasks, acts })
+    if (seq === feedSeq.current) setFeed({ calls, tasks, acts })
   }
 
   useEffect(() => {
-    setDraft({}); setTab('main'); setEnt(null); setLeads([]); setFeed({ calls: [], tasks: [], acts: [] })
+    feedSeq.current++
+    setDraft({}); setErr(''); setLoadErr(''); setTab('main'); setEnt(null); setLeads([]); setFeed({ calls: [], tasks: [], acts: [] })
     if (isNew) setEnt({ id: null, name: '', phone: '', email: '', position: '', website: '', companyId: '', custom: { _assigneeId: user?.id } })
     else loadEnt()
     ;(async () => {
@@ -165,6 +175,7 @@ export function EntityCard({ kind }) {
   }, [id, kind]) // eslint-disable-line
   useEffect(() => { if (ent && !isNew) loadFeed() }, [ent?.id, ent?.updatedAt]) // eslint-disable-line
 
+  if (!ent && loadErr) return <div className="ac-cardpage" style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}><div>{loadErr}</div><button className="ac-btn" onClick={() => navigate(`${base}/list`)}>{t('Orqaga')}</button></div>
   if (!ent) return <div className="ac-cardpage" style={{ alignItems: 'center', justifyContent: 'center' }}><div className="ac-spinner" /></div>
 
   const v = { ...ent, ...draft, custom: { ...(ent.custom || {}), ...(draft.custom || {}) } }
@@ -174,12 +185,20 @@ export function EntityCard({ kind }) {
   const extraPhones = v.custom.phones || []
 
   const save = async () => {
-    setSaving(true)
+    if (saving) return
+    if (!isNew && draft.name !== undefined && !String(draft.name).trim()) return setErr(t('Nomini kiriting'))
+    if (v.email && !/^\S+@\S+\.\S+$/.test(String(v.email).trim())) return setErr(t("Email noto'g'ri"))
+    setSaving(true); setErr('')
     try {
       const payload = { ...draft }
-      if (payload.custom) payload.custom = { ...(ent.custom || {}), ...payload.custom }
+      if (payload.name !== undefined) payload.name = String(payload.name).trim()
+      if (payload.custom) {
+        payload.custom = { ...(ent.custom || {}), ...payload.custom }
+        if (payload.custom.phones) payload.custom.phones = payload.custom.phones.map((p) => String(p).trim()).filter(Boolean)
+      }
       if (isNew) {
-        const body = { name: v.name || t(isContact ? 'Kontakt' : 'Kompaniya'), phone: v.phone, email: v.email, custom: v.custom }
+        const custom = { ...v.custom, ...(v.custom.phones ? { phones: v.custom.phones.map((p) => String(p).trim()).filter(Boolean) } : {}) }
+        const body = { name: (v.name || '').trim() || t(isContact ? 'Kontakt' : 'Kompaniya'), phone: v.phone, email: v.email, custom }
         if (isContact) { body.position = v.position; body.companyId = v.companyId || undefined } else body.website = v.website
         const r = isContact ? await crmService.createContact(body) : await crmService.createCompany(body)
         navigate(`${base}/detail/${(r.contact || r.company).id}`, { replace: true })
@@ -188,13 +207,13 @@ export function EntityCard({ kind }) {
       if (isContact) await crmService.updateContact(id, payload); else await crmService.updateCompany(id, payload)
       setDraft({})
       await loadEnt()
-    } finally { setSaving(false) }
+    } catch (e) { setErr(e?.message || t('Xatolik yuz berdi')) } finally { setSaving(false) }
   }
-  const remove = async () => {
+  const remove = guard(async () => {
     if (!window.confirm(t(isContact ? "Kontaktni o'chirishni tasdiqlaysizmi?" : "Kompaniyani o'chirishni tasdiqlaysizmi?"))) return
     if (isContact) await crmService.deleteContact(id); else await crmService.deleteCompany(id)
-    navigate(base)
-  }
+    navigate(`${base}/list`, { replace: true })
+  })
   const addNote = async (text) => {
     const notes = [...(ent.custom?.notes || []), { at: new Date().toISOString(), by: user?.name || '', text }]
     const custom = { ...(ent.custom || {}), notes }
@@ -205,31 +224,35 @@ export function EntityCard({ kind }) {
     await crmService.updateTask(task.id, { done: true, result: result || undefined })
     loadFeed()
   }
-  const addLead = async () => {
+  const addLead = guard(async () => {
+    if (busyLead) return
+    setBusyLead(true)
+    try {
     const pipe = await crmService.getPipeline().catch(() => ({ stages: [] }))
     const stage = (pipe.stages || []).find((s) => s.kind === 'open')?.id
     const body = { name: `${t('Bitim')} #${Date.now().toString().slice(-6)}`, stage, assigneeId: v.custom._assigneeId || user?.id }
     if (isContact) { body.contactId = id; if (company) body.companyId = company.id } else body.companyId = id
     const r = await crmService.createLead(body)
     navigate(`/leads/detail/${r.lead.id}`)
-  }
-  const pickCompany = async (c) => {
+    } finally { setBusyLead(false) }
+  })
+  const pickCompany = guard(async (c) => {
     setAdding(false)
     let cid = c.id
     if (c.isNew) cid = (await crmService.createCompany({ name: c.name })).company?.id
     if (isNew) { set('companyId', cid); setCompany({ id: cid, name: c.name }) } else { await crmService.updateContact(id, { companyId: cid }); await loadEnt() }
-  }
-  const pickPerson = async (c) => {
+  })
+  const pickPerson = guard(async (c) => {
     setAdding(false)
     if (c.isNew) await crmService.createContact({ name: c.name, companyId: id })
     else await crmService.updateContact(c.id, { companyId: id })
     await loadEnt()
-  }
-  const unlinkCompany = async () => {
+  })
+  const unlinkCompany = guard(async () => {
     if (isNew) { set('companyId', ''); setCompany(null); return }
     await crmService.updateContact(id, { companyId: '' }); await loadEnt()
-  }
-  const unlinkPerson = async (c) => { await crmService.updateContact(c.id, { companyId: '' }); await loadEnt() }
+  })
+  const unlinkPerson = guard(async (c) => { await crmService.updateContact(c.id, { companyId: '' }); await loadEnt() })
 
   // Lenta
   const items = []
@@ -252,7 +275,7 @@ export function EntityCard({ kind }) {
           <div className="ac-cf__top">
             <button className="ac-cf__back" onClick={() => navigate(-1)} title={t('Orqaga')}><Ico name="chevronLeft" /></button>
             <div className="ac-cf__namerow">
-              <input className="ac-cf__name" value={v.name || ''} placeholder={t(isContact ? 'Kontakt nomi' : 'Kompaniya nomi')} onChange={(e) => set('name', e.target.value)} />
+              <input className="ac-cf__name" value={v.name || ''} placeholder={t(isContact ? 'Kontakt nomi' : 'Kompaniya nomi')} maxLength={255} onChange={(e) => set('name', e.target.value)} />
               {!isNew && <DotsMenu items={[
                 { label: t('Chop etish'), icon: 'print', onClick: () => window.print() },
                 { label: t("O'chirish"), icon: 'trash', danger: true, onClick: remove },
@@ -273,6 +296,7 @@ export function EntityCard({ kind }) {
             ))}
           </div>
 
+          {err && <div className="ac-ec-err" onClick={() => setErr('')}>{err}</div>}
           {tab === 'main' && (
             <>
               <div className="ac-fields">
@@ -353,7 +377,7 @@ export function EntityCard({ kind }) {
                 </div>
               ))}
               {leads.length === 0 && <div className="ac-ec-empty">{t("Bitimlar yo'q")}</div>}
-              <button className="ac-linked__add" onClick={addLead}><span className="ac-linked__plus"><Ico name="plus" /></span>{t("Bitim qo'shish")}</button>
+              <button className="ac-linked__add" disabled={busyLead} onClick={addLead}><span className="ac-linked__plus"><Ico name="plus" /></span>{t("Bitim qo'shish")}</button>
             </div>
           )}
         </div>
