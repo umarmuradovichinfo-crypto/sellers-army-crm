@@ -52,7 +52,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     yo'qlari qo'shiladi
 13. [ ] Bog'liq mantiq testi: funksiyalar bir-biriga ta'siri (bitim bosqichi → avtomatlashtirish → vazifa → bildirishnoma → analitika;
     kontakt ↔ bitim ↔ kompaniya; foydalanuvchi huquqlari → har bir bo'lim)
-14. [ ] Voronka sozlamalari (Digital Pipeline) amoCRM'dagi BARCHA funksiyalari bilan: manbalar, saralanmagan, dublikat qoidalari,
+14. [x] Voronka sozlamalari (Digital Pipeline) amoCRM'dagi BARCHA funksiyalari bilan: manbalar, saralanmagan, dublikat qoidalari,
     har bosqich uchun barcha trigger/amal turlari, bosqich tavsiflari (podskazki), yo'qotish sabablari va h.k. — avval amoCRM'dan
     to'liq ro'yxat olinadi; umumiy sozlamalar ham 1:1
 15. [ ] Integratsiyalar amoCRM mantiqi bilan 1:1 (amoCRM'da qanday ulansa — xuddi shunday):

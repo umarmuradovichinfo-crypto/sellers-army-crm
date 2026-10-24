@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ActivityService } from './activity.service';
 import { AutomationService } from './automation.service';
 import { NotificationService } from './notification.service';
+import { PipelineSettingsService } from './pipeline-settings.service';
 import { TelegramClient } from './telegram.client';
 
 /**
@@ -21,6 +22,7 @@ export class ChatService {
     private readonly activity: ActivityService,
     private readonly notif: NotificationService,
     private readonly automation: AutomationService,
+    private readonly pset: PipelineSettingsService,
   ) {}
 
   enabled() {
@@ -44,19 +46,29 @@ export class ChatService {
     let lead = await this.prisma.lead.findFirst({ where: { telegramChatId: chatId } });
     let isNew = false;
     if (!lead) {
-      const queueAgg = await this.prisma.lead.aggregate({ where: { stage: 'new' }, _max: { queue: true } });
-      lead = await this.prisma.lead.create({
-        data: {
-          name,
-          telegramChatId: chatId,
-          source: 'Telegram',
-          stage: 'new',
-          unsorted: true,
-          queue: (queueAgg._max.queue ?? -1) + 1,
-        },
-      });
-      isNew = true;
+      // Dublikat qoidalari: (Telegram'da telefon/email yo'q — custom maydon moslig'i uchun faqat nom bilan chaqiriladi)
+      const dup = await this.pset.mergeIncoming({ name, custom: {}, pipelineId: null, origin: { kind: 'telegram', label: 'Telegram' } }, 'Telegram');
+      if (dup) {
+        lead = await this.prisma.lead.update({ where: { id: dup.id }, data: { telegramChatId: dup.telegramChatId || chatId } });
+      } else {
+        const place = await this.pset.place(null, null);
+        lead = await this.prisma.lead.create({
+          data: {
+            name,
+            telegramChatId: chatId,
+            source: 'Telegram',
+            stage: place.stage,
+            pipelineId: place.pipelineId,
+            unsorted: place.unsorted,
+            queue: place.queue,
+          },
+        });
+        isNew = true;
+      }
     }
+    // Suhbat hodisalari uchun xabar yozilishidan OLDINgi holat
+    const prevAny = await this.prisma.message.count({ where: { leadId: lead.id } });
+    const prevIn = await this.prisma.message.count({ where: { leadId: lead.id, direction: 'in' } });
 
     await this.prisma.message.create({
       data: { leadId: lead.id, channel: 'telegram', direction: 'in', text: String(text).slice(0, 4000), senderName: name, externalId: String(msg.message_id ?? '') },
@@ -64,7 +76,10 @@ export class ChatService {
     await this.activity.record(lead.id, 'email', { actorName: name, text: `📨 Telegram: ${String(text).slice(0, 120)}` });
     await this.prisma.lead.update({ where: { id: lead.id }, data: { lastActivityAt: new Date() } }).catch(() => {});
 
-    if (isNew) await this.automation.run('lead_created', lead.id, 'Telegram');
+    if (isNew) await this.automation.fire('lead_created', lead.id, { actorName: 'Telegram' });
+    // amoCRM suhbat triggerlari: kiruvchi xabar bilan suhbat yaratilganda / birinchi kiruvchi xabarda
+    if (prevAny === 0) await this.automation.fire('conversation_created', lead.id, { actorName: 'Telegram' });
+    if (prevIn === 0) await this.automation.fire('message_in', lead.id, { actorName: 'Telegram' });
     if (lead.assigneeId) await this.notif.notify(lead.assigneeId, `Telegram xabar: ${name}`, { type: 'mention', link: `/leads/detail/${lead.id}` });
 
     return { ok: true, leadId: lead.id };

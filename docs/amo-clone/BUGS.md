@@ -11,7 +11,6 @@ Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + q
 - [ ] [i18n/backend] Server yasagan matnlar (bildirishnomalar "Kechikkan vazifa: …", lenta voqealari "Lid yaratildi", "Bosqich: …") faqat o'zbekcha — backend tur+parametr qaytarishi, frontend tarjima qilishi kerak
 - [ ] [i18n] Bir xil kalit turli lug'atlarda turli tarjimada ('kun' → 'дня' / 'дн.') — global lug'atda oxirgisi yutadi
 - [ ] [imBox] Suhbat raqami (A####) va xabar muallifi backend'dan kelmaydi — hisoblangan qiymat ishlatilyapti
-- [ ] [Voronka sozlash] "Saralanmagan" va "Dublikatlar nazorati" switch'lari faqat localStorage'da, hech narsaga ta'sir qilmaydi
 - [ ] [Bitimlar] Import sahifasi (/leads/import) yo'q
 - [ ] [Filtr] "Teglar → Boshqarish" havolasi /settings/tags — sahifa yo'q (amoCRM: teglarni boshqarish oynasi)
 - [ ] [Saralanmagan] "Rad etish" tasdiqsiz o'chiradi — amoCRM'da rad etish sababi so'raladi, tekshirish kerak
@@ -22,13 +21,19 @@ Format: `- [ ] [bo'lim] tavsif — qanday takrorlanadi` · tuzatilgach `[x]` + q
 - [ ] [Backend] Ro'yxatlar 200/500 ta bilan cheklangan — server tomonida sahifalash kerak; kontakt kartochkasi lentasi uchun contactId filtri
 - [ ] [Bitim kartochkasi] TaskNote natijani Enter bilan yuborganda trim qilmaydi
 
-- [ ] [Xavfsizlik] Webhook trigger ichki tarmoq manzillariga ham yuboradi (SSRF) — localhost/private IP'larni bloklash kerak
 - [ ] [Xavfsizlik] Parol o'zgarganda eski refresh tokenlar bekor qilinmaydi (auth moduli)
 - [ ] [Analitika] Sotuv tahlilida har bosqich "Yo'qotilgan" qatori 0 — bosqichlar tarixi saqlanmaydi (Activity before/after bilan bir ildiz)
 - [ ] [Market/Formalar] Forma muharriri bosqichlarni faqat asosiy voronkadan oladi
 - [ ] [Analitika] Davr chegaralari UTC/server vaqtida — akkaunt mintaqasiga moslash
 
+- [ ] [Voronka sozlash] Vazifa triggerida "Foydalanuvchilar uchun tavsif" yo'q (LeadTask'da maydon yo'q)
+- [ ] [Voronka sozlash] Dublikat qidiruvi barcha lidlarni yuklaydi — katta bazada indeks/so'rov kerak
+- [ ] [Voronka sozlash] Manbalar katalogida Instagram/WhatsApp/Pochta kartochkalari yo'q (integratsiyalar bosqichi)
+
 ## Tuzatilgan
+- [x] [Voronka sozlash] Digital Pipeline: barcha trigger/amallar, kechikish navbati, shartlar, saralanmagan switch va dublikat qoidalari backend'da ishlaydi
+- [x] [Xavfsizlik] Webhook SSRF — ichki manzillar (localhost, 10/172.16/192.168/169.254, ::1, butun son IP) bloklandi, DNS tekshiruvi
+- [x] [Formalar] Har yuborishda submissions 2 marta oshardi
 - [x] [Analitika/Sotuv tahlili] "12 kun" bloki tablar ustiga chiqardi (ota blok balandligi 0); "Bosqichga o'tdi" o'qi bosqich qutisidan tashqarida edi — amoCRM tuzilmasiga moslandi
 - [x] [Jadvallar] Checkbox ustunida yumaloq qo'sh ramka — eski styles.css `.chk` klassi; `ac-chk` ga o'tkazildi
 - [x] [Umumiy] Eski CSS bilan to'qnashgan klasslar: `.dot` (qizil absolut nuqta), `.grid`, `.sb` — prefiksli nomlarga o'tkazildi

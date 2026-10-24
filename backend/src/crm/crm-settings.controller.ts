@@ -4,18 +4,23 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { CrmSettingsService } from './crm-settings.service';
+import { PipelineSettingsService } from './pipeline-settings.service';
 
 // O'qish ruxsati keng (crm.view), yozish admin sozlamasi (crm.settings)
 @Controller('crm')
 @RequirePermissions('crm.view')
 export class CrmSettingsController {
-  constructor(private readonly s: CrmSettingsService) {}
+  constructor(private readonly s: CrmSettingsService, private readonly ps: PipelineSettingsService) {}
 
   // ── Voronkalar ──
   @Get('pipelines') pipelines() { return this.s.listPipelines(); }
   @Post('pipelines') @RequirePermissions('crm.settings') createPipeline(@Body() dto: any) { return this.s.createPipeline(dto); }
   @Put('pipelines/:id') @RequirePermissions('crm.settings') updatePipeline(@Param('id') id: string, @Body() dto: any) { return this.s.updatePipeline(id, dto); }
   @Delete('pipelines/:id') @RequirePermissions('crm.settings') deletePipeline(@Param('id') id: string) { return this.s.deletePipeline(id); }
+
+  // ── Voronka sozlamalari: "Saralanmagan" switch + dublikatlar nazorati (pipelineId = 'main' | id) ──
+  @Get('pipeline-settings') pipelineSettings(@Query('pipelineId') pid?: string) { return this.ps.get(pid).then((settings) => ({ settings })); }
+  @Put('pipeline-settings') @RequirePermissions('crm.settings') savePipelineSettings(@Query('pipelineId') pid: string | undefined, @Body() dto: any) { return this.ps.save(pid, dto).then((settings) => ({ settings })); }
 
   // ── Maxsus maydonlar ──
   @Get('fields') fields(@Query('entity') entity?: string) { return this.s.listFields(entity || 'lead'); }
@@ -27,6 +32,8 @@ export class CrmSettingsController {
   // ── Yo'qotish sabablari ──
   @Get('lost-reasons') lostReasons() { return this.s.listLostReasons(); }
   @Post('lost-reasons') @RequirePermissions('crm.settings') createLostReason(@Body() dto: any) { return this.s.createLostReason(dto); }
+  @Post('lost-reasons/reorder') @RequirePermissions('crm.settings') reorderLostReasons(@Body() dto: { ids?: string[] }) { return this.s.reorderLostReasons(dto?.ids || []); }
+  @Put('lost-reasons/:id') @RequirePermissions('crm.settings') updateLostReason(@Param('id') id: string, @Body() dto: any) { return this.s.updateLostReason(id, dto); }
   @Delete('lost-reasons/:id') @RequirePermissions('crm.settings') deleteLostReason(@Param('id') id: string) { return this.s.deleteLostReason(id); }
 
   // ── Teglar katalogi ──

@@ -34,6 +34,7 @@ export class UpdateStageDto {
   @IsOptional() @IsString() color?: string;
   @IsOptional() @IsIn(['open', 'won', 'lost']) kind?: string;
   @IsOptional() @IsInt() order?: number;
+  @IsOptional() @IsObject() hints?: Record<string, string>;
 }
 
 export class CreateLeadDto {

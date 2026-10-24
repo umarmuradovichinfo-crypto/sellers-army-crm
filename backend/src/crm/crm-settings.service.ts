@@ -143,6 +143,20 @@ export class CrmSettingsService {
     const reason = await this.prisma.lostReason.create({ data: { name: name.slice(0, 100), order: (agg._max.order ?? -1) + 1 } });
     return { reason };
   }
+  async updateLostReason(id: string, dto: { name?: string }) {
+    if (!(await this.prisma.lostReason.findUnique({ where: { id }, select: { id: true } }))) throw notFound('Sabab');
+    const name = String(dto?.name ?? '').trim();
+    if (!name) throw new BadRequestException({ error: 'BAD_NAME', message: 'Nom majburiy' });
+    const reason = await this.prisma.lostReason.update({ where: { id }, data: { name: name.slice(0, 100) } });
+    return { reason };
+  }
+  async reorderLostReasons(ids: string[]) {
+    if (!Array.isArray(ids)) return { ok: true };
+    const have = new Set((await this.prisma.lostReason.findMany({ where: { id: { in: ids } }, select: { id: true } })).map((r) => r.id));
+    ids = ids.filter((id) => have.has(id));
+    await this.prisma.$transaction(ids.map((id, i) => this.prisma.lostReason.update({ where: { id }, data: { order: i } })));
+    return { ok: true };
+  }
   async deleteLostReason(id: string) {
     if (!(await this.prisma.lostReason.findUnique({ where: { id }, select: { id: true } }))) throw notFound('Sabab');
     await this.prisma.lostReason.update({ where: { id }, data: { active: false } });

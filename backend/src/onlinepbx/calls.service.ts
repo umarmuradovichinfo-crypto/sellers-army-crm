@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 
 import type { AuthUser } from '../common/decorators/current-user.decorator';
+import { AutomationService } from '../crm/automation.service';
+import { PipelineSettingsService } from '../crm/pipeline-settings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OnlinePbxClient } from './onlinepbx.client';
 import { OnlinePbxConfigService, PbxConfig } from './onlinepbx-config.service';
@@ -41,6 +43,8 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly pbx: OnlinePbxClient,
     private readonly cfg: OnlinePbxConfigService,
+    private readonly automation: AutomationService,
+    private readonly pset: PipelineSettingsService,
   ) {}
 
   // Fon rejimida OnlinePBX tarixini muntazam tortib turadi — operator gaplashib
@@ -115,11 +119,11 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     if (lead) return lead;
     if (direction !== 'in' || status !== 'missed') return null;
     if (digits(phone).length < 7) return null;
-    const queueAgg = await this.prisma.lead.aggregate({ where: { stage: 'new' }, _max: { queue: true } });
+    const place = await this.pset.place(null, null); // "Saralanmagan" switch'iga qarab
     const created = await this.prisma.lead.create({
       data: {
-        name: phone, phone, source: "Kiruvchi qo'ng'iroq", stage: 'new',
-        unsorted: true, customJson: '{}', queue: (queueAgg._max.queue ?? -1) + 1,
+        name: phone, phone, source: "Kiruvchi qo'ng'iroq", stage: place.stage, pipelineId: place.pipelineId,
+        unsorted: place.unsorted, customJson: '{}', queue: place.queue,
       },
     });
     this.logger.log(`O'tkazib yuborilgan qo'ng'iroqdan yangi lid: ${phone}`);
@@ -301,6 +305,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       });
       synced++;
       if (lead) linked++;
+      if (lead && direction === 'in') await this.automation.fire('call_in', lead.id, { actorName: 'OnlinePBX' });
     }
     if (synced) this.logger.log(`OnlinePBX history sync: jami ${records.length}, yangi ${synced}, lidga bog'langan ${linked}`);
     return { ok: true, synced, total: records.length, linked };
@@ -489,6 +494,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     const call = await this.prisma.callLog.create({
       data: { leadId: lead?.id || null, phone, direction, status, durationSec, recordUrl, externalId, handled: direction === 'out' },
     });
+    if (lead && direction === 'in') await this.automation.fire('call_in', lead.id, { actorName: 'OnlinePBX' });
     return { ok: true, callId: call.id, matchedLead: lead?.name || null };
   }
 }

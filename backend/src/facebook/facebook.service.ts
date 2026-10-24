@@ -233,7 +233,7 @@ export class FacebookService {
     await this.crmForms.createExternalLead({
       name, phone, email, custom: answers, source: mapping?.source || 'Facebook',
       stageKey: mapping?.stageKey || null, pipelineId: mapping?.pipelineId || null, assigneeId: mapping?.assigneeId || null,
-      label: mapping?.formName || 'Facebook Lead Ads',
+      label: mapping?.formName || 'Facebook Lead Ads', formId: mapping?.formId || null,
     });
     this.logger.log(`Facebook lid qabul qilindi: ${name} (crm)`);
   }

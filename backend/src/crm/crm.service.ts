@@ -190,6 +190,7 @@ export class CrmService {
         color: s.color,
         kind: s.kind,
         isSystem: s.isSystem,
+        hints: parse<Record<string, string>>(s.hintsJson, {}),
         sum: fmtSum(sl.reduce((a, l) => a + l.value, 0)),
         leads: sl.map((l) => {
           const nt = nextTaskByLead.get(l.id);
@@ -257,6 +258,12 @@ export class CrmService {
     if (dto.color !== undefined) data.color = dto.color;
     if (dto.kind !== undefined) data.kind = dto.kind;
     if (dto.order !== undefined) data.order = dto.order;
+    if (dto.hints !== undefined) {
+      const h = dto.hints || {};
+      const clean: Record<string, string> = {};
+      for (const k of ['novice', 'experienced', 'master']) clean[k] = String((h as any)[k] ?? '').slice(0, 1000);
+      data.hintsJson = JSON.stringify(clean);
+    }
     const stage = await this.prisma.crmStage.update({ where: { key }, data });
     return { stage };
   }
@@ -425,8 +432,9 @@ export class CrmService {
     if (stageChanged) {
       const st = await this.prisma.crmStage.findUnique({ where: { key: l.stage } });
       await this.recordStageActivity(id, l, st?.kind || 'open', user);
-      await this.automation.run('stage_enter', id, user?.name);
+      await this.automation.fire('stage_enter', id, { actorName: user?.name });
     }
+    if (assigneeChanged) await this.automation.fire('assignee_changed', id, { actorName: user?.name });
 
     const fresh = (await this.prisma.lead.findUnique({ where: { id } })) as LeadRow;
     const names = await this.userMap([fresh.assigneeId]);
@@ -484,7 +492,7 @@ export class CrmService {
     if (changed) {
       const fresh = (await this.prisma.lead.findUnique({ where: { id } })) as LeadRow;
       await this.recordStageActivity(id, fresh, target.kind, user);
-      await this.automation.run('stage_enter', id, user?.name);
+      await this.automation.fire('stage_enter', id, { actorName: user?.name });
     }
     return { id, stageId: stageKey };
   }
@@ -513,7 +521,10 @@ export class CrmService {
       case 'assignee': {
         const r = await this.prisma.lead.updateMany({ where: { id: { in: ids } }, data: { assigneeId: dto.value || null } });
         affected = r.count;
-        for (const id of ids) await this.activity.record(id, 'assignee', { actorId: user?.id, actorName: user?.name, text: `Mas'ul (ommaviy)` });
+        for (const id of ids) {
+          await this.activity.record(id, 'assignee', { actorId: user?.id, actorName: user?.name, text: `Mas'ul (ommaviy)` });
+          await this.automation.fire('assignee_changed', id, { actorName: user?.name });
+        }
         if (dto.value) await this.notif.notify(dto.value, `Sizga ${affected} ta lid biriktirildi`, { type: 'lead', link: '/leads/pipeline' });
         break;
       }
@@ -685,6 +696,7 @@ export class CrmService {
     if (dto.pipelineId !== undefined) data.pipelineId = dto.pipelineId || null;
     await this.prisma.lead.update({ where: { id }, data });
     await this.activity.record(id, 'updated', { actorId: user?.id, actorName: user?.name, text: 'Saralanmagandan qabul qilindi' });
+    if (dto.stageKey && dto.stageKey !== lead.stage) await this.automation.fire('stage_enter', id, { actorName: user?.name });
     if (data.assigneeId) await this.notif.notify(data.assigneeId as string, `Sizga lid biriktirildi: ${lead.name}`, { type: 'lead', link: `/leads/detail/${id}` });
     return { ok: true };
   }

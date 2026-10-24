@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ActivityService } from './activity.service';
 import { AutomationService } from './automation.service';
 import { NotificationService } from './notification.service';
+import { PipelineSettingsService } from './pipeline-settings.service';
 
 function parse<T>(s: string | null, fb: T): T {
   try { return JSON.parse(s || '') as T; } catch { return fb; }
@@ -24,6 +25,7 @@ export class CrmFormsService {
     private readonly activity: ActivityService,
     private readonly automation: AutomationService,
     private readonly notif: NotificationService,
+    private readonly pset: PipelineSettingsService,
   ) {}
 
   private view(f: any) {
@@ -108,22 +110,31 @@ export class CrmFormsService {
 
     if (!name && !phone) throw new BadRequestException({ error: 'EMPTY', message: 'Ism yoki telefon kerak' });
 
-    const stage = f.stageKey || 'new';
-    const queueAgg = await this.prisma.lead.aggregate({ where: { stage }, _max: { queue: true } });
+    // Dublikat qoidalari (voronka sozlamalari): topilsa mavjud bitim yangilanadi/birlashtiriladi
+    const dup = await this.pset.mergeIncoming(
+      { name, phone, email, custom, pipelineId: f.pipelineId, origin: { kind: 'form', id: f.id, label: f.title } },
+      'Web forma',
+    );
+    if (dup) {
+      await this.prisma.crmForm.update({ where: { id: f.id }, data: { submissions: { increment: 1 } } });
+      if (dup.assigneeId) await this.notif.notify(dup.assigneeId, `Formadan dublikat so'rov: ${name}`, { type: 'lead', link: `/leads/detail/${dup.id}` });
+      return { ok: true, merged: true };
+    }
+    // "Saralanmagan" switch o'chiq bo'lsa — to'g'ridan-to'g'ri birinchi ochiq bosqichga (unsorted=false)
+    const place = await this.pset.place(f.pipelineId, f.stageKey);
     const lead = await this.prisma.lead.create({
       data: {
         name, phone, email,
         source: f.source || 'Sayt formasi',
-        stage,
-        pipelineId: f.pipelineId || null,
+        stage: place.stage,
+        pipelineId: place.pipelineId,
         assigneeId: f.assigneeId || null,
-        unsorted: true,
+        unsorted: place.unsorted,
         formId: f.id,
         customJson: JSON.stringify(custom),
-        queue: (queueAgg._max.queue ?? -1) + 1,
+        queue: place.queue,
       },
     });
-    await this.prisma.crmForm.update({ where: { id: f.id }, data: { submissions: { increment: 1 } } });
     await this.prisma.crmForm.update({ where: { id: f.id }, data: { submissions: { increment: 1 } } });
     await this.activity.record(lead.id, 'created', { actorName: 'Web forma', text: `Formadan keldi: ${f.title}` });
     await this.automation.run('lead_created', lead.id, 'Web forma');
@@ -135,24 +146,31 @@ export class CrmFormsService {
   async createExternalLead(input: {
     name?: string | null; phone?: string | null; email?: string | null;
     custom?: Record<string, unknown>; source?: string;
-    stageKey?: string | null; pipelineId?: string | null; assigneeId?: string | null; label?: string;
+    stageKey?: string | null; pipelineId?: string | null; assigneeId?: string | null; label?: string; formId?: string | null;
   }) {
     const src = input.source || 'Facebook';
     const name = String(input.name || 'Nomsiz lid').slice(0, 200);
     const phone = input.phone ? String(input.phone).slice(0, 50) : null;
     const email = input.email ? String(input.email).slice(0, 120) : null;
-    const stage = input.stageKey || 'new';
-    const queueAgg = await this.prisma.lead.aggregate({ where: { stage }, _max: { queue: true } });
+    const dup = await this.pset.mergeIncoming(
+      { name, phone, email, custom: input.custom || {}, pipelineId: input.pipelineId, origin: { kind: 'facebook', id: input.formId || null, label: src } },
+      src,
+    );
+    if (dup) {
+      if (dup.assigneeId) await this.notif.notify(dup.assigneeId, `${src}'dan dublikat so'rov: ${name}`, { type: 'lead', link: `/leads/detail/${dup.id}` });
+      return dup;
+    }
+    const place = await this.pset.place(input.pipelineId, input.stageKey);
     const lead = await this.prisma.lead.create({
       data: {
         name, phone, email,
         source: src,
-        stage,
-        pipelineId: input.pipelineId || null,
+        stage: place.stage,
+        pipelineId: place.pipelineId,
         assigneeId: input.assigneeId || null,
-        unsorted: true,
+        unsorted: place.unsorted,
         customJson: JSON.stringify(input.custom || {}),
-        queue: (queueAgg._max.queue ?? -1) + 1,
+        queue: place.queue,
       },
     });
     await this.activity.record(lead.id, 'created', { actorName: src, text: input.label ? `${src}: ${input.label}` : `${src} Lead Ads` });

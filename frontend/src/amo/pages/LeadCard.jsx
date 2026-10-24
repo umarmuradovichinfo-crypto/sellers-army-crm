@@ -49,6 +49,11 @@ function StatusPicker({ lead, pipes, onPick }) {
         </div>
       </button>
       <div className="ac-status__bar"><div className="ac-status__fill" style={{ width: `${st?.kind === 'won' ? 100 : st?.kind === 'lost' ? 100 : pct}%`, background: st?.kind === 'lost' ? '#c5c5c5' : st?.color || '#99ccff' }} /></div>
+      {(() => { // bosqich tavsifi (voronka sozlamalaridan): hozircha "Yangi boshlovchi", bo'lmasa keyingi daraja
+        const h = st?.hints || {}
+        const hint = h.novice || h.experienced || h.master
+        return hint ? <div className="ac-status__hint" style={{ marginTop: 6, fontSize: 13, lineHeight: 1.3, whiteSpace: 'pre-wrap', color: 'var(--palette-text-secondary-dark)' }}>{hint}</div> : null
+      })()}
       {open && (
         <div className="ac-status__drop">
           {pipes.map((p) => (

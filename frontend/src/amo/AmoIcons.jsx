@@ -139,6 +139,12 @@ const SMALL = {
   note: <path d="M2.5 3h11v8h-6l-3 2.5V11h-2z" {...S} />,
   facebook: <path d="M9.3 14V8.6h1.9l.3-2.2H9.3V5.1c0-.6.2-1 1-1h1.2V2.2c-.2 0-.9-.1-1.7-.1-1.7 0-2.8 1-2.8 2.9v1.4H5.1v2.2H7V14z" fill="currentColor" />,
   form: <><rect x="2.5" y="2" width="11" height="12" rx="1.5" {...S} /><path d="M5 6h6M5 9h6M5 11.5h3" {...S} /></>,
+  plusCircle: <><circle cx="8" cy="8" r="6.3" {...S} /><path d="M8 5v6M5 8h6" {...S} /></>,
+  checkCircle: <><circle cx="8" cy="8" r="6.3" {...S} /><path d="M5.2 8.3l2 2 3.6-4" {...S} /></>,
+  dollar: <><circle cx="8" cy="8" r="6.3" {...S} /><path d="M10 6c-.3-.8-1.1-1.2-2-1.2-1.2 0-2 .6-2 1.5 0 2.2 4.2 1 4.2 3.2 0 .9-.9 1.5-2.1 1.5-1 0-1.8-.5-2.1-1.3M8 3.5v1.3M8 11.2v1.3" {...S} /></>,
+  code: <path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5M9 3l-2 10" {...S} />,
+  users: <><circle cx="6" cy="5.5" r="2.5" {...S} /><path d="M1.5 13.5c.4-2.4 2.3-3.7 4.5-3.7s4.1 1.3 4.5 3.7M10.5 3.3a2.5 2.5 0 0 1 0 4.4M12 10c1.4.5 2.3 1.7 2.5 3.5" {...S} /></>,
+  moveStage: <><rect x="2" y="3" width="4" height="10" rx="1" {...S} /><rect x="9.5" y="3" width="4.5" height="6" rx="1" {...S} /><path d="M7 11.5h5M10.5 9.5l2 2-2 2" {...S} /></>,
 }
 
 export function Ico({ name, size = 16, className = '', style }) {

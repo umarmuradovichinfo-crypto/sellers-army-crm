@@ -20,6 +20,7 @@ import { GoalsController } from './goals.controller';
 import { GoalsService } from './goals.service';
 import { NotificationController } from './notification.controller';
 import { NotificationService } from './notification.service';
+import { PipelineSettingsService } from './pipeline-settings.service';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
 import { ReminderService } from './reminder.service';
@@ -43,6 +44,7 @@ import { ReminderService } from './reminder.service';
     CrmService,
     ActivityService,
     AutomationService,
+    PipelineSettingsService,
     NotificationService,
     CrmSettingsService,
     CrmAnalyticsService,
@@ -54,6 +56,6 @@ import { ReminderService } from './reminder.service';
     ChatService,
     TelegramClient,
   ],
-  exports: [NotificationService, ActivityService, CrmFormsService],
+  exports: [NotificationService, ActivityService, CrmFormsService, AutomationService, PipelineSettingsService],
 })
 export class CrmModule {}

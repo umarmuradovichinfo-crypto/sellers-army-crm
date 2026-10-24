@@ -95,6 +95,7 @@ model CrmStage {
   order      Int      @default(0)
   isSystem   Boolean  @default(false)
   pipelineId String? // qaysi voronka (null = standart)
+  hintsJson  String   @default("{}") // bosqich tavsiflari {novice, experienced, master}
   createdAt  DateTime @default(now())
 
   @@index([order])
@@ -203,23 +204,48 @@ model CrmField {
   @@map("crm_fields")
 }
 
-// Avtomatlashtirish (Digital Pipeline) — bosqichga kirganda ishga tushadigan qoidalar
+// Avtomatlashtirish (Digital Pipeline) — trigger (event + kechikish + jadval) + shartlar + amallar
 model Automation {
   id             String   @id @default(cuid())
   name           String
   pipelineId     String?
-  trigger        String   @default("stage_enter") // stage_enter | lead_created | tag_added | no_task
-  stageKey       String? // stage_enter uchun
-  conditionsJson String   @default("[]") // [{field, op, value}]
+  trigger        String   @default("stage_enter") // lead_created | stage_enter | created_or_enter | assignee_changed | conversation_created | message_in | no_reply_hours | call_in | before_date_field | exact_time | daily
+  stageKey       String? // bosqich (null = "Saralanmagan" ustuni — voronka bo'yicha)
+  conditionsJson String   @default("[]") // [{field, value|from|to}]
   actionsJson    String   @default("[]") // [{type, ...params}]
+  delay          Int      @default(0) // kechikish (daqiqa)
+  scheduleJson   String   @default("{}") // vaqt triggerlari: {hours, field} | {at} | {time} ; no_reply_hours: {hours}
+  lastRunAt      DateTime? // exact_time / daily oxirgi bajarilishi
   active         Boolean  @default(true)
   order          Int      @default(0)
   createdById    String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  jobs AutomationJob[]
+
   @@index([trigger])
   @@map("crm_automations")
+}
+
+// Kechiktirilgan / vaqt bo'yicha bajariladigan avtomatlashtirish navbati (cron tick har daqiqa)
+model AutomationJob {
+  id           String     @id @default(cuid())
+  automationId String
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  leadId       String
+  runAt        DateTime
+  status       String     @default("pending") // pending | done | failed | skipped
+  depth        Int        @default(0) // zanjir chuqurligi (cheksiz sikldan himoya)
+  dedupeKey    String? // takroriy ishga tushishni oldini olish (no_reply, before_date_field)
+  error        String?
+  createdAt    DateTime   @default(now())
+  doneAt       DateTime?
+
+  @@unique([automationId, dedupeKey])
+  @@index([status, runAt])
+  @@index([leadId])
+  @@map("crm_automation_jobs")
 }
 
 // Faoliyat tarixi (timeline + audit log)
