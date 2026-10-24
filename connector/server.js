@@ -4,7 +4,7 @@
 // Nol bog'liqlik: faqat Node ichki modullari (http, crypto, node:sqlite).
 import http from 'node:http'
 import { createHash, createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
@@ -12,7 +12,8 @@ const env = (k, d = '') => (process.env[k] ?? d).trim()
 const cfg = () => ({
   appId: env('FB_APP_ID'),
   appSecret: env('FB_APP_SECRET'),
-  publicUrl: env('CONNECTOR_PUBLIC_URL').replace(/\/+$/, ''),
+  // Railway o'z domenini RAILWAY_PUBLIC_DOMAIN orqali beradi — alohida domen shart emas
+  publicUrl: (env('CONNECTOR_PUBLIC_URL') || (env('RAILWAY_PUBLIC_DOMAIN') ? `https://${env('RAILWAY_PUBLIC_DOMAIN')}` : '')).replace(/\/+$/, ''),
   graph: env('FB_GRAPH_BASE') || `https://graph.facebook.com/${env('FB_GRAPH_VERSION', 'v24.0')}`,
   dialog: env('FB_DIALOG_BASE') || `https://www.facebook.com/${env('FB_GRAPH_VERSION', 'v24.0')}/dialog/oauth`,
   fields: env('FB_SUBSCRIBED_FIELDS', 'leadgen'),
@@ -24,12 +25,22 @@ const START_TTL_MS = 10 * 60 * 1000
 const STATE_TTL_MS = 10 * 60 * 1000
 
 // ── Shifrlash (AES-256-GCM) ──
-const keySrc = env('TOKEN_ENC_KEY')
-if (!keySrc) {
-  if (env('NODE_ENV') === 'production') { console.error('TOKEN_ENC_KEY majburiy'); process.exit(1) }
-  console.warn('[connector] TOKEN_ENC_KEY yo\'q — faqat dev uchun vaqtinchalik kalit')
+// TOKEN_ENC_KEY berilmasa — birinchi ishga tushishda tasodifiy kalit yaratilib, ma'lumotlar bazasi yonidagi
+// (Railway Volume) enc.key faylida saqlanadi. Shunda deploy'da qo'lda kalit kiritish shart emas.
+const dbPath = env('DATABASE_PATH', './data/connector.db')
+if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true })
+function loadKey() {
+  const fromEnv = env('TOKEN_ENC_KEY')
+  if (fromEnv) return fromEnv
+  if (dbPath === ':memory:') return randomBytes(32).toString('hex')
+  const f = `${dirname(dbPath)}/enc.key`
+  if (existsSync(f)) return readFileSync(f, 'utf8').trim()
+  const k = randomBytes(32).toString('hex')
+  writeFileSync(f, k, { mode: 0o600 })
+  console.warn('[connector] yangi shifrlash kaliti yaratildi:', f)
+  return k
 }
-const KEY = createHash('sha256').update(keySrc || 'dev-only-insecure-key').digest()
+const KEY = createHash('sha256').update(loadKey()).digest()
 function enc(text) {
   const iv = randomBytes(12)
   const c = createCipheriv('aes-256-gcm', KEY, iv)
@@ -49,8 +60,6 @@ function safeEq(a, b) {
 }
 
 // ── DB ──
-const dbPath = env('DATABASE_PATH', './data/connector.db')
-if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true })
 const db = new DatabaseSync(dbPath)
 db.exec(`
 CREATE TABLE IF NOT EXISTS instances (id TEXT PRIMARY KEY, url TEXT NOT NULL, secret_enc TEXT NOT NULL, created_at INTEGER NOT NULL);
@@ -319,11 +328,36 @@ export async function ensureAppSubscription() {
   } catch (e) { log('ilova webhook obunasi xato:', e.message) }
 }
 
+// Meta talabi: maxfiylik siyosati va ma'lumotlarni o'chirish yo'riqnomasi sahifalari
+const page = (res, html) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(html) }
+const wrap = (title, body) => `<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>body{font:16px/1.6 -apple-system,Segoe UI,Arial,sans-serif;max-width:760px;margin:40px auto;padding:0 16px;color:#222}h1{font-size:26px}h2{font-size:18px;margin-top:28px}</style></head><body>${body}</body></html>`
+const PRIVACY_HTML = wrap('Sellers Army CRM — Maxfiylik siyosati', `
+<h1>Sellers Army CRM — Maxfiylik siyosati</h1>
+<p>Sellers Army CRM Meta Connector xizmati CRM foydalanuvchilariga o'z Facebook sahifalari, lid formalari va Instagram/Messenger
+akkauntlarini o'z CRM tizimiga ulash imkonini beradi.</p>
+<h2>Qanday ma'lumot olinadi</h2>
+<p>Foydalanuvchi ruxsat bergan Facebook sahifalari ro'yxati va sahifa kirish tokenlari; sahifadagi lid formalari orqali yuborilgan
+so'rovlar (ism, telefon, email va forma savollariga javoblar) faqat shu sahifa egasining CRM tizimiga uzatish uchun.</p>
+<h2>Saqlash</h2>
+<p>Sahifa tokenlari shifrlangan (AES-256-GCM) holda saqlanadi. Lid ma'lumotlari connector'da saqlanmaydi — ular faqat sahifa egasining
+CRM serveriga uzatiladi. Ma'lumotlar uchinchi shaxslarga sotilmaydi va berilmaydi.</p>
+<h2>O'chirish</h2>
+<p>Foydalanuvchi istalgan vaqtda CRM'dagi "Uzish" tugmasi orqali yoki Facebook sozlamalari → Business Integrations bo'limida ilovani
+o'chirib, barcha tokenlarni o'chirishi mumkin. Batafsil: <a href="/data-deletion">ma'lumotlarni o'chirish</a>.</p>
+<h2>Aloqa</h2><p>umarmuradovich.info@gmail.com</p>`)
+const DELETION_HTML = wrap('Sellers Army CRM — Ma\'lumotlarni o\'chirish', `
+<h1>Ma'lumotlarni o'chirish</h1>
+<ol><li>CRM → Market → Facebook Lead Ads → ulangan sahifa yonidagi "Uzish" tugmasini bosing — sahifa tokeni connector'dan darhol o'chiriladi.</li>
+<li>Yoki Facebook → Sozlamalar → Business Integrations → "Sellers Army CRM" → O'chirish.</li>
+<li>Qo'shimcha so'rov uchun: umarmuradovich.info@gmail.com — 30 kun ichida barcha ma'lumotlar o'chiriladi.</li></ol>`)
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x')
   try {
     const k = `${req.method} ${url.pathname}`
     if (k === 'GET /health') return send(res, 200, { ok: true })
+    if (k === 'GET /privacy') return page(res, PRIVACY_HTML)
+    if (k === 'GET /data-deletion') return page(res, DELETION_HTML)
     if (k === 'POST /instances/register') return await register(req, res)
     if (k === 'GET /fb/start') return start(req, res, url)
     if (k === 'GET /fb/callback') return await callback(req, res, url)
