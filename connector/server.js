@@ -23,7 +23,8 @@ const cfg = () => ({
   retryBase: Number(env('RETRY_BASE_MS', '1000')),
 })
 // Lead Ads + Messenger + Instagram (Direct va izohlar). FB_SCOPE env bilan o'zgartiriladi.
-const DEFAULT_SCOPE = 'leads_retrieval,pages_show_list,pages_manage_metadata,pages_read_engagement,business_management,pages_messaging,instagram_basic,instagram_manage_messages,instagram_manage_comments'
+// pages_manage_ads — sahifadagi Lead Ads formalari ro'yxati (/{page}/leadgen_forms) uchun Meta talab qiladi
+const DEFAULT_SCOPE = 'leads_retrieval,pages_show_list,pages_manage_metadata,pages_read_engagement,pages_manage_ads,business_management,pages_messaging,instagram_basic,instagram_manage_messages,instagram_manage_comments'
 const SCOPE = env('FB_SCOPE') || DEFAULT_SCOPE
 const START_TTL_MS = 10 * 60 * 1000
 const STATE_TTL_MS = 10 * 60 * 1000

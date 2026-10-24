@@ -11,7 +11,7 @@ import { FacebookConfigService } from './facebook-config.service';
 import type { FbPage } from './facebook-config.service';
 import { FacebookConnectorService } from './facebook-connector.service';
 
-const SCOPE = (process.env.FB_SCOPE || 'leads_retrieval,pages_show_list,pages_manage_metadata,pages_read_engagement,business_management,pages_messaging,instagram_basic,instagram_manage_messages,instagram_manage_comments').trim();
+const SCOPE = (process.env.FB_SCOPE || 'leads_retrieval,pages_show_list,pages_manage_metadata,pages_read_engagement,pages_manage_ads,business_management,pages_messaging,instagram_basic,instagram_manage_messages,instagram_manage_comments').trim();
 
 const STATE_PREFIX = 'fb_oauth_state:';
 const STATE_TTL_MS = 10 * 60 * 1000;
@@ -288,16 +288,28 @@ export class FacebookService implements OnModuleInit, SocialProvider {
   async listForms(pageId: string) {
     const token = await this.cfg.pageToken(pageId);
     if (!token) throw new BadRequestException({ error: 'NO_PAGE', message: 'Sahifa ulanmagan' });
-    const forms = await this.client.getForms(pageId, token);
-    return { forms };
+    try {
+      const forms = await this.client.getForms(pageId, token);
+      return { forms };
+    } catch (e) {
+      // Meta ruxsati yetishmasa (masalan pages_manage_ads) — 500 emas, tushunarli xabar: qayta ulash kerak
+      const msg = (e as Error).message || '';
+      if (/permission|#200|#10|OAuth/i.test(msg))
+        throw new BadRequestException({ error: 'FB_PERMISSION', message: "Facebook ruxsati yetarli emas — sahifani qayta ulang (\"Facebook bilan ulash\") va barcha ruxsatlarni bering. " + msg });
+      throw new BadRequestException({ error: 'FB_ERROR', message: msg || 'Facebook xatosi' });
+    }
   }
 
   // Forma maydonlari (amoCRM: FB savol -> CRM maydon moslash uchun)
   async formFields(pageId: string, formId: string) {
     const token = await this.cfg.pageToken(pageId);
     if (!token) throw new BadRequestException({ error: 'NO_PAGE', message: 'Sahifa ulanmagan' });
-    const fields = await this.client.getFormQuestions(formId, token);
-    return { fields };
+    try {
+      const fields = await this.client.getFormQuestions(formId, token);
+      return { fields };
+    } catch (e) {
+      throw new BadRequestException({ error: 'FB_ERROR', message: (e as Error).message || 'Facebook xatosi' });
+    }
   }
 
   // ── Forma → CRM bog'lash (mapping) ──
