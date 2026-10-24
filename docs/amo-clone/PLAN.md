@@ -82,6 +82,9 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 
 21. [x] Instagram Direct/izohlar + Facebook Messenger connector orqali (bir tugma) → imBox; Meta obunalari ok
 23. [~] CRM'ni Railway'ga joylash (HTTPS, Postgres) — haqiqiy Facebook ulanish testi uchun
+24. [ ] Lid kartochkasi amoCRM bilan 1:1: akkauntdan har bir detal (sarlavha, teglar, status, tablar, maydonlar tartibi va ko'rinishi,
+    kontakt/kompaniya bloklari, lenta turlari, composer rejimlari, "…" menyu, pastki panel, hover/tahrirlash holatlari) olinadi;
+    yetishmaganlari qo'shiladi, amoCRM'da yo'q ortiqcha narsalar olib tashlanadi; so'ng test
 22. [ ] Sozlamalar → Chatlar va messenjerlar: amoCRM kabi "Javob shablonlari" (nom, tur, matn; chatda tanlash) va imBox/notif switch'lari
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
