@@ -22,6 +22,10 @@ import LeadCard from './amo/pages/LeadCard'
 import TasksPage from './amo/pages/TasksPage'
 import LeadsList from './amo/pages/LeadsList'
 import StatsPage from './amo/pages/StatsPage'
+import ImboxPage from './amo/pages/ImboxPage'
+import DashboardPage from './amo/pages/DashboardPage'
+import ContactCard from './amo/pages/ContactCard'
+import CompanyCard from './amo/pages/CompanyCard'
 import SettingsPage from './amo/pages/SettingsPage'
 import IntegrationsPage from './amo/pages/IntegrationsPage'
 
@@ -39,20 +43,23 @@ function CrmShell() {
       <div className="amo-content">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<div className="crmsa-body"><CrmDesk /></div>} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/leads/pipeline/:pipelineId?" element={<LeadsPipeline />} />
           <Route path="/leads/detail/:id" element={<LeadCard />} />
           <Route path="/leads/add" element={<LeadCard />} />
           <Route path="/leads/list" element={<LeadsList />} />
           <Route path="/leads/*" element={<CRM chrome="none" forceView="leads" />} />
-          <Route path="/imbox/*" element={<CRM chrome="none" forceView="chats" />} />
+          <Route path="/imbox" element={<ImboxPage />} />
+          <Route path="/imbox/:leadId" element={<ImboxPage />} />
           <Route path="/todo" element={<Navigate to="/todo/line" replace />} />
           <Route path="/todo/calendar" element={<Navigate to="/todo/calendar/month" replace />} />
           <Route path="/todo/*" element={<TasksPage />} />
           <Route path="/contacts/list" element={<ListsPage entity="all" />} />
           <Route path="/companies/list" element={<ListsPage entity="companies" />} />
-          <Route path="/contacts/*" element={<CRM chrome="none" forceView="lists" />} />
-          <Route path="/companies/*" element={<CRM chrome="none" forceView="lists" />} />
+          <Route path="/contacts/detail/:id" element={<ContactCard />} />
+          <Route path="/contacts/add" element={<ContactCard />} />
+          <Route path="/companies/detail/:id" element={<CompanyCard />} />
+          <Route path="/companies/add" element={<CompanyCard />} />
           <Route path="/stats" element={<Navigate to="/stats/pipeline" replace />} />
           <Route path="/stats/pipeline" element={<StatsPage section="pipeline" />} />
           <Route path="/stats/consolidated" element={<StatsPage section="consolidated" />} />

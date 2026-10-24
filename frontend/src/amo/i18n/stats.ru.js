@@ -2,6 +2,7 @@
 import { addRu } from '../i18n'
 
 addRu({
+  ' kun': 'д.',
   'Analitika': 'Аналитика',
   'Sotuv tahlili': 'Анализ продаж',
   'Umumiy hisobot': 'Сводный отчет',

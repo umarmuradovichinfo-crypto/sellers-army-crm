@@ -548,6 +548,7 @@ export class CrmService {
           stageName: nameByKey.get(l.stage) || l.stage,
           stageColor: colorByKey.get(l.stage) || null,
           contactId: l.contactId || null,
+          companyId: l.companyId || null,
           contactName: c?.name || null,
           contactPhone: c?.phone || null,
         };

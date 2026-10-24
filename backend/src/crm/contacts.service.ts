@@ -70,6 +70,12 @@ export class ContactsService {
     });
     return { contacts: contacts.map((c) => ({ ...c, custom: parse(c.customJson, {}) })) };
   }
+  async getContact(id: string) {
+    const c = await this.prisma.contact.findUnique({ where: { id } });
+    if (!c) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Kontakt topilmadi' });
+    const company = c.companyId ? await this.prisma.company.findUnique({ where: { id: c.companyId }, select: { id: true, name: true } }) : null;
+    return { contact: { ...c, custom: parse(c.customJson, {}) }, company };
+  }
   async createContact(dto: any, userId?: string) {
     const c = await this.prisma.contact.create({
       data: {

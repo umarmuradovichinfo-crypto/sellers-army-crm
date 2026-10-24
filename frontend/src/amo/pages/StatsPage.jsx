@@ -110,7 +110,7 @@ function SalesPipeline({ filter, params }) {
         <div className="ac-stats-fun__wrap ac-stats-fun">
           <div className="ac-stats-fun__left">
             <div className="ac-stats-fun__line" style={{ width: `${Math.min(100, 20 + avg * 10)}%` }} />
-            <div className="ac-stats-fun__avg"><b>{avg}{t('k.')}</b><span>{t("Bitimning o'rtacha davomiyligi")}</span></div>
+            <div className="ac-stats-fun__avg"><b>{avg}{t(' kun')}</b><span>{t("Bitimning o'rtacha davomiyligi")}</span></div>
           </div>
           {shown.length === 0 ? <div className="ac-stats-empty">{t("Ma'lumot yo'q")}</div> : <FunnelBars stages={shown} mode={mode} />}
         </div>

@@ -18,6 +18,7 @@ export class ContactsController {
 
   // ── Kontaktlar ──
   @Get('contacts') contacts(@Query('q') q?: string) { return this.s.listContacts(q); }
+  @Get('contacts/:id') contact(@Param('id') id: string) { return this.s.getContact(id); }
   @Post('contacts') createContact(@Body() dto: any, @CurrentUser('id') userId: string) { return this.s.createContact(dto, userId); }
   @Put('contacts/:id') updateContact(@Param('id') id: string, @Body() dto: any) { return this.s.updateContact(id, dto); }
   @Delete('contacts/:id') deleteContact(@Param('id') id: string) { return this.s.deleteContact(id); }

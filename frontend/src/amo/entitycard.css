@@ -1,0 +1,17 @@
+/* Kontakt / kompaniya kartochkasi qo'shimcha stillari (leadcard.css ustiga) */
+.ac-ec-multi { display: flex; flex-direction: column; width: 100%; }
+.ac-ec-add { align-self: flex-start; font-size: 14px; color: var(--palette-text-secondary-dark); cursor: pointer; padding: 2px 0; }
+.ac-ec-add:hover { color: var(--palette-text-primary); text-decoration: underline; }
+.ac-ec-co { color: var(--palette-text-secondary-dark); background: var(--palette-background-default); border: 1px solid var(--palette-border-primary); }
+.ac-ec-leads .ac-linked__add { border-top: 1px solid var(--palette-border-primary); }
+.ac-ec-lead { padding: 12px 30px; border-bottom: 1px solid var(--palette-border-primary); cursor: pointer; transition: background 0.15s; }
+.ac-ec-lead:hover { background: var(--palette-button-classic-hover-background); }
+.ac-ec-lead__name { font: 700 15px var(--font-main); color: #1691ff; }
+.ac-ec-lead__row { display: flex; justify-content: space-between; margin-top: 4px; font-size: 14px; color: var(--palette-text-secondary-dark); }
+.ac-ec-lead__stage { display: inline-flex; align-items: center; gap: 6px; }
+.ac-ec-lead__stage i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.ac-ec-empty { padding: 18px 30px; color: var(--palette-text-secondary-light); font-size: 15px; }
+.ac-ec-leadlink { text-decoration: underline; color: var(--palette-text-secondary-dark); white-space: nowrap; cursor: pointer; }
+.ac-ec-leadlink:hover { color: var(--palette-text-primary); }
+.ac-ec-wrap { position: relative; }
+.ac-ec-wrap__link { position: absolute; right: 12px; top: 10px; font-size: 13px; background: var(--palette-background-primary); padding-left: 6px; }

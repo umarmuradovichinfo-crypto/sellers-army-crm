@@ -116,57 +116,55 @@ function QuickAdd({ stage, pipelineId, onDone }) {
 }
 
 // Pointer asosidagi drag: amoCRM sortable kabi — kartani olib, ustunlar orasida joy belgisi bilan ko'chirish.
+// Tinglovchilar pointerdown paytida darhol ulanadi (tez harakatda ham tashlash yo'qolmaydi).
 function useCardDrag({ onDrop }) {
-  const [drag, setDrag] = useState(null) // { lead, from, x, y, w, h, dx, dy, over: {stage,index} | {zone} }
-  const st = useRef(null)
-  useEffect(() => {
-    if (!drag) return
-    const move = (e) => {
-      const s = st.current
-      if (!s) return
-      let over = null
-      const el = document.elementFromPoint(e.clientX, e.clientY)
-      const zone = el?.closest?.('[data-zone]')
-      if (zone) over = { zone: zone.dataset.zone }
-      else {
-        const col = el?.closest?.('[data-stage]')
-        if (col) {
-          const cards = [...col.querySelectorAll('[data-lead]')].filter((c) => c.dataset.lead !== s.lead.id)
-          let index = cards.length
-          for (let i = 0; i < cards.length; i++) {
-            const r = cards[i].getBoundingClientRect()
-            if (e.clientY < r.top + r.height / 2) { index = i; break }
-          }
-          over = { stage: col.dataset.stage, index }
-        }
-      }
-      setDrag((d) => d && { ...d, x: e.clientX, y: e.clientY, over })
+  const [drag, setDrag] = useState(null) // { lead, from, x, y, w, h, dx, dy, html, over }
+  const cur = useRef(null)
+  const dropRef = useRef(onDrop)
+  dropRef.current = onDrop
+
+  const locate = (x, y, leadId) => {
+    const el = document.elementFromPoint(x, y)
+    const zone = el?.closest?.('[data-zone]')
+    if (zone) return { zone: zone.dataset.zone }
+    const col = el?.closest?.('[data-stage]')
+    if (!col) return null
+    const cards = [...col.querySelectorAll('[data-lead]')].filter((c) => c.dataset.lead !== leadId)
+    let index = cards.length
+    for (let i = 0; i < cards.length; i++) {
+      const r = cards[i].getBoundingClientRect()
+      if (y < r.top + r.height / 2) { index = i; break }
     }
-    const up = () => {
-      const d = st.current
-      setDrag(null)
-      if (d?.over) onDrop(d.lead, d.from, d.over)
-    }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up, { once: true })
-    return () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
-  }, [!!drag]) // eslint-disable-line
-  useEffect(() => { st.current = drag }, [drag])
+    return { stage: col.dataset.stage, index }
+  }
 
   const start = (e, lead, from) => {
     if (e.button !== 0) return
     const card = e.currentTarget
     const r = card.getBoundingClientRect()
     const sx = e.clientX, sy = e.clientY
-    const onMove = (ev) => {
-      if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 6) return
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', cancel)
-      setDrag({ lead, from, x: ev.clientX, y: ev.clientY, w: r.width, h: r.height, dx: sx - r.left, dy: sy - r.top, html: card.outerHTML, over: null })
+    let active = false
+    const move = (ev) => {
+      if (!active) {
+        if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 6) return
+        active = true
+        cur.current = { lead, from, w: r.width, h: r.height, dx: sx - r.left, dy: sy - r.top, html: card.outerHTML }
+      }
+      ev.preventDefault()
+      cur.current = { ...cur.current, x: ev.clientX, y: ev.clientY, over: locate(ev.clientX, ev.clientY, lead.id) }
+      setDrag(cur.current)
     }
-    const cancel = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', cancel) }
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', cancel)
+    const up = (ev) => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      if (!active) return
+      const d = { ...cur.current, over: locate(ev.clientX, ev.clientY, lead.id) || cur.current.over }
+      cur.current = null
+      setDrag(null)
+      if (d.over) dropRef.current(d.lead, d.from, d.over)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
   }
   return { drag, start }
 }

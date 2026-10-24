@@ -12,6 +12,18 @@ Qoidalar
 - Interfeys ikki tilda: o'zbekcha va ruscha (amoCRM'dagi asl ruscha nomlar).
 - Yangi so'rovlar shu rejaga qo'shiladi va navbati kelganda bajariladi.
 
+## QA (foydalanuvchi talabi)
+Dev jamoadagi tester kabi: har bir tugma, funksiya, detal alohida test-keys sifatida sinaladi; natija `docs/amo-clone/QA.md` da
+(bo'lim → test-keys → kutilgan → haqiqiy → holat). Xatolar BUGS.md ga, tuzatilgach qayta sinaladi.
+
+## Har bir bosqichdan keyin (majburiy)
+Kod yozilgach shu bo'lim uchun:
+1. Test: brauzerda har bir tugma, forma, drag-and-drop, filtr, modal, ochilish/yopilish, ikki til, ikki mavzu, mobil o'lcham.
+2. Diagnostika: build, konsol xatolari, tarmoq so'rovlari (4xx/5xx), backend loglari.
+3. Topilgan xatolar `docs/amo-clone/BUGS.md` ga yoziladi (qayerda, qanday takrorlanadi, holati) va tuzatiladi.
+4. amoCRM bilan yonma-yon solishtirish (joylashuv, o'lcham, rang, matn, animatsiya, funksiya) — farqlar ham BUGS.md ga.
+Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
+
 ## Bosqichlar
 
 1. [x] Asos: rang tokenlari (yorug'/qorong'i), PT Sans shriftlari, tugma/input/checkbox/switch
@@ -35,7 +47,8 @@ Qoidalar
    - [ ] O'z parolini o'zgartirish uchun /settings/me/password (joriy parol tekshiruvi bilan)
    - [ ] Umumiy sozlamalardagi sana/vaqt/valyuta formatlarini format.js ishlatishi
 10. [ ] Eski kodni tozalash: eski CRM.jsx, styles.css'dagi .amo-* va .crmsa-*, ishlatilmaydigan komponentlar
-11. [ ] Yakuniy solishtirish: har bir ekran amoCRM bilan yonma-yon (desktop + mobil)
+11. [ ] Yakuniy to'liq test va diagnostika: butun tizim, barcha bo'limlar o'zaro bog'liqligi (bitim → kontakt → vazifa → analitika), xatolar ro'yxati va tuzatish
+12. [ ] Yakuniy solishtirish: har bir ekran va funksiya amoCRM bilan yonma-yon (desktop + mobil), farqlar tuzatiladi
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

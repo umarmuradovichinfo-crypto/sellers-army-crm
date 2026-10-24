@@ -132,6 +132,13 @@ const SMALL = {
   sparkle: <path d="M8 1.5l1.4 4.1L13.5 7l-4.1 1.4L8 12.5 6.6 8.4 2.5 7l4.1-1.4z" fill="currentColor" />,
   instagram: <><rect x="2" y="2" width="12" height="12" rx="3.5" {...S} /><circle cx="8" cy="8" r="2.8" {...S} /><circle cx="11.6" cy="4.4" r=".8" fill="currentColor" /></>,
   telegram: <path d="M14 2.5L1.8 7.3l3.7 1.4 1.4 4.3 2.1-2.6 3.4 2.6z M5.5 8.7l6-4" {...S} />,
+  dragDots: <><circle cx="6" cy="3.5" r="1" fill="currentColor" /><circle cx="10" cy="3.5" r="1" fill="currentColor" /><circle cx="6" cy="8" r="1" fill="currentColor" /><circle cx="10" cy="8" r="1" fill="currentColor" /><circle cx="6" cy="12.5" r="1" fill="currentColor" /><circle cx="10" cy="12.5" r="1" fill="currentColor" /></>,
+  tag: <><path d="M2 8.2V2.5h5.7l6.3 6.3-5.7 5.7z" {...S} /><circle cx="5.2" cy="5.7" r="1" fill="currentColor" /></>,
+  bell: <path d="M3.5 11.5h9l-1.2-1.8V6.5a3.3 3.3 0 0 0-6.6 0v3.2zM6.5 13.5a1.6 1.6 0 0 0 3 0" {...S} />,
+  link: <path d="M6.5 9.5a3 3 0 0 0 4.2 0l2.3-2.3a3 3 0 0 0-4.2-4.2L8 3.8M9.5 6.5a3 3 0 0 0-4.2 0L3 8.8a3 3 0 0 0 4.2 4.2L8 12.2" {...S} />,
+  note: <path d="M2.5 3h11v8h-6l-3 2.5V11h-2z" {...S} />,
+  facebook: <path d="M9.3 14V8.6h1.9l.3-2.2H9.3V5.1c0-.6.2-1 1-1h1.2V2.2c-.2 0-.9-.1-1.7-.1-1.7 0-2.8 1-2.8 2.9v1.4H5.1v2.2H7V14z" fill="currentColor" />,
+  form: <><rect x="2.5" y="2" width="11" height="12" rx="1.5" {...S} /><path d="M5 6h6M5 9h6M5 11.5h3" {...S} /></>,
 }
 
 export function Ico({ name, size = 16, className = '', style }) {
