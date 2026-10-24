@@ -112,6 +112,13 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     so'ng bizniki xuddi shunday qilinadi va har o'lchamda test qilinadi
 22. [x] Sozlamalar → Chatlar va messenjerlar: "Javob shablonlari" (nom, holat, matn; chat composer'da tanlash) va "Беседы" qoidasi (yangi bitim qachon ochiladi) — imBox/notif switch'lari keraksiz (imBox doim yoqiq)
 
+29. [ ] (25.10 audit) «AI-агенты и боты» bo'limi (/agents-and-bots): «Ваши боты — Список ботов» (nom, triggerlar, konversiya,
+    jami ishga tushish), Salesbot konstruktori (xabar yuborish, tugmalar, javobni kutish, shartlar, harakatlar: bosqich/teg/vazifa/maydon)
+    — Telegram/Instagram/Messenger chatlarida ishlaydi, voronka triggerlarida «Salesbot» harakati. Taxminan 6–10 soat. FOYDALANUVCHI TASDIG'I KUTILMOQDA.
+30. [ ] (25.10 audit) amoCRM «Амма» AI-yordamchisi (ish stolidagi chat oynasi + o'ng pastdagi avatar): CRM bo'yicha savollarga javob,
+    statistikalar. LLM API kaliti kerak. FOYDALANUVCHI TASDIG'I KUTILMOQDA.
+    («Покупатели» bo'limi bu akkauntda o'chirilgan — ochilganda ish stoliga qaytaradi, shuning uchun klonlanmaydi.)
+
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
   matnlari tarjimasi; Sozlamalar → Umumiy sozlamalarga "Til" maydoni (9-bosqich).
