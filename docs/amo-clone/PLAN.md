@@ -64,6 +64,11 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
       dublikat nazorati, "rahmat" xabari, UTM yig'ish
     - Telegram: amoCRM'dagi ulanish oqimi bilan bir xil
     (Meta ilovasi va ruxsatlari foydalanuvchi bilan kelishiladi)
+    ARXITEKTURA: CRM har mijozga alohida o'rnatiladi → vendor'ning BITTA markaziy Meta ilovasi + markaziy
+    "Meta Connector" xizmati (connector/). Har yangi mijoz hech narsa sozlamasdan bitta tugma bilan ulaydi (amoCRM kabi):
+    OAuth va webhook connector orqali, sahifa tokenlari va lid hodisalari imzolangan so'rov bilan mijoz CRM'iga uzatiladi.
+    [~] Facebook Lead Ads — connector + bir tugma (ishlanmoqda)
+    [ ] Instagram Direct/izohlar va Messenger — xuddi shu connector orqali
 16. [ ] amoCRM akkauntini Chrome orqali TO'LIQ ko'rib chiqish (har bo'lim, har oyna, har menyu, har tugma, hover/ochilish holatlari,
     sozlamalarning har bir sahifasi) — FEATURES.md'ga ro'yxat; bizda yo'q/boshqacha bo'lgan har bir narsa amoCRM'dagi mantiq,
     dizayn, joylashuv va ko'rinish bilan 1:1 qo'shiladi; so'ng hammasi qayta test qilinadi (faqat ko'rish, akkauntda hech narsa o'zgartirilmaydi)
