@@ -253,10 +253,50 @@ function ChatsSection() {
   )
 }
 
+// ── Xavfsizlik → "IP manzillar oq ro'yxati" (amoCRM "Белый список IP-адресов") ──
+function IpWhitelist() {
+  const t = useT()
+  const { data, reload } = useApi(() => settingsService.getSecurity(), [], 'settings:security')
+  const [list, setList] = useState(null)
+  const [ip, setIp] = useState('')
+  const [msg, setMsg] = useState(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { if (data) setList(data.ips || []) }, [data])
+  const dirty = list && data && JSON.stringify(list) !== JSON.stringify(data.ips || [])
+  const add = () => { const v = ip.trim(); if (v && !list.includes(v)) setList([...list, v]); setIp('') }
+  const save = async () => {
+    setBusy(true); setMsg(null)
+    try { await settingsService.saveSecurity(list); await reload(); setMsg({ ok: true, m: t('Saqlandi') }) }
+    catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) } finally { setBusy(false) }
+  }
+  return (
+    <div className="ac-set-block">
+      <h2 className="ac-set-block__title">{t("IP manzillar oq ro'yxati")}</h2>
+      <div className="ac-set-block__desc">{t("Bu ro'yxat akkauntga faqat ko'rsatilgan IP manzillardan kirishga ruxsat beradi, boshqa kompyuterlardan kirish taqiqlanadi.")}</div>
+      <div className="ac-set-block__desc">{t("To'liq bloklanib qolmaslik uchun ro'yxatda joriy IP manzilingiz bo'lishi shart")}: <b>{data?.currentIp || '…'}</b></div>
+      <div className="ac-set-iplist">
+        {(list || []).map((x) => (
+          <span key={x} className="ac-set-ip">{x}<button onClick={() => setList(list.filter((y) => y !== x))}><Ico name="close" size={10} /></button></span>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 8, maxWidth: 420, marginTop: 8 }}>
+        <input className="ac-input" style={{ flex: 1 }} placeholder="213.230.78.60" value={ip} onChange={(e) => setIp(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
+        <button className="ac-btn" onClick={add} disabled={!ip.trim()}>{t("set§Qo'shish")}</button>
+        {data?.currentIp && !(list || []).includes(data.currentIp) && <button className="ac-btn ac-btn--plain" onClick={() => setList([...(list || []), data.currentIp])}>{t('Joriy IP')}</button>}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+        <button className={`ac-set-save ${dirty ? 'on' : ''}`} disabled={busy || !dirty} onClick={save}>{t('card§Saqlash')}</button>
+        {msg && <span className={msg.ok ? 'ac-set-saved' : 'ac-set-err'}>{msg.m}</span>}
+      </div>
+    </div>
+  )
+}
+
 // ── Xavfsizlik: parolni o'zgartirish ──
 function SecuritySection() {
   const t = useT()
-  const { user } = useAuth()
+  const { user, can } = useAuth()
+  const canIp = can('settings.roles.manage')
   const [cur, setCur] = useState('')
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
@@ -277,9 +317,10 @@ function SecuritySection() {
     <>
       <Head>
         {msg && <span className={msg.ok ? 'ac-set-saved' : 'ac-set-err'} style={msg.ok ? undefined : { margin: '0 14px 0 0' }}>{msg.m}</span>}
-        <button className="ac-btn" disabled={busy || bad} onClick={save}>{t('Saqlash')}</button>
+        <button className={`ac-set-save ${!bad ? 'on' : ''}`} disabled={busy || bad} onClick={save}>{t('card§Saqlash')}</button>
       </Head>
       <div className="ac-set-body">
+        {canIp && <IpWhitelist />}
         <div className="ac-set-block">
           <h2 className="ac-set-block__title">{t("Parolni o'zgartirish")}</h2>
           <div className="ac-set-block__desc">{t('Yangi parol kamida 6 belgidan iborat bo\'lsin.')}</div>

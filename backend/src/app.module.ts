@@ -12,6 +12,7 @@ import { HealthController } from './common/health.controller';
 import { IdempotencyInterceptor } from './common/idempotency.interceptor';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
+import { IpWhitelistGuard } from './common/guards/ip-whitelist.guard';
 import { validateEnv } from './config/env.validation';
 import { FacebookModule } from './facebook/facebook.module';
 import { OnlinePbxModule } from './onlinepbx/onlinepbx.module';
@@ -55,6 +56,7 @@ function resolveFrontendDist(): string {
     // Barcha endpointlar standart bo'yicha himoyalangan (@Public bilan ochiladi)
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
+    { provide: APP_GUARD, useClass: IpWhitelistGuard },
   ],
 })
 export class AppModule {}

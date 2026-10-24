@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import { clientIp } from '../common/guards/ip-whitelist.guard';
+import { Body, Controller, Req, Get, Param, Patch, Post, Put } from '@nestjs/common';
 
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
@@ -64,6 +65,18 @@ export class SettingsController {
   @Post('me/password')
   changeOwnPassword(@CurrentUser('id') uid: string, @Body() dto: ChangeOwnPasswordDto) {
     return this.settings.changeOwnPassword(uid, dto.currentPassword, dto.password);
+  }
+
+  // Xavfsizlik: IP oq ro'yxati
+  @Get('security')
+  @RequirePermissions('settings.roles.manage')
+  security(@Req() req: any) {
+    return this.settings.getSecurity(clientIp(req));
+  }
+  @Put('security')
+  @RequirePermissions('settings.roles.manage')
+  saveSecurity(@Body() body: { ips?: unknown }, @Req() req: any) {
+    return this.settings.saveSecurity(body, clientIp(req));
   }
 
   // Umumiy sozlamalar (akkaunt nomi, mintaqa, formatlar)

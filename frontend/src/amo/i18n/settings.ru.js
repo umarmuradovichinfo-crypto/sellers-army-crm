@@ -192,4 +192,9 @@ addRu({
   'Har doim yangi bitimda suhbat yaratish': 'Всегда создавать беседу в новой сделке',
   "Mijozda faol bitim bo'lmasa, yangi bitimda suhbat yaratish": 'Создавать беседу в новой сделке, если у клиента нет активной сделки',
   "Mijozda faol ham, yopilgan ham bitim bo'lmasagina yangi bitimda suhbat yaratish": 'Создавать беседу в новой сделке, только если у клиента нет ни активных, ни закрытых сделок',
+  "IP manzillar oq ro'yxati": 'Белый список IP-адресов',
+  "Bu ro'yxat akkauntga faqat ko'rsatilgan IP manzillardan kirishga ruxsat beradi, boshqa kompyuterlardan kirish taqiqlanadi.": 'Этот список разрешает доступ к аккаунту только с указанных IP-адресов, доступ с остальных компьютеров будет запрещен.',
+  "To'liq bloklanib qolmaslik uchun ro'yxatda joriy IP manzilingiz bo'lishi shart": 'В списке обязательно должен быть указан ваш текущий IP, чтобы избежать полной блокировки',
+  'Joriy IP': 'Текущий IP',
+  "set§Qo'shish": 'Добавить',
 })

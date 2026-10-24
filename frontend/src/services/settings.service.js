@@ -4,6 +4,9 @@ export const settingsService = {
   // GET /settings/access -> { permissions:[{key,label}], roles:[{key,name,isSystem,users,permissions:[]}] }
   // GET /auth/log -> { items:[{at,email,name,ok,ip,ua}] } (Лог авторизаций)
   authLog: () => api.get('/auth/log'),
+  // Xavfsizlik: IP oq ro'yxati { ips, currentIp }
+  getSecurity: () => api.get('/settings/security'),
+  saveSecurity: (ips) => api.put('/settings/security', { ips }),
   getAccess: () => mockOr(() => api.get('/settings/access'), {
     permissions: [],
     roles: [

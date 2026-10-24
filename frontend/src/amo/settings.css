@@ -131,3 +131,7 @@
 .ac-set-tplform textarea { height: auto; padding: 6px 8px; resize: vertical; }
 .ac-set-radio { display: flex; align-items: flex-start; gap: 10px; margin: 8px 0; font-size: 15px; color: var(--palette-text-primary); cursor: pointer; }
 .ac-set-radio input { margin-top: 3px; }
+
+.ac-set-iplist { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ac-set-ip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: 1px solid var(--palette-border-default); border-radius: 3px; font-size: 14px; }
+.ac-set-ip button { border: 0; background: none; color: var(--palette-text-secondary-dark); cursor: pointer; display: flex; }

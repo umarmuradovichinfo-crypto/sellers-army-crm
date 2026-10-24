@@ -1,3 +1,4 @@
+import { clientIp } from '../common/guards/ip-whitelist.guard';
 import { Body, Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
 
 import {
@@ -21,8 +22,7 @@ export class AuthController {
   login(@Body() dto: LoginDto, @Req() req: { ip?: string; headers?: Record<string, unknown> }) {
     // "Лог авторизаций" uchun IP va brauzer
     const ua = String(req?.headers?.['user-agent'] || '').slice(0, 300);
-    const xf = String(req?.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
-    return this.auth.login(dto.email, dto.password, { ip: xf || req?.ip || '', ua });
+    return this.auth.login(dto.email, dto.password, { ip: clientIp(req), ua });
   }
 
   /** Avtorizatsiya jurnali (amoCRM "Лог авторизаций") — faqat rollarni boshqaradiganlar */

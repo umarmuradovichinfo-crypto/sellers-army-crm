@@ -1,3 +1,4 @@
+import { IP_WHITELIST_KEY, IpWhitelistGuard } from '../common/guards/ip-whitelist.guard';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 
@@ -192,6 +193,24 @@ export class SettingsService {
     if (!currentPassword || !(await bcrypt.compare(currentPassword, me.passwordHash)))
       throw new BadRequestException({ error: 'BAD_CURRENT', message: "Joriy parol noto'g'ri" });
     return this.resetPassword(id, password);
+  }
+
+  // ── Xavfsizlik: IP oq ro'yxati (amoCRM "Белый список IP-адресов") ──
+  async getSecurity(currentIp: string) {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: IP_WHITELIST_KEY } });
+    let ips: string[] = [];
+    try { const v = JSON.parse(row?.value || '{}'); ips = Array.isArray(v.ips) ? v.ips : []; } catch { /* */ }
+    return { ips, currentIp };
+  }
+  async saveSecurity(body: { ips?: unknown }, currentIp: string) {
+    const ips = [...new Set((Array.isArray(body?.ips) ? body.ips : []).map((x) => String(x).trim()).filter((x) => /^[0-9a-fA-F:.]{3,45}$/.test(x)))].slice(0, 100);
+    // O'zini bloklab qo'ymaslik: ro'yxat bo'sh bo'lmasa joriy IP unda bo'lishi shart
+    if (ips.length && !ips.includes(currentIp))
+      throw new BadRequestException({ error: 'CURRENT_IP_MISSING', message: `Ro'yxatda joriy IP manzilingiz (${currentIp}) bo'lishi shart` });
+    const value = JSON.stringify({ ips });
+    await this.prisma.appSetting.upsert({ where: { key: IP_WHITELIST_KEY }, update: { value }, create: { key: IP_WHITELIST_KEY, value } });
+    IpWhitelistGuard.invalidate();
+    return { ips, currentIp };
   }
 
   // ── Umumiy sozlamalar (AppSetting 'general_settings' kaliti, JSON) ──

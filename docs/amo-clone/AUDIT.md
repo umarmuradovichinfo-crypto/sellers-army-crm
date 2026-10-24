@@ -98,3 +98,10 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 1 | "Шаблоны ответов": nom, holat, tur, matn; chatda tanlanadi | yo'q | qo'shildi (/crm/chat-settings, composer'da shablon tugmasi) |
 | 2 | "Беседы": yangi suhbat qachon yangi bitimda (har doim / faol bitim bo'lmasa — standart / umuman bitim bo'lmasa) | Telegram har doim eski bitimga, Instagram/Messenger faqat ochiqqa | tuzatildi (bitta qoida barcha kanallar uchun) |
 | 3 | Список ботов, Онлайн чаты, Сокращать ссылки, Типовые вопросы, NPS | — | bizda avtomatlashtirish (Digital Pipeline) bor; qolganlari amoCRM'ning pullik xizmatlari |
+
+## 12. Sozlamalar → Xavfsizlik
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | "Белый список IP-адресов": faqat ro'yxatdagi IP'lardan kirish, joriy IP ko'rsatiladi va ro'yxatda bo'lishi shart | yo'q | qo'shildi (IpWhitelistGuard, X-Forwarded-For'ning proksi qo'shgan qiymati; ochiq yo'llar/webhook'lar tegilmaydi) |
+| 2 | Резервное копирование | — | amoCRM Pro xizmati; bizda Excel eksportlari bor |
+| 3 | Parolni o'zgartirish amoCRM'da profil oynasida | Xavfsizlikda | qoldirildi (qo'shimcha qulaylik) |

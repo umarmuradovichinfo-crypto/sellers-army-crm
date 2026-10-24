@@ -81,7 +81,7 @@ function GroupsModal({ roles, onClose, onChanged }) {
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
           <input className="ac-input" style={{ flex: 1 }} placeholder={t('Yangi guruh nomi')} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
-          <button className="ac-btn ac-btn--blue" disabled={!name.trim()} onClick={add}>{t("Qo'shish")}</button>
+          <button className="ac-btn ac-btn--blue" disabled={!name.trim()} onClick={add}>{t("set§Qo'shish")}</button>
         </div>
         {err && <div className="ac-set-err" style={{ marginTop: 8 }}>{err}</div>}
         <div style={{ marginTop: 16, textAlign: 'right' }}><button className="ac-btn" onClick={onClose}>{t('Yopish')}</button></div>
