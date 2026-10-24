@@ -142,3 +142,10 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
   bitimga katalogda yo'q teg qo'ya olmaydi — yaratish, tahrirlash, ommaviy teg qo'shish), «Найти или добавить тег» (Enter — qo'shish),
   ro'yxat ko'p ishlatilganidan boshlab (teg + soni), hover'da rang nuqtasi va o'chirish (tasdiq oynasi), teg ustiga bosib nomini o'zgartirish.
 - amoCRM'da teglarni birlashtirish yo'q → olib tashlandi.
+
+## 18. Import
+- amoCRM'da «…» → «Импорт» alohida sahifa emas, 765px modal: «Импорт из таблицы» kartochkasi (XLS belgisi, tavsif, «Загрузить файл»,
+  «Скачать пример») → bizda ham shunday modal; fayl tanlansa darhol «Maydonlarni moslash» qadamiga o'tiladi (sahifa bevosita ochilsa — 1-qadam).
+- Kontaktlar ro'yxatining «…» menyusiga ham «Импорт» qo'shildi (amoCRM'da bor edi, bizda yo'q edi).
+- Xato: o'zimizning namuna faylimiz sarlavhalari («Kontakt: ism», «Kontakt: telefon») ruscha interfeysda avtomatik moslanmasdi → asl nom bilan ham solishtiriladi.
+- Qilinmagan: «Импорт из Google таблиц» (Google OAuth integratsiyasi kerak) va «Посмотреть импортированные файлы» (import tarixi) — keyingi bosqich.

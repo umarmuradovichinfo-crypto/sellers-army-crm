@@ -11,6 +11,7 @@ import { useT, usePlural } from '../i18n'
 import '../i18n/lists.ru'
 import '../leads.css'
 import '../lists.css'
+import { ImportModal } from './ImportPage'
 
 const PAGE = 50
 const EMPTY = { preset: 'all', name: '', phone: '', email: '', assigneeId: '', period: '' }
@@ -84,6 +85,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
   const [entity, setEntity] = useState(entityProp)
   useEffect(() => setEntity(entityProp), [entityProp])
   const navigate = useNavigate()
+  const [importOpen, setImportOpen] = useState(false)
   const t = useT()
   const plural = usePlural()
   const [search, setSearch] = useState('')
@@ -197,6 +199,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
 
   return (
     <div className="ac-lists">
+      {importOpen && <ImportModal entity="contacts" onClose={() => setImportOpen(false)} />}
       <TopBar
         title={<PresetTitle entity={entity} onPick={(k) => { if (k === 'companies') navigate('/companies/list'); else if (entityProp === 'companies') navigate('/contacts/list'); setEntity(k) }} />}
         search={search}
@@ -204,6 +207,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
         filterPanel={(close) => <ListFilter value={filter} members={members} onApply={(f) => { setFilter(f); close() }} />}
         count={plural(list.total, 'element')}
         menu={[
+          ...(entity === 'contacts' ? [{ label: t('Import'), icon: 'download', onClick: () => setImportOpen(true) }] : []),
           { label: t('Eksport'), icon: 'excel', onClick: exportCsv },
         ]}
         actions={

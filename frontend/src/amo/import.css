@@ -95,3 +95,16 @@
 .ac-tagman__confirm { z-index: 1110; font-size: 14px; }
 .ac-btn--red { background: #f37575; border-color: #f37575; color: #fff; }
 .ac-btn--red:hover { background: #e85e5e; }
+
+/* amoCRM "Импорт" modali (.modal-body, 765px): sarlavha + "Отменить", manba kartochkalari */
+.ac-import-modal { width: 765px; max-width: calc(100vw - 32px); padding: 26px 30px 30px; }
+.ac-import-modal__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.ac-import-modal__head .ac-modal__title { margin: 0; font-weight: 400; }
+.ac-import-modal__cancel { background: none; border: 0; cursor: pointer; font: 700 12px var(--font-main); color: var(--palette-text-secondary-dark); }
+.ac-import-modal__cancel:hover { color: var(--palette-text-primary); }
+.ac-import-card { display: flex; gap: 18px; padding: 20px 16px; border: 1px solid var(--palette-link-primary); border-radius: 4px; font-size: 14px; line-height: 21px; }
+.ac-import-card__ico { flex: 0 0 52px; height: 62px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; background: #1d7044; color: #fff; font: 700 15px var(--font-caption); clip-path: polygon(0 0, 72% 0, 100% 22%, 100% 100%, 0 100%); }
+.ac-import-card__title { font-weight: 700; margin-bottom: 4px; }
+.ac-import-card p { margin: 0 0 8px; }
+.ac-import-card__btns { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.ac-import-card__btns a { color: var(--palette-link-primary); text-decoration: underline; cursor: pointer; }

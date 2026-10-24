@@ -17,6 +17,7 @@ import { useT, usePlural } from '../i18n'
 import '../i18n/leadcard.ru.js'
 import '../i18n/leadsfilter.ru.js'
 import '../leads.css'
+import { ImportModal } from './ImportPage'
 
 const PAGE = 50
 
@@ -276,6 +277,7 @@ function LostReasons({ reasons, at, onPick, onCancel }) {
 export default function LeadsPipeline() {
   const { pipelineId = '' } = useParams()
   const navigate = useNavigate()
+  const [importOpen, setImportOpen] = useState(false)
   const { user } = useAuth()
   const t = useT()
   const plural = usePlural()
@@ -411,6 +413,7 @@ export default function LeadsPipeline() {
 
   return (
     <div className="ac-pipeline">
+      {importOpen && <ImportModal entity="leads" onClose={() => setImportOpen(false)} />}
       <TopBar
         title={pipeName}
         switcher={<ViewSwitch mode="pipeline" />}
@@ -422,7 +425,7 @@ export default function LeadsPipeline() {
         menu={[
           // amoCRM tartibi: Настроить воронку, Импорт, Экспорт, Внешний вид карточки, Поиск дублей, Массовые действия, Сортировка, Автообновление
           { label: t('Voronkani sozlash'), icon: 'gear', onClick: () => navigate(`/settings/pipeline/leads/${pipelineId || 'main'}`) },
-          { label: t('Import'), icon: 'download', onClick: () => navigate('/leads/import') },
+          { label: t('Import'), icon: 'download', onClick: () => setImportOpen(true) },
           { label: t('Eksport'), icon: 'excel', onClick: () => downloadLeadsCsv({ ...filterParams, pipelineId: pipelineId || 'main', unsorted: '0' }).catch((e) => window.alert(e?.message || t('Xatolik yuz berdi'))) },
           { label: t("Kartochka ko'rinishi"), icon: 'edit', onClick: () => setCardModal(true) },
           { label: t('Dublikatlarni qidirish'), icon: 'search', onClick: () => navigate('/leads/duplicates') },

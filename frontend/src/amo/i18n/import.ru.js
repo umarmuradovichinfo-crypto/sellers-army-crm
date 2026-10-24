@@ -111,4 +111,9 @@ addRu({
   'Foydalanuvchilarga yangi teg yaratishni taqiqlash': 'Запретить пользователям создавать новые теги',
   "Topish yoki teg qo'shish": 'Найти или добавить тег',
   "Tegni o'chirish": 'Удалить тег',
+  'Jadvaldan import': 'Импорт из таблицы',
+  "Excel'dan import .xls, .xlsx va .csv fayllarini qo'llab-quvvatlaydi. Import bir yo'la kontaktlar, bitimlar, barcha qo'shimcha maydonlar va teglarni olib kirish imkonini beradi.": 'Импорт из Excel поддерживает следующие форматы файлов .xls, .xlsx и .csv. Импорт позволяет импортировать разом контакты, сделки, все дополнительные поля и теги.',
+  "Agar faylda «Sana» maydoni bo'lsa, Excel faylini «CSV (vergul bilan ajratilgan)» formatiga o'tkazing: «Saqlash…» → «CSV (vergul bilan ajratilgan)» → «Saqlash».": 'Если в загружаемом файле есть поле “Дата”, то надо перевести Excel-файл в формат “CSV (разделители запятые)”: нажмите “сохранить как”, выберите “CSV (разделители запятые)” и нажмите “сохранить”.',
+  'Faylni yuklash': 'Загрузить файл',
+  'Namunani yuklab olish': 'Скачать пример',
 })

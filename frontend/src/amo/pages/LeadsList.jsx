@@ -15,6 +15,7 @@ import { ViewSwitch } from './LeadsPipeline'
 import { useTagColors, tagStyle } from '../tagColors'
 import '../i18n/leadsfilter.ru.js'
 import '../leads.css'
+import { ImportModal } from './ImportPage'
 
 addRu({
   'Barcha bitimlar': 'Все сделки',
@@ -38,6 +39,7 @@ const PAGE = 50
 
 export default function LeadsList() {
   const navigate = useNavigate()
+  const [importOpen, setImportOpen] = useState(false)
   const t = useT()
   const plural = usePlural()
   // Bosqichlar (ommaviy "bosqichni o'zgartirish" uchun) — bir marta; filtr ma'lumotlari useFilterMeta'da
@@ -154,6 +156,7 @@ export default function LeadsList() {
 
   return (
     <div>
+      {importOpen && <ImportModal entity="leads" onClose={() => setImportOpen(false)} />}
       <TopBar
         title={t('Barcha bitimlar')}
         switcher={<ViewSwitch mode="list" listOnly />}
@@ -163,7 +166,7 @@ export default function LeadsList() {
         chips={filterChips(filter, meta, t).map((c) => ({ id: c.id, label: c.label, onRemove: () => Q.removeChip(c.clear) }))}
         count={<>{plural(list.total, 'bitim')}:<b>{money(list.totalSum)}</b></>}
         menu={[
-          { label: t('Import'), icon: 'download', onClick: () => navigate('/leads/import') },
+          { label: t('Import'), icon: 'download', onClick: () => setImportOpen(true) },
           { label: t('Eksport'), icon: 'excel', onClick: () => downloadLeadsCsv({ ...filterParams, sort: sort.key, dir: sort.dir }).catch((e) => window.alert(e?.message || t('Xatolik yuz berdi'))) },
           sortMenuItem(t, sort, Q.setSort),
           { label: t('Ustunlarni sozlash'), icon: 'list', onClick: () => setColsModal(true) },

@@ -1,7 +1,7 @@
 // amoCRM "Импорт" — bitimlar va kontaktlar importi (/leads/import, /contacts/import).
 // 4 qadam: fayl → maydonlarni moslash → sozlamalar → natija.
-import React, { useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../../lib/apiClient'
 import { crmService } from '../../services/crm.service'
 import { useApi } from '../../lib/useApi'
@@ -91,6 +91,43 @@ function downloadCsv(name, rows) {
 const pad = (n) => String(n).padStart(2, '0')
 const defaultTag = () => { const d = new Date(); return `import_${pad(d.getDate())}${pad(d.getMonth() + 1)}${d.getFullYear()}_${pad(d.getHours())}${pad(d.getMinutes())}` }
 
+function downloadSample(isLeads) {
+  downloadCsv(isLeads ? 'leads-sample.csv' : 'contacts-sample.csv', isLeads
+    ? [['Bitim nomi', 'Byudjet', 'Teglar', 'Kontakt: ism', 'Kontakt: telefon', 'Kontakt: email', 'Kompaniya'], ['Sayt buyurtmasi', '1500000', 'sayt;vip', 'Aziz Karimov', '+998901234567', 'aziz@example.com', 'Demo LLC']]
+    : [['Ism', 'Telefon', 'Email', 'Lavozim', 'Kompaniya'], ['Aziz Karimov', '+998901234567', 'aziz@example.com', 'Direktor', 'Demo LLC']])
+}
+
+/** amoCRM "…" → "Импорт" modali: "Импорт из таблицы" kartochkasi; fayl tanlansa moslash qadamiga o'tiladi. */
+export function ImportModal({ entity = 'leads', onClose }) {
+  const t = useT()
+  const navigate = useNavigate()
+  const inputRef = useRef(null)
+  const pick = (file) => { if (file) { onClose(); navigate(`/${entity}/import`, { state: { file } }) } }
+  return (
+    <div className="ac-modal-wrap" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="ac-modal ac-import-modal">
+        <div className="ac-import-modal__head">
+          <h2 className="ac-modal__title">{t('Import')}</h2>
+          <button className="ac-import-modal__cancel" onClick={onClose}>{t('Bekor qilish')}</button>
+        </div>
+        <div className="ac-import-card">
+          <span className="ac-import-card__ico">XLS</span>
+          <div>
+            <div className="ac-import-card__title">{t('Jadvaldan import')}</div>
+            <p>{t("Excel'dan import .xls, .xlsx va .csv fayllarini qo'llab-quvvatlaydi. Import bir yo'la kontaktlar, bitimlar, barcha qo'shimcha maydonlar va teglarni olib kirish imkonini beradi.")}</p>
+            <p>{t("Agar faylda «Sana» maydoni bo'lsa, Excel faylini «CSV (vergul bilan ajratilgan)» formatiga o'tkazing: «Saqlash…» → «CSV (vergul bilan ajratilgan)» → «Saqlash».")}</p>
+            <div className="ac-import-card__btns">
+              <button className="ac-btn" onClick={() => inputRef.current?.click()}>{t('Faylni yuklash')}</button>
+              <a onClick={() => downloadSample(entity === 'leads')}>{t('Namunani yuklab olish')}</a>
+            </div>
+            <input ref={inputRef} type="file" hidden accept=".csv,.txt,.xlsx,.xls" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ImportPage({ entity = 'leads' }) {
   const t = useT()
   const navigate = useNavigate()
@@ -135,7 +172,7 @@ export default function ImportPage({ entity = 'leads' }) {
   const guess = (h, taken) => {
     const n = norm(h)
     if (!n) return SKIP
-    const f = fields.find((x) => !taken.has(x.key) && (x.syn.includes(n) || norm(t(x.label)) === n))
+    const f = fields.find((x) => !taken.has(x.key) && (x.syn.includes(n) || norm(x.label) === n || norm(t(x.label)) === n))
     return f ? f.key : SKIP
   }
 
@@ -155,11 +192,18 @@ export default function ImportPage({ entity = 'leads' }) {
     } finally { setBusy(false) }
   }
 
-  const sampleFile = () => {
-    downloadCsv(isLeads ? 'leads-sample.csv' : 'contacts-sample.csv', isLeads
-      ? [['Bitim nomi', 'Byudjet', 'Teglar', 'Kontakt: ism', 'Kontakt: telefon', 'Kontakt: email', 'Kompaniya'], ['Sayt buyurtmasi', '1500000', 'sayt;vip', 'Aziz Karimov', '+998901234567', 'aziz@example.com', 'Demo LLC']]
-      : [['Ism', 'Telefon', 'Email', 'Lavozim', 'Kompaniya'], ['Aziz Karimov', '+998901234567', 'aziz@example.com', 'Direktor', 'Demo LLC']])
-  }
+  const sampleFile = () => downloadSample(isLeads)
+
+  // "Импорт" modalidan tanlangan fayl (router state) — meta yuklangach darhol moslash qadamiga
+  const location = useLocation()
+  const handed = useRef(false)
+  useEffect(() => {
+    const file = location.state?.file
+    if (!file || !meta || handed.current) return
+    handed.current = true
+    navigate(location.pathname, { replace: true, state: null })
+    onFile(file)
+  }, [meta]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const setMap = (i, key) => setMapping((m) => m.map((v, j) => (j === i ? key : key && v === key ? SKIP : v)))
   const required = base.find((f) => f.required)
