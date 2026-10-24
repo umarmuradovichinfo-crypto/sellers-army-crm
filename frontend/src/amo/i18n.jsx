@@ -104,7 +104,16 @@ export function I18nProvider({ children }) {
   const [lang, setLangState] = useState(getLang())
   useEffect(() => { document.documentElement.lang = lang }, [lang])
   const setLang = (l) => { setLangState(l); try { localStorage.setItem(KEY, l) } catch { /* */ } }
-  const t = (s) => (DICTS[lang] && DICTS[lang][s]) || s
+  // Kontekstli kalit "ctx§matn": bir xil o'zbekcha so'z turli bo'limda turlicha tarjima qilinsa (masalan
+  // kartochkada "Mas'ul" → "Отв-ный", jadvalda → "Ответственный"). Tarjima bo'lmasa — matnning o'zi.
+  const t = (s) => {
+    const d = DICTS[lang]
+    if (d && d[s]) return d[s]
+    const i = typeof s === 'string' ? s.indexOf('§') : -1
+    if (i < 0) return s
+    const base = s.slice(i + 1)
+    return (d && d[base]) || base
+  }
   return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>
 }
 

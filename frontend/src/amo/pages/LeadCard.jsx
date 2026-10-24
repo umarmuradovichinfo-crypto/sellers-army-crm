@@ -19,6 +19,34 @@ export const TASK_TYPES = [
   { key: 'message', label: 'Xat', icon: 'send' },
 ]
 
+// Chap panel kengligini surish (amoCRM .card-holder__fields: width %, localStorage'da saqlanadi)
+export function CardResizer() {
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    try { const w = localStorage.getItem('amo_card_w'); if (w) document.documentElement.style.setProperty('--cf-w', w) } catch { /* */ }
+  }, [])
+  const down = (e) => {
+    const page = e.currentTarget.closest('.ac-cardpage')
+    if (!page) return
+    e.preventDefault()
+    setOn(true)
+    const rect = page.getBoundingClientRect()
+    const move = (ev) => {
+      const pct = Math.min(50, Math.max(20, ((ev.clientX - rect.left) / rect.width) * 100))
+      document.documentElement.style.setProperty('--cf-w', `${pct.toFixed(2)}%`)
+    }
+    const up = () => {
+      setOn(false)
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      try { localStorage.setItem('amo_card_w', getComputedStyle(document.documentElement).getPropertyValue('--cf-w').trim()) } catch { /* */ }
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+  return <div className={`ac-cf__resize ${on ? 'on' : ''}`} onPointerDown={down} />
+}
+
 export function PersonAvatar({ size = 40 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 36 36"><circle cx="18" cy="18" r="18" fill="#dcdfe3" /><circle cx="18" cy="14" r="6.5" fill="#fff" /><path d="M5 34c1.5-7 6.5-10.5 13-10.5S29.5 27 31 34" fill="#fff" /></svg>
@@ -688,7 +716,7 @@ export default function LeadCard() {
               {!isNew && v.n && <span>#{String(lead.id).slice(-8)}</span>}
               {(v.tags || []).map((tg) => <span key={tg} className={`ac-cf__tagpill ${tagColors[tg] ? 'ac-tag--c' : ''}`} style={tagStyle(tagColors[tg])}>{tg}<button onClick={() => removeTag(tg)}><Ico name="close" size={10} /></button></span>)}
               {tagInput === null
-                ? <button className={`ac-cf__tagbtn ${(v.tags || []).length ? 'ac-cf__tagbtn--more' : ''}`} onClick={() => setTagInput('')}>{(v.tags || []).length ? '+' : `#${t('Teglash')}`}</button>
+                ? <button className={`ac-cf__tagbtn ${(v.tags || []).length ? 'ac-cf__tagbtn--more' : ''}`} onClick={() => setTagInput('')}>{(v.tags || []).length ? '+' : `#${t('card§Teglash')}`}</button>
                 : <input autoFocus className="ac-input" style={{ width: 140, height: 22 }} value={tagInput} onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && tagInput.trim()) { addTag(tagInput); setTagInput('') } if (e.key === 'Escape') setTagInput(null) }}
                     onBlur={() => { if (tagInput.trim()) addTag(tagInput); setTagInput(null) }} />}
@@ -696,7 +724,7 @@ export default function LeadCard() {
             {pipes.length > 0 && <StatusPicker lead={v} pipes={pipes} onPick={pickStatus} />}
           </div>
           <div className="ac-ctabs">
-            {[['main', 'Asosiy'], ['stats', 'Statistika'], ['setup', 'Sozlash']].map(([k, l]) => (
+            {[['main', 'card§Asosiy'], ['stats', 'card§Statistika'], ['setup', 'card§Sozlash']].map(([k, l]) => (
               <button key={k} className={`ac-ctabs__item ${tab === k ? 'on' : ''}`} onClick={() => k === 'setup' ? navigate('/settings/fields/leads') : setTab(k)}>{t(l)}</button>
             ))}
           </div>
@@ -704,9 +732,9 @@ export default function LeadCard() {
           {tab === 'main' && (
             <>
               <div className="ac-fields">
-                <FieldRow label={t("Mas'ul")}>
+                <FieldRow label={t("card§Mas'ul")}>
                   <select className="ac-field__edit" value={v.assigneeId || ''} onChange={(e) => set('assigneeId', e.target.value)}>
-                    <option value="">—</option>
+                    <option value="">...</option>
                     {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
                 </FieldRow>
@@ -743,6 +771,7 @@ export default function LeadCard() {
             <button className="ac-cf__decline" onClick={rejectLead}><Ico name="trash" size={16} /> {t('Rad etish')}</button>
           </div>
         )}
+        <CardResizer />
         {dirty && (
           <div className="ac-cf__save">
             <button className="ac-btn ac-btn--blue ac-btn--plain" style={{ padding: '0 16px' }} disabled={saving} onClick={save}>{t('Saqlash')}</button>

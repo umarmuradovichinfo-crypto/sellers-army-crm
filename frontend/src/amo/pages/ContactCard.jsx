@@ -7,9 +7,9 @@ import { crmService } from '../../services/crm.service'
 import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
-import { money, dmy, relDay } from '../format'
+import { money, dmy, relDay, phoneFmt } from '../format'
 import { useT } from '../i18n'
-import { PersonAvatar, FieldRow, CustomInput, SysLine, CallNote, TaskNote, NoteItem, taskKind, TASK_TYPES } from './LeadCard'
+import { CardResizer, PersonAvatar, FieldRow, CustomInput, SysLine, CallNote, TaskNote, NoteItem, taskKind, TASK_TYPES } from './LeadCard'
 import '../i18n/entitycard.ru.js'
 import '../leadcard.css'
 import '../entitycard.css'
@@ -98,6 +98,7 @@ export function EntityCard({ kind }) {
   const [members, setMembers] = useState([])
   const [leads, setLeads] = useState([])
   const [leadsTotal, setLeadsTotal] = useState(0)
+  const [phoneEdit, setPhoneEdit] = useState(false)
   const [people, setPeople] = useState([]) // kompaniya kontaktlari
   const [company, setCompany] = useState(null) // kontaktning kompaniyasi
   const [feed, setFeed] = useState({ calls: [], tasks: [], acts: [] })
@@ -263,7 +264,8 @@ export function EntityCard({ kind }) {
   const shown = items.filter((it) => !q || JSON.stringify(it).toLowerCase().includes(q)).sort((a, b) => new Date(a.at) - new Date(b.at))
   const openTasks = feed.tasks.filter((x) => !x.done)
   let lastDay = ''
-  const tabs = [['main', 'Asosiy'], ['leads', 'Bitimlar'], ['setup', 'Sozlash']]
+  // amoCRM kontakt/kompaniya kartochkasi: faqat "Основное" va "Сделки" (soni ko'rsatilmaydi)
+  const tabs = [['main', 'card§Asosiy'], ['leads', 'card§Bitimlar']]
 
   return (
     <div className="ac-cardpage">
@@ -281,14 +283,14 @@ export function EntityCard({ kind }) {
             <div className="ac-cf__meta">
               {!isNew && <span>#{String(ent.id).slice(-8)}</span>}
               {(v.custom.tags || []).map((tg) => <span key={tg} className="ac-cf__tagpill">{tg}<button onClick={() => setCustom('tags', (v.custom.tags || []).filter((x) => x !== tg))}><Ico name="close" size={10} /></button></span>)}
-              <button className="ac-cf__tagbtn" onClick={() => { const n = window.prompt(t('Teg nomi')); if (n && n.trim()) setCustom('tags', [...new Set([...(v.custom.tags || []), n.trim()])]) }}>#{t('Teglash')}</button>
+              <button className="ac-cf__tagbtn" onClick={() => { const n = window.prompt(t('Teg nomi')); if (n && n.trim()) setCustom('tags', [...new Set([...(v.custom.tags || []), n.trim()])]) }}>#{t('card§Teglash')}</button>
             </div>
           </div>
           <div className="ac-ctabs">
             {tabs.map(([k, l]) => (
               <button key={k} className={`ac-ctabs__item ${tab === k ? 'on' : ''}`} disabled={k === 'leads' && isNew}
                 onClick={() => k === 'setup' ? navigate(`/settings/fields/${isContact ? 'contacts' : 'companies'}`) : setTab(k)}>
-                {t(l)}{k === 'leads' && leadsTotal > 0 ? ` ${leadsTotal}` : ''}
+                {t(l)}
               </button>
             ))}
           </div>
@@ -297,19 +299,26 @@ export function EntityCard({ kind }) {
           {tab === 'main' && (
             <>
               <div className="ac-fields">
-                <FieldRow label={t("Mas'ul")}>
+                <FieldRow label={t("card§Mas'ul")}>
                   <select className="ac-field__edit" value={v.custom._assigneeId || ''} onChange={(e) => setCustom('_assigneeId', e.target.value)}>
-                    <option value="">—</option>
+                    <option value="">...</option>
                     {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
                 </FieldRow>
                 <FieldRow label={t('Ish tel.')}>
                   <div className="ac-ec-multi">
-                    <input className="ac-field__edit" value={v.phone || ''} placeholder="..." onChange={(e) => set('phone', e.target.value)} />
+                    {v.phone && !phoneEdit ? (
+                      <span className="ac-field__phone">
+                        <span className="ac-field__plusmini" title={t("Telefon qo'shish")} onClick={() => setCustom('phones', [...extraPhones, ''])}><Ico name="plus" size={8} /></span>
+                        <a className="ac-field__link" href={`tel:${String(v.phone).replace(/[^\d+]/g, '')}`}>{phoneFmt(v.phone)}</a>
+                        <span className="ac-field__pen" onClick={() => setPhoneEdit(true)}><Ico name="edit" size={12} /></span>
+                      </span>
+                    ) : (
+                      <input className="ac-field__edit" autoFocus={phoneEdit} value={v.phone || ''} placeholder="..." onBlur={() => setPhoneEdit(false)} onChange={(e) => set('phone', e.target.value)} />
+                    )}
                     {extraPhones.map((p, i) => (
                       <input key={i} className="ac-field__edit" value={p} placeholder="..." onChange={(e) => setCustom('phones', extraPhones.map((x, j) => j === i ? e.target.value : x))} />
                     ))}
-                    <a className="ac-ec-add" onClick={() => setCustom('phones', [...extraPhones, ''])}>{t("qo'shish")}</a>
                   </div>
                 </FieldRow>
                 <FieldRow label={t('Email ish.')}>
@@ -331,11 +340,16 @@ export function EntityCard({ kind }) {
                   ? (
                     <div className="ac-linked">
                       <div className="ac-linked__head">
-                        <div className="ac-linked__avatar ac-ec-co"><Ico name="company" size={20} /></div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="ac-linked__avatar ac-linked__avatar--co"><Ico name="company" size={16} /></div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="ac-linked__kind">{t('Kompaniya')}</div>
                           <div className="ac-linked__name" onClick={() => navigate(`/companies/detail/${company.id}`)}>{company.name}</div>
                         </div>
-                        <DotsMenu items={[{ label: t('Uzish'), icon: 'close', onClick: unlinkCompany }]} />
+                        <DotsMenu align="left" className="ac-linked__dots" items={[
+                          { label: t("Kartochkaga o'tish"), icon: 'external', onClick: () => navigate(`/companies/detail/${company.id}`) },
+                          { label: t('Ismni nusxalash'), icon: 'list', onClick: () => navigator.clipboard?.writeText(company.name || '') },
+                          { label: t('Uzish'), icon: 'link', onClick: unlinkCompany },
+                        ]} />
                       </div>
                     </div>
                   )
@@ -378,6 +392,7 @@ export function EntityCard({ kind }) {
             </div>
           )}
         </div>
+        <CardResizer />
         {dirty && (
           <div className="ac-cf__save">
             <button className="ac-btn ac-btn--blue ac-btn--plain" style={{ padding: '0 16px' }} disabled={saving} onClick={save}>{t('Saqlash')}</button>

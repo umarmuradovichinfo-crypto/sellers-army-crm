@@ -41,3 +41,14 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 1 | Ustun "НАИМЕНОВАНИЕ", standart tartib — eng yangisi tepada (strelkasiz) | "НАЗВАНИЕ ▲", nom bo'yicha | tuzatildi |
 | 2 | Kontakt oldida belgi yo'q, kompaniyada belgi | kontaktda nuqta | tuzatildi |
 | 3 | Telefon formatlangan "+998 93 307 77 07" (ro'yxat, kartochka, voronka, bitim kartochkasi) | xom raqam | tuzatildi (format.js phoneFmt) |
+
+## 5. Kontakt / kompaniya kartochkasi (+ bitim kartochkasi umumiy)
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | Chap panel kengligi 30% (min 340px, max 50%), chegarani surib o'zgartiriladi | qat'iy 520px | tuzatildi (CardResizer, localStorage) |
+| 2 | Maydon yorlig'i ~32% kenglik | 159px | tuzatildi |
+| 3 | Tablar: "Основное", "Сделки" (sonsiz) | "Основная", "Сделки 1", "Настроить" | tuzatildi |
+| 4 | "#ТЕГИРОВАТЬ", "Отв-ный", qiymat yo'q bo'lsa "..." | "#ТЕГИ", "Ответственный", "—" | tuzatildi (kontekstli i18n kalitlari "card§…") |
+| 5 | Telefon: "+" (yana telefon) + formatlangan havola, qalam bilan tahrirlash | input + "добавить" | tuzatildi |
+| 6 | Kompaniya bloki: "КОМПАНИЯ" yorlig'i, "…" (Перейти в карточку, Скопировать имя, Открепить) | faqat "Uzish" | tuzatildi |
+| 7 | i18n: bir xil o'zbekcha kalit turli bo'limda turlicha tarjima — oxirgi yuklangan yutardi | tasodifiy natija | tuzatildi ("ctx§matn" kalitlari) |

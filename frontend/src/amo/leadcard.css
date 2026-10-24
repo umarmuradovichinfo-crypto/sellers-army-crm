@@ -3,7 +3,8 @@
 .ac-cardpage { display: flex; height: 100vh; overflow: hidden; }
 
 /* ── Chap panel (.card-holder__fields) ── */
-.ac-cf { width: 520px; flex: none; display: flex; flex-direction: column; background: var(--palette-background-primary); border-right: 5px solid var(--palette-background-default); position: relative; }
+/* amoCRM: kenglik 30% (min 340px, max 50%), chegarani surib o'zgartiriladi (--cf-w) */
+.ac-cf { width: var(--cf-w, 30%); min-width: 340px; max-width: 50%; flex: none; display: flex; flex-direction: column; background: var(--palette-background-primary); border-right: 5px solid var(--palette-background-default); position: relative; }
 .ac-cf__scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
 .ac-cf__top { position: relative; background: var(--amo-card-top-bg); padding: 13px 30px 19px; }
 .ac-cf__back { position: absolute; left: 1px; top: 14px; width: 28px; height: 40px; display: flex; align-items: center; justify-content: center; color: var(--palette-text-secondary-light); background: none; border: 0; cursor: pointer; }
@@ -49,7 +50,7 @@
 /* Maydonlar (.linked-form__field) */
 .ac-fields { padding: 13px 30px 10px; }
 .ac-field { display: flex; align-items: flex-start; min-height: 29px; }
-.ac-field__label { width: 159px; flex: none; margin-right: 15px; padding-top: 6px; font-size: 15px; line-height: 17px; color: var(--palette-text-secondary-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-field__label { width: 32%; max-width: 159px; flex: none; margin-right: 15px; padding-top: 6px; font-size: 15px; line-height: 17px; color: var(--palette-text-secondary-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ac-field__value { flex: 1; min-width: 0; min-height: 29px; display: flex; align-items: center; font-size: 15px; color: var(--palette-text-primary); position: relative; }
 .ac-field__ph { color: var(--palette-text-secondary-light); cursor: text; }
 .ac-field__select { display: inline-flex; align-items: center; gap: 4px; color: var(--palette-text-secondary-dark); cursor: pointer; }
@@ -202,3 +203,8 @@ a.ac-field__link:hover { color: var(--palette-link-primary); }
   .ac-cf { width: 100%; border-right: 0; }
   .ac-feed { min-height: 70vh; }
 }
+
+/* Panel chegarasi — surib kenglikni o'zgartirish */
+.ac-cf__resize { position: absolute; top: 0; bottom: 0; right: -7px; width: 9px; cursor: col-resize; z-index: 20; }
+.ac-cf__resize:hover, .ac-cf__resize.on { background: rgba(76, 139, 247, 0.25); }
+@media (max-width: 900px) { .ac-cf { min-width: 0; max-width: none; } .ac-cf__resize { display: none; } }
