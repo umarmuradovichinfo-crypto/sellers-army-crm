@@ -186,10 +186,16 @@
 .ac-modal__foot { display: flex; gap: 10px; margin-top: 24px; }
 
 @media (max-width: 760px) {
+  /* Telefon: yuqori panel ikki qator — sarlavha + tugmalar, ostida qidiruv */
+  .ac-top { height: auto; flex-wrap: wrap; }
   .ac-top__count, .ac-top__preset .ac-top__switch { display: none; }
-  .ac-top__preset { padding-left: 14px; }
-  .ac-top__actions { padding-right: 12px; }
-  .ac-aside--fixed ~ .ac-content { margin-left: 0; padding-left: 0; }
-  .ac-aside-burger { display: none; }
-  .ac-aside--fixed { display: none; }
+  .ac-top__preset { flex: 1; min-width: 0; min-height: 52px; padding-left: 14px; border-right: 0; }
+  .ac-top__title { overflow: hidden; text-overflow: ellipsis; }
+  .ac-top__actions { min-height: 52px; padding: 0 10px; border-left: 0; gap: 6px; }
+  .ac-top__actions > .ac-btn:not(.ac-btn--blue) { display: none; }
+  .ac-top__actions .ac-btn--blue { padding: 0 10px; font-size: 11px; }
+  .ac-top__search { order: 3; flex: 1 1 100%; height: 46px; border-top: 1px solid var(--palette-border-primary); }
+  /* Ichki menyu (Analitika/Sozlamalar): ☰ bilan ustidan ochiladi */
+  .ac-aside--collapsed ~ .ac-content .ac-top__preset, .ac-aside--collapsed ~ .ac-content .ac-stats-head { padding-left: 50px; }
+  .ac-aside-burger { left: 65px; width: 48px; height: 52px; }
 }

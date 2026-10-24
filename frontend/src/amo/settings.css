@@ -149,3 +149,14 @@
 .ac-int-pageform { display: flex; align-items: center; gap: 10px; font-size: 14px; min-height: 30px; }
 .ac-int-pageform .grow { flex: 1; min-width: 0; }
 .ac-int-list-item { flex-wrap: wrap; }
+
+/* Telefon: sozlama qatorlari — nom ustida, maydon to'liq kenglikda */
+@media (max-width: 760px) {
+  .ac-set-body { padding: 12px; }
+  .ac-set-block { padding: 14px; }
+  .ac-set-row { flex-direction: column; align-items: stretch; gap: 4px; }
+  .ac-set-row__label { width: auto; }
+  .ac-set-row .ac-input, .ac-set-row .ac-select { width: 100%; max-width: none; }
+  .ac-hook__events { grid-template-columns: 1fr; }
+  .ac-set-tpl { display: block; overflow-x: auto; }
+}

@@ -107,7 +107,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     moslash (yoqilmaganini so'ramaslik), shunda Facebook Lead Ads ulanishi Instagram'siz ham ishlasin. Qilingan: App Domains va
     Valid OAuth Redirect URI (connector /fb/callback) qo'shildi.
 28. [ ] Vazifalar: "Удаленные" (vazifalarni soft-delete + tiklash), "Управление типами задач" (o'z turlari + ikonka), kalendar sinxronizatsiyasi (iCal havola)
-26. [ ] (25-banddan keyin) Har bir qurilma ekraniga moslashish: avval amoCRM turli o'lchamlarda (desktop 1920/1440/1280,
+26. [x] (25-banddan keyin) Har bir qurilma ekraniga moslashish: avval amoCRM turli o'lchamlarda (desktop 1920/1440/1280,
     planshet 1024/768, telefon 414/375) qanday moslashishi ko'riladi (menyu, voronka ustunlari, kartochka, jadval, modallar),
     so'ng bizniki xuddi shunday qilinadi va har o'lchamda test qilinadi
 22. [x] Sozlamalar → Chatlar va messenjerlar: "Javob shablonlari" (nom, holat, matn; chat composer'da tanlash) va "Беседы" qoidasi (yangi bitim qachon ochiladi) — imBox/notif switch'lari keraksiz (imBox doim yoqiq)

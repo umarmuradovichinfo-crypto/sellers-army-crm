@@ -124,3 +124,13 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 |---|--------|-----------|-------|
 | 1 | Maydon ma'lum bosqichlarda majburiy ("Обязательно N"): bitim shu bosqichga o'tkazilganda bo'sh bo'lsa — o'tkazilmaydi | faqat umumiy "majburiy" belgisi (formalar uchun) | qo'shildi (requiredStagesJson, moveLead/updateLead tekshiruvi, "Yo'qotilgan"ga o'tish erkin) |
 | 2 | Sozlash kartochka ichida ("Настроить" tabi — chap panelda: guruh tablari, maydonlar, "Обязательно N") | alohida sahifaga o'tardi | tuzatildi |
+
+## 16. Ekran o'lchamlariga moslashish (PLAN 26)
+amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda mobil ilova taklif qilinadi).
+| # | amoCRM | Bizda edi | Holat |
+|---|--------|-----------|-------|
+| 1 | ≤1279px: Analitika/Sozlamalar ichki menyusi avtomatik yig'iladi, ☰ bilan ustidan ochiladi | doim ochiq | tuzatildi |
+| 2 | <768px moslashmaydi | bizda telefon moslashuvi bor — saqlanadi, buzilgan joylar tuzatildi | — |
+| 3 | Telefon: yuqori panel qirqilardi (tugmalar ko'rinmasdi) | — | ikki qator: sarlavha+tugmalar / qidiruv |
+| 4 | Telefon: ichki menyu butunlay yashirilgan (Sozlamalar/Analitika bo'limlari orasida yurib bo'lmasdi) | — | ☰ bilan ochiladi |
+| 5 | Telefon: sozlamalar qatorlari, analitika bloklari sig'masdi | — | ustma-ust, Gantt yashiriladi |

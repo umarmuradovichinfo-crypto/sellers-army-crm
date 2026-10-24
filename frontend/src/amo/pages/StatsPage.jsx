@@ -45,7 +45,7 @@ function FlowFunnel({ rows, mode }) {
               {r.avgDays != null && <div className="ac-flow__span" style={{ left: `${left}%`, width: `${Math.max(0.5, width)}%`, '--c': r.color }}><i>{Math.round(r.avgDays)}{t(' kun')}</i></div>}
             </div>
             <div className="ac-stats-bar__pct">{pct}%</div>
-            <svg viewBox={`0 0 ${W} 30`} className="ac-flow__svg">
+            <svg viewBox={`0 0 ${W} 30`} preserveAspectRatio="none" className="ac-flow__svg">
               <polygon points={`${W - w},0 ${W},0 ${W},30 ${W - w + Math.min(10, w / 3)},30`} fill={r.color} style={{ transition: 'all .4s' }} />
             </svg>
             <div className="ac-stats-bar__info">
