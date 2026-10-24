@@ -24,6 +24,7 @@ const RU = {
   'Sozlamalar': 'Настройки',
   'Market': 'Маркет',
   'Barcha bitimlar': 'Все сделки',
+  'Arxivdagi voronkalar': 'Архивные воронки',
   'Asosiy voronka': 'Основная воронка',
   'Voronka': 'Воронка',
   "Ro'yxat": 'Список',

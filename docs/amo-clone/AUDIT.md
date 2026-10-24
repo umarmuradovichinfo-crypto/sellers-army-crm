@@ -12,7 +12,7 @@ Har bo'lim: amoCRM'da ko'rilgan (faqat ko'rish) → bizdagi farq → holat.
 | 5 | Forma/Lead Ads saralanmagan arizasi: avatar yo'q, "nom — sana", so'ng forma maydonlari ro'yxati | avatar + "от:" + telefon | tuzatildi |
 | 6 | "Сделки" menyusida asosiy voronka ham, joriy voronka ko'k | asosiy voronka yo'q edi | tuzatildi |
 | 7 | Tugma "НАСТРОИТЬ" | "НАСТРОИТЬ ВОРОНКУ" | tuzatildi |
-| 8 | "Архивные воронки" bo'limi | voronka arxivi yo'q | rejada (backend: voronkani arxivlash) |
+| 8 | "Архивные воронки" bo'limi | voronka arxivi yo'q | qo'shildi (sozlamalarda Arxivlash/Arxivdan chiqarish, menyuda «Архивные воронки ›») |
 | 9 | Chap menyu: "AI-агенты и боты", "Покупатели" | yo'q | amoCRM'ning alohida mahsulotlari — qo'shilmaydi |
 | 10 | "…" menyu tartibi: Настроить воронку, Импорт, Экспорт, Внешний вид карточки, Поиск дублей, Массовые действия, Сортировка, Автообновление | "Voronkani sozlash" yo'q, saralash 3-o'rinda | tuzatildi |
 | 11 | Filtr o'rta ustuni: sarlavhasiz ixcham qatorlar ("Причины отказа: Все значения", kvadrat belgi), sana — bitta "📅 За все время" boshqaruvi, "Активные статусы", "Требующие внимания: Не учитывать" | sarlavhali bloklar, sana alohida tugmalar | tuzatildi |

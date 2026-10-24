@@ -81,6 +81,7 @@ model CrmPipeline {
   name      String
   order     Int      @default(0)
   isDefault Boolean  @default(false)
+  archived  Boolean  @default(false) // amoCRM "Архивные воронки"
   createdAt DateTime @default(now())
 
   @@map("crm_pipelines")

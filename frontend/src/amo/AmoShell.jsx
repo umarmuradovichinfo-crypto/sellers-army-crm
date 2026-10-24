@@ -172,26 +172,39 @@ function ProfileModal({ onClose }) {
 
 function LeadsFlyout({ open, onEnter, onLeave, onPick }) {
   const [pipes, setPipes] = useState([])
+  const [archived, setArchived] = useState([])
+  const [showArch, setShowArch] = useState(false)
   const loc = useLocation()
   const t = useT()
   useEffect(() => {
-    if (!open || pipes.length) return
-    crmService.getPipeline().then((r) => setPipes(r.pipelines || [])).catch(() => {})
+    if (!open) { setShowArch(false); return }
+    crmService.getPipeline().then((r) => { setPipes(r.pipelines || []); setArchived(r.archivedPipelines || []) }).catch(() => {})
   }, [open]) // eslint-disable-line
   const current = new URLSearchParams(loc.search).get('pipeline') || loc.pathname.split('/')[3] || ''
+  const item = (p) => (
+    <NavLink key={p.id || 'main'} to={`/leads/pipeline/${p.id || ''}`} className={`ac-aside__item ${String(current) === String(p.id || '') && loc.pathname.startsWith('/leads/pipeline') ? 'selected' : ''}`} onClick={onPick}>
+      {p.name}
+    </NavLink>
+  )
+  // amoCRM: "Архивные воронки ›" — ichki ro'yxat, sarlavhada "‹" bilan qaytish
+  if (showArch) {
+    return (
+      <div className={`ac-aside ac-flyout ${open ? 'open' : ''}`} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+        <div className="ac-aside__head ac-flyout__back" onClick={() => setShowArch(false)}><Ico name="chevronLeft" size={14} />{t('Arxivdagi voronkalar')}</div>
+        <div className="ac-aside__list">{archived.map(item)}</div>
+      </div>
+    )
+  }
   return (
     <div className={`ac-aside ac-flyout ${open ? 'open' : ''}`} onMouseEnter={onEnter} onMouseLeave={onLeave}>
       <div className="ac-aside__head">{t('Bitimlar')}</div>
       <div className="ac-aside__list">
         {/* getPipeline().pipelines — faqat qo'shimcha voronkalar; asosiy voronka birinchi */}
-        {[{ id: '', name: t('Asosiy voronka') }, ...pipes.filter((p) => p.id)].map((p) => (
-          <NavLink key={p.id || 'main'} to={`/leads/pipeline/${p.id || ''}`} className={`ac-aside__item ${String(current) === String(p.id || '') && loc.pathname.startsWith('/leads/pipeline') ? 'selected' : ''}`} onClick={onPick}>
-            {p.name}
-          </NavLink>
-        ))}
+        {[{ id: '', name: t('Asosiy voronka') }, ...pipes.filter((p) => p.id)].map(item)}
       </div>
       <div className="ac-aside__foot">
         <NavLink to="/leads/list" className="ac-aside__item" onClick={onPick}>{t('Barcha bitimlar')} <span style={{ marginLeft: 'auto' }}><Ico name="list" /></span></NavLink>
+        {archived.length > 0 && <a className="ac-aside__item ac-aside__item--muted" onClick={() => setShowArch(true)}>{t('Arxivdagi voronkalar')} <span style={{ marginLeft: 'auto' }}><Ico name="chevronRight" size={12} /></span></a>}
       </div>
     </div>
   )

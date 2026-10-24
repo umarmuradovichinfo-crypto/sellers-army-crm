@@ -32,8 +32,9 @@ export class CrmSettingsService {
 
   // ── Voronkalar (pipelines) ──
   async listPipelines() {
-    const pipelines = await this.prisma.crmPipeline.findMany({ orderBy: { order: 'asc' } });
-    return { pipelines };
+    const all = await this.prisma.crmPipeline.findMany({ orderBy: { order: 'asc' } });
+    // arxivdagilar tanlov ro'yxatlariga tushmaydi — alohida "Архивные воронки"
+    return { pipelines: all.filter((p) => !p.archived), archivedPipelines: all.filter((p) => p.archived) };
   }
   async createPipeline(dto: { name: string }) {
     const name = (dto.name || '').trim();
@@ -42,7 +43,7 @@ export class CrmSettingsService {
     const pipeline = await this.prisma.crmPipeline.create({ data: { name: name.slice(0, 100), order: (agg._max.order ?? -1) + 1 } });
     return { pipeline };
   }
-  async updatePipeline(id: string, dto: { name?: string; order?: number }) {
+  async updatePipeline(id: string, dto: { name?: string; order?: number; archived?: boolean }) {
     if (!(await this.prisma.crmPipeline.findUnique({ where: { id }, select: { id: true } }))) throw notFound('Voronka');
     const data: Record<string, unknown> = {};
     if (dto.name !== undefined) {
@@ -51,6 +52,7 @@ export class CrmSettingsService {
       data.name = n.slice(0, 100);
     }
     if (dto.order !== undefined && Number.isFinite(Number(dto.order))) data.order = Math.round(Number(dto.order));
+    if (dto.archived !== undefined) data.archived = !!dto.archived;
     const pipeline = await this.prisma.crmPipeline.update({ where: { id }, data });
     return { pipeline };
   }

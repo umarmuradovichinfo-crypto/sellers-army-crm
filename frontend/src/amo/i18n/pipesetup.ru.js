@@ -244,4 +244,6 @@ addRu({
   'Majburiy': 'Обязательно',
   'Bosqichlarni tanlang': 'Выберите этапы',
   'Instagram izohlari': 'Instagram Комментарии',
+  'Arxivlash': 'Архивировать',
+  'Arxivdan chiqarish': 'Вернуть из архива',
 })

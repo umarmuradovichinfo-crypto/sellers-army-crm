@@ -199,3 +199,6 @@
   .ac-aside--collapsed ~ .ac-content .ac-top__preset, .ac-aside--collapsed ~ .ac-content .ac-stats-head { padding-left: 50px; }
   .ac-aside-burger { left: 65px; width: 48px; height: 52px; }
 }
+/* amoCRM "Архивные воронки" ichki ro'yxati */
+.ac-flyout__back { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.ac-aside__item--muted { cursor: pointer; }

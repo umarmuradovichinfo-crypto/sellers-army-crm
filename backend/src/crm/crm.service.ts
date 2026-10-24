@@ -287,7 +287,7 @@ export class CrmService {
       { lab: 'Sotuv summasi', v: fmtSum(sumKind('won', 's')) },
     ];
 
-    return { stages: stagesOut, stats, pipelines, pipelineId: activePid };
+    return { stages: stagesOut, stats, pipelines: pipelines.filter((p) => !p.archived), archivedPipelines: pipelines.filter((p) => p.archived), pipelineId: activePid };
   }
 
   /** Voronka ustunining keyingi sahifasi: kursor `${queue}:${id}` (keyset, drag-drop'dan keyin ham barqaror). */

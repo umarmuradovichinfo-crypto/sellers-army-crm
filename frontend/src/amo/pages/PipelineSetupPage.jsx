@@ -17,7 +17,7 @@ const COLORS = ['#d6eaff', '#99ccff', '#c1e0ff', '#d6d9fb', '#ebd6fb', '#ffcccc'
 const EMPTY_CELLS = 14
 const DEFAULT_SETTINGS = { unsortedEnabled: true, dups: { enabled: false, sources: {}, matchPhone: true, matchEmail: true, fields: [], pipelines: null, stages: null, onConflict: 'update', onMultiple: 'newest', afterTask: { enabled: false, assignee: 'lead', text: '' } } }
 
-function PipeName({ pid, pipes, name, onChanged }) {
+function PipeName({ pid, pipes, name, archived, onChanged }) {
   const t = useT()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -50,6 +50,11 @@ function PipeName({ pid, pipes, name, onChanged }) {
     } catch (e) { window.alert(e?.message || t('Xatolik')) }
     finally { busy.current = false }
   }
+  // amoCRM: voronkani arxivlash (bitimlar saqlanadi, menyudan "Архивные воронки"ga o'tadi) va qaytarish
+  const toggleArchive = async () => {
+    try { await crmService.updatePipeline(pid, { archived: !archived }); setOpen(false); onChanged() }
+    catch (e) { window.alert(e?.message || t('Xatolik')) }
+  }
   const remove = async () => {
     if (!window.confirm(t("Voronka o'chirilsinmi? Bosqichlar va bitimlar asosiy voronkaga o'tkaziladi."))) return
     try { await crmService.deletePipeline(pid); go('main') }
@@ -68,6 +73,7 @@ function PipeName({ pid, pipes, name, onChanged }) {
               <div className="ac-ps-menu__sep" />
               <button className="ac-ps-menu__item" onClick={() => { setText(''); setMode('new') }}><Ico name="plus" size={12} />{t('Yangi voronka qo\'shish')}</button>
               {!isMain && <button className="ac-ps-menu__item" onClick={() => { setText(name); setMode('rename') }}><Ico name="edit" size={12} />{t("Nomini o'zgartirish")}</button>}
+              {!isMain && <button className="ac-ps-menu__item" onClick={toggleArchive}><Ico name="archive" size={12} />{t(archived ? 'Arxivdan chiqarish' : 'Arxivlash')}</button>}
               {!isMain && <button className="ac-ps-menu__item danger" onClick={remove}><Ico name="trash" size={12} />{t("Voronkani o'chirish")}</button>}
             </>
           ) : (
@@ -287,7 +293,9 @@ export default function PipelineSetupPage() {
   }, [])
 
   const pipes = data?.pipelines || []
-  const pipeName = pid ? (pipes.find((p) => p.id === pid)?.name || t('Voronka')) : t('Asosiy voronka')
+  const archivedPipes = data?.archivedPipelines || []
+  const isArchived = !!pid && archivedPipes.some((p) => p.id === pid)
+  const pipeName = pid ? ([...pipes, ...archivedPipes].find((p) => p.id === pid)?.name || t('Voronka')) : t('Asosiy voronka')
   const open = cols.filter((c) => c.kind === 'open')
   const tail = cols.filter((c) => c.kind !== 'open')
 
@@ -441,7 +449,7 @@ export default function PipelineSetupPage() {
   return (
     <div className="ac-pipesetup">
       <div className="ac-top">
-        <PipeName pid={pipelineId} pipes={pipes} name={pipeName} onChanged={loadPipe} />
+        <PipeName pid={pipelineId} pipes={pipes} name={pipeName} archived={isArchived} onChanged={loadPipe} />
         <div className="ac-ps-spacer" />
         <div className="ac-top__actions">
           <button className="ac-ps-back" onClick={exit}>{lang === 'ru' ? 'Выйти' : t('Chiqish')}</button>
