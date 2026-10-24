@@ -10,6 +10,7 @@ import { useI18n, useT } from './i18n'
 import { setFormatPrefs } from './format'
 import { settingsService } from '../services/settings.service'
 import NetworkBar from './NetworkBar'
+import { loadTaskTypes } from './taskTypes'
 
 export const NAV = [
   { key: 'dashboard', to: '/dashboard', title: 'Ish stoli', icon: 'dashboard' },
@@ -215,6 +216,7 @@ export default function AmoShell({ children }) {
     window.addEventListener('amo:nav-hidden', h)
     return () => window.removeEventListener('amo:nav-hidden', h)
   }, [])
+  useEffect(() => { loadTaskTypes() }, [])
   useEffect(() => {
     settingsService.getGeneral?.().then((r) => { setFormatPrefs(r?.general || {}); setNavHidden(r?.general?.navHidden || {}); setPrefsTick((n) => n + 1) }).catch(() => {})
   }, [])

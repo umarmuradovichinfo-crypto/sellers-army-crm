@@ -1133,6 +1133,27 @@ export class CrmService {
     return { success: true };
   }
 
+  // ── Vazifa turlari (amoCRM "Управление типами задач"): standart 4 ta + o'z turlari (AppSetting 'task_types') ──
+  async getTaskTypes() {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: 'task_types' } });
+    let custom: any[] = [];
+    try { const v = JSON.parse(row?.value || '[]'); custom = Array.isArray(v) ? v : []; } catch { /* */ }
+    return { custom };
+  }
+  async saveTaskTypes(body: { custom?: unknown }) {
+    const ICONS = ['clock', 'phone', 'users', 'send', 'check', 'star', 'calendar', 'note', 'dollar', 'external', 'telegram', 'instagram'];
+    const RESERVED = ['call', 'meeting', 'task', 'message'];
+    const custom = (Array.isArray(body?.custom) ? body.custom : []).slice(0, 30).map((x: any, i: number) => {
+      const label = String(x?.label || '').trim().slice(0, 40);
+      let key = String(x?.key || '').trim().slice(0, 40);
+      if (!key || RESERVED.includes(key)) key = `t_${Date.now().toString(36)}${i}`;
+      return { key, label, icon: ICONS.includes(x?.icon) ? x.icon : 'clock' };
+    }).filter((x) => x.label);
+    const value = JSON.stringify(custom);
+    await this.prisma.appSetting.upsert({ where: { key: 'task_types' }, update: { value }, create: { key: 'task_types', value } });
+    return { custom };
+  }
+
   async listDeletedTasks() {
     const rows = await this.prisma.deletedTask.findMany({ orderBy: { deletedAt: 'desc' }, take: 500 });
     const leadIds = [...new Set(rows.map((r) => r.leadId))];

@@ -74,4 +74,8 @@ addRu({
   "O'chirilgan vazifalar yo'q": 'Удаленных задач нет',
   "O'chirildi": 'Удалена',
   'Tiklash': 'Восстановить',
+  'Vazifa turlarini boshqarish': 'Управление типами задач',
+  'standart': 'стандартный',
+  'Tur nomi': 'Название типа',
+  "Tur qo'shish": 'Добавить тип',
 })

@@ -37,7 +37,9 @@ const LEGACY = {
 }
 export const actionMeta = (type) => ACTIONS.find((a) => a.v === type) || LEGACY[type] || ACTIONS[1]
 
-export const TASK_TYPES = [{ v: 'call', l: "Qo'ng'iroq" }, { v: 'meeting', l: 'Uchrashuv' }, { v: 'message', l: 'Xabar' }, { v: 'task', l: 'Vazifa' }]
+// Avtomatlashtirish "Vazifa yaratish": vazifa turlari (o'z turlari ham) — taskTypes.js'dan
+import { TASK_TYPES as ALL_TASK_TYPES } from '../taskTypes'
+export const TASK_TYPES = { map: (fn) => ALL_TASK_TYPES.map((x) => ({ v: x.key, l: x.label })).map(fn), find: (fn) => ALL_TASK_TYPES.map((x) => ({ v: x.key, l: x.label })).find(fn) }
 export const FIELD_TARGETS = [
   { v: 'name', l: 'Nomi' }, { v: 'budget', l: 'Byudjet' }, { v: 'source', l: 'Manba' }, { v: 'company', l: 'Kompaniya' },
   { v: 'phone', l: 'Telefon' }, { v: 'email', l: 'Email' },

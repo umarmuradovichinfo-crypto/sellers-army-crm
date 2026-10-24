@@ -4,12 +4,8 @@ import { crmService } from '../../services/crm.service'
 import { useT } from '../i18n'
 import { Ico } from '../AmoIcons'
 
-export const TASK_TYPES = [
-  { key: 'call', label: "Qo'ng'iroq" },
-  { key: 'meeting', label: 'Uchrashuv' },
-  { key: 'task', label: 'Kuzatish' },
-  { key: 'message', label: 'Xabar' },
-]
+import { TASK_TYPES } from '../taskTypes'
+export { TASK_TYPES }
 
 const pad = (n) => String(n).padStart(2, '0')
 export const toDateInput = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`

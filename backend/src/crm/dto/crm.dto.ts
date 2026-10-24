@@ -2,6 +2,7 @@ import {
   IsArray,
   IsBoolean,
   IsIn,
+  Matches,
   IsInt,
   IsObject,
   IsOptional,
@@ -116,14 +117,16 @@ export class CreateLeadTaskDto {
   @MinLength(1, { message: 'Vazifa nomi majburiy' })
   title!: string;
 
-  @IsOptional() @IsIn(['call', 'meeting', 'message', 'task']) type?: string;
+  // standart (call|meeting|message|task) yoki o'z turi (Sozlamalar → vazifa turlari, kalit t_...)
+  @IsOptional() @Matches(/^[\w-]{1,40}$/) type?: string;
   @IsOptional() @IsString() dueDate?: string;
   @IsOptional() @IsString() assigneeId?: string;
 }
 
 export class UpdateLeadTaskDto {
   @IsOptional() @IsString() title?: string;
-  @IsOptional() @IsIn(['call', 'meeting', 'message', 'task']) type?: string;
+  // standart (call|meeting|message|task) yoki o'z turi (Sozlamalar → vazifa turlari, kalit t_...)
+  @IsOptional() @Matches(/^[\w-]{1,40}$/) type?: string;
   @IsOptional() @IsString() dueDate?: string;
   @IsOptional() @IsString() assigneeId?: string;
   @IsOptional() @IsBoolean() done?: boolean;

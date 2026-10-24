@@ -15,12 +15,8 @@ import '../pipesetup.css'
 import '../i18n/leadcard.ru.js'
 import '../leadcard.css'
 
-export const TASK_TYPES = [
-  { key: 'call', label: "Qo'ng'iroq", icon: 'phone' },
-  { key: 'meeting', label: 'Uchrashuv', icon: 'users' },
-  { key: 'task', label: 'Kuzatish', icon: 'clock' },
-  { key: 'message', label: 'Xat', icon: 'send' },
-]
+import { TASK_TYPES } from '../taskTypes'
+export { TASK_TYPES }
 
 // Chap panel kengligini surish (amoCRM .card-holder__fields: width %, localStorage'da saqlanadi)
 // amoCRM "Настроить" (kartochka ichida): "Настройка свойств полей и групп" — guruh tablari, maydonlar, "Обязательно N"

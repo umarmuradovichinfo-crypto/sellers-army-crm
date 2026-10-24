@@ -9,6 +9,8 @@ import { Ico } from '../AmoIcons'
 import { dmy, hm } from '../format'
 import { useT, usePlural } from '../i18n'
 import { AddTaskModal, CompleteModal, TASK_TYPES } from './TasksModals'
+import { DEFAULT_TASK_TYPES, setCustomTaskTypes, useTaskTypes } from '../taskTypes'
+import { api } from '../../lib/apiClient'
 import TasksFilter, { presetFilter, matchTask, taskChips } from '../TasksFilter'
 import { useFilterMeta } from '../filterState'
 import { useAuth } from '../../context/AuthContext'
@@ -23,6 +25,47 @@ const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); r
 const sameDay = (a, b) => a.toDateString() === b.toDateString()
 const mondayOf = (d) => addDays(startOfDay(d), -((d.getDay() + 6) % 7))
 // "…" → Eksport: ekrandagi (filtrlangan) vazifalar CSV ko'rinishida
+// "Управление типами задач": standart turlar + o'z turlari (nom, ikonka)
+const TYPE_ICONS = ['clock', 'phone', 'users', 'send', 'check', 'star', 'calendar', 'note', 'dollar', 'external', 'telegram', 'instagram']
+function TaskTypesModal({ onClose }) {
+  const t = useT()
+  const [custom, setCustom] = useState(null)
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  React.useEffect(() => { api.get('/crm/task-types').then((r) => setCustom(r.custom || [])).catch(() => setCustom([])) }, [])
+  const save = async () => {
+    setBusy(true); setErr('')
+    try { const r = await api.put('/crm/task-types', { custom }); setCustomTaskTypes(r.custom || []); onClose() } catch (e) { setErr(e?.message || t('Xatolik yuz berdi')) } finally { setBusy(false) }
+  }
+  return (
+    <div className="ac-modal-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="ac-modal">
+        <h3 className="ac-modal__title">{t('Vazifa turlarini boshqarish')}</h3>
+        {DEFAULT_TASK_TYPES.map((x) => (
+          <div key={x.key} className="ac-ttype"><span className="ic"><Ico name={x.icon} size={14} /></span><span className="nm">{t(x.label)}</span><span className="ac-muted" style={{ fontSize: 12 }}>{t('standart')}</span></div>
+        ))}
+        {custom === null && <span className="ac-spinner" />}
+        {(custom || []).map((x, i) => (
+          <div key={x.key || i} className="ac-ttype">
+            <select className="ac-select ic-sel" value={x.icon} onChange={(e) => setCustom((c) => c.map((y, j) => (j === i ? { ...y, icon: e.target.value } : y)))}>
+              {TYPE_ICONS.map((ic) => <option key={ic} value={ic}>{ic}</option>)}
+            </select>
+            <span className="ic"><Ico name={x.icon} size={14} /></span>
+            <input className="ac-input" value={x.label} placeholder={t('Tur nomi')} onChange={(e) => setCustom((c) => c.map((y, j) => (j === i ? { ...y, label: e.target.value } : y)))} />
+            <button className="ac-top__dots" title={t("O'chirish")} onClick={() => setCustom((c) => c.filter((_, j) => j !== i))}><Ico name="trash" size={13} /></button>
+          </div>
+        ))}
+        {custom && <a className="ac-set-addlink" onClick={() => setCustom((c) => [...c, { label: '', icon: 'clock' }])}>+ {t("Tur qo'shish")}</a>}
+        {err && <div className="ac-todo-banner">{err}</div>}
+        <div className="ac-modal__foot">
+          <button className="ac-btn ac-btn--blue" disabled={busy || !custom} onClick={save}>{t('Saqlash')}</button>
+          <button className="ac-btn" onClick={onClose}>{t('Bekor qilish')}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // "Удаленные": o'chirilgan vazifalar ro'yxati va tiklash
 function DeletedTasks({ onRestored }) {
   const t = useT()
@@ -137,6 +180,8 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
   const fmeta = useFilterMeta()
   // amoCRM: standart preset — "Faqat mening vazifalarim" (mas'ul = men, tugallanmagan)
   const [filter, setFilter] = useState(() => presetFilter('mine', user?.id))
+  const [typesOpen, setTypesOpen] = useState(false)
+  useTaskTypes()
   const [cursor, setCursor] = useState(() => startOfDay(new Date()))
   const [dragTask, setDragTask] = useState(null)
   const [overKey, setOverKey] = useState(null)
@@ -320,7 +365,10 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
         filterPanel={(close) => <TasksFilter value={filter} meta={{ ...fmeta, me: user?.id }} onApply={(f) => { setFilter(f); close() }} />}
         chips={taskChips(filter, fmeta, t).map((c) => ({ ...c, onRemove: () => setFilter(presetFilter('all', user?.id)) }))}
         count={plural(tasks.length, 'vazifa')}
-        menu={[{ label: t('Eksport'), icon: 'excel', onClick: () => exportTasksCsv(tasks, t) }]}
+        menu={[
+          { label: t('Vazifa turlarini boshqarish'), icon: 'gear', onClick: () => setTypesOpen(true) },
+          { label: t('Eksport'), icon: 'excel', onClick: () => exportTasksCsv(tasks, t) },
+        ]}
         actions={<button className="ac-btn ac-btn--blue" onClick={() => setAdding({})}><span className="ac-btn__plus">+</span>{t("Vazifa qo'shish")}</button>}
       />
       {err && <div className="ac-todo-banner" onClick={() => setErr('')}>{err}</div>}
@@ -328,6 +376,7 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
       {!data && !error && <div className="ac-todo-loading"><span className="ac-spinner" /></div>}
       {filter.preset === 'deleted' ? <DeletedTasks onRestored={reload} /> : mode === 'list' ? renderList() : mode === 'calendar' ? renderCalendar() : renderLine()}
       {adding && <AddTaskModal members={data?.members} defaultDate={adding.date} onClose={() => setAdding(null)} onCreated={reload} />}
+      {typesOpen && <TaskTypesModal onClose={() => setTypesOpen(false)} />}
       {completing && <CompleteModal task={completing} onClose={() => setCompleting(null)} onDone={complete} />}
     </div>
   )

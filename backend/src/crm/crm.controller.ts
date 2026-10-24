@@ -161,6 +161,15 @@ export class CrmController {
   updateTask(@Param('id') id: string, @Body() dto: UpdateLeadTaskDto, @CurrentUser() user: AuthUser) {
     return this.crm.updateTask(id, dto, user);
   }
+  @Get('task-types')
+  taskTypes() {
+    return this.crm.getTaskTypes();
+  }
+  @Put('task-types')
+  @RequirePermissions('crm.settings')
+  saveTaskTypes(@Body() body: { custom?: unknown }) {
+    return this.crm.saveTaskTypes(body);
+  }
   @Get('tasks-deleted')
   deletedTasks() {
     return this.crm.listDeletedTasks();
