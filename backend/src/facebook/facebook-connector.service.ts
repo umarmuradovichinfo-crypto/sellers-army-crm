@@ -25,7 +25,7 @@ export class FacebookConnectorService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   connectorUrl(): string {
-    return (process.env.CONNECTOR_URL || 'https://connector.sellersarmy.uz').trim().replace(/\/+$/, '');
+    return (process.env.CONNECTOR_URL || 'https://sellers-army-crm-production.up.railway.app').trim().replace(/\/+$/, '');
   }
   connectorOrigin(): string {
     try { return new URL(this.connectorUrl()).origin; } catch { return ''; }

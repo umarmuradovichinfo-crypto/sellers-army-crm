@@ -20,6 +20,14 @@ Facebook ──leadgen webhook──> Connector /fb/webhook ──imzolangan for
 - Connector mijoz lid ma'lumotini saqlamaydi (faqat `pageId/leadgenId/formId` forward). Sahifa tokenlari AES-256-GCM bilan shifrlanadi.
 - CRM ↔ Connector aloqasi `instanceId/instanceSecret` bilan HMAC-SHA256 imzolanadi (CRM birinchi ishga tushganda avtomatik ro'yxatdan o'tadi).
 
+## HOZIRGI HOLAT (2026-10-24)
+- Meta ilovasi: **Sellers Army CRM**, App ID `2117920792432337`, biznes portfoli "Umar's Business Manager" (tekshirilmagan).
+  Use case'lar: Lead Ads, Messenger, Instagram, Pages. Redirect URI, App Domains, Privacy/Terms/Data-deletion URL — sozlangan.
+- Connector: Railway loyihasi `handsome-contentment`, servis `sellers-army-crm` (Root Directory `connector`, branch `amo-clone`),
+  domen **https://sellers-army-crm-production.up.railway.app**, Volume `/data`. `/health`, `/privacy`, `/data-deletion` ishlaydi.
+- QOLGAN (foydalanuvchi): Railway → Variables → `FB_APP_SECRET` ni haqiqiy App Secret bilan almashtirish (hozir placeholder);
+  Business verification; App Review (Advanced Access); App Mode = Live. Ungacha faqat ilovada roli bor akkauntlar ulana oladi.
+
 ## Vendor qadamlari (bir marta)
 1. **Meta ilovasi**: https://developers.facebook.com → Create App → Other → **Business**. App settings → Basic: App ID, App Secret,
    App Domains = connector domeni (`connector.sizning-domen.uz`), Privacy Policy URL, Category.
