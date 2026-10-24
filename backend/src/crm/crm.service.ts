@@ -1118,10 +1118,44 @@ export class CrmService {
     return { task: this.taskView(t) };
   }
 
-  async deleteTask(id: string) {
+  async deleteTask(id: string, user?: AuthUser) {
     const t = await this.prisma.leadTask.findUnique({ where: { id } });
     if (!t) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Vazifa topilmadi' });
-    await this.prisma.leadTask.delete({ where: { id } });
+    // amoCRM: o'chirilgan vazifa "Удаленные"da qoladi va tiklanadi
+    await this.prisma.$transaction([
+      this.prisma.deletedTask.upsert({
+        where: { id: t.id },
+        create: { id: t.id, leadId: t.leadId, title: t.title, type: t.type, dueDate: t.dueDate, done: t.done, doneAt: t.doneAt, result: t.result ?? null, assigneeId: t.assigneeId, createdById: t.createdById, createdAt: t.createdAt, deletedById: user?.id || null },
+        update: { deletedAt: new Date(), deletedById: user?.id || null },
+      }),
+      this.prisma.leadTask.delete({ where: { id } }),
+    ]);
+    return { success: true };
+  }
+
+  async listDeletedTasks() {
+    const rows = await this.prisma.deletedTask.findMany({ orderBy: { deletedAt: 'desc' }, take: 500 });
+    const leadIds = [...new Set(rows.map((r) => r.leadId))];
+    const leads = leadIds.length ? await this.prisma.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true } }) : [];
+    const leadName = new Map(leads.map((l) => [l.id, l.name]));
+    const names = await this.userMap(rows.map((r) => r.assigneeId));
+    return {
+      tasks: rows.map((r) => ({
+        ...this.taskView(r, { leadName: leadName.get(r.leadId), assigneeName: r.assigneeId ? names.get(r.assigneeId) || null : null }),
+        deletedAt: r.deletedAt.toISOString(), leadExists: leadName.has(r.leadId),
+      })),
+    };
+  }
+
+  async restoreTask(id: string) {
+    const r = await this.prisma.deletedTask.findUnique({ where: { id } });
+    if (!r) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Vazifa topilmadi' });
+    if (!(await this.prisma.lead.findUnique({ where: { id: r.leadId }, select: { id: true } })))
+      throw new BadRequestException({ error: 'LEAD_GONE', message: "Vazifaning bitimi o'chirilgan — tiklab bo'lmaydi" });
+    await this.prisma.$transaction([
+      this.prisma.leadTask.create({ data: { id: r.id, leadId: r.leadId, title: r.title, type: r.type, dueDate: r.dueDate, done: r.done, doneAt: r.doneAt, result: r.result, assigneeId: r.assigneeId, createdById: r.createdById, createdAt: r.createdAt } }),
+      this.prisma.deletedTask.delete({ where: { id } }),
+    ]);
     return { success: true };
   }
 }

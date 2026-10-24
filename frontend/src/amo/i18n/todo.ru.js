@@ -70,4 +70,8 @@ addRu({
   'Holat': 'Статус',
   'Natija': 'Результат',
   'Eksport': 'Экспорт',
+  "O'chirilganlar": 'Удаленные',
+  "O'chirilgan vazifalar yo'q": 'Удаленных задач нет',
+  "O'chirildi": 'Удалена',
+  'Tiklash': 'Восстановить',
 })

@@ -161,8 +161,16 @@ export class CrmController {
   updateTask(@Param('id') id: string, @Body() dto: UpdateLeadTaskDto, @CurrentUser() user: AuthUser) {
     return this.crm.updateTask(id, dto, user);
   }
+  @Get('tasks-deleted')
+  deletedTasks() {
+    return this.crm.listDeletedTasks();
+  }
+  @Post('tasks-deleted/:id/restore')
+  restoreTask(@Param('id') id: string) {
+    return this.crm.restoreTask(id);
+  }
   @Delete('tasks/:id')
-  deleteTask(@Param('id') id: string) {
-    return this.crm.deleteTask(id);
+  deleteTask(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.crm.deleteTask(id, user);
   }
 }

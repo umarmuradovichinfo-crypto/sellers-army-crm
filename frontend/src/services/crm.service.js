@@ -64,6 +64,9 @@ export const crmService = {
   listLeadTasks: (id) => mockOr(() => api.get(`/crm/leads/${id}/tasks`), { tasks: [] }),
   createTask: (id, payload) => mockOr(() => api.post(`/crm/leads/${id}/tasks`, payload), { task: { id: 'new', ...payload } }),
   updateTask: (id, payload) => mockOr(() => api.put(`/crm/tasks/${id}`, payload), { task: { id, ...payload } }),
+  // O'chirilgan vazifalar (amoCRM "Удаленные") va tiklash
+  listDeletedTasks: () => api.get('/crm/tasks-deleted'),
+  restoreTask: (id) => api.post(`/crm/tasks-deleted/${id}/restore`, {}),
   deleteTask: (id) => mockOr(() => api.del(`/crm/tasks/${id}`), { success: true }),
 
   // ── OnlinePBX qo'ng'iroqlar ──

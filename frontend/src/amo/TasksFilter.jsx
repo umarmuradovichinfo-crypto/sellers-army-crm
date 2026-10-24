@@ -11,6 +11,7 @@ export const TASK_PRESETS = [
   { key: 'overdue', label: "Muddati o'tgan vazifalar" },
   { key: 'done', label: 'Bajarilgan vazifalar' },
   { key: 'all', label: 'Barcha vazifalar' },
+  { key: 'deleted', label: "O'chirilganlar" },
 ]
 
 // Preset -> boshlang'ich filtr (amoCRM: "Только мои задачи" — mas'ul = men, holat = tugallanmagan)

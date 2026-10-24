@@ -491,3 +491,23 @@ model LeadContact {
   @@index([contactId])
   @@map("crm_lead_contacts")
 }
+
+// O'chirilgan vazifalar arxivi (amoCRM vazifalar filtri → "Удаленные"): tiklanganda lead_tasks'ga qaytariladi
+model DeletedTask {
+  id          String    @id
+  leadId      String
+  title       String
+  type        String    @default("task")
+  dueDate     DateTime?
+  done        Boolean   @default(false)
+  doneAt      DateTime?
+  result      String?
+  assigneeId  String?
+  createdById String?
+  createdAt   DateTime
+  deletedAt   DateTime  @default(now())
+  deletedById String?
+
+  @@index([deletedAt])
+  @@map("crm_deleted_tasks")
+}

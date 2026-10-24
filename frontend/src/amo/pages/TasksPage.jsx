@@ -23,6 +23,37 @@ const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); r
 const sameDay = (a, b) => a.toDateString() === b.toDateString()
 const mondayOf = (d) => addDays(startOfDay(d), -((d.getDay() + 6) % 7))
 // "…" → Eksport: ekrandagi (filtrlangan) vazifalar CSV ko'rinishida
+// "Удаленные": o'chirilgan vazifalar ro'yxati va tiklash
+function DeletedTasks({ onRestored }) {
+  const t = useT()
+  const navigate = useNavigate()
+  const { data, error, reload } = useApi(() => crmService.listDeletedTasks(), [])
+  const [err, setErr] = useState('')
+  const restore = async (x) => {
+    setErr('')
+    try { await crmService.restoreTask(x.id); await reload(); onRestored?.() } catch (e) { setErr(e?.message || t('Xatolik yuz berdi')) }
+  }
+  if (!data && !error) return <div className="ac-todo-loading"><span className="ac-spinner" /></div>
+  const list = data?.tasks || []
+  return (
+    <div className="ac-todo-deleted">
+      {err && <div className="ac-todo-banner" onClick={() => setErr('')}>{err}</div>}
+      {list.length === 0 && <div className="ac-muted" style={{ padding: 30, textAlign: 'center' }}>{t("O'chirilgan vazifalar yo'q")}</div>}
+      {list.map((x) => (
+        <div key={x.id} className="ac-todo-deleted__row">
+          <span className="d">{x.dueDate ? `${dmy(x.dueDate)} ${hm(x.dueDate)}` : '—'}</span>
+          <span className="ty">{t(typeLabel(x.type))}</span>
+          <span className="ti">{x.title}</span>
+          <a className="ld" onClick={() => x.leadExists && navigate(`/leads/detail/${x.leadId}`)}>{x.leadName || '—'}</a>
+          <span className="who">{x.assigneeName || ''}</span>
+          <span className="del">{t("O'chirildi")}: {dmy(x.deletedAt)}</span>
+          {x.leadExists && <button className="ac-btn ac-btn--sm" onClick={() => restore(x)}>{t('Tiklash')}</button>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function exportTasksCsv(tasks, t) {
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
   const head = [t('Muddat'), t('Turi'), t('Vazifa'), t('Bitim'), t("Mas'ul"), t('Holat'), t('Natija')]
@@ -295,7 +326,7 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
       {err && <div className="ac-todo-banner" onClick={() => setErr('')}>{err}</div>}
       {!data && error && <div className="ac-todo-banner">{error?.message || t('Xatolik yuz berdi')}</div>}
       {!data && !error && <div className="ac-todo-loading"><span className="ac-spinner" /></div>}
-      {mode === 'list' ? renderList() : mode === 'calendar' ? renderCalendar() : renderLine()}
+      {filter.preset === 'deleted' ? <DeletedTasks onRestored={reload} /> : mode === 'list' ? renderList() : mode === 'calendar' ? renderCalendar() : renderLine()}
       {adding && <AddTaskModal members={data?.members} defaultDate={adding.date} onClose={() => setAdding(null)} onCreated={reload} />}
       {completing && <CompleteModal task={completing} onClose={() => setCompleting(null)} onDone={complete} />}
     </div>

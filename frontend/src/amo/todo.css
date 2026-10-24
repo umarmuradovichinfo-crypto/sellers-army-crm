@@ -82,3 +82,14 @@
 /* Xato / yuklanish */
 .ac-todo-banner { margin: 8px 30px 0; padding: 8px 12px; border: 1px solid var(--palette-info-bubble-error-border); background: var(--palette-info-bubble-error-background); color: var(--palette-text-primary); font-size: 14px; cursor: pointer; }
 .ac-todo-loading { display: flex; justify-content: center; padding: 30px 0; }
+
+/* "Удаленные" */
+.ac-todo-deleted { padding: 16px 30px; display: flex; flex-direction: column; }
+.ac-todo-deleted__row { display: flex; align-items: center; gap: 14px; min-height: 46px; border-bottom: 1px solid var(--palette-border-primary); font-size: 14px; }
+.ac-todo-deleted__row .d { width: 130px; color: var(--palette-text-secondary-dark); }
+.ac-todo-deleted__row .ty { width: 100px; color: var(--palette-text-secondary-dark); }
+.ac-todo-deleted__row .ti { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-todo-deleted__row .ld { width: 180px; color: var(--palette-link-primary); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-todo-deleted__row .who { width: 140px; color: var(--palette-text-secondary-dark); }
+.ac-todo-deleted__row .del { width: 150px; color: var(--palette-text-secondary-light); font-size: 12px; }
+@media (max-width: 760px) { .ac-todo-deleted__row { flex-wrap: wrap; gap: 4px 10px; padding: 8px 0; } .ac-todo-deleted__row > * { width: auto !important; } }
