@@ -2,7 +2,7 @@ import { api, mockOr } from '../lib/apiClient'
 
 // Preview (mock rejim) uchun — backend ulanmagan holatda UI ko'rinishi
 const MOCK_CFG = {
-  enabled: true, appIdSet: true, appSecretSet: true, webhookUrl: '', verifyToken: '',
+  enabled: true, appManaged: true, webhookStatus: 'ok', appIdSet: true, appSecretSet: true, webhookUrl: '', verifyToken: '',
   pages: [{ id: 'p1', name: 'VITA GUM Elastic' }, { id: 'p2', name: 'Pulpy Uzbekistan' }],
 }
 const MOCK_FORMS = { forms: [{ id: 'f1', name: 'Lead forma — Vita Gum' }, { id: 'f2', name: 'Instagram promo forma' }] }
@@ -26,6 +26,7 @@ function mockMapping(dto) {
 export const facebookService = {
   getConfig: () => mockOr(() => api.get('/crm/facebook/config'), MOCK_CFG),
   saveApp: (patch) => mockOr(() => api.put('/crm/facebook/config', patch), MOCK_CFG),
+  pagesStatus: () => mockOr(() => api.get('/crm/facebook/pages-status'), { pages: MOCK_CFG.pages.map((p) => ({ ...p, active: true })) }),
   oauthUrl: () => mockOr(() => api.get('/crm/facebook/oauth-url'), { url: '#' }),
   connectManual: (dto) => mockOr(() => api.post('/crm/facebook/connect', dto), MOCK_CFG),
   removePage: (pageId) => mockOr(() => api.del(`/crm/facebook/pages/${encodeURIComponent(pageId)}`), { ...MOCK_CFG, pages: MOCK_CFG.pages.filter((p) => p.id !== pageId) }),

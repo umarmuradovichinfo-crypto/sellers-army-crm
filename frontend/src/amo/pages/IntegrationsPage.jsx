@@ -35,7 +35,8 @@ export default function IntegrationsPage() {
   const t = useT()
   const [tab, setTab] = useState('installed')
   const [q, setQ] = useState('')
-  const [open, setOpen] = useState(null)
+  // Facebook OAuth redirect'idan qaytganda (?fb=) modal avtomatik ochiladi
+  const [open, setOpen] = useState(() => (new URLSearchParams(window.location.search).get('fb') ? 'facebook' : null))
   const [status, setStatus] = useState({})
   const [ready, setReady] = useState(false)
   const setOn = (k) => (v) => setStatus((s) => (s[k] === !!v ? s : { ...s, [k]: !!v }))

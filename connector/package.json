@@ -1,0 +1,9 @@
+{
+  "name": "meta-connector",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Markaziy Meta (Facebook) Connector — vendor tomonidan BIR MARTA deploy qilinadi",
+  "type": "module",
+  "engines": { "node": ">=22.5" },
+  "scripts": { "start": "node server.js", "test": "node test/run.mjs" }
+}

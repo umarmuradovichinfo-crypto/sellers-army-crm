@@ -1,3 +1,5 @@
+import { randomBytes } from 'crypto';
+
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -8,6 +10,7 @@ export interface FbPage {
   id: string;
   name: string;
   accessToken: string; // Page Access Token (maxfiy)
+  viaConnector?: boolean; // markaziy Meta Connector orqali ulangan
 }
 export interface FbConfig {
   appId: string;
@@ -15,10 +18,12 @@ export interface FbConfig {
   verifyToken: string; // webhook tekshiruvi uchun
   pages: FbPage[];
   connectedAt?: string;
+  // Ilova darajasidagi webhook obunasi natijasi (POST /{app-id}/subscriptions)
+  webhook?: { status: 'ok' | 'error' | 'skipped'; error?: string; at: string };
 }
 
 /**
- * Facebook integratsiya sozlamalari — UI orqali kiritiladi (AppSetting'da), env fallback.
+ * Facebook integratsiya sozlamalari — asosiy manba: .env (FB_APP_ID/FB_APP_SECRET), zaxira: UI (AppSetting).
  * amoCRM'dagidek: App ID/Secret + ulangan sahifalar (Page Access Token bilan).
  */
 @Injectable()
@@ -35,16 +40,31 @@ export class FacebookConfigService {
     };
   }
 
+  /** Env'da App ID va Secret ikkalasi ham bor — foydalanuvchi ularni ko'rmaydi va o'zgartira olmaydi. */
+  appManaged(): boolean {
+    const e = this.env();
+    return !!(e.appId && e.appSecret);
+  }
+
   private async load(): Promise<FbConfig> {
     const env = this.env();
+    let cfg: FbConfig = env;
     try {
       const row = await this.prisma.appSetting.findUnique({ where: { key: KEY } });
-      if (!row) return env;
-      const saved = JSON.parse(row.value || '{}');
-      return { ...env, ...saved, pages: Array.isArray(saved.pages) ? saved.pages : [] };
-    } catch {
-      return env;
+      if (row) {
+        const saved = JSON.parse(row.value || '{}');
+        cfg = { ...env, ...saved, pages: Array.isArray(saved.pages) ? saved.pages : [] };
+      }
+    } catch { /* env */ }
+    // Env qiymatlari ustun (appManaged bo'lsa saqlangan App ID/Secret e'tiborga olinmaydi)
+    if (this.appManaged()) { cfg.appId = env.appId; cfg.appSecret = env.appSecret; }
+    if (env.verifyToken) cfg.verifyToken = env.verifyToken;
+    // Verify token yo'q bo'lsa — tasodifiy yaratib saqlaymiz
+    if (!cfg.verifyToken) {
+      cfg.verifyToken = randomBytes(24).toString('hex');
+      await this.save(cfg).catch(() => { /* keyingi safar qayta uriniladi */ });
     }
+    return cfg;
   }
 
   async get(): Promise<FbConfig> {
@@ -53,12 +73,19 @@ export class FacebookConfigService {
   }
 
   private async save(cfg: FbConfig) {
+    // Env'dan kelgan App ID/Secret bazaga yozilmaydi
+    const stored: FbConfig = this.appManaged() ? { ...cfg, appId: '', appSecret: '' } : cfg;
     await this.prisma.appSetting.upsert({
       where: { key: KEY },
-      update: { value: JSON.stringify(cfg) },
-      create: { key: KEY, value: JSON.stringify(cfg) },
+      update: { value: JSON.stringify(stored) },
+      create: { key: KEY, value: JSON.stringify(stored) },
     });
     this.cache = cfg;
+  }
+
+  async setWebhookStatus(status: 'ok' | 'error' | 'skipped', error?: string): Promise<void> {
+    const cur = await this.load();
+    await this.save({ ...cur, webhook: { status, error, at: new Date().toISOString() } });
   }
 
   async updateApp(patch: { appId?: string; appSecret?: string; verifyToken?: string }): Promise<FbConfig> {
@@ -73,7 +100,7 @@ export class FacebookConfigService {
 
   async setPages(pages: FbPage[]): Promise<FbConfig> {
     const cur = await this.load();
-    // mavjud sahifalarni yangilaymiz / qo'shamiz (tokenni yangilaydi)
+    // BIRLASHTIRISH: mavjud sahifalarni yangilaymiz / qo'shamiz (tokenni yangilaydi)
     const map = new Map(cur.pages.map((p) => [p.id, p]));
     for (const p of pages) map.set(p.id, p);
     const next: FbConfig = { ...cur, pages: [...map.values()], connectedAt: new Date().toISOString() };

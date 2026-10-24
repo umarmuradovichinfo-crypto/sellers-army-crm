@@ -5,11 +5,15 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   // Katta JSON (avatar/rasm base64) uchun tana chegarasini oshiramiz (standart 100kb kam)
   const { json, urlencoded } = await import('express');
-  app.use(json({ limit: '25mb' }));
+  // Facebook webhook imzosini tekshirish uchun xom tana (faqat shu yo'l uchun saqlanadi)
+  app.use(json({
+    limit: '25mb',
+    verify: (req: any, _res, buf) => { if (String(req.originalUrl || req.url).includes('/facebook/')) req.rawBody = buf; },
+  }));
   app.use(urlencoded({ extended: true, limit: '25mb' }));
 
   // Barcha endpointlar /api/v1 prefiksi ostida (frontend VITE_API_BASE=/api/v1)

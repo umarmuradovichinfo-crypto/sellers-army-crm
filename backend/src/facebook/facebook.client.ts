@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+// Graph API versiyasi — bitta joyda (OAuth dialog ham shundan foydalanadi)
+export const GRAPH_VERSION = process.env.FB_GRAPH_VERSION || 'v24.0';
 // FB_GRAPH_BASE — faqat test/mock uchun (standart: rasmiy Graph API)
-const GRAPH = (process.env.FB_GRAPH_BASE || 'https://graph.facebook.com/v19.0').replace(/\/$/, '');
+const GRAPH = (process.env.FB_GRAPH_BASE || `https://graph.facebook.com/${GRAPH_VERSION}`).replace(/\/$/, '');
 
 /**
  * Facebook Graph API mijozi — amoCRM logikasi:
@@ -58,6 +60,19 @@ export class FacebookClient {
   async subscribePage(pageId: string, pageToken: string): Promise<boolean> {
     const j = await this.post(`/${pageId}/subscribed_apps`, {
       subscribed_fields: 'leadgen', access_token: pageToken,
+    });
+    return !!j.success;
+  }
+  // Sahifaning obuna holati: token yaroqsiz bo'lsa xato tashlaydi; aks holda leadgen obunasi bormi
+  async isPageSubscribed(pageId: string, pageToken: string, appId?: string): Promise<boolean> {
+    const j = await this.get(`/${pageId}/subscribed_apps`, { access_token: pageToken });
+    const list: any[] = Array.isArray(j?.data) ? j.data : [];
+    return list.some((a) => (!appId || String(a.id) === appId) && (Array.isArray(a.subscribed_fields) ? a.subscribed_fields.includes('leadgen') : false));
+  }
+  // Ilova darajasidagi webhook obunasi (Meta panelida qo'lda sozlash shart emas)
+  async subscribeApp(appId: string, appSecret: string, callbackUrl: string, verifyToken: string): Promise<boolean> {
+    const j = await this.post(`/${appId}/subscriptions`, {
+      object: 'page', callback_url: callbackUrl, fields: 'leadgen', verify_token: verifyToken, access_token: `${appId}|${appSecret}`,
     });
     return !!j.success;
   }
