@@ -1,6 +1,6 @@
 # QA: avtomatik testlar va yaxlitlik tekshiruvi
 
-## Ishga tushirish (backend papkasida)
+## Ishga tushirish (loyiha ildizida yoki backend papkasida)
 
 | Buyruq | Nima qiladi |
 |---|---|
