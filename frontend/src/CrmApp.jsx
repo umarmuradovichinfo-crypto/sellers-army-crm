@@ -3,7 +3,7 @@
 // CHAP tomonda bo'limlar paneli (amoCRM'dagi kabi), har bo'lim ALOHIDA sahifa:
 //   Ish stoli (Рабочий стол) · Lidlar (Сделки) · Vazifalar (Задачи) ·
 //   Ro'yxatlar (Списки) · Suhbatlar (Почта/Чаты) · Analitika · Sozlamalar
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Loading } from './components/ui'
 import { useAuth } from './context/AuthContext'
@@ -11,22 +11,24 @@ import Login from './pages/Login'
 import LeadForm from './pages/LeadForm'
 import CallWidget from './components/CallWidget'
 import AmoShell from './amo/AmoShell'
-import LeadsPipeline from './amo/pages/LeadsPipeline'
-import ListsPage from './amo/pages/ListsPage'
-import LeadCard from './amo/pages/LeadCard'
-import TasksPage from './amo/pages/TasksPage'
-import LeadsList from './amo/pages/LeadsList'
-import StatsPage from './amo/pages/StatsPage'
-import ImboxPage from './amo/pages/ImboxPage'
-import DashboardPage from './amo/pages/DashboardPage'
-import PipelineSetupPage from './amo/pages/PipelineSetupPage'
-import FieldsSetupPage from './amo/pages/FieldsSetup'
-import ImportPage from './amo/pages/ImportPage'
-import ContactCard from './amo/pages/ContactCard'
-import CompanyCard from './amo/pages/CompanyCard'
-import SettingsPage from './amo/pages/SettingsPage'
-import IntegrationsPage from './amo/pages/IntegrationsPage'
-import BotsPage from './amo/pages/BotsPage'
+
+// bo'limlar alohida yuklanadi (birinchi ochilish tezroq; har sahifa o'z fayli bilan)
+const LeadsPipeline = lazy(() => import('./amo/pages/LeadsPipeline'))
+const ListsPage = lazy(() => import('./amo/pages/ListsPage'))
+const LeadCard = lazy(() => import('./amo/pages/LeadCard'))
+const TasksPage = lazy(() => import('./amo/pages/TasksPage'))
+const LeadsList = lazy(() => import('./amo/pages/LeadsList'))
+const StatsPage = lazy(() => import('./amo/pages/StatsPage'))
+const ImboxPage = lazy(() => import('./amo/pages/ImboxPage'))
+const DashboardPage = lazy(() => import('./amo/pages/DashboardPage'))
+const PipelineSetupPage = lazy(() => import('./amo/pages/PipelineSetupPage'))
+const FieldsSetupPage = lazy(() => import('./amo/pages/FieldsSetup'))
+const ImportPage = lazy(() => import('./amo/pages/ImportPage'))
+const ContactCard = lazy(() => import('./amo/pages/ContactCard'))
+const CompanyCard = lazy(() => import('./amo/pages/CompanyCard'))
+const SettingsPage = lazy(() => import('./amo/pages/SettingsPage'))
+const IntegrationsPage = lazy(() => import('./amo/pages/IntegrationsPage'))
+const BotsPage = lazy(() => import('./amo/pages/BotsPage'))
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
@@ -40,6 +42,7 @@ function CrmShell() {
   return (
     <AmoShell>
       <div className="amo-content">
+        <Suspense fallback={<Loading />}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
@@ -89,6 +92,7 @@ function CrmShell() {
           <Route path="/sozlamalar" element={<Navigate to="/settings/general" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        </Suspense>
       </div>
       <CallWidget />
     </AmoShell>

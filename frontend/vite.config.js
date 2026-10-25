@@ -6,6 +6,16 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     plugins: [react()],
+    build: {
+      rollupOptions: {
+        output: {
+          // React va router alohida faylda — brauzer keshida qoladi, har deployda qayta yuklanmaydi
+          manualChunks: (id) => (/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//.test(id) ? 'vendor' : undefined),
+        },
+      },
+      // xlsx (~500 KB) faqat import sahifasida dinamik yuklanadi — asosiy yuklashga kirmaydi
+      chunkSizeWarningLimit: 520,
+    },
     server: {
       port: 5173,
       proxy: {

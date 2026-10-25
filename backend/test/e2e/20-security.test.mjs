@@ -89,6 +89,32 @@ describe('Ommaviy forma', () => {
   });
 });
 
+describe('OnlinePBX webhook', () => {
+  const call = { accountcode: 'inbound', caller_id_number: '998901234599', destination_number: '100', duration: 30, uuid: `e2e-${Date.now()}` };
+
+  test("PBX ulanmagan bo'lsa webhook hech narsa yaratmaydi", async () => {
+    const r = await req('POST', '/onlinepbx/webhook', call);
+    assert.ok(r.status < 500);
+    assert.equal(r.data?.skipped, true, JSON.stringify(r.data));
+  });
+
+  test('ulangandan keyin: secretsiz rad, sozlamadagi manzil bilan qabul', async () => {
+    const cfg = await ok('PUT', '/crm/pbx/config', { domain: 'e2e.onpbx.ru', apiKey: 'e2e-test-key' }, T, 200);
+    try {
+      assert.ok(/\?secret=/.test(cfg.webhookUrl), `webhook manzilida secret yo'q: ${cfg.webhookUrl}`);
+      const bad = await req('POST', '/onlinepbx/webhook', call);
+      assert.equal(bad.data?.error, 'BAD_SECRET');
+      const wrong = await req('POST', '/onlinepbx/webhook?secret=guess', call);
+      assert.equal(wrong.data?.error, 'BAD_SECRET');
+      const secret = decodeURIComponent(cfg.webhookUrl.match(/[?&]secret=([^&]+)/)[1]);
+      const good = await req('POST', `/onlinepbx/webhook?secret=${encodeURIComponent(secret)}`, call);
+      assert.ok(good.status < 300 && good.data?.error !== 'BAD_SECRET', JSON.stringify(good.data));
+    } finally {
+      await ok('PUT', '/crm/pbx/config', { domain: '', apiKey: '' }, T, 200);
+    }
+  });
+});
+
 describe('iCal', () => {
   test("noto'g'ri token → 404", async () => {
     assert.equal((await req('GET', `/crm/ical/${'a'.repeat(48)}.ics`)).status, 404);

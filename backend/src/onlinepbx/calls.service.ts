@@ -14,6 +14,7 @@ import { PipelineSettingsService } from '../crm/pipeline-settings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OnlinePbxClient } from './onlinepbx.client';
 import { OnlinePbxConfigService, PbxConfig } from './onlinepbx-config.service';
+import { createHash, timingSafeEqual } from 'crypto';
 
 function digits(p?: string | null): string {
   return (p || '').replace(/\D/g, '');
@@ -75,7 +76,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       callMode: c.callMode || 'callback',
       dialScheme: c.dialScheme || 'tel',
       enabled: !!c.domain && !!c.apiKey,
-      webhookUrl: this.webhookUrl() + (c.webhookSecret ? `?secret=${encodeURIComponent(c.webhookSecret)}` : ''),
+      webhookUrl: this.webhookUrl() + (this.effectiveSecret(c) ? `?secret=${encodeURIComponent(this.effectiveSecret(c))}` : ''),
     };
   }
 
@@ -425,10 +426,19 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   }
 
   // ── Webhook (OnlinePBX hodisalari) ──
+  // webhook maxfiy kaliti: sozlamadagi secret yoki API kalitidan hosil qilingan (secret berilmasa ham webhook ochiq qolmasin)
+  private effectiveSecret(c: { webhookSecret?: string; apiKey?: string }): string {
+    if (c.webhookSecret) return c.webhookSecret;
+    return c.apiKey ? createHash('sha256').update(`crm-pbx-webhook:${c.apiKey}`).digest('hex').slice(0, 32) : '';
+  }
+
   async handleWebhook(body: any, secret?: string) {
-    // Sozlamada webhookSecret bo'lsa — tekshiramiz (aks holda hamma qabul qilinadi)
     const cfg = await this.cfg.get();
-    if (cfg.webhookSecret && cfg.webhookSecret !== (secret || '')) {
+    // PBX ulanmagan bo'lsa — begona so'rovlar CRM'da qo'ng'iroq/bitim yarata olmasin
+    if (!cfg.domain || !cfg.apiKey) return { ok: true, skipped: true };
+    const want = Buffer.from(this.effectiveSecret(cfg));
+    const got = Buffer.from(String(secret || ''));
+    if (!want.length || want.length !== got.length || !timingSafeEqual(want, got)) {
       this.logger.warn('OnlinePBX webhook: secret mos emas — rad etildi');
       return { ok: false, error: 'BAD_SECRET' };
     }

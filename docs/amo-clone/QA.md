@@ -45,7 +45,15 @@ Bitta faylni yurgizish: `E2E_FILES=test/e2e/10-leads.test.mjs npm run test:e2e`.
 12. Telefonda 20 ta sahifada butun ekran gorizontal siljirdi (yopiq filtr panellari, keng jadvallar, statistika bloklari).
 13. RU interfeysda «Bosqich: …» va avtomatlashtirish natijalari o'zbekcha qolardi.
 
-## Qolgan ogohlantirishlar
+14. OnlinePBX webhook secret berilmasa ochiq qolardi. Endi PBX ulanmagan bo'lsa hech narsa qabul qilmaydi; ulanganda secret API kalitidan avtomatik hosil qilinadi va sozlamalardagi manzilda ko'rsatiladi.
+15. Paket zaifliklari (`npm audit`) ikkala tomonda 0 ga tushirildi:
+    - multer 2.5.0;
+    - react-router-dom 7.18.4;
+    - Vite 6.4.5 (esbuild);
+    - xlsx 0.20.3 (SheetJS rasmiy manbasi, chunki npm'da tuzatilgani yo'q).
+16. Asosiy JS fayl 1031 KB edi. Endi sahifalar alohida yuklanadi: asosiy fayl 351 KB, React vendor 183 KB (keshlanadi).
 
-- OnlinePBX webhook: Sozlamalarda secret berilmasa, ochiq qoladi. Secret qo'yish tavsiya etiladi.
-- Bir nechta server nusxasida rate limit xotirada (har nusxa alohida). Hozir 1 nusxa, muammo emas.
+## Eslatma
+
+- Rate limit (login, forma) server xotirasida. Hozir 1 nusxa ishlaydi; bir nechta nusxaga o'tilsa, Redis kerak bo'ladi.
+- `xlsx` paketi cdn.sheetjs.com'dan o'rnatiladi (SheetJS'ning rasmiy tarqatish manzili).
