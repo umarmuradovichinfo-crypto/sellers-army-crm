@@ -120,7 +120,6 @@ const RU = {
   'Vazifa': 'Задача',
   'Bitim': 'Сделка',
   'Eslatma': 'Упоминание',
-  'Avtomatlashtirish': 'Автоматизация',
   'Xabar': 'Сообщение',
   'Foydalanuvchi': 'Пользователь',
 }

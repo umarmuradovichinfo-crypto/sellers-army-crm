@@ -25,4 +25,5 @@ addRu({
   "Amma: API kaliti noto'g'ri": 'Амма: неверный API-ключ',
   "Amma band, birozdan keyin urinib ko'ring": 'Амма занята, попробуйте чуть позже',
   'Amma vaqtincha ishlamayapti': 'Амма временно недоступна',
+  "Menimcha, bu bitimda nimadir noto'g'ri 🤔 Aynan nima ekanini ko'rsataymi?": 'У меня есть ощущение, что с этой сделкой что-то не так 🤔 Показать что именно?',
 })

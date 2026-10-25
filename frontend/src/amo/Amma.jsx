@@ -147,10 +147,21 @@ export default function AmmaWidget() {
     return () => window.removeEventListener(OPEN_EVT, h)
   }, [])
   const onDash = loc.pathname === '/dashboard' || loc.pathname === '/'
+  // bitim kartochkasida bir marta taklif (amoCRM kabi); yopilgani sessiyada eslab qolinadi
+  const [hintOff, setHintOff] = useState(() => { try { return sessionStorage.getItem('amma:hint') === '1' } catch { return false } })
+  const hideHint = () => { setHintOff(true); try { sessionStorage.setItem('amma:hint', '1') } catch { /* */ } }
+  const ask = (q) => { hideHint(); setOpen(true); chat.send(q) }
   return (
     <>
+      {!open && !hintOff && chat.leadId && !chat.msgs.length && (
+        <div className="ac-amma-hint">
+          <button className="ac-amma-icon ac-amma-hint__x" title={t('Yopish')} onClick={hideHint}><Ico name="close" size={12} /></button>
+          {t("Menimcha, bu bitimda nimadir noto'g'ri 🤔 Aynan nima ekanini ko'rsataymi?")}
+          <button className="ac-amma-hint__go" onClick={() => ask(t('Bu bitimda nima muammo?'))}>{t("Ko'rsatish")}</button>
+        </div>
+      )}
       {!open && !onDash && (
-        <button className="ac-amma-fab" title={t('Amma bilan chatni ochish')} onClick={() => setOpen(true)}><AmmaAvatar size={44} /></button>
+        <button className="ac-amma-fab" title={t('Amma bilan chatni ochish')} onClick={() => setOpen(true)}><AmmaAvatar size={36} /></button>
       )}
       <AmmaPanel open={open} onClose={() => setOpen(false)} chat={chat} />
     </>
