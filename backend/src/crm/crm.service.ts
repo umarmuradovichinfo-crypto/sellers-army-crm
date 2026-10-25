@@ -1080,10 +1080,16 @@ export class CrmService {
     const names = await this.userMap(leads.map((l) => l.assigneeId));
     const forms = await this.prisma.crmForm.findMany({ select: { id: true, title: true } });
     const formName = new Map(forms.map((f) => [f.id, f.title]));
+    // amoCRM: chatdan kelgan ariza kartochkasida oxirgi kiruvchi xabar ko'rinadi
+    const ids = leads.map((l) => l.id);
+    const lastMsg = new Map((ids.length ? await this.prisma.$queryRaw<{ leadId: string; text: string }[]>(
+      Prisma.sql`SELECT DISTINCT ON ("leadId") "leadId", text FROM crm_messages WHERE "leadId" IN (${Prisma.join(ids)}) AND direction = 'in' ORDER BY "leadId", "createdAt" DESC`,
+    ) : []).map((m) => [m.leadId, m.text]));
     return {
       leads: leads.map((l) => ({
         ...this.card(l, 'open', names),
         formName: l.formId ? formName.get(l.formId) || null : null,
+        lastMessage: lastMsg.get(l.id) || null,
         createdAt: l.createdAt.toISOString(),
       })),
       total: Number(aggRows[0]?.c || 0),

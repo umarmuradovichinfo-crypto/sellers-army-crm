@@ -5,6 +5,7 @@
 .ac-pipeline__scroll { overflow: auto; height: calc(100vh - 65px); padding: 0 30px 80px; }
 .ac-pipeline__cols { display: flex; justify-content: safe center; gap: 10px; min-width: min-content; }
 .ac-col { width: 312px; flex: none; display: flex; flex-direction: column; }
+.ac-col--unsorted { margin-right: 10px; } /* amoCRM: saralanmagan ustundan keyin 20px (boshqalarida 10px) */
 .ac-col__head {
   position: sticky; top: 0; z-index: 20; background: var(--palette-background-default);
   padding: 15px 10px 10px; text-align: center; min-height: 60px; margin-bottom: 8px;
@@ -57,7 +58,7 @@
 /* Saralanmagan kartochka (.pipeline-unsorted__item) */
 .ac-card--unsorted { cursor: default; }
 .ac-card__from { font-size: 13px; color: var(--palette-text-primary); }
-.ac-card__msg { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; margin-top: 4px; padding: 2px 9px; border-radius: 10px; background: #233f57; font-size: 12px; color: var(--palette-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-card__msg { display: inline-block; max-width: 100%; box-sizing: border-box; vertical-align: top; margin-top: 4px; padding: 2px 9px; border-radius: 10px; background: #233f57; font-size: 12px; color: var(--palette-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 :root:not([data-color-scheme="dark"]) .ac-card__msg { background: #e9eef3; }
 .ac-card__accept { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--palette-overlay-background-default-900, rgba(15, 34, 49, 0.9)); border-radius: inherit; opacity: 0; transition: opacity 0.2s; }
 .ac-card--unsorted:hover .ac-card__accept { opacity: 1; }

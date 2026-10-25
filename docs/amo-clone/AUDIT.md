@@ -173,3 +173,5 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
   faqat saralanmagan arizaga bog'langan kontakt nomi kulrang (amoCRM .list-row_unsorted) — tuzatildi.
 - Ish stoli: amoCRM vidjet to'ri har doim 6 ustun (katak kenglikdan hisoblanadi, eng ko'pi 208px) — bizda tor ekranda 5 ustunga
   tushib joylashuv buzilardi → 6 ustun, katak konteyner kengligidan; kichik vidjet raqamlari katakka moslashadi — tuzatildi.
+- Voronka: saralanmagan ustundan keyin 20px oraliq (boshqalari 10px) — amoCRM o'lchamlari bilan bir xil; chatdan kelgan ariza
+  kartochkasida oxirgi kiruvchi xabar (telefon o'rniga, «…» bilan qisqartirilgan) — tuzatildi.

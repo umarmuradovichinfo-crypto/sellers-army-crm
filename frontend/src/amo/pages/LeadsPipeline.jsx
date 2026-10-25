@@ -143,7 +143,7 @@ function UnsortedCard({ lead, fields = [], onAccept, onReject, onOpen }) {
           <span className="ac-card__date">{cardDate(lead.createdAt, t)}</span>
         </div>
         <div className="ac-card__name" onClick={() => onOpen(lead)}>{lead.n}</div>
-        <span className="ac-card__msg">{lead.formName ? `${t('Forma')}: ${lead.formName}` : phoneFmt(lead.phone) || t("Yangi so'rov")}</span>
+        <span className="ac-card__msg" title={lead.lastMessage || ''}>{lead.lastMessage || (lead.formName ? `${t('Forma')}: ${lead.formName}` : phoneFmt(lead.phone) || t("Yangi so'rov"))}</span>
       </div>
       <div className="ac-card__accept">
         <button className="ac-btn ac-btn--green ac-btn--sm" onClick={() => onAccept(lead)}><Ico name="check" size={12} /> {t('Qabul qilish')}</button>
