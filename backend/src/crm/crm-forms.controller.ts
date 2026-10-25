@@ -1,10 +1,12 @@
-import { Body, Controller, Delete, Get, Headers, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Post, Put, Query, Req } from '@nestjs/common';
 
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { CrmFormsService } from './crm-forms.service';
 import { pickUtm } from './utm';
+import { rateLimit } from '../common/rate-limit';
+import { clientIp } from '../common/guards/ip-whitelist.guard';
 
 // Admin — lead-capture formalarni boshqarish
 @Controller('crm/forms')
@@ -31,7 +33,10 @@ export class PublicCrmFormsController {
     @Body() body: { answers?: Record<string, any>; utm?: Record<string, any>; referrer?: string },
     @Query() query: Record<string, any>,
     @Headers('referer') referer?: string,
+    @Req() req?: any,
   ) {
+    // spamdan himoya: bitta IP'dan bitta formaga 10 daqiqada 20 tagacha ariza
+    rateLimit(`form:${clientIp(req)}:${slug}`, 20, 10 * 60_000, "Juda ko'p ariza yuborildi. Birozdan so'ng qayta urining");
     return this.s.submit(slug, body?.answers || {}, { ...pickUtm(body?.utm), ...pickUtm(query), referrer: body?.referrer || referer });
   }
 }

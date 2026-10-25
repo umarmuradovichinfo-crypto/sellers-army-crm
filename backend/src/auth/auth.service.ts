@@ -3,6 +3,8 @@ import { timingSafeEqual } from 'crypto';
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   ServiceUnavailableException,
   UnauthorizedException,
@@ -14,6 +16,7 @@ import * as bcrypt from 'bcryptjs';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { initialsOf } from '../common/utils/initials';
 import { PrismaService } from '../prisma/prisma.service';
+import { rateCount, rateHit, rateReset } from '../common/rate-limit';
 
 type SetupInput = {
   name: string;
@@ -64,8 +67,18 @@ export class AuthService {
   }
 
   async login(email: string, password: string, meta?: { ip?: string; ua?: string }) {
+    // parol tanlashdan himoya: bitta email+IP uchun 15 daqiqada 10 ta, bitta IP uchun 50 ta xato urinish
+    const ip = meta?.ip || '-';
+    const kEmail = `login:${ip}:${String(email || '').trim().toLowerCase()}`;
+    const kIp = `login-ip:${ip}`;
+    const WIN = 15 * 60_000;
+    if (rateCount(kEmail, WIN) >= 10 || rateCount(kIp, WIN) >= 50) {
+      throw new HttpException({ error: 'TOO_MANY_ATTEMPTS', message: "Juda ko'p noto'g'ri urinish. 15 daqiqadan so'ng qayta urining" }, HttpStatus.TOO_MANY_REQUESTS);
+    }
     const user = await this.validateUser(email, password);
     await this.logAuth(user?.id || null, email, !!user, meta);
+    if (user) rateReset(kEmail);
+    else { rateHit(kEmail); rateHit(kIp); }
     if (!user) {
       throw new UnauthorizedException({
         error: 'INVALID_CREDENTIALS',

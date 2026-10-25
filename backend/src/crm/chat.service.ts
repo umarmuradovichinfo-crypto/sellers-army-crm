@@ -121,10 +121,9 @@ export class ChatService {
   }
 
   async handleTelegramUpdate(update: any, secret?: string) {
-    // Telegram sozlanmagan bo'lsa yoki (TELEGRAM_WEBHOOK_SECRET berilgan bo'lsa) maxfiy sarlavha mos kelmasa — e'tibor bermaymiz
+    // Telegram sozlanmagan bo'lsa yoki maxfiy sarlavha mos kelmasa — e'tibor bermaymiz
     if (!this.tg.enabled()) return { ok: true, skipped: true };
-    const expected = (process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
-    if (expected && expected !== (secret || '')) return { ok: false, error: 'BAD_SECRET' };
+    if (!this.tg.checkSecret(secret)) return { ok: false, error: 'BAD_SECRET' };
     // Salesbot tugmasi bosildi (inline klaviatura) — mijozning shu matnli javobi sifatida
     const cq = update?.callback_query;
     if (cq) {
