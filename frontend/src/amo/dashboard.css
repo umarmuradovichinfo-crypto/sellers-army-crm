@@ -47,7 +47,7 @@
 /* ── Yuqori qism ── */
 .ac-dash__title { margin: 30px 0 0; text-align: center; font: 700 40px/48px var(--font-main); color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, .35); }
 .ac-dash-evbtn {
-  position: absolute !important; top: 17px; right: 168px; height: 32px; padding: 0 18px; display: flex; align-items: center; gap: 12px;
+  position: absolute !important; top: 17px; right: calc(30px + max(0px, (100% - 1363px) / 2)); /* amoCRM: kontent (vidjetlar) o'ng chetiga tekis */ height: 32px; padding: 0 18px; display: flex; align-items: center; gap: 12px;
   border: 0; border-radius: 6px; background: rgba(23, 37, 50, .9); color: #fff; cursor: pointer;
   font: 600 12px/14px var(--font-caption); letter-spacing: .36px; text-transform: uppercase; box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
   transition: background .2s;
