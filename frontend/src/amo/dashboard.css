@@ -79,7 +79,9 @@
 .ac-dash-bgpick__sw.on { border-color: #4c8bf7; }
 
 /* ── Vidjetlar to'ri: amoCRM birligi 208px, oraliq 11px; katta vidjet 2x2 = 430px ── */
-.ac-dash-grid { display: grid; grid-template-columns: repeat(auto-fill, 208px); grid-auto-rows: 208px; gap: 11px; justify-content: center; max-width: 1330px; margin: 0 auto; }
+/* amoCRM (.dashboard-tiles-wrapper): har doim 6 ustun, katak kenglikdan hisoblanadi (eng ko'pi 208px) — tor ekranda ham joylashuv o'zgarmaydi */
+.ac-dash-gridwrap { container-type: inline-size; }
+.ac-dash-grid { --cell: min(208px, calc((min(100cqw, 1330px) - 55px) / 6)); display: grid; grid-template-columns: repeat(6, var(--cell)); grid-auto-rows: var(--cell); gap: 11px; justify-content: center; max-width: 1330px; margin: 0 auto; }
 
 .ac-dash-tile {
   display: flex; flex-direction: column; min-width: 0; overflow: hidden;
@@ -93,7 +95,7 @@
 .ac-dash-tile__top { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 8px; flex: none; }
 .ac-dash-big { font: 600 45px/40.5px 'Open Sans', var(--font-main); color: #8275ff; margin: 8px 0 6px; }
 .ac-dash-tile__top .ac-dash-big { margin-top: 0; }
-.ac-dash-big--sm { margin-top: 10px; }
+.ac-dash-big--sm { margin-top: 10px; font-size: clamp(26px, calc(var(--cell, 208px) * 0.21), 45px); white-space: nowrap; }
 .ac-dash-sum { font: 700 13px var(--font-main); color: #eee; }
 .ac-dash-delta { text-align: right; }
 .ac-dash-delta b { display: block; font: 600 18px 'Open Sans', var(--font-main); color: #00d669; }

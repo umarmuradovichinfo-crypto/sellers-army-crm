@@ -171,3 +171,5 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
   filtr maydonida chip sifatida ko'rsatilmaydi (amoCRM'da bo'sh «Фильтр») — tuzatildi.
 - Ro'yxatlar: «Списки» standart holatda «КОНТАКТЫ» (amoCRM /contacts/list/contacts/), «Все контакты и компании» — tanlov orqali;
   faqat saralanmagan arizaga bog'langan kontakt nomi kulrang (amoCRM .list-row_unsorted) — tuzatildi.
+- Ish stoli: amoCRM vidjet to'ri har doim 6 ustun (katak kenglikdan hisoblanadi, eng ko'pi 208px) — bizda tor ekranda 5 ustunga
+  tushib joylashuv buzilardi → 6 ustun, katak konteyner kengligidan; kichik vidjet raqamlari katakka moslashadi — tuzatildi.

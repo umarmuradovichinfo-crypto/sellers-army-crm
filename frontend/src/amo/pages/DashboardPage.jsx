@@ -264,7 +264,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="ac-dash-grid">
+      <div className="ac-dash-gridwrap"><div className="ac-dash-grid">
         {/* Voronka (top-chart) */}
         <section className="ac-dash-top">
           <ul className="ac-dash-pipes">
@@ -355,7 +355,7 @@ export default function DashboardPage() {
         {tile(t("O'rtacha javob vaqti"), (<><div className="ac-dash-big ac-dash-big--sm ac-dash-big--green">{fmtWait(chatSt?.avgResponseSec || 0, t)}</div><div className="ac-dash-cap">{t('davr uchun')}</div></>))}
         {tile(t('Uzoq javob kutmoqda'), (<><div className="ac-dash-big ac-dash-big--sm">{chatSt?.waiting || 0}</div><hr className="ac-dash-hr" /></>))}
         {memberCount > 0 && tile(t('Xodimlar'), (<div className="ac-dash-big ac-dash-big--sm">{memberCount}</div>))}
-      </div>
+      </div></div>
     </div>
   )
 }
