@@ -458,6 +458,40 @@ model ConversationState {
   @@map("crm_conversations")
 }
 
+// amoCRM Salesbot: konstruktor sxemasi (qadamlar grafi) va triggerlar
+model Salesbot {
+  id           String   @id @default(cuid())
+  name         String
+  active       Boolean  @default(true)
+  stepsJson    String   @default("[]") // [{id, type, x, y, ...sozlamalar, next / buttons[].next / branches}]
+  startId      String? // «Запуск бота»dan keyingi birinchi qadam
+  triggersJson String   @default("[]") // [{type: stage_enter|lead_created|message_in, pipelineId?, stageKey?}]
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("crm_salesbots")
+}
+
+// Bot ishga tushishi (bitim bo'yicha): javob kutish, pauza, natija
+model SalesbotRun {
+  id        String    @id @default(cuid())
+  botId     String
+  leadId    String
+  stepId    String? // joriy (kutilayotgan) qadam
+  state     String    @default("running") // running | waiting | paused | done | stopped | error
+  varsJson  String    @default("{}") // oxirgi javob va h.k.
+  resumeAt  DateTime?
+  error     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([leadId, state])
+  @@index([botId])
+  @@index([state, resumeAt])
+  @@map("crm_salesbot_runs")
+}
+
 // Sotuv rejasi / maqsadlar (oylik, hodim yoki jamoa bo'yicha)
 model SalesGoal {
   id        String   @id @default(cuid())

@@ -167,6 +167,7 @@ export class ChatService {
       data: { leadId: lead.id, channel: 'telegram', direction: 'in', text: String(text).slice(0, 4000), senderName: name, externalId: String(msg.message_id ?? '') },
     });
     await this.reopenConversation(lead.id);
+    await this.automation.salesbot?.onReply(lead.id, String(text)).catch(() => false);
     await this.activity.record(lead.id, 'email', { actorName: name, text: `📨 Telegram: ${String(text).slice(0, 120)}` });
     await this.prisma.lead.update({ where: { id: lead.id }, data: { lastActivityAt: new Date() } }).catch(() => {});
 
@@ -296,6 +297,7 @@ export class ChatService {
       },
     });
     await this.reopenConversation(lead.id);
+    await this.automation.salesbot?.onReply(lead.id, a.text).catch(() => false);
     const label = a.kind === 'comment' ? `${CH_LABEL[a.channel]} izoh` : CH_LABEL[a.channel];
     await this.activity.record(lead.id, 'email', { actorName: a.name, text: `📨 ${label}: ${a.text.slice(0, 120)}` });
     await this.prisma.lead.update({ where: { id: lead.id }, data: { lastActivityAt: new Date() } }).catch(() => {});

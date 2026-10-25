@@ -5,6 +5,8 @@ import { Module } from '@nestjs/common';
 import { ActivityService } from './activity.service';
 import { CrmAnalyticsController } from './analytics.controller';
 import { DashboardController } from './dashboard.controller';
+import { SalesbotController } from './salesbot.controller';
+import { SalesbotService } from './salesbot.service';
 import { CrmAnalyticsService } from './analytics.service';
 import { AutomationController } from './automation.controller';
 import { AutomationService } from './automation.service';
@@ -38,6 +40,7 @@ import { ReminderService } from './reminder.service';
     AutomationController,
     CrmAnalyticsController,
     DashboardController,
+    SalesbotController,
     ContactsController,
     NotificationController,
     CrmFormsController,
@@ -51,6 +54,7 @@ import { ReminderService } from './reminder.service';
     CrmService,
     ActivityService,
     AutomationService,
+    SalesbotService,
     PipelineSettingsService,
     NotificationService,
     CrmSettingsService,

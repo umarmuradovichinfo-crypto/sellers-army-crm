@@ -23,6 +23,8 @@ const ACTION_TYPES = [
   'create_task', 'create_lead', 'webhook', 'change_stage', 'edit_tags', 'complete_tasks', 'change_assignee', 'change_field', 'send_message',
   // eski (legacy) nomlar — ishlashda davom etadi
   'add_tag', 'remove_tag', 'set_assignee', 'set_field', 'add_note', 'notify',
+  // Salesbot'ni ishga tushirish
+  'run_bot',
 ];
 // event → shu event bilan ishga tushadigan trigger turlari
 const EVENT_MATCH: Record<string, string[]> = {
@@ -55,6 +57,18 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
     private readonly notif: NotificationService,
     private readonly tg: TelegramClient,
   ) {}
+
+  /** Salesbot ulanishi (SalesbotService o'rnatadi — aylana bog'liqliksiz): hodisalar, har kiruvchi javob, «botni ishga tushirish» amali. */
+  salesbot?: {
+    onEvent: (event: string, leadId: string) => Promise<void>;
+    onReply: (leadId: string, text: string) => Promise<boolean>;
+    run: (botId: string, leadId: string) => Promise<void>;
+  };
+
+  /** Bot qadamidagi amallar (avtomatlashtirish amallari bilan bir xil). */
+  async runActions(actions: Action[], leadId: string, label: string) {
+    return this.execute({ id: 'salesbot', name: label, actionsJson: JSON.stringify(actions || []) }, leadId, label, 0);
+  }
 
   onModuleInit() {
     setTimeout(() => this.tick().catch(() => {}), 20_000).unref?.();
@@ -186,6 +200,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
 
   async fire(event: string, leadId: string, opts: { actorName?: string; depth?: number } = {}) {
     const depth = opts.depth ?? 0;
+    if (this.salesbot) await this.salesbot.onEvent(event, leadId).catch((e) => this.logger.warn('Salesbot trigger xato: ' + (e as Error).message));
     try {
       if (depth > MAX_DEPTH) { this.logger.warn(`Avtomatlashtirish zanjiri chuqurligi ${MAX_DEPTH} dan oshdi (${event}, ${leadId}) — to'xtatildi`); return; }
       const triggers = EVENT_MATCH[event];
@@ -463,6 +478,11 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
           data: { leadId, channel: 'telegram', direction: 'out', text: text.slice(0, 4000), senderName: 'Avtomatlashtirish', externalId: res.messageId || null },
         });
         return `Telegram xabar yuborildi: ${text.slice(0, 60)}`;
+      }
+      case 'run_bot': {
+        if (!act.botId || !this.salesbot) return null;
+        await this.salesbot.run(String(act.botId), leadId);
+        return 'Salesbot ishga tushirildi';
       }
       case 'add_note': {
         const notes = parse<{ text: string; at: string; by: string }[]>(lead.notesJson, []);
