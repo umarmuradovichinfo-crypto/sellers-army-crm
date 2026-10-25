@@ -215,7 +215,12 @@ export class ChatService {
     if (!this.tg.enabled()) throw new ServiceUnavailableException({ error: 'TELEGRAM_DISABLED', message: 'Telegram sozlanmagan: TELEGRAM_BOT_TOKEN kerak' });
 
     const res = await this.tg.sendMessage(lead.telegramChatId, body);
-    if (!res.ok) throw new ServiceUnavailableException({ error: 'SEND_FAILED', message: 'Telegram: ' + (res.error || 'yuborilmadi') });
+    if (!res.ok) {
+      const err = 'Telegram: ' + (res.error || 'yuborilmadi');
+      // amoCRM: yuborilmagan xabar lentada «Ошибка» belgisi bilan qoladi
+      await this.prisma.message.create({ data: { leadId, channel: 'telegram', direction: 'out', text: body, senderName: user?.name || 'Operator', status: 'error', error: err.slice(0, 500) } });
+      throw new ServiceUnavailableException({ error: 'SEND_FAILED', message: err });
+    }
     const message = await this.prisma.message.create({
       data: { leadId, channel: 'telegram', direction: 'out', text: body, senderName: user?.name || 'Operator', externalId: res.messageId || null },
     });
@@ -242,7 +247,11 @@ export class ChatService {
         externalId = (await this.social.sendMessage({ pageId: target.pageId, recipientId: target.threadId!, text: body })).id || null;
       }
     } catch (e) {
-      throw new ServiceUnavailableException(friendlySocialError(e, channel));
+      const f = friendlySocialError(e, channel);
+      await this.prisma.message.create({
+        data: { leadId, channel, direction: 'out', text: body, senderName: user?.name || 'Operator', threadId: target.threadId, pageId: target.pageId, kind: target.kind, status: 'error', error: String((f as any)?.message || 'error').slice(0, 500) },
+      });
+      throw new ServiceUnavailableException(f);
     }
     const message = await this.prisma.message.create({
       data: { leadId, channel, direction: 'out', text: body, senderName: user?.name || 'Operator', externalId, threadId: target.threadId, pageId: target.pageId, kind: target.kind },

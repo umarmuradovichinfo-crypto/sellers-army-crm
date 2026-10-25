@@ -118,6 +118,7 @@ const SMALL = {
   trash: <><path d="M3 4h10M6 4V2.5h4V4M4.5 4l.7 9.5h5.6l.7-9.5" {...S} /></>,
   print: <><path d="M4 6V2h8v4M4 11H2.5V6h11v5H12" {...S} /><rect x="4" y="9" width="8" height="5" {...S} /></>,
   archive: <><rect x="2" y="3" width="12" height="3" {...S} /><path d="M3 6v7h10V6M6.5 9h3" {...S} /></>,
+  alert: <><circle cx="8" cy="8" r="6" {...S} /><path d="M8 5v3.5M8 10.8v.2" {...S} /></>,
   hash: <path d="M6 2L4.5 14M11.5 2L10 14M2.5 5.5h11M2 10.5h11" {...S} />,
   excel: <><rect x="2" y="2" width="12" height="12" rx="1.5" {...S} /><path d="M5 5l6 6M11 5l-6 6" {...S} /></>,
   play: <><circle cx="8" cy="8" r="6.3" {...S} /><path d="M6.5 5.5v5l4-2.5z" fill="currentColor" /></>,

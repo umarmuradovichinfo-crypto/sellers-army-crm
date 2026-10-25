@@ -436,6 +436,8 @@ model Message {
   threadId   String? // kanal suhbat/mijoz id (Messenger PSID, Instagram IGSID) — lidni topish va javob uchun
   pageId     String? // qaysi Facebook sahifa orqali (javob yuborish uchun)
   kind       String   @default("message") // message | comment (Instagram/Facebook izoh)
+  status     String   @default("sent") // sent | error (amoCRM: xabarda «Ошибка»)
+  error      String?
   createdAt  DateTime @default(now())
 
   @@index([leadId])

@@ -500,7 +500,9 @@ export function MsgItem({ m }) {
   return (
     <div className={`ac-msg ${m.direction === 'out' ? 'ac-msg--out' : ''}`}>
       <div className="ac-msg__bubble">
-        <div className="ac-msg__head">{feedDateFull(m.createdAt, t)} {m.senderName || ''}</div>
+        <div className="ac-msg__head">{feedDateFull(m.createdAt, t)} {m.senderName || ''}
+          {m.status === 'error' && <span className="ac-msg__err" title={m.error || ''}><Ico name="alert" size={11} />{t('Xatolik')}</span>}
+        </div>
         <div className="ac-msg__text">{m.text}</div>
       </div>
     </div>

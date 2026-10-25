@@ -251,3 +251,5 @@ a.ac-field__link:hover { color: var(--palette-link-primary); }
 .ac-chatblock__close { background: none; border: 1px solid var(--palette-border-primary); border-radius: 3px; padding: 2px 8px; cursor: pointer; color: var(--palette-text-secondary-dark); font: 13px var(--font-main); }
 .ac-chatblock__close:hover { color: var(--palette-text-primary); }
 .ac-chatblock__closed { color: var(--palette-text-secondary-dark); }
+/* amoCRM: yuborilmagan xabar — sarlavhada qizil «Ошибка» */
+.ac-msg__err { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding: 0 6px; border-radius: 9px; background: rgba(243, 117, 117, 0.25); color: #ff8a8a; font-size: 11px; line-height: 17px; cursor: help; }
