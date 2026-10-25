@@ -93,4 +93,4 @@ Batafsil farqlar va tuzatishlar: [AUDIT.md](AUDIT.md). Reja: [PLAN.md](PLAN.md).
 | Funksiya | Holat | Izoh |
 |---|---|---|
 | Interfeys UZ/RU | ✅ | tarjima to'qnashuvlari skript bilan tekshiriladi |
-| Server voqea matnlari tilda | 🟡 | lenta/hisobotlarda tarjima qilinadi; bildirishnomalar hali o'zbekcha |
+| Server voqea matnlari tilda | ✅ | lenta, hisobotlar va bildirishnomalarda tarjima qilinadi |

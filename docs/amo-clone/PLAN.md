@@ -83,7 +83,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 21. [x] Instagram Direct/izohlar + Facebook Messenger connector orqali (bir tugma) → imBox; Meta obunalari ok
 23. [x] CRM'ni Railway'ga joylash (HTTPS, Postgres): https://crm-production-5e25.up.railway.app (servis `crm`, branch amo-clone)
     - [x] Foydalanuvchi birinchi admin yaratadi va "Facebook bilan ulash"ni haqiqiy sahifa bilan sinaydi
-24. [~] Lid kartochkasi amoCRM bilan 1:1: akkauntdan har bir detal (sarlavha, teglar, status, tablar, maydonlar tartibi va ko'rinishi,
+24. [x] Lid kartochkasi amoCRM bilan 1:1: akkauntdan har bir detal (sarlavha, teglar, status, tablar, maydonlar tartibi va ko'rinishi,
     kontakt/kompaniya bloklari, lenta turlari, composer rejimlari, "…" menyu, pastki panel, hover/tahrirlash holatlari) olinadi;
     yetishmaganlari qo'shiladi, amoCRM'da yo'q ortiqcha narsalar olib tashlanadi; so'ng test
     - [x] Sarlavha (nomsiz bo'lsa "Bitim #id" kulrang), teglar rangi, bosqichlar rangidagi bo'lakli progress
@@ -97,7 +97,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     - [x] Lenta qatorining o'ng tomonida obyekt havolasi (kontakt nomi) — kontakt voqealari lentaga tushganda
     - [x] Vazifa turi ikonkalari
     - [x] Composer'da sana tanlagich amoCRM uslubida ("31.10.2026" tugmasi, tezkor variantlar, sana+vaqt)
-25. [~] (USTUVOR, foydalanuvchi so'rovi 24.10) amoCRM'ni qaytadan to'liq ko'rib chiqish va CRM'ni har bo'lim bo'yicha
+25. [x] (USTUVOR, foydalanuvchi so'rovi 24.10) amoCRM'ni qaytadan to'liq ko'rib chiqish va CRM'ni har bo'lim bo'yicha
     1:1 solishtirish: joylashuv, dizayn, funksiya, mantiq; har bir farq/xato docs/amo-clone/AUDIT.md ga yoziladi va tuzatiladi.
     Tartib: qobiq/menyu → Bitimlar voronka → ro'yxat → kartochka → Vazifalar → Ro'yxatlar (kontakt/kompaniya + kartochkalar)
     → imBox → Analitika → Ish stoli → Sozlamalar (har sahifa)
