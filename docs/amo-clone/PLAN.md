@@ -122,6 +122,8 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 31. [ ] (foydalanuvchi so'rovi 25.10) Ish stoli amoCRM bilan TO'LIQ 1:1: amoCRM'da ish stoli qanday ishlashini to'liq o'rganish —
     «Настроить» rejimi, vidjet qo'shish/o'chirish/surish, istalgan statistikani vidjet qilib yaratish (vidjet turlari, manba,
     filtrlar, davr, voronka/xodim), joylashuvni saqlash — hammasini bizga ko'chirish.
+    31b. [ ] (foydalanuvchi so'rovi 25.10) Voronkadagi istalgan filtr natijasini ish stoliga qo'shish (amoCRM: filtrdan
+    «добавить на рабочий стол»), 2-3 xil ko'rinishda (son, bosqichlar bo'yicha ro'yxat, diagramma) — amoCRM'dagi barcha ko'rinishlar.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
