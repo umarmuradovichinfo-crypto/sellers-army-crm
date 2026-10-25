@@ -188,3 +188,5 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
   qo'shimcha maydonlar; top-5 + Другие, davrdagi o'sish), «Список» (filtr natijalari jadvali). Vidjet sozlamasida ko'rinishni o'zgartirish
   va «Удалить виджет». Ish stoli davri va «Мои» filtr vidjetlariga ham ta'sir qiladi.
 - «Добавить свой виджет» (tashqi SSL sahifa iframe) — qo'shilmadi (amoCRM dasturchilar vidjeti).
+- Yakuniy test (ish stolidan keyin): barcha asosiy sahifalar konsol xatosisiz, backend logida xato yo'q; production'da yangi
+  migratsiyalar qo'llangan (ish stoli, suhbatlar, arxiv voronkalar, import tarixi, teglar sozlamasi — barcha API 200).
