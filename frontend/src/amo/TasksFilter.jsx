@@ -64,7 +64,8 @@ export function matchTask(x, f) {
 /** Qo'llangan shartlar uchun chiplar. */
 export function taskChips(f, meta, t) {
   const chips = []
-  const pr = TASK_PRESETS.find((p) => p.key === f.preset)
+  // amoCRM: standart «Только мои задачи» filtr maydonida ko'rsatilmaydi (bo'sh "Фильтр")
+  const pr = TASK_PRESETS.find((p) => p.key === f.preset && p.key !== 'mine')
   if (pr) chips.push({ id: 'preset', label: t(pr.label) })
   const dp = DATE_PRESETS.find((d) => d.key === f.datePreset && d.key)
   if (dp) chips.push({ id: 'date', label: t(dp.label) })

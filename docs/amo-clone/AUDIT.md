@@ -165,3 +165,7 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
   matnli qo'shimcha maydonlar) uchun filtr, natija filtr chipida ko'rinadi.
 - «…» menyusi amoCRM tartibida: Импорт, Экспорт, Печать (yangi — chop etishda faqat jadval), Настройки таблицы, Поиск дублей;
   ortiqcha «Saralash» bandi olib tashlandi (saralash ustun sarlavhasida).
+
+## 21. Yakuniy dizayn solishtirish (PLAN 17)
+- Vazifalar (lenta): ustunlar 350px (ichki 10px, oraliqsiz) markazda — amoCRM .pipeline_status__head; standart «Только мои задачи»
+  filtr maydonida chip sifatida ko'rsatilmaydi (amoCRM'da bo'sh «Фильтр») — tuzatildi.

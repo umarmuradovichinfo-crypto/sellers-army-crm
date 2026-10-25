@@ -7,8 +7,8 @@
 
 /* Line */
 .ac-todo-line { overflow: auto; height: calc(100vh - 65px); padding: 0 30px 80px; }
-.ac-todo-line__cols { display: flex; justify-content: safe center; gap: 12px; min-width: min-content; }
-.ac-todo-col { width: 315px; flex: none; min-height: 100%; }
+.ac-todo-line__cols { display: flex; justify-content: safe center; gap: 0; min-width: min-content; }
+.ac-todo-col { width: 350px; padding: 0 10px; box-sizing: border-box; flex: none; min-height: 100%; } /* amoCRM .pipeline_status__head: 350px, ichki 10px */
 .ac-todo-col__head { position: sticky; top: 0; z-index: 10; padding: 10px 0 8px; text-align: center; background: var(--palette-background-default); }
 .ac-todo-col__title { font: 700 12px var(--font-caption); letter-spacing: 1px; text-transform: uppercase; color: var(--palette-text-primary); }
 .ac-todo-col__count { margin-top: 3px; font-size: 14px; color: var(--palette-text-secondary-dark); }
