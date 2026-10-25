@@ -38,6 +38,9 @@ done
 set +e
 node --test --test-concurrency=1 --test-reporter=spec ${E2E_FILES:-test/e2e/*.test.mjs}
 CODE=$?
+# barcha testlardan keyin test bazasining yaxlitligi (bug izlari: yetim yozuvlar, noto'g'ri bosqich, yopilish sanalari...)
+echo; echo "── Ma'lumotlar yaxlitligi (test bazasi) ──"
+npx tsx scripts/check-integrity.ts || CODE=1
 set -e
 if [ $CODE -ne 0 ]; then echo "--- backend xatolari (oxirgi 40 qator) ---"; grep -iE "error|exception" "$LOG" | tail -40; fi
 exit $CODE
