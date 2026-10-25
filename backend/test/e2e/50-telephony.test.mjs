@@ -55,11 +55,47 @@ describe('Telefoniya (OnlinePBX + MicroSIP)', () => {
     assert.equal(afterN, before, "mavjud mijoz uchun yangi (dublikat) bitim yaratildi");
   });
 
-  test("kiruvchi: noma'lum raqamdan o'tkazib yuborilgan qo'ng'iroq — «Saralanmagan»ga yangi bitim", async () => {
+  test("yangi raqam (amoCRM vidjeti kabi): jiringlaganda kontakt + «Saralanmagan» bitim, oyna mijoz bilan chiqadi; javob berilsa vazifa yo'q", async () => {
     const n = rnd9();
-    await hook({ accountcode: 'missed', caller: `+998${n}`, callee: '100', uuid: uniq('miss'), dialog_duration: 0 });
+    const uuid = uniq('ring');
+    await hook({ event: 'call_start', caller: `+998${n}`, callee: '100', uuid });
+    const inc = (await ok('GET', '/crm/calls/incoming', undefined, S.token, 200)).call;
+    assert.ok(inc && inc.phone.includes(n.slice(-7)), `kiruvchi oyna chiqmadi: ${JSON.stringify(inc)}`);
+    assert.equal(inc.status, 'ringing', "jiringlayotgan qo'ng'iroq «o'tkazib yuborilgan» deb belgilandi");
+    assert.ok(inc.leadId, 'yangi raqam uchun bitim yaratilmadi');
+    const contacts = await ok('GET', `/crm/contacts?search=${n.slice(-7)}`, undefined, T, 200);
+    assert.ok(JSON.stringify(contacts).includes(n.slice(-7)), 'yangi raqam uchun kontakt yaratilmadi');
     const u = await ok('GET', '/crm/unsorted', undefined, T, 200);
-    assert.ok(JSON.stringify(u).includes(n.slice(-7)), "o'tkazib yuborilgan qo'ng'iroqdan bitim yaratilmadi");
+    assert.ok(JSON.stringify(u).includes(inc.leadId), "bitim «Saralanmagan»ga tushmadi");
+    // gaplashildi
+    await hook({ event: 'call_end', caller: `+998${n}`, callee: '100', uuid, dialog_duration: 25, call_duration: 30, hangup_cause: 'normal_clearing' });
+    const tasks = (await ok('GET', `/crm/leads/${inc.leadId}/tasks`, undefined, T, 200)).tasks;
+    assert.equal(tasks.length, 0, "javob berilgan qo'ng'iroqqa vazifa yaratildi");
+    const after = (await ok('GET', '/crm/calls/incoming', undefined, S.token, 200)).call;
+    assert.ok(!after || after.id !== inc.id, "qo'ng'iroq tugagach ham oyna ko'rinmoqda");
+    const calls = await callsOf(inc.leadId);
+    assert.equal(calls[0].status, 'completed');
+  });
+
+  test("o'tkazib yuborilgan kiruvchi — mas'ulga «qayta qo'ng'iroq» vazifasi, takroriy qo'ng'iroqda ikkinchi vazifa yo'q", async () => {
+    const n = rnd9();
+    const l = await newLead(T, { phone: `+998${n}`, assigneeId: S.id });
+    for (let i = 0; i < 2; i++) {
+      const uuid = uniq('missed');
+      await hook({ event: 'call_start', caller: `998${n}`, callee: '100', uuid });
+      await hook({ event: 'call_end', caller: `998${n}`, callee: '100', uuid, dialog_duration: 0, call_duration: 20, hangup_cause: 'no_answer' });
+    }
+    const tasks = (await ok('GET', `/crm/leads/${l.id}/tasks`, undefined, T, 200)).tasks.filter((x) => /Qayta qo'ng'iroq/.test(x.title));
+    assert.equal(tasks.length, 1, `vazifalar soni: ${tasks.length}`);
+    assert.equal(tasks[0].assigneeId, S.id, "vazifa bitim mas'uliga tushmadi");
+    assert.equal(tasks[0].type, 'call');
+  });
+
+  test("qalqib chiquvchi oyna sozlamasi sotuvchiga ham ko'rinadi", async () => {
+    await ok('PUT', '/crm/pbx/config', { popups: false }, T, 200);
+    assert.equal((await ok('GET', '/crm/my-extension', undefined, S.token, 200)).popups, false);
+    await ok('PUT', '/crm/pbx/config', { popups: true }, T, 200);
+    assert.equal((await ok('GET', '/crm/my-extension', undefined, S.token, 200)).popups, true);
   });
 
   test("raqam formatlari (8…, 998…, +998 …, 9 xonali) bir xil mijozga tushadi", async () => {

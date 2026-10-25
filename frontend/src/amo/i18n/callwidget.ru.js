@@ -33,4 +33,8 @@ addRu({
   "Qo'ng'iroq boshlanmadi": 'Звонок не начался',
   "Telegram'da ochish": 'Открыть в Telegram',
   'Ichki raqamingiz (extension):': 'Ваш внутренний номер (extension):',
+  'Yangi mijoz': 'Новый клиент',
+  "Kiruvchi qo'ng'iroqda qalqib chiquvchi oyna ko'rsatilsin": 'Показывать всплывающие уведомления о входящем звонке',
+  "Kartochkaga o'tish": 'Перейти в карточку',
+  'Yopish': 'Закрыть',
 })

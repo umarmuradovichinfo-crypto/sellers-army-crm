@@ -11,13 +11,14 @@ export default function IntegrationsPbx({ onStatus }) {
   const [defaultExt, setDefaultExt] = useState('')
   const [callMode, setCallMode] = useState('callback')
   const [dialScheme, setDialScheme] = useState('tel')
+  const [popups, setPopups] = useState(true)
   const [busy, setBusy] = useState(false)
   const [testing, setTesting] = useState(false)
   const [msg, setMsg] = useState(null)
 
   const load = () => crmService.getPbxConfig().then((c) => {
     setCfg(c); setDomain(c.domain || ''); setDefaultExt(c.defaultExt || ''); setApiKey('')
-    setCallMode(c.callMode || 'callback'); setDialScheme(c.dialScheme || 'tel')
+    setCallMode(c.callMode || 'callback'); setDialScheme(c.dialScheme || 'tel'); setPopups(c.popups !== false)
   }).catch((e) => setMsg({ ok: false, m: e.message || t('Xatolik') }))
   useEffect(() => { load() }, []) // eslint-disable-line
 
@@ -25,7 +26,7 @@ export default function IntegrationsPbx({ onStatus }) {
     if (!domain.trim()) { setMsg({ ok: false, m: t('Domenni kiriting (masalan: kompaniya.onpbx.ru)') }); return }
     setBusy(true); setMsg(null)
     try {
-      const patch = { domain: domain.trim(), defaultExt: defaultExt.trim(), callMode, dialScheme }
+      const patch = { domain: domain.trim(), defaultExt: defaultExt.trim(), callMode, dialScheme, popups }
       if (apiKey.trim()) patch.apiKey = apiKey.trim()
       const c = await crmService.savePbxConfig(patch)
       setCfg(c); setApiKey('')
@@ -81,6 +82,12 @@ export default function IntegrationsPbx({ onStatus }) {
           </div>
         )}
       </div>
+
+      {/* amoCRM onlinePBX vidjeti: «Показывать всплывающие уведомления?» */}
+      <label className="ac-set-checkrow" style={{ margin: '4px 0 14px' }}>
+        <input type="checkbox" className="ac-check" checked={popups} onChange={(e) => setPopups(e.target.checked)} />
+        {t("Kiruvchi qo'ng'iroqda qalqib chiquvchi oyna ko'rsatilsin")}
+      </label>
 
       {cfg.webhookUrl && (
         <div className="ac-int-field"><label>{t('Webhook havolasi')}</label>

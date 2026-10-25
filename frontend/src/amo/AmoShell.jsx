@@ -2,6 +2,7 @@
 // Bo'limlar amoCRM URL tuzilmasida: /dashboard, /leads/..., /imbox, /todo/..., /contacts/..., /stats/..., /settings/...
 import React, { useEffect, useRef, useState } from 'react'
 import AmmaWidget from './Amma'
+import IncomingCall from './IncomingCall'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { crmService, notifService as notificationsApi } from '../services/crm.service'
@@ -291,6 +292,7 @@ export default function AmoShell({ children }) {
       <NetworkBar />
       {children}
       <AmmaWidget />
+      <IncomingCall />
     </div>
   )
 }

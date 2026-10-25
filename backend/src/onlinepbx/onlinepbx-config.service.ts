@@ -17,6 +17,7 @@ export interface PbxConfig {
   webhookSecret: string; // ixtiyoriy — webhook ?secret= tekshiruvi
   callMode: string; // 'callback' (OnlinePBX o'zi jiringlatadi) | 'softphone' (MicroSIP terib beradi)
   dialScheme: string; // softphone rejimda protokol: tel | sip | callto
+  popups: boolean; // amoCRM onlinePBX vidjeti: «Показывать всплывающие уведомления?» — kiruvchi qo'ng'iroq oynasi
 }
 
 /**
@@ -36,6 +37,7 @@ export class OnlinePbxConfigService {
       webhookSecret: (process.env.ONLINEPBX_WEBHOOK_SECRET || '').trim(),
       callMode: (process.env.ONLINEPBX_CALL_MODE || 'callback').trim(),
       dialScheme: (process.env.ONLINEPBX_DIAL_SCHEME || 'tel').trim(),
+      popups: true,
     };
   }
 
@@ -70,6 +72,7 @@ export class OnlinePbxConfigService {
     if (patch.defaultExt !== undefined) next.defaultExt = String(patch.defaultExt || '').trim();
     if (patch.webhookSecret !== undefined) next.webhookSecret = String(patch.webhookSecret || '').trim();
     if (patch.callMode !== undefined) next.callMode = patch.callMode === 'softphone' ? 'softphone' : 'callback';
+    if (patch.popups !== undefined) next.popups = !!patch.popups;
     if (patch.dialScheme !== undefined) next.dialScheme = ['tel', 'sip', 'callto'].includes(String(patch.dialScheme)) ? String(patch.dialScheme) : 'tel';
     // apiKey faqat yangi qiymat berilsa yangilanadi (bo'sh bo'lsa — eskisi qoladi)
     if (patch.apiKey) next.apiKey = String(patch.apiKey).trim();

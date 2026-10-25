@@ -139,7 +139,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     bitim kartochkasi lentasi qo'ng'iroq/xabarlarni o'zi yangilaydi; test/e2e/50-telephony (7 test).
     OnlinePBX panelidagi webhook manzili — Sozlamalar → Telefoniya'da ko'rsatilgan manzil (?secret= bilan).
 
-34. [ ] (foydalanuvchi so'rovi 26.10) Telefoniya amoCRM + OnlinePBX vidjeti mantig'ida (eski CRM'dan to'g'ridan-to'g'ri ko'chirmasdan).
+34. [x] (foydalanuvchi so'rovi 26.10) Telefoniya amoCRM + OnlinePBX vidjeti mantig'ida (eski CRM'dan to'g'ridan-to'g'ri ko'chirmasdan).
     amoCRM'da o'rganildi (Маркет → onlinePBX vidjeti tavsifi va sozlamasi):
     - bir bosishda qo'ng'iroq (bor: raqam yonidagi tugma / raqam menyusi);
     - kiruvchi qo'ng'iroqda qalqib chiquvchi oyna: mijoz nomi, kartochkaga o'tish; sozlama «Показывать всплывающие уведомления?»;
@@ -148,6 +148,10 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     - kiruvchi qo'ng'iroqni kontakt mas'uliga yo'naltirish — OnlinePBX tomonidagi funksiya (CRM'dan mas'ul ichki raqamini berish imkoniyatini o'rganish).
     Eski CRM'dagi «Qo'ng'iroqlar» ro'yxatining amoCRM'dagi o'rni: Аналитика → Список событий → Типы событий → «Звонки»
     (Входящий/Исходящий звонок) — alohida sahifa emas (35-band).
+    Bajarildi: kiruvchi qo'ng'iroq oynasi (mijoz nomi, «Перейти в карточку», ovoz; Sozlamalar → Telefoniya'da yoqish/o'chirish);
+    jiringlayotgan qo'ng'iroq «ringing» (oldin darhol «o'tkazib yuborilgan» bo'lardi); yangi raqam → kontakt + Saralanmagan bitim;
+    o'tkazib yuborilgan → mas'ulga «Qayta qo'ng'iroq qiling» vazifasi (takrorlanmaydi; eski tarix sinxronida faqat so'nggi sutka).
+    Ochiq: qo'ng'iroqni mas'ulga yo'naltirish OnlinePBX panelida sozlanadi (CRM'da API yo'q).
 35. [ ] Аналитика → Список событий amoCRM kabi: filtr paneli (Все события / Мои события / Сегодня / Вчера / Месяц / За все время,
     «Все сущности», «Типы событий» guruhlari bilan), ro'yxatga qo'ng'iroqlar (yozuvni tinglash/yuklab olish) va chat voqealari
     (Входящее/Исходящее сообщение, Беседа создана/закрыта, Внутреннее сообщение) ham tushadi.

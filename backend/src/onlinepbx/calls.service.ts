@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 
 import type { AuthUser } from '../common/decorators/current-user.decorator';
+import { ActivityService } from '../crm/activity.service';
 import { AutomationService } from '../crm/automation.service';
 import { PipelineSettingsService } from '../crm/pipeline-settings.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -47,6 +48,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     private readonly cfg: OnlinePbxConfigService,
     private readonly automation: AutomationService,
     private readonly pset: PipelineSettingsService,
+    private readonly activity: ActivityService,
   ) {}
 
   // Fon rejimida OnlinePBX tarixini muntazam tortib turadi — operator gaplashib
@@ -76,6 +78,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       webhookSecretSet: !!c.webhookSecret,
       callMode: c.callMode || 'callback',
       dialScheme: c.dialScheme || 'tel',
+      popups: c.popups !== false,
       enabled: !!c.domain && !!c.apiKey,
       webhookUrl: this.webhookUrl() + (this.effectiveSecret(c) ? `?secret=${encodeURIComponent(this.effectiveSecret(c))}` : ''),
     };
@@ -129,20 +132,36 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
 
   // Ko'tarilmagan (missed) KIRUVCHI qo'ng'iroq noma'lum raqamdan bo'lsa — Saralanmagan lid
   // yaratamiz (raqam CRMда qolsin, menejer qayta qo'ng'iroq qilsin). amoCRM'dagidek.
-  private async ensureMissedLead(direction: string, status: string, phone: string, lead: { id: string; name: string } | null): Promise<{ id: string; name: string } | null> {
+  // amoCRM onlinePBX vidjeti: yangi raqamdan kiruvchi qo'ng'iroq — kontakt avtomatik yaratiladi va «Неразобранное»ga
+  // (Saralanmagan sozlamasiga qarab) bitim tushadi; qo'ng'iroq jiringlayotgan paytdayoq — oynada mijoz kartochkasi bo'lsin.
+  private async ensureCallerLead(direction: string, phone: string, lead: { id: string; name: string } | null): Promise<{ id: string; name: string } | null> {
     if (lead) return lead;
-    if (direction !== 'in' || status !== 'missed') return null;
+    if (direction !== 'in') return null;
     if (digits(phone).length < 7) return null;
-    const place = await this.pset.place(null, null); // "Saralanmagan" switch'iga qarab
+    const place = await this.pset.place(null, null);
+    const contact = await this.prisma.contact.create({ data: { name: phone, phone, customJson: '{}' } });
     const created = await this.prisma.lead.create({
       data: {
-        name: phone, phone, source: "Kiruvchi qo'ng'iroq", stage: place.stage, pipelineId: place.pipelineId,
+        name: phone, phone, contactId: contact.id, source: "Kiruvchi qo'ng'iroq", stage: place.stage, pipelineId: place.pipelineId,
         unsorted: place.unsorted, customJson: '{}', queue: place.queue,
       },
     });
-    this.logger.log(`O'tkazib yuborilgan qo'ng'iroqdan yangi lid: ${phone}`);
+    await this.activity.record(created.id, 'created', { actorName: 'OnlinePBX', text: `Lid yaratildi: Kiruvchi qo'ng'iroq ${phone}` });
+    this.logger.log(`Yangi raqamdan kiruvchi qo'ng'iroq: kontakt va bitim yaratildi (${phone})`);
     return { id: created.id, name: created.name };
   }
+
+  // O'tkazib yuborilgan kiruvchi qo'ng'iroq — bitim mas'uliga «qayta qo'ng'iroq» vazifasi (amoCRM vidjeti kabi).
+  // Bitimda shunday ochiq vazifa bo'lsa — yangisi qo'shilmaydi.
+  private async missedCallTask(leadId: string, phone: string) {
+    const title = `Qayta qo'ng'iroq qiling: ${phone}`;
+    const open = await this.prisma.leadTask.findFirst({ where: { leadId, done: false, title }, select: { id: true } });
+    if (open) return;
+    const lead = await this.prisma.lead.findUnique({ where: { id: leadId }, select: { assigneeId: true } });
+    await this.prisma.leadTask.create({ data: { leadId, title, type: 'call', dueDate: new Date(), assigneeId: lead?.assigneeId || null } });
+    await this.activity.record(leadId, 'task_created', { actorName: 'OnlinePBX', text: `Vazifa: ${title}` });
+  }
+
 
   // ── Click-to-call ──
   async clickToCall(user: AuthUser, leadId: string, fromOverride?: string) {
@@ -302,23 +321,26 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       // Lidga bog'lash — avval "Qo'ng'iroq" bosilgan lid, keyin raqam bo'yicha (dublikat uchun)
       const lead0 = await this.resolveLead(phone, other);
 
+      // eski tarix (birinchi ulanishda) uchun vazifa yaratmaymiz — faqat so'nggi sutka
+      const recent = !startedAt || Date.now() - +startedAt < 86_400_000;
       const existing = await this.prisma.callLog.findFirst({ where: { externalId: uuid } });
       if (existing) {
-        const relink = existing.leadId || lead0?.id || (await this.ensureMissedLead(direction, status, phone, null))?.id || null;
+        const relink = existing.leadId || lead0?.id || (await this.ensureCallerLead(direction, phone, null))?.id || null;
         await this.prisma.callLog.update({
           where: { id: existing.id },
-          data: { status, durationSec: durationSec || existing.durationSec, recordUrl: recordUrl || existing.recordUrl, leadId: relink },
+          data: { status, durationSec: durationSec || existing.durationSec, recordUrl: recordUrl || existing.recordUrl, leadId: relink, handled: true },
         });
+        if (relink && direction === 'in' && status === 'missed' && existing.status !== 'missed' && recent) await this.missedCallTask(relink, phone);
         if (relink) linked++;
         continue;
       }
-      // Noma'lum raqamdan o'tkazib yuborilgan kiruvchi bo'lsa — Saralanmagan lid yaratamiz.
-      const lead = await this.ensureMissedLead(direction, status, phone, lead0);
+      const lead = await this.ensureCallerLead(direction, phone, lead0);
       await this.prisma.callLog.create({
         data: { externalId: uuid, phone, direction, status, durationSec, recordUrl, leadId: lead?.id || null, handled: true, startedAt },
       });
       synced++;
       if (lead) linked++;
+      if (lead && direction === 'in' && status === 'missed' && recent) await this.missedCallTask(lead.id, phone);
       if (lead && direction === 'in') await this.automation.fire('call_in', lead.id, { actorName: 'OnlinePBX' });
     }
     if (synced) this.logger.log(`OnlinePBX history sync: jami ${records.length}, yangi ${synced}, lidga bog'langan ${linked}`);
@@ -400,7 +422,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     const u = await this.prisma.user.findUnique({ where: { id: user.id }, select: { extension: true } });
     // qo'ng'iroq usuli ham shu yerda: pbx/config faqat admin uchun, sotuvchi esa kartochkadan qo'ng'iroq qilishi kerak
     const c = await this.cfg.get();
-    return { extension: u?.extension || null, pbxEnabled: await this.pbx.enabled(), callMode: c.callMode || 'callback', dialScheme: c.dialScheme || 'tel' };
+    return { extension: u?.extension || null, pbxEnabled: await this.pbx.enabled(), callMode: c.callMode || 'callback', dialScheme: c.dialScheme || 'tel', popups: c.popups !== false };
   }
   async setMyExtension(user: AuthUser, extension: string) {
     await this.prisma.user.update({ where: { id: user.id }, data: { extension: (extension || '').trim() || null } });
@@ -480,14 +502,19 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     const durationSec = Number(get('call_duration', 'duration')) || talk || 0;
     const hangup = String(get('hangup_cause', 'disposition', 'status', 'result') || '').toLowerCase();
 
-    // Gaplashildi -> completed; band/rad -> failed; aks holda (gaplashilmagan) -> o'tkazib yuborilgan.
-    let status: string;
-    if (talk > 0) status = 'completed';
-    else if (/busy|reject|fail|занят|отклон|congestion/.test(hangup)) status = 'failed';
-    else status = 'missed';
-
     const externalId = get('uuid', 'call_id', 'callid', 'id') ? String(get('uuid', 'call_id', 'callid', 'id')) : null;
     const recordUrl = get('download_url', 'download', 'record', 'records', 'record_url', 'file') ? String(get('download_url', 'download', 'record', 'records', 'record_url', 'file')) : null;
+
+    // Qo'ng'iroq yakunlanganmi (call_end) yoki hali jiringlayaptimi (call_start / ringing): jiringlayotganini
+    // «o'tkazib yuborilgan» demaymiz — aks holda javob berilgan qo'ng'iroqqa ham vazifa tushardi.
+    // Gaplashildi -> completed; band/rad -> failed; yakunlangan, gaplashilmagan -> o'tkazib yuborilgan.
+    const event = String(get('event', 'event_type', 'state', 'call_state') || '').toLowerCase();
+    const final = /end|hangup|finish|complete|missed/.test(event) || /[a-z]/.test(hangup) && !/ring|start|progress|answer$/.test(hangup) || durationSec > 0 || !!recordUrl;
+    let status: string;
+    if (talk > 0) status = 'completed';
+    else if (!final) status = 'ringing';
+    else if (/busy|reject|fail|занят|отклон|congestion/.test(hangup)) status = 'failed';
+    else status = 'missed';
 
     if (!phone) {
       this.logger.warn('OnlinePBX webhook: telefon topilmadi, body: ' + JSON.stringify(body).slice(0, 300));
@@ -500,7 +527,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     if (externalId) {
       const existing = await this.prisma.callLog.findFirst({ where: { externalId } });
       if (existing) {
-        const relink = existing.leadId || lead0?.id || (await this.ensureMissedLead(direction, status, phone, null))?.id || null;
+        const relink = existing.leadId || lead0?.id || (await this.ensureCallerLead(direction, phone, null))?.id || null;
         await this.prisma.callLog.update({
           where: { id: existing.id },
           data: {
@@ -508,17 +535,20 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
             durationSec: durationSec || existing.durationSec,
             recordUrl: recordUrl || existing.recordUrl,
             leadId: relink,
+            ...(final ? { handled: true } : {}), // yakunlangach kiruvchi oyna yopiladi
           },
         });
+        if (relink && direction === 'in' && status === 'missed' && existing.status !== 'missed') await this.missedCallTask(relink, phone);
         return { ok: true, updated: true };
       }
     }
 
-    // Noma'lum raqamdan o'tkazib yuborilgan kiruvchi bo'lsa — Saralanmagan lid yaratamiz.
-    const lead = await this.ensureMissedLead(direction, status, phone, lead0);
+    // yangi raqamdan kiruvchi — kontakt + bitim (jiringlayotgan paytdayoq, oynada mijoz kartochkasi bo'lsin)
+    const lead = await this.ensureCallerLead(direction, phone, lead0);
     const call = await this.prisma.callLog.create({
-      data: { leadId: lead?.id || null, phone, direction, status, durationSec, recordUrl, externalId, handled: direction === 'out' },
+      data: { leadId: lead?.id || null, phone, direction, status, durationSec, recordUrl, externalId, handled: direction === 'out' || final },
     });
+    if (lead && direction === 'in' && status === 'missed') await this.missedCallTask(lead.id, phone);
     if (lead && direction === 'in') await this.automation.fire('call_in', lead.id, { actorName: 'OnlinePBX' });
     return { ok: true, callId: call.id, matchedLead: lead?.name || null };
   }
