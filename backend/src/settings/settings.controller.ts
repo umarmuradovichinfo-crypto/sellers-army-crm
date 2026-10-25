@@ -1,5 +1,5 @@
 import { clientIp } from '../common/guards/ip-whitelist.guard';
-import { Body, Controller, Req, Res, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, Query, Req, Res, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
 import type { Response } from 'express';
 
 import { CurrentUser, type AuthUser } from '../common/decorators/current-user.decorator';
@@ -55,6 +55,27 @@ export class SettingsController {
   @RequirePermissions('settings.roles.manage')
   updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser('id') uid: string) {
     return this.settings.updateUser(id, dto, uid);
+  }
+
+  // amoCRM «Настройка групп»
+  @Get('groups')
+  groups() {
+    return this.settings.listGroups();
+  }
+  @Post('groups')
+  @RequirePermissions('settings.roles.manage')
+  createGroup(@Body() b: { name?: string }) {
+    return this.settings.createGroup(b?.name);
+  }
+  @Patch('groups/:id')
+  @RequirePermissions('settings.roles.manage')
+  renameGroup(@Param('id') id: string, @Body() b: { name?: string }) {
+    return this.settings.renameGroup(id, b?.name);
+  }
+  @Delete('groups/:id')
+  @RequirePermissions('settings.roles.manage')
+  deleteGroup(@Param('id') id: string, @Query('moveTo') moveTo?: string) {
+    return this.settings.deleteGroup(id, moveTo);
   }
 
   @Post('users/:id/password')

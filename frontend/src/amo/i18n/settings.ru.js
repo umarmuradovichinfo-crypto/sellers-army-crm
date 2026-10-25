@@ -2,6 +2,14 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Guruhsiz': 'Без группы',
+  'Faollik': 'Активность',
+  'Huquqlar': 'Права',
+  'Huquqlarni sozlash': 'Настроить права',
+  'Yangi huquq profili nomi': 'Название нового профиля прав',
+  "Guruhlar yo'q": 'Групп нет',
+  "Guruhdagi foydalanuvchilar guruhsiz qoladi. O'chirilsinmi?": 'Пользователи группы останутся без группы. Удалить?',
+  "Huquq profili o'zgarsa, shu profildagi barcha foydalanuvchilarga ta'sir qiladi": 'Изменение профиля прав затрагивает всех пользователей этого профиля',
   "imBox menyusi + bildirishnomalar markazi": 'Меню imBox + центр нотификаций',
   'Bildirishnomalar markazi': 'Центр нотификаций',
   "Bu tanlov yoqilganda bosh menyuda turli manbalardagi mijoz chatlarini birlashtiruvchi «imBox» bo'limi paydo bo'ladi. Qolgan bildirishnomalar, jumladan xodimlar orasidagi ichki xabarlar, «Bildirishnomalar markazi»ga keladi": 'При включении этой опции появится раздел «imBox» в главном меню, который объединяет чаты с клиентами из разных источников. Остальные уведомления будут приходить в «Центр нотификаций», в том числе внутренние сообщения между сотрудниками',

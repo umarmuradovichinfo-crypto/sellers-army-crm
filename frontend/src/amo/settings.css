@@ -162,7 +162,7 @@
 }
 
 /* amoCRM «Настройки профиля» */
-.ac-prof-top { justify-content: space-between; }
+.ac-prof-top { justify-content: space-between; align-items: center; }
 .ac-prof-title { font: 700 18px var(--font-main); margin: 0 0 0 20px; color: var(--palette-text-primary); }
 .ac-prof { display: flex; gap: 40px; padding: 25px 30px 25px; }
 .ac-prof__ava { position: relative; width: 120px; height: 120px; flex: none; border-radius: 50%; background: var(--palette-background-secondary, #2b3e50); display: flex; align-items: center; justify-content: center; color: var(--palette-text-secondary-dark); cursor: pointer; overflow: hidden; }
@@ -191,3 +191,10 @@
 }
 .ac-set-toggle { display: flex; align-items: center; gap: 12px; cursor: pointer; margin-bottom: 8px; }
 .ac-set-notifmode + .ac-set-notifmode { margin-top: 16px; }
+/* amoCRM foydalanuvchi kartochkasi: huquq profillari tablari */
+.ac-set-proftabs { display: flex; flex-wrap: wrap; border: 1px solid var(--palette-border-default); border-radius: 3px; overflow: hidden; }
+.ac-set-proftabs button { border: 0; border-right: 1px solid var(--palette-border-default); border-bottom: 1px solid var(--palette-border-default); background: transparent; color: var(--palette-text-secondary-dark); font: 700 12px var(--font-main); text-transform: uppercase; padding: 8px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.ac-set-proftabs button.on { color: var(--palette-text-primary); background: var(--palette-background-secondary, rgba(255,255,255,.06)); }
+.ac-set-proftabs button.add { text-transform: none; font-weight: 400; color: var(--palette-link-primary); border-style: dashed; }
+.ac-set-proftabs button:disabled { cursor: default; }
+.ac-set-group { display: flex; align-items: center; gap: 10px; }

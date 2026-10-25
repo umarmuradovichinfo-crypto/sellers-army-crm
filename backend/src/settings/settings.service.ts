@@ -12,8 +12,11 @@ type UserRow = {
   isActive: boolean;
   extension: string | null;
   createdAt: Date;
+  groupId?: string | null;
   role: { key: string; name: string };
+  group?: { id: string; name: string } | null;
 };
+const USER_INCLUDE = { role: { select: { key: true, name: true } }, group: { select: { id: true, name: true } } } as const;
 
 function slugify(name: string): string {
   return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'role';
@@ -97,6 +100,8 @@ export class SettingsService {
       email: u.email,
       roleKey: u.role.key,
       roleName: u.role.name,
+      groupId: u.group?.id || null,
+      groupName: u.group?.name || null,
       isActive: u.isActive,
       extension: u.extension || null,
       createdAt: u.createdAt.toISOString(),
@@ -109,13 +114,13 @@ export class SettingsService {
 
   async listUsers() {
     const users = await this.prisma.user.findMany({
-      include: { role: { select: { key: true, name: true } } },
+      include: USER_INCLUDE,
       orderBy: { createdAt: 'asc' },
     });
     return { users: users.map((u) => this.presentUser(u as UserRow)) };
   }
 
-  async createUser(dto: { name: string; email: string; password: string; roleKey: string; extension?: string }) {
+  async createUser(dto: { name: string; email: string; password: string; roleKey: string; extension?: string; groupId?: string | null }) {
     const name = (dto.name || '').trim();
     const email = (dto.email || '').trim().toLowerCase();
     if (!name) throw new BadRequestException({ error: 'BAD_NAME', message: 'Ism majburiy' });
@@ -128,15 +133,15 @@ export class SettingsService {
     if (!role) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Rol topilmadi' });
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const u = await this.prisma.user.create({
-      data: { name, email, passwordHash, roleId: role.id, extension: dto.extension?.trim() || null },
-      include: { role: { select: { key: true, name: true } } },
+      data: { name, email, passwordHash, roleId: role.id, extension: dto.extension?.trim() || null, groupId: await this.checkGroup(dto.groupId) },
+      include: USER_INCLUDE,
     });
     return { user: this.presentUser(u as UserRow) };
   }
 
   async updateUser(
     id: string,
-    dto: { name?: string; email?: string; roleKey?: string; isActive?: boolean; extension?: string },
+    dto: { name?: string; email?: string; roleKey?: string; isActive?: boolean; extension?: string; groupId?: string | null },
     currentUserId?: string,
   ) {
     const existing = await this.prisma.user.findUnique({ where: { id } });
@@ -168,11 +173,12 @@ export class SettingsService {
     }
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
     if (dto.extension !== undefined) data.extension = dto.extension.trim() || null;
+    if (dto.groupId !== undefined) data.groupId = await this.checkGroup(dto.groupId);
 
     const u = await this.prisma.user.update({
       where: { id },
       data,
-      include: { role: { select: { key: true, name: true } } },
+      include: USER_INCLUDE,
     });
     return { user: this.presentUser(u as UserRow) };
   }
@@ -195,6 +201,45 @@ export class SettingsService {
     if (!currentPassword || !(await bcrypt.compare(currentPassword, me.passwordHash)))
       throw new BadRequestException({ error: 'BAD_CURRENT', message: "Joriy parol noto'g'ri" });
     return this.resetPassword(id, password, sid);
+  }
+
+  // ── amoCRM «Настройка групп»: guruhlar (otdellar) ──
+  private async checkGroup(id?: string | null) {
+    if (!id) return null;
+    const g = await this.prisma.userGroup.findUnique({ where: { id } });
+    if (!g) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Guruh topilmadi' });
+    return g.id;
+  }
+  async listGroups() {
+    const rows = await this.prisma.userGroup.findMany({ orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }], include: { _count: { select: { users: true } } } });
+    return { groups: rows.map((g) => ({ id: g.id, name: g.name, users: g._count.users })) };
+  }
+  private groupName(name: unknown) {
+    const n = String(name || '').trim();
+    if (!n) throw new BadRequestException({ error: 'BAD_NAME', message: 'Guruh nomi majburiy' });
+    if (n.length > 60) throw new BadRequestException({ error: 'BAD_NAME', message: 'Nom juda uzun (60 belgigacha)' });
+    return n;
+  }
+  async createGroup(name: unknown) {
+    const n = this.groupName(name);
+    const last = await this.prisma.userGroup.aggregate({ _max: { sort: true } });
+    const g = await this.prisma.userGroup.create({ data: { name: n, sort: (last._max.sort ?? 0) + 1 } });
+    return { group: { id: g.id, name: g.name, users: 0 } };
+  }
+  async renameGroup(id: string, name: unknown) {
+    await this.checkGroup(id);
+    const g = await this.prisma.userGroup.update({ where: { id }, data: { name: this.groupName(name) } });
+    return { group: { id: g.id, name: g.name } };
+  }
+  /** Guruh o'chirilsa foydalanuvchilari «guruhsiz» qoladi (amoCRM ham o'chirishdan oldin ko'chirishni so'raydi) */
+  async deleteGroup(id: string, moveTo?: string | null) {
+    await this.checkGroup(id);
+    const target = moveTo && moveTo !== id ? await this.checkGroup(moveTo) : null;
+    await this.prisma.$transaction([
+      this.prisma.user.updateMany({ where: { groupId: id }, data: { groupId: target } }),
+      this.prisma.userGroup.delete({ where: { id } }),
+    ]);
+    return { success: true };
   }
 
   // ── amoCRM «Настройки профиля»: ID, Имя, Телефон, Email, Примечание + «Сеансы» ──

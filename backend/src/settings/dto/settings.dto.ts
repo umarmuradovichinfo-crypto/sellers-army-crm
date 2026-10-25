@@ -36,6 +36,10 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   extension?: string;
+
+  @IsOptional()
+  @IsString()
+  groupId?: string | null;
 }
 
 export class UpdateUserDto {
@@ -58,6 +62,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   extension?: string;
+
+  @IsOptional()
+  @IsString()
+  groupId?: string | null;
 }
 
 export class ResetPasswordDto {

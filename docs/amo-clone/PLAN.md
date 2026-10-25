@@ -172,22 +172,33 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     (Общие, Пользователи, Чаты и мессенджеры, Безопасность, Коммуникации, …) bilan bizdagini birma-bir solishtirib, farqlar
     ro'yxatini tuzish va bir xil qilish.
     Farqlar (amoCRM ko'rildi 26.10):
-    a) [ ] Profil: amoCRM'da alohida sahifa /settings/profile «Настройки профиля» (akkaunt paneli → «профиль»): avatar, ID
+    a) [x] Profil: amoCRM'da alohida sahifa /settings/profile «Настройки профиля» (akkaunt paneli → «профиль»): avatar, ID
        пользователя (nusxalash), Language/Язык, Имя, Телефон, Email, Пароль (••••• → almashtirish), Примечание; «Безопасность» →
        «Сеансы» (brauzer+OS, oxirgi kirish, IP, «Текущий», har biri «Выйти»); «Настройки уведомлений» (tur × kanal jadvali);
        «Доступ к аккаунту». Bizda: kichik modal (til + parol). → Profil sahifasi, sessiyalar (refresh-token oilasi = sessiya).
-    b) [ ] Общие: amoCRM'da «Язык» yo'q (u profilda) → olib tashlash. «Товары» (katalog yoqish/o'chirish) qo'shish — o'chsa
+    b) [x] Общие: amoCRM'da «Язык» yo'q (u profilda) → olib tashlash. «Товары» (katalog yoqish/o'chirish) qo'shish — o'chsa
        Ro'yxatlar → Mahsulotlar va kartochkadagi «Mahsulotlar» yashiriladi. Yo'q (keyinroq, tarif/katta funksiya): Периодические
        покупки, Счета/покупки, Личные чаты, Кабинет клиента, Автоматическая загрузка больших файлов, Удаление файлов.
-    c) [ ] Безопасность: amoCRM'da faqat «Белый список IP-адресов» + «Резервное копирование». Bizdagi «Смена пароля» → profilga.
+    c) [x] Безопасность: amoCRM'da faqat «Белый список IP-адресов» + «Резервное копирование». Bizdagi «Смена пароля» → profilga.
        «Резервное копирование» qo'shish (admin barcha ma'lumotni JSON arxiv qilib yuklab oladi).
-    d) [ ] Чаты и мессенджеры: amoCRM'da kanal ulash bloki yo'q (u amoМаркет'da) → Telegram blokini olib tashlash (Integratsiyalarda
+    d) [x] Чаты и мессенджеры: amoCRM'da kanal ulash bloki yo'q (u amoМаркет'da) → Telegram blokini olib tashlash (Integratsiyalarda
        bor). Qo'shish: «Меню imBox + центр нотификаций» / «Центр нотификаций» tanlovi, «Отмечать событие, если превышено время
        ответа на сообщение» (daqiqa). Beseda qoidalari matni amoCRM'dagidek («…в последнем созданном покупателе…» bizda покупатели
        yo'q — sdelka). Pro-tarif bloklari (Список ботов, Онлайн чаты, Сокращать ссылки, Типовые вопросы, Обращения и NPS) — keyin.
-    e) [ ] Пользователи: amoCRM'da guruhlar (otdel: ADMINS, CALL CENTRE…) rollardan alohida; «ГРУППА» ustuni guruhni ko'rsatadi.
+    e) [x] Пользователи: amoCRM'da guruhlar (otdel: ADMINS, CALL CENTRE…) rollardan alohida; «ГРУППА» ustuni guruhni ko'rsatadi.
     f) [ ] Chap panel: amoCRM tartibi — Общие настройки, Счет и оплата, Пользователи, Чаты и мессенджеры, Безопасность, amoAI,
        keyin o'rnatilgan vidjetlar (Telegram, WhatsApp…). Bizda Счет и оплата / amoAI kerak emas (o'z serverimiz) — qolgani bir xil.
+    g) [ ] Huquqlar matritsasi amoCRM kabi: qatorlar — Сделки, Контакты, Компании, Задачи, Товары, har voronka «Неразобранное» va
+       bosqichlari; ustunlar — Создание / Просмотр / Правка / Удаление / Экспорт; darajalar — Запрещено / Если ответственный /
+       Для группы / Разрешено (backendda ko'rinish va amallar shu darajaga qarab cheklanadi). Hozir bizda oddiy ruxsat kalitlari.
+    h) [ ] Profil → «Настройки уведомлений» (tur × kanal: asosiy / brauzer / Telegram, «Сразу» / kuniga bir marta).
+    Bajarildi (a–e): /settings/profile sahifasi (avatar, ID, til, ism, telefon, email, parol, izoh), «Сеансы» — har kirish
+    alohida sessiya (sid tokenda), «Выйти» boshqa qurilmani darhol chiqaradi, parol almashsa boshqa sessiyalar yopiladi; Umumiy →
+    «Язык» olib tashlandi, «Товары» yoqish/o'chirish; Xavfsizlik → parol profilga ko'chdi, «Резервное копирование» (JSON, oqim,
+    maxfiy maydonlarsiz); Chatlar → Telegram bloki olib tashlandi, «Меню imBox + центр нотификаций» / «Центр нотификаций»
+    (imBox menyudan yashiriladi), «Отмечать событие, если превышено время ответа» (imBox'da qizil); Foydalanuvchilar → guruhlar
+    alohida model (crm_user_groups, mavjudlari rol nomi bilan ko'chirildi), kartochka: Активность, Группа, huquq profili tablari.
+    test/e2e/70-profile.
 
 38. [ ] (foydalanuvchi so'rovi 26.10) BARCHA bo'limlar amoCRM bilan har bir detalda — 34-37-bandlardagi usulda: avval amoCRM'da
     bo'lim qanday ishlashini, nomlar, joylashuv, filtrlar, menyular, holatlar, bo'sh holat matnlarini o'rganish (faqat ko'rish),

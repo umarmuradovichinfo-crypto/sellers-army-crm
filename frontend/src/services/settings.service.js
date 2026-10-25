@@ -23,6 +23,11 @@ export const settingsService = {
   createUser: (payload) => api.post('/settings/users', payload),
   // PATCH /settings/users/:id { name?, email?, roleKey?, isActive?, extension? }
   updateUser: (id, payload) => api.patch(`/settings/users/${id}`, payload),
+  // amoCRM «Настройка групп»: guruhlar (otdellar) — huquq profilidan alohida
+  listGroups: () => api.get('/settings/groups'),
+  createGroup: (name) => api.post('/settings/groups', { name }),
+  renameGroup: (id, name) => api.patch(`/settings/groups/${id}`, { name }),
+  deleteGroup: (id, moveTo) => api.del(`/settings/groups/${id}${moveTo ? `?moveTo=${encodeURIComponent(moveTo)}` : ''}`),
   // POST /settings/users/:id/password { password }
   resetUserPassword: (id, password) => api.post(`/settings/users/${id}/password`, { password }),
 

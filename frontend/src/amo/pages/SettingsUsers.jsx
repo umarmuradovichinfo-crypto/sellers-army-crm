@@ -63,21 +63,34 @@ function AuthLogModal({ onClose }) {
   )
 }
 
-// "Настройка групп": guruhlar (rollar) va ulardagi foydalanuvchilar soni, yangi guruh
-function GroupsModal({ roles, onClose, onChanged }) {
+// amoCRM «Настройка групп»: foydalanuvchilar guruhlari (otdellar) — qo'shish, nomini o'zgartirish, o'chirish
+function GroupsModal({ groups, onClose, onChanged }) {
   const t = useT()
   const [name, setName] = useState('')
+  const [edit, setEdit] = useState(null) // { id, name }
   const [err, setErr] = useState('')
-  const add = async () => {
-    if (!name.trim()) return
-    try { await settingsService.createRole(name.trim()); setName(''); onChanged() } catch (e) { setErr(e.message) }
+  const run = async (fn) => { setErr(''); try { await fn(); onChanged() } catch (e) { setErr(e.message || t('Xatolik')) } }
+  const add = () => name.trim() && run(async () => { await settingsService.createGroup(name.trim()); setName('') })
+  const rename = () => edit?.name.trim() && run(async () => { await settingsService.renameGroup(edit.id, edit.name.trim()); setEdit(null) })
+  const remove = (g) => {
+    if (g.users && !window.confirm(t("Guruhdagi foydalanuvchilar guruhsiz qoladi. O'chirilsinmi?"))) return
+    run(() => settingsService.deleteGroup(g.id))
   }
   return (
     <div className="ac-modal-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="ac-modal">
         <h2 className="ac-set-block__title" style={{ marginTop: 0 }}>{t('Guruhlarni sozlash')}</h2>
         <div className="ac-set-groups">
-          {roles.map((r) => <div key={r.key} className="ac-set-group"><span>{r.name}</span><span className="ac-muted">{r.users ?? ''}</span></div>)}
+          {groups.map((g) => (
+            <div key={g.id} className="ac-set-group">
+              {edit?.id === g.id
+                ? <input className="ac-input" style={{ flex: 1 }} autoFocus value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') rename(); if (e.key === 'Escape') setEdit(null) }} onBlur={rename} />
+                : <span style={{ flex: 1, cursor: 'pointer' }} onClick={() => setEdit({ id: g.id, name: g.name })}>{g.name}</span>}
+              <span className="ac-muted">{g.users || ''}</span>
+              <button className="ac-top__dots" title={t("O'chirish")} onClick={() => remove(g)}><Ico name="trash" size={13} /></button>
+            </div>
+          ))}
+          {groups.length === 0 && <div className="ac-muted">{t("Guruhlar yo'q")}</div>}
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
           <input className="ac-input" style={{ flex: 1 }} placeholder={t('Yangi guruh nomi')} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
@@ -99,13 +112,15 @@ export default function SettingsUsers() {
   const [modal, setModal] = useState(null) // { create:true } | { user }
   const users = useApi(() => settingsService.listUsers(), [], 'settings:users', 600000)
   const access = useApi(() => settingsService.getAccess(), [], 'settings:access', 600000)
+  const grp = useApi(() => settingsService.listGroups(), [], 'settings:groups', 600000)
+  const groups = grp.data?.groups || []
 
   const roles = access.data?.roles || []
   const list = users.data?.users || []
   const roleByKey = useMemo(() => Object.fromEntries(roles.map((r) => [r.key, r])), [roles])
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase()
-    return s ? list.filter((u) => `${u.name} ${u.email} ${u.roleName || ''}`.toLowerCase().includes(s)) : list
+    return s ? list.filter((u) => `${u.name} ${u.email} ${u.roleName || ''} ${u.groupName || ''}`.toLowerCase().includes(s)) : list
   }, [list, q])
 
   const toggleAll = () => setSel(sel.size === shown.length ? new Set() : new Set(shown.map((u) => u.id)))
@@ -148,7 +163,7 @@ export default function SettingsUsers() {
                 <tr key={u.id} className={`${sel.has(u.id) ? 'selected' : ''} ${u.isActive ? '' : 'ac-set-inactive'}`}>
                   <td className="ac-chk"><input type="checkbox" className="ac-check" checked={sel.has(u.id)} onChange={() => toggleOne(u.id)} /></td>
                   <td><span className="name" onClick={() => setModal({ user: u })}>{u.name}</span></td>
-                  <td>{u.roleName || u.roleKey}</td>
+                  <td>{u.groupName || <span className="ac-muted">—</span>}</td>
                   <td>{u.email}</td>
                   <td>{dmy(u.createdAt)}</td>
                   <td>{rightsCell(u, 'deals')}</td>
@@ -164,10 +179,10 @@ export default function SettingsUsers() {
         )}
       </div>
       {modal?.log && <AuthLogModal onClose={() => setModal(null)} />}
-      {modal?.groups && <GroupsModal roles={roles} onClose={() => setModal(null)} onChanged={() => access.reload()} />}
+      {modal?.groups && <GroupsModal groups={groups} onClose={() => setModal(null)} onChanged={() => { grp.reload(); users.reload() }} />}
       {modal && (modal.create || modal.user) && (
         <UserDrawer
-          initial={modal.user} roles={roles} canManage={canManage} selfId={user?.id}
+          initial={modal.user} roles={roles} groups={groups} canManage={canManage} selfId={user?.id}
           onClose={() => setModal(null)}
           onChanged={() => { users.reload(); access.reload() }}
         />
@@ -176,7 +191,7 @@ export default function SettingsUsers() {
   )
 }
 
-function UserDrawer({ initial, roles, canManage, selfId, onClose, onChanged }) {
+function UserDrawer({ initial, roles, groups, canManage, selfId, onClose, onChanged }) {
   const t = useT()
   const editing = !!initial
   const [name, setName] = useState(initial?.name || '')
@@ -184,6 +199,7 @@ function UserDrawer({ initial, roles, canManage, selfId, onClose, onChanged }) {
   const [password, setPassword] = useState('')
   const [roleKey, setRoleKey] = useState(initial?.roleKey || roles.find((r) => r.key !== 'super_admin')?.key || roles[0]?.key || '')
   const [extension, setExtension] = useState(initial?.extension || '')
+  const [groupId, setGroupId] = useState(initial ? initial.groupId || '' : groups[0]?.id || '')
   const [isActive, setIsActive] = useState(initial ? initial.isActive : true)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
@@ -209,7 +225,7 @@ function UserDrawer({ initial, roles, canManage, selfId, onClose, onChanged }) {
     catch (e) { setPerms(rolePerms); setErr(e.message || t('Xatolik')) }
   }
   const addRole = async () => {
-    const nm = window.prompt(t('Yangi guruh nomi'))
+    const nm = window.prompt(t('Yangi huquq profili nomi'))
     if (!nm || !nm.trim()) return
     try {
       const r = await settingsService.createRole(nm.trim())
@@ -223,10 +239,10 @@ function UserDrawer({ initial, roles, canManage, selfId, onClose, onChanged }) {
     setBusy(true); setErr(null)
     try {
       if (editing) {
-        await settingsService.updateUser(initial.id, { name: name.trim(), email: email.trim(), roleKey, isActive, extension: extension.trim() })
+        await settingsService.updateUser(initial.id, { name: name.trim(), email: email.trim(), roleKey, isActive, extension: extension.trim(), groupId: groupId || null })
         if (password) await settingsService.resetUserPassword(initial.id, password)
       } else {
-        await settingsService.createUser({ name: name.trim(), email: email.trim(), password, roleKey, extension: extension.trim() })
+        await settingsService.createUser({ name: name.trim(), email: email.trim(), password, roleKey, extension: extension.trim(), groupId: groupId || null })
       }
       onChanged(); onClose()
     } catch (e) { setErr(e.message || t('Xatolik')); setBusy(false) }
@@ -240,6 +256,12 @@ function UserDrawer({ initial, roles, canManage, selfId, onClose, onChanged }) {
           <button className="ac-top__dots" onClick={onClose}><Ico name="close" /></button>
         </div>
         <div className="ac-set-drawer__body">
+          {editing && (
+            <label className="ac-set-checkrow">
+              <span className={`ac-switch ${isActive ? 'on' : ''}`} style={{ opacity: !canManage || initial.id === selfId ? 0.5 : 1 }} onClick={(e) => { e.preventDefault(); if (canManage && initial.id !== selfId) setIsActive((v) => !v) }} />
+              {t('Faollik')}
+            </label>
+          )}
           <div className="ac-set-field"><label>{t("To'liq ism")}</label>
             <input className="ac-input" value={name} autoFocus onChange={(e) => setName(e.target.value)} disabled={!canManage} />
           </div>
@@ -252,25 +274,26 @@ function UserDrawer({ initial, roles, canManage, selfId, onClose, onChanged }) {
             {password && password.length < 6 && <div className="ac-set-err">{t("Kamida 6 belgi bo'lsin")}</div>}
           </div>
           <div className="ac-set-field"><label>{t('Guruh')}</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <select className="ac-select" value={roleKey} onChange={(e) => { setRoleKey(e.target.value); setPerms(null) }} disabled={!canManage || (editing && initial.id === selfId)}>
-                {allRoles.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}
-              </select>
-              {canManage && <button className="ac-btn" title={t('Yangi guruh')} onClick={addRole}><Ico name="plus" /></button>}
-            </div>
+            <select className="ac-select" value={groupId} onChange={(e) => setGroupId(e.target.value)} disabled={!canManage}>
+              <option value="">{t('Guruhsiz')}</option>
+              {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
           </div>
           <div className="ac-set-field"><label>{t("Ichki raqam (OnlinePBX, ixtiyoriy)")}</label>
             <input className="ac-input" value={extension} onChange={(e) => setExtension(e.target.value)} placeholder="101" disabled={!canManage} />
           </div>
-          {editing && (
-            <label className="ac-set-checkrow">
-              <input type="checkbox" className="ac-check" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} disabled={!canManage || initial.id === selfId} />
-              {t('Faol (tizimga kira oladi)')}
-            </label>
-          )}
 
-          <div className="ac-set-sub">{t('Guruh huquqlari')}</div>
-          <div className="ac-muted" style={{ fontSize: 12, marginBottom: 8 }}>{t("O'zgarish guruhdagi barcha foydalanuvchilarga ta'sir qiladi")}</div>
+          {/* amoCRM: huquq profillari tablari (Администратор, …) + «Настроить права» */}
+          <div className="ac-set-sub">{t('Huquqlar')}</div>
+          <div className="ac-set-proftabs">
+            {allRoles.map((r) => (
+              <button key={r.key} className={r.key === roleKey ? 'on' : ''} disabled={!canManage || (editing && initial.id === selfId)} onClick={() => { setRoleKey(r.key); setPerms(null) }}>
+                {r.key === 'super_admin' && <Ico name="star" size={11} />} {r.key === 'super_admin' ? t('Administrator') : r.name}
+              </button>
+            ))}
+            {canManage && <button className="add" onClick={addRole}>{t('Huquqlarni sozlash')}</button>}
+          </div>
+          <div className="ac-muted" style={{ fontSize: 12, margin: '6px 0 8px' }}>{t("Huquq profili o'zgarsa, shu profildagi barcha foydalanuvchilarga ta'sir qiladi")}</div>
           <table className="ac-set-matrix">
             <tbody>
               {permList.map((p) => {
