@@ -59,11 +59,12 @@ function SrcIcon({ channel }) {
 const CHAT_LABEL = { instagram: 'Instagram bilan chat', facebook: 'Messenger bilan chat', telegram: 'Telegram bilan chat' }
 const CHAN_NAME = { instagram: 'Instagram', facebook: 'Facebook Messenger', telegram: 'Telegram' }
 
-function Row({ c, on, onClick }) {
+function Row({ c, on, onClick, sel }) {
   const t = useT()
   const author = c.senderName || (c.direction === 'out' ? t('Siz') : t('Mijoz'))
   return (
-    <div className={`ac-imbox-row ${on ? 'on' : ''}`} onClick={onClick}>
+    <div className={`ac-imbox-row ${on ? 'on' : ''} ${sel?.checked ? 'checked' : ''}`} onClick={sel ? sel.toggle : onClick}>
+      {sel && <input type="checkbox" className="ac-check ac-imbox-row__chk" checked={sel.checked} readOnly />}
       <div className="ac-imbox-row__avatar">
         {c.avatar ? <img className="ac-imbox-row__img" src={c.avatar} alt="" /> : c.initial ? <span className="ac-imbox-row__letter">{c.initial}</span> : <PersonAvatar size={36} />}
         <SrcIcon channel={chanOf(c)} />
@@ -359,6 +360,12 @@ export default function ImboxPage() {
   const [flt, setFlt] = useState({ preset: '', period: '', stages: [] })
   const [sort, setSort] = useState('new')
   const [muted, setMutedState] = useState(isMuted)
+  const [picked, setPicked] = useState(null) // amoCRM «Массовые действия»: null — o'chiq, Set — tanlanganlar
+  const bulk = async (action) => {
+    const ids = [...picked]
+    await Promise.all(ids.map((id) => crmService.conversationAction(id, action).catch(() => null)))
+    setPicked(null); loadList()
+  }
 
   const loadList = useCallback(() => {
     crmService.conversations({ preset: flt.preset || undefined, period: flt.period || undefined, stages: flt.stages.join(',') || undefined, sort: sort === 'old' ? 'old' : undefined })
@@ -402,14 +409,24 @@ export default function ImboxPage() {
             { label: t('Yangilash'), icon: 'clock', onClick: loadList },
             { label: t(sort === 'new' ? 'Avval eskilari' : 'Avval yangilari'), icon: 'list', onClick: () => setSort((v) => (v === 'new' ? 'old' : 'new')) },
             { label: t(muted ? 'Ovozni yoqish' : "Ovozni o'chirish"), icon: 'bell', onClick: () => { setMuted(!muted); setMutedState(!muted) } },
+            { label: t('Ommaviy amallar'), icon: 'check', onClick: () => setPicked(new Set()) },
           ]} />
         </div>
         <div className="ac-imbox-list__scroll">
           {convs === null && [0, 1, 2, 3, 4].map((i) => <div key={i} className="ac-imbox-row"><div className="ac-plug" style={{ width: 36, height: 36, borderRadius: '50%' }} /><div style={{ flex: 1 }}><div className="ac-plug" style={{ height: 14, width: '60%', marginBottom: 8 }} /><div className="ac-plug" style={{ height: 12 }} /></div></div>)}
           {convs && convs.length === 0 && <div className="ac-imbox-list__empty">{t("Suhbatlar yo'q")}</div>}
           {convs && convs.length > 0 && shown.length === 0 && <div className="ac-imbox-list__empty">{t('Suhbatlar topilmadi')}</div>}
-          {shown.map((c) => <Row key={c.leadId} c={c} on={c.leadId === leadId} onClick={() => navigate(`/imbox/${c.leadId}`)} />)}
+          {shown.map((c) => <Row key={c.leadId} c={c} on={c.leadId === leadId} onClick={() => navigate(`/imbox/${c.leadId}`)}
+            sel={picked ? { checked: picked.has(c.leadId), toggle: () => setPicked((p) => { const n = new Set(p); n.has(c.leadId) ? n.delete(c.leadId) : n.add(c.leadId); return n }) } : null} />)}
         </div>
+        {picked && (
+          <div className="ac-imbox-bulk">
+            <label><input type="checkbox" className="ac-check" checked={shown.length > 0 && picked.size === shown.length} onChange={(e) => setPicked(new Set(e.target.checked ? shown.map((c) => c.leadId) : []))} /> {t('Belgilandi')}: {picked.size}</label>
+            <button disabled={!picked.size} onClick={() => bulk('close')}>{t('Yopish')}</button>
+            <button disabled={!picked.size} onClick={() => bulk('fav')}>{t('Sevimlilar')}</button>
+            <button onClick={() => setPicked(null)}>{t('Bekor qilish')}</button>
+          </div>
+        )}
       </div>
       {leadId
         ? <Conversation key={leadId} leadId={leadId} pipes={pipes} onChanged={loadList} onToggleList={() => setCollapsed((v) => !v)} />

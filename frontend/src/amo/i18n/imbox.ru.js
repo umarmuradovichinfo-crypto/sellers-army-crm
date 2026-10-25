@@ -52,4 +52,5 @@ addRu({
   'Suhbat yopilgan': 'Беседа закрыта',
   "Ovozni o'chirish": 'Отключить звук',
   'Ovozni yoqish': 'Включить звук',
+  'Ommaviy amallar': 'Массовые действия',
 })

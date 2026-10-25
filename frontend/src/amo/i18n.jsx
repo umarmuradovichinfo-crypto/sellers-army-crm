@@ -25,6 +25,10 @@ const RU = {
   'Market': 'Маркет',
   'Barcha bitimlar': 'Все сделки',
   'Arxivdagi voronkalar': 'Архивные воронки',
+  'Belgilandi': 'Выбрано',
+  "Tanlangan bitimlar o'chirilsinmi?": 'Удалить выбранные сделки?',
+  'Bitimlar topilmadi': 'Сделки не найдены',
+  "so'm": "so'm",
   // server voqea matnlari (activityText.js)
   'Saralanmagandan qabul qilindi': 'Принято из неразобранного',
   'Suhbat yopildi': 'Беседа закрыта',

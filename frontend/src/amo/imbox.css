@@ -90,3 +90,10 @@
 .ac-imbox-view__fav.on svg path { fill: currentColor; }
 .ac-imbox-row__fav path { fill: currentColor; }
 @media (max-width: 760px) { .ac-imbox-fpanel { flex-direction: column; width: calc(100vw - 30px); } .ac-imbox-fpanel__presets { flex: none; border-right: 0; } }
+/* amoCRM imBox «Массовые действия» */
+.ac-imbox-row__chk { align-self: center; margin-right: 8px; }
+.ac-imbox-row.checked { background: rgba(76, 139, 247, 0.12); }
+.ac-imbox-bulk { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 14px; border-top: 1px solid var(--palette-border-primary); background: var(--palette-background-primary); font-size: 13px; }
+.ac-imbox-bulk label { display: flex; align-items: center; gap: 6px; margin-right: auto; }
+.ac-imbox-bulk button { background: none; border: 1px solid var(--palette-border-primary); border-radius: 3px; padding: 4px 10px; cursor: pointer; color: var(--palette-text-primary); font: 13px var(--font-main); }
+.ac-imbox-bulk button:disabled { opacity: 0.5; cursor: default; }
