@@ -188,10 +188,15 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     e) [x] Пользователи: amoCRM'da guruhlar (otdel: ADMINS, CALL CENTRE…) rollardan alohida; «ГРУППА» ustuni guruhni ko'rsatadi.
     f) [ ] Chap panel: amoCRM tartibi — Общие настройки, Счет и оплата, Пользователи, Чаты и мессенджеры, Безопасность, amoAI,
        keyin o'rnatilgan vidjetlar (Telegram, WhatsApp…). Bizda Счет и оплата / amoAI kerak emas (o'z serverimiz) — qolgani bir xil.
-    g) [ ] Huquqlar matritsasi amoCRM kabi: qatorlar — Сделки, Контакты, Компании, Задачи, Товары, har voronka «Неразобранное» va
+    g) [x] Huquqlar matritsasi amoCRM kabi: qatorlar — Сделки, Контакты, Компании, Задачи, Товары, har voronka «Неразобранное» va
        bosqichlari; ustunlar — Создание / Просмотр / Правка / Удаление / Экспорт; darajalar — Запрещено / Если ответственный /
        Для группы / Разрешено (backendda ko'rinish va amallar shu darajaga qarab cheklanadi). Hozir bizda oddiy ruxsat kalitlari.
-    h) [ ] Profil → «Настройки уведомлений» (tur × kanal: asosiy / brauzer / Telegram, «Сразу» / kuniga bir marta).
+       Bajarildi: Role.rightsJson + common/rights (RightsService): bitimlar ro'yxati/voronka/eksport/ommaviy amal/analitika
+       (leadConds orqali), kartochka va uning amallari, vazifalar (ro'yxat + tahrir/o'chirish), kontakt/kompaniya, imBox, qo'ng'iroqlar,
+       mahsulotlar; «Неразобранное» voronka bo'yicha. Standart — hammasi «Разрешено» (eski xatti-harakat). test/e2e/75-rights.
+    h) [x] Profil → «Настройки уведомлений»: tur (yangi vazifa, bugungi/kechikkan vazifa, bitim/so'rov, chat, avtomatlashtirish)
+       × kanal (markaz, brauzer oynasi). Ikkalasi o'chsa yozilmaydi; brauzer — Notification API (ruxsat so'raladi).
+       Keyin: Telegram kanali, «Один раз в день» rejimi, «Регулярный отчет».
     Bajarildi (a–e): /settings/profile sahifasi (avatar, ID, til, ism, telefon, email, parol, izoh), «Сеансы» — har kirish
     alohida sessiya (sid tokenda), «Выйти» boshqa qurilmani darhol chiqaradi, parol almashsa boshqa sessiyalar yopiladi; Umumiy →
     «Язык» olib tashlandi, «Товары» yoqish/o'chirish; Xavfsizlik → parol profilga ko'chdi, «Резервное копирование» (JSON, oqim,

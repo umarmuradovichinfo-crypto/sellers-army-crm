@@ -204,6 +204,9 @@ export const notifService = {
   list: () => api.get('/notifications'),
   read: (id) => api.post(`/notifications/${id}/read`, {}),
   readAll: () => api.post('/notifications/read-all', {}),
+  // amoCRM «Настройки уведомлений»: { prefs: { task|task_due|lead|mention|automation: { main, browser } } }
+  prefs: () => api.get('/notifications/prefs'),
+  savePrefs: (prefs) => api.put('/notifications/prefs', { prefs }),
 }
 
 function qs(params) {

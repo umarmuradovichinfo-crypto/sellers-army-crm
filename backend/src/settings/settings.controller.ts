@@ -32,6 +32,13 @@ export class SettingsController {
     return this.settings.setPermission(dto.roleKey, dto.permission, dto.allowed);
   }
 
+  // amoCRM «Права доступа» matritsasi (huquq profili bo'yicha)
+  @Put('roles/:key/rights')
+  @RequirePermissions('settings.roles.manage')
+  setRights(@Param('key') key: string, @Body() body: { rights?: unknown }) {
+    return this.settings.setRights(key, body?.rights);
+  }
+
   @Post('roles')
   @RequirePermissions('settings.roles.manage')
   createRole(@Body() dto: CreateRoleDto) {

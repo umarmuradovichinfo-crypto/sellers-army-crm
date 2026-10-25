@@ -1,3 +1,4 @@
+import { RightsService } from '../common/rights/rights.service';
 import { BadRequestException, Body, Controller, Get, Query, Headers, Param, Post, Put } from '@nestjs/common';
 
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -22,18 +23,19 @@ export class TelegramWebhookController {
 @Controller('crm')
 @RequirePermissions('crm.view')
 export class ChatController {
-  constructor(private readonly chat: ChatService) {}
+  constructor(private readonly chat: ChatService, private readonly rights: RightsService) {}
 
   @Get('chat-status') status() { return this.chat.enabled(); }
   @Get('conversations') conversations(@Query() q: Record<string, string>, @CurrentUser('id') userId?: string) { return this.chat.listConversations(q, userId); }
-  @Post('conversations/:leadId/:action') conversation(@Param('leadId') leadId: string, @Param('action') action: string, @CurrentUser() user: AuthUser) {
+  @Post('conversations/:leadId/:action') async conversation(@Param('leadId') leadId: string, @Param('action') action: string, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, leadId, 'view');
     if (!['close', 'reopen', 'fav'].includes(action)) throw new BadRequestException({ error: 'BAD_ACTION', message: 'Noto`g`ri amal' });
     return this.chat.setConversation(leadId, action as 'close' | 'reopen' | 'fav', user);
   }
   @Get('chat-settings') chatSettings() { return this.chat.getChatSettings(); }
   @Put('chat-settings') @RequirePermissions('settings.roles.manage') saveChatSettings(@Body() body: any) { return this.chat.saveChatSettings(body); }
   @Get('chat-stats') chatStats(@Query('from') from?: string, @Query('to') to?: string) { return this.chat.chatStats({ from, to }); }
-  @Get('leads/:id/messages') messages(@Param('id') id: string, @CurrentUser('id') userId?: string) { return this.chat.listMessages(id, userId); }
-  @Post('leads/:id/messages') send(@Param('id') id: string, @Body() body: { text: string }, @CurrentUser() user: AuthUser) { return this.chat.sendMessage(id, body?.text, user); }
+  @Get('leads/:id/messages') async messages(@Param('id') id: string, @CurrentUser() user: AuthUser) { await this.rights.assertLead(user, id, 'view'); return this.chat.listMessages(id, user.id); }
+  @Post('leads/:id/messages') async send(@Param('id') id: string, @Body() body: { text: string }, @CurrentUser() user: AuthUser) { await this.rights.assertLead(user, id, 'view'); return this.chat.sendMessage(id, body?.text, user); }
   @Post('telegram-webhook-setup') @RequirePermissions('crm.settings') setup(@Body() body: { url: string }) { return this.chat.setupWebhook(body?.url); }
 }

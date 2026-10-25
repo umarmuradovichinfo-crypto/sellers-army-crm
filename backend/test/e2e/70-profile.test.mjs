@@ -82,4 +82,19 @@ describe('Profil va xavfsizlik (amoCRM)', () => {
     assert.equal(g.general.products, false);
     assert.equal((await ok('PUT', '/settings/general', { products: true }, A, 200)).general.products, true);
   });
+  test("bildirishnoma sozlamalari (amoCRM «Настройки уведомлений»): ikkala kanal o'chsa yozilmaydi, markaz o'chsa ro'yxatda yo'q", async () => {
+    const A = await admin();
+    const S = await userWithRole('sotuvchi');
+    const p = (await ok('GET', '/notifications/prefs', undefined, S.token, 200)).prefs;
+    assert.equal(p.lead.main, true);
+    await ok('PUT', '/notifications/prefs', { prefs: { lead: { main: false, browser: false }, task: { main: false, browser: true } } }, S.token, 200);
+    const l = (await ok('POST', '/crm/leads', { name: 'QA notif' }, A)).lead;
+    await ok('PUT', `/crm/leads/${l.id}`, { assigneeId: S.id }, A, 200);
+    await ok('POST', `/crm/leads/${l.id}/tasks`, { title: 'QA notif task', assigneeId: S.id, dueDate: new Date(Date.now() + 864e5).toISOString() }, A);
+    const n = await ok('GET', '/notifications', undefined, S.token, 200);
+    assert.ok(!n.items.some((x) => x.type === 'lead'), "o'chirilgan tur markazda chiqdi");
+    assert.ok(!n.items.some((x) => x.type === 'task'), "markaz o'chirilgan vazifa ko'rindi");
+    assert.ok(n.push.some((x) => x.type === 'task'), "brauzer kanali uchun vazifa yo'q");
+    assert.ok(!n.push.some((x) => x.type === 'lead'), "ikkala kanal o'chgan tur yozildi");
+  });
 });

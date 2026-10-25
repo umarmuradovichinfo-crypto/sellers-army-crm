@@ -16,6 +16,7 @@ model Role {
   key      String  @unique // 'super_admin', 'sotuvchi', 'traffic'
   name     String // ko'rinadigan nom
   isSystem Boolean @default(false)
+  rightsJson String? // amoCRM «Права доступа» matritsasi (common/rights/rights.ts)
 
   permissions RolePermission[]
   users       User[]

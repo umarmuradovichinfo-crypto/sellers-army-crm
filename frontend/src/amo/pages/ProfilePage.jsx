@@ -5,6 +5,7 @@ import { Ico } from '../AmoIcons'
 import { useI18n } from '../i18n'
 import { useAuth } from '../../context/AuthContext'
 import { settingsService } from '../../services/settings.service'
+import { notifService } from '../../services/crm.service'
 import '../i18n/settings.ru'
 import '../settings.css'
 
@@ -18,6 +19,15 @@ export function uaLabel(ua) {
     : /Mac OS X|Macintosh/.test(s) ? 'MacOSX' : /Linux/.test(s) ? 'Linux' : ''
   return os ? `${br}, ${os}` : br
 }
+
+// amoCRM «Получать уведомления»: turlar (bizdagi bildirishnoma turlari bo'yicha)
+const NOTIF_ROWS = [
+  ['task', 'Vazifalar: sizga yangi vazifa qo\'yildi'],
+  ['task_due', "Vazifalar: bugungi va muddati o'tgan vazifalar"],
+  ['lead', 'Bitimlar: sizga bitim biriktirildi, yangi so\'rov'],
+  ['mention', 'Chat xabarlari'],
+  ['automation', 'Avtomatlashtirish xabarlari'],
+]
 
 const fmt = (iso) => {
   const d = new Date(iso)
@@ -54,6 +64,17 @@ export default function ProfilePage() {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
   const fileRef = useRef(null)
+  // «Настройки уведомлений»: tur × kanal
+  const [nBase, setNBase] = useState(null)
+  const [nPrefs, setNPrefs] = useState(null)
+  const [perm, setPerm] = useState(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
+  useEffect(() => { notifService.prefs().then((r) => { setNBase(r.prefs); setNPrefs(r.prefs) }).catch(() => {}) }, [])
+  const toggleN = async (cat, ch) => {
+    if (ch === 'browser' && !nPrefs[cat].browser && perm === 'default') {
+      try { setPerm(await Notification.requestPermission()) } catch { /* */ }
+    }
+    setNPrefs((p) => ({ ...p, [cat]: { ...p[cat], [ch]: !p[cat][ch] } }))
+  }
 
   const load = (r) => {
     const p = { name: r.profile.name, email: r.profile.email, phone: r.profile.phone, note: r.profile.note, avatar: r.profile.avatar || '' }
@@ -65,7 +86,8 @@ export default function ProfilePage() {
 
   const pwWant = pwOpen && (pw.cur || pw.a || pw.b)
   const pwBad = pwWant && (!pw.cur || pw.a.length < 6 || pw.a !== pw.b)
-  const dirty = ['name', 'email', 'phone', 'note', 'avatar'].some((k) => form[k] !== base[k]) || uiLang !== lang || pwWant
+  const nDirty = nPrefs && JSON.stringify(nPrefs) !== JSON.stringify(nBase)
+  const dirty = ['name', 'email', 'phone', 'note', 'avatar'].some((k) => form[k] !== base[k]) || uiLang !== lang || pwWant || nDirty
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   const save = async () => {
@@ -80,6 +102,7 @@ export default function ProfilePage() {
         setPw({ cur: '', a: '', b: '' }); setPwOpen(false)
         settingsService.getProfile().then(load).catch(() => {})
       }
+      if (nDirty) { const r = await notifService.savePrefs(nPrefs); setNBase(r.prefs); setNPrefs(r.prefs) }
       if (uiLang !== lang) setLang(uiLang)
       setMsg({ ok: true, m: t('Saqlandi') })
       setTimeout(() => setMsg(null), 2500)
@@ -158,6 +181,28 @@ export default function ProfilePage() {
             </tbody>
           </table>
         </div>
+
+        {nPrefs && (
+          <>
+            <h2 className="ac-prof-h2">{t('Bildirishnomalar sozlamalari')}</h2>
+            <div className="ac-set-block">
+              <table className="ac-prof-sess ac-prof-notif">
+                <thead><tr><th>{t('ASOSIY')}</th><th>{t('MARKAZ')}</th><th>{t('BRAUZER')}</th></tr></thead>
+                <tbody>
+                  {NOTIF_ROWS.map(([k, l]) => (
+                    <tr key={k}>
+                      <td>{t(l)}</td>
+                      {['main', 'browser'].map((ch) => (
+                        <td key={ch}><span className={`ac-switch ${nPrefs[k]?.[ch] ? 'on' : ''}`} onClick={() => toggleN(k, ch)} /></td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {perm === 'denied' && <div className="ac-set-err" style={{ marginTop: 8 }}>{t("Brauzer bildirishnomalari brauzer sozlamalarida bloklangan")}</div>}
+            </div>
+          </>
+        )}
 
         <div className="ac-set-block">
           <h2 className="ac-set-block__title">{t('Akkauntga kirish')}</h2>

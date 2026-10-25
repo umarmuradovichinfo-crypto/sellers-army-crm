@@ -1,3 +1,4 @@
+import { RightsService } from '../common/rights/rights.service';
 import {
   Body,
   Controller,
@@ -19,15 +20,17 @@ import { ClickCallDto, ExtensionDto } from './dto/calls.dto';
 @Controller('crm')
 @RequirePermissions('crm.view')
 export class CallsController {
-  constructor(private readonly calls: CallsService) {}
+  constructor(private readonly calls: CallsService, private readonly rights: RightsService) {}
 
   @Post('leads/:id/call')
-  call(@Param('id') id: string, @Body() dto: ClickCallDto, @CurrentUser() user: AuthUser) {
+  async call(@Param('id') id: string, @Body() dto: ClickCallDto, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'view');
     return this.calls.clickToCall(user, id, dto.from);
   }
 
   @Get('leads/:id/calls')
-  leadCalls(@Param('id') id: string) {
+  async leadCalls(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'view');
     return this.calls.leadCalls(id);
   }
 

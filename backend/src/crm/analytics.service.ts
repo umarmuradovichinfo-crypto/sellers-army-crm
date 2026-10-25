@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RightsService } from '../common/rights/rights.service';
 import { and, dateRangeOf, LeadCtx, LeadFilter, leadConds } from './list-query';
 
 // Davr chegarasini xavfsiz o'qish: noto'g'ri sana 500 emas, 400 qaytaradi
@@ -38,7 +39,7 @@ function userList(v?: unknown): string[] {
  */
 @Injectable()
 export class CrmAnalyticsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly rights: RightsService) {}
 
   /**
    * Analitika filtri: bitimlar ro'yxatidagi BARCHA parametrlar (list-query.leadConds) + voronka (pipelineId) + userIds (mas'ullar).
@@ -49,7 +50,7 @@ export class CrmAnalyticsService {
       this.prisma.crmStage.findMany({ select: { key: true, kind: true } }),
       this.prisma.crmField.findMany({ where: { entity: 'lead' }, select: { key: true, type: true } }),
     ]);
-    const ctx: LeadCtx = { userId, kinds: new Map(stages.map((s) => [s.key, s.kind])), fields: new Map(fields.map((f) => [f.key, f.type])) };
+    const ctx: LeadCtx = { userId, ownerIds: await this.rights.ownersById(userId, 'leads', 'view'), kinds: new Map(stages.map((s) => [s.key, s.kind])), fields: new Map(fields.map((f) => [f.key, f.type])) };
     parseFrom(q.from); parseTo(q.to); // noto'g'ri sana -> 400
     const f: Record<string, any> = { ...q };
     delete f.unsorted; delete f.limit;

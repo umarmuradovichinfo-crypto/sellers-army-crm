@@ -4,6 +4,8 @@ import * as bcrypt from 'bcryptjs';
 
 import { PERMISSION_KEYS, PERMISSION_LABELS } from '../common/constants/permissions';
 import { PrismaService } from '../prisma/prisma.service';
+import { LEVELS, fullRights, normalizeRights } from '../common/rights/rights';
+import { RightsService } from '../common/rights/rights.service';
 
 type UserRow = {
   id: string;
@@ -24,7 +26,7 @@ function slugify(name: string): string {
 
 @Injectable()
 export class SettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly rightsSvc: RightsService) {}
 
   // Barcha PERMISSION_KEYS bazada borligini ta'minlaydi + super_admin'ga hammasini beradi.
   // Yangi funksiya qo'shilganda kalit avtomatik shu yerdan paydo bo'ladi.
@@ -58,8 +60,25 @@ export class SettingsService {
         isSystem: r.isSystem,
         users: r._count.users,
         permissions: r.permissions.map((rp) => rp.permission.key),
+        rights: r.key === 'super_admin' ? fullRights() : normalizeRights(this.parseRights(r.rightsJson)),
       })),
+      levels: LEVELS,
     };
+  }
+
+  private parseRights(v: string | null) {
+    try { return v ? JSON.parse(v) : null; } catch { return null; }
+  }
+
+  /** amoCRM «Права доступа»: profil matritsasini saqlash (administrator profili o'zgarmaydi) */
+  async setRights(roleKey: string, rights: unknown) {
+    if (roleKey === 'super_admin') throw new BadRequestException({ error: 'SYSTEM', message: "Administrator huquqlari o'zgarmaydi" });
+    const role = await this.prisma.role.findUnique({ where: { key: roleKey } });
+    if (!role) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Rol topilmadi' });
+    const next = normalizeRights(rights);
+    await this.prisma.role.update({ where: { id: role.id }, data: { rightsJson: JSON.stringify(next) } });
+    this.rightsSvc.clear();
+    return { rights: next };
   }
 
   async setPermission(roleKey: string, permission: string, allowed: boolean) {
@@ -170,10 +189,11 @@ export class SettingsService {
       if (id === currentUserId && role.id !== existing.roleId)
         throw new BadRequestException({ error: 'SELF', message: "O'z rolingizni o'zgartira olmaysiz" });
       data.roleId = role.id;
+      this.rightsSvc.clear();
     }
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
     if (dto.extension !== undefined) data.extension = dto.extension.trim() || null;
-    if (dto.groupId !== undefined) data.groupId = await this.checkGroup(dto.groupId);
+    if (dto.groupId !== undefined) { data.groupId = await this.checkGroup(dto.groupId); this.rightsSvc.clear(); }
 
     const u = await this.prisma.user.update({
       where: { id },
@@ -239,6 +259,7 @@ export class SettingsService {
       this.prisma.user.updateMany({ where: { groupId: id }, data: { groupId: target } }),
       this.prisma.userGroup.delete({ where: { id } }),
     ]);
+    this.rightsSvc.clear();
     return { success: true };
   }
 

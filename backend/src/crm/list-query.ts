@@ -107,6 +107,8 @@ export interface LeadCtx {
   /** bitim maxsus maydonlari: kalit -> tur */
   fields?: Map<string, string>;
   now?: number;
+  /** amoCRM «Права доступа»: ko'rinadigan bitimlar mas'ullari (null/undefined — cheklovsiz, [] — hech biri) */
+  ownerIds?: string[] | null;
 }
 
 const keysOf = (ctx: LeadCtx, kind: string) => [...ctx.kinds].filter(([, k]) => k === kind).map(([key]) => key);
@@ -245,6 +247,7 @@ export function leadConds(q: LeadFilter, ctx: LeadCtx): Cond[] {
   const isOpen = (): Cond => Prisma.sql`(${inList(Prisma.sql`l.stage`, openKeys)} AND l.unsorted = FALSE)`;
   const attentionYes = (): Cond => Prisma.sql`(${isOpen()} AND (${openTask(Prisma.sql`t."dueDate" < ${todayStart}`)} OR coalesce(l."lastActivityAt", l."updatedAt", l."createdAt") < ${new Date(now - 7 * DAY)}))`;
 
+  if (ctx.ownerIds) c.push(ctx.ownerIds.length ? Prisma.sql`l."assigneeId" IN (${Prisma.join(ctx.ownerIds)})` : Prisma.sql`FALSE`);
   if (q.unsorted === '0' || q.unsorted === 'false') c.push(Prisma.sql`l.unsorted = FALSE`);
   else if (q.unsorted === '1' || q.unsorted === 'true') c.push(Prisma.sql`l.unsorted = TRUE`);
 
@@ -484,8 +487,9 @@ export interface EntityFilter {
 export const ENTITY_ASSIGNEE = (a: string) => Prisma.raw(`${a}."assigneeKey"`);
 
 /** Kontakt/kompaniya WHERE shartlari (alias a — jadval yoki UNION qatlami; ustunlar: name, phone, email, phoneDigits, createdAt, customJson, createdById). */
-export function entityConds(q: EntityFilter, userId: string | undefined, a: string): Cond[] {
+export function entityConds(q: EntityFilter, userId: string | undefined, a: string, ownerIds?: string[] | null): Cond[] {
   const c: Cond[] = [];
+  if (ownerIds) c.push(ownerIds.length ? Prisma.sql`${ENTITY_ASSIGNEE(a)} IN (${Prisma.join(ownerIds)})` : Prisma.sql`FALSE`);
   const col = (n: string) => Prisma.raw(`${a}."${n}"`);
   const search = (q.search ?? q.q)?.trim();
   if (search) {

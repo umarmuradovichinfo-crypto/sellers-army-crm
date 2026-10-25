@@ -1,3 +1,4 @@
+import { RightsService } from '../common/rights/rights.service';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { Prisma } from '../generated/prisma/client';
@@ -24,7 +25,14 @@ type EntityQuery = EntityFilter & { kind?: string; limit?: string; cursor?: stri
  */
 @Injectable()
 export class ContactsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly rights: RightsService) {}
+
+  /** amoCRM «Права доступа»: UNION qismi uchun mas'ul cheklovi (x — jadval alias'i) */
+  private async ownWhere(userId: string | undefined, entity: 'contacts' | 'companies', action: 'view' | 'delete' = 'view') {
+    const own = await this.rights.ownersById(userId, entity, action);
+    if (!own) return Prisma.empty;
+    return own.length ? Prisma.sql` WHERE x."assigneeKey" IN (${Prisma.join(own)})` : Prisma.sql` WHERE FALSE`;
+  }
 
   // ── Kompaniyalar ──
   /**
@@ -93,10 +101,10 @@ export class ContactsService {
     const parts: Prisma.Sql[] = [];
     const cols = (t: string, k: string, extra: Prisma.Sql) => Prisma.sql`SELECT ${k}::text AS kind, x.id, x.name, x.phone, x.email, x."phoneDigits", x."assigneeKey", x."customJson", x."createdById", x."createdAt", x."updatedAt", ${extra}`;
     if (kind !== 'companies') {
-      parts.push(Prisma.sql`${cols('c', 'contact', Prisma.sql`x.position, x."companyId", NULL::text AS website, cm.name AS "companyName"`)} FROM crm_contacts x LEFT JOIN crm_companies cm ON cm.id = x."companyId"`);
+      parts.push(Prisma.sql`${cols('c', 'contact', Prisma.sql`x.position, x."companyId", NULL::text AS website, cm.name AS "companyName"`)} FROM crm_contacts x LEFT JOIN crm_companies cm ON cm.id = x."companyId"${await this.ownWhere(userId, 'contacts')}`);
     }
     if (kind !== 'contacts') {
-      parts.push(Prisma.sql`${cols('m', 'company', Prisma.sql`NULL::text AS position, NULL::text AS "companyId", x.website, NULL::text AS "companyName"`)} FROM crm_companies x`);
+      parts.push(Prisma.sql`${cols('m', 'company', Prisma.sql`NULL::text AS position, NULL::text AS "companyId", x.website, NULL::text AS "companyName"`)} FROM crm_companies x${await this.ownWhere(userId, 'companies')}`);
     }
     const union = Prisma.join(parts, ' UNION ALL ');
     const conds = entityConds(q, userId, 'u');
@@ -166,8 +174,8 @@ export class ContactsService {
     const kind = q.kind === 'contacts' || q.kind === 'companies' ? q.kind : 'all';
     const sub = (table: string, k: string) => Prisma.sql`SELECT ${k}::text AS kind, x.id, x.name, x.phone, x.email, x."phoneDigits", x."assigneeKey", x."customJson", x."createdById", x."createdAt" FROM ${Prisma.raw(table)} x`;
     const parts: Prisma.Sql[] = [];
-    if (kind !== 'companies') parts.push(sub('crm_contacts', 'contact'));
-    if (kind !== 'contacts') parts.push(sub('crm_companies', 'company'));
+    if (kind !== 'companies') parts.push(Prisma.sql`${sub('crm_contacts', 'contact')}${await this.ownWhere(userId, 'contacts', 'delete')}`);
+    if (kind !== 'contacts') parts.push(Prisma.sql`${sub('crm_companies', 'company')}${await this.ownWhere(userId, 'companies', 'delete')}`);
     const rows = await this.prisma.$queryRaw<{ kind: string; id: string }[]>(
       Prisma.sql`SELECT u.kind, u.id FROM (${Prisma.join(parts, ' UNION ALL ')}) u WHERE ${and(entityConds(q, userId, 'u'))}`,
     );

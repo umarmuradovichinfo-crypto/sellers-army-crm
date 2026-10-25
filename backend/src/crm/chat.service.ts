@@ -1,3 +1,4 @@
+import { RightsService } from '../common/rights/rights.service';
 import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 
 import type { AuthUser } from '../common/decorators/current-user.decorator';
@@ -64,6 +65,7 @@ export class ChatService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly rights: RightsService,
     private readonly tg: TelegramClient,
     private readonly activity: ActivityService,
     private readonly notif: NotificationService,
@@ -419,10 +421,14 @@ export class ChatService {
       if (!seen.has(m.leadId)) { seen.add(m.leadId); order.push(m.leadId); }
     }
     const [leads, states] = await Promise.all([
-      this.prisma.lead.findMany({ where: { id: { in: order } }, select: { id: true, name: true, source: true, assigneeId: true, stage: true, pipelineId: true } }),
+      this.prisma.lead.findMany({ where: { id: { in: order } }, select: { id: true, name: true, source: true, assigneeId: true, stage: true, pipelineId: true, unsorted: true } }),
       this.prisma.conversationState.findMany({ where: { leadId: { in: order } } }),
     ]);
-    const byId = new Map(leads.map((l) => [l.id, l]));
+    // amoCRM «Права доступа»: faqat ko'rish huquqi bor bitimlar suhbatlari (saralanmagan — voronka huquqi bo'yicha)
+    const [own, deniedUns] = await Promise.all([this.rights.ownersById(userId, 'leads', 'view'), this.rights.unsortedDenied(userId, 'view')]);
+    const visible = (l: { assigneeId: string | null; unsorted: boolean; pipelineId: string | null }) =>
+      l.unsorted ? !deniedUns.includes(l.pipelineId || '') : own === null || (!!l.assigneeId && own.includes(l.assigneeId));
+    const byId = new Map(leads.filter(visible).map((l) => [l.id, l]));
     const stById = new Map(states.map((x) => [x.leadId, x]));
     const stageSet = new Set(String(q.stages || '').split(',').filter(Boolean));
     const list = order.map((id) => {

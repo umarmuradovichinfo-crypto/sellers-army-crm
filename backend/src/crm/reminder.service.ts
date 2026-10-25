@@ -37,7 +37,7 @@ export class ReminderService implements OnModuleInit {
     // Har bir vazifa uchun bitta "bugungi" va bitta "kechikkan" eslatma (amoCRM kabi, har kuni takrorlanmaydi)
     const links = tasks.map((t) => `/leads/detail/${t.leadId}?task=${t.id}`);
     const prev = await this.prisma.notification.findMany({
-      where: { type: 'task', link: { in: links } },
+      where: { type: { in: ['task', 'task_due'] }, link: { in: links } },
       select: { link: true, text: true },
     });
     const sentKeys = new Set(prev.map((n) => `${n.link}|${n.text.startsWith('Kechikkan') ? 'o' : 't'}`));
@@ -50,7 +50,7 @@ export class ReminderService implements OnModuleInit {
       if (sentKeys.has(key)) continue;
       const label = overdue ? 'Kechikkan vazifa' : 'Bugungi vazifa';
       await this.notif.notify(t.assigneeId!, `${label}: ${t.title}${t.lead?.name ? ` (${t.lead.name})` : ''}`, {
-        type: 'task',
+        type: 'task_due',
         link,
       });
       sentKeys.add(key);

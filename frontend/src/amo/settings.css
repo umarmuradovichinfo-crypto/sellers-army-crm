@@ -198,3 +198,18 @@
 .ac-set-proftabs button.add { text-transform: none; font-weight: 400; color: var(--palette-link-primary); border-style: dashed; }
 .ac-set-proftabs button:disabled { cursor: default; }
 .ac-set-group { display: flex; align-items: center; gap: 10px; }
+/* amoCRM «Права доступа» matritsasi */
+.ac-rm { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13px; }
+.ac-rm th { font: 700 10px var(--font-main); letter-spacing: .5px; color: var(--palette-text-secondary-dark); padding: 8px 4px; text-align: center; border-bottom: 1px solid var(--palette-border-default); }
+.ac-rm td { border-bottom: 1px solid var(--palette-border-default); padding: 8px 4px; text-align: center; vertical-align: middle; }
+.ac-rm__name { text-align: left !important; color: var(--palette-text-primary); }
+.ac-rm__name small { display: block; font-size: 10px; text-transform: uppercase; color: var(--palette-text-secondary-dark); }
+.ac-rm__legend { text-align: left !important; font-size: 10px; line-height: 15px; color: var(--palette-text-secondary-dark); white-space: nowrap; }
+.ac-rm-dots { position: relative; display: inline-flex; flex-direction: column; align-items: center; gap: 3px; }
+.ac-rm-dots::before { content: ''; position: absolute; top: 5px; bottom: 5px; left: 50%; width: 2px; margin-left: -1px; background: var(--palette-border-default); }
+.ac-rm-dots i { position: relative; width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--palette-border-default); background: var(--palette-background-primary); cursor: pointer; }
+.ac-rm-dots.locked i { cursor: default; }
+.ac-rm-dots i.on.lv-D { background: #f37575; border-color: #f37575; }
+.ac-rm-dots i.on.lv-M, .ac-rm-dots i.on.lv-G, .ac-rm-dots i.on.lv-L { background: #f5c242; border-color: #f5c242; }
+.ac-rm-dots i.on.lv-A { background: #8dc63f; border-color: #8dc63f; }
+.ac-prof-notif td:not(:first-child), .ac-prof-notif th:not(:first-child) { text-align: center; width: 110px; }

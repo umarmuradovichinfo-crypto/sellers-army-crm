@@ -18,6 +18,7 @@ import { FacebookModule } from './facebook/facebook.module';
 import { OnlinePbxModule } from './onlinepbx/onlinepbx.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SettingsModule } from './settings/settings.module';
+import { RightsModule } from './common/rights/rights.service';
 
 // Frontend dist papkasini turli deploy tuzilmalarida topadi
 function resolveFrontendDist(): string {
@@ -44,6 +45,7 @@ function resolveFrontendDist(): string {
       exclude: ['/api/{*path}'],
     }),
     PrismaModule,
+    RightsModule,
     AuthModule,
     CrmModule,
     SettingsModule,

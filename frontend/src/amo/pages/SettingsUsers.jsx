@@ -8,6 +8,8 @@ import { Ico } from '../AmoIcons'
 import { dmy } from '../format'
 import { useT } from '../i18n'
 import '../settings.css'
+import RightsMatrix from './RightsMatrix'
+import { crmService } from '../../services/crm.service'
 
 // Ustunlar bo'yicha huquq nuqtalari: ko'rish / tahrirlash / qo'shish / o'chirish / eksport.
 // Bizdagi ruxsatlar (crm.view, crm.settings, crm.export) shu 5 ta nuqtaga xaritalanadi.
@@ -211,6 +213,11 @@ function UserDrawer({ initial, roles, groups, canManage, selfId, onClose, onChan
   const allRoles = accessApi.data?.roles || localRoles
   const role = allRoles.find((r) => r.key === roleKey)
   const rolePerms = perms || role?.permissions || []
+  // amoCRM «Права доступа»: profil matritsasi (tahrirlangan nusxa — saqlashda yuboriladi)
+  const [rightsEdit, setRightsEdit] = useState({}) // roleKey → rights
+  const rights = rightsEdit[roleKey] || role?.rights
+  const pipes = useApi(() => crmService.getPipeline(undefined, { limit: 0 }), [], 'settings:rm-pipes', 600000)
+  const pipelines = [{ id: '', name: t('Asosiy voronka') }, ...((pipes.data?.pipelines || []).filter((p) => p.id))]
 
   const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())
   const passOk = editing ? (password === '' || password.length >= 6) : password.length >= 6
@@ -238,6 +245,7 @@ function UserDrawer({ initial, roles, groups, canManage, selfId, onClose, onChan
     if (invalid || busy) return
     setBusy(true); setErr(null)
     try {
+      for (const [k, r] of Object.entries(rightsEdit)) if (k !== 'super_admin') await settingsService.setRights(k, r)
       if (editing) {
         await settingsService.updateUser(initial.id, { name: name.trim(), email: email.trim(), roleKey, isActive, extension: extension.trim(), groupId: groupId || null })
         if (password) await settingsService.resetUserPassword(initial.id, password)
@@ -294,6 +302,9 @@ function UserDrawer({ initial, roles, groups, canManage, selfId, onClose, onChan
             {canManage && <button className="add" onClick={addRole}>{t('Huquqlarni sozlash')}</button>}
           </div>
           <div className="ac-muted" style={{ fontSize: 12, margin: '6px 0 8px' }}>{t("Huquq profili o'zgarsa, shu profildagi barcha foydalanuvchilarga ta'sir qiladi")}</div>
+          <RightsMatrix rights={rights} levels={accessApi.data?.levels} pipelines={pipelines} locked={!canManage || roleKey === 'super_admin'}
+            onChange={(r) => setRightsEdit((m) => ({ ...m, [roleKey]: r }))} />
+          <div className="ac-set-sub" style={{ marginTop: 18 }}>{t('Bo\'limlarga kirish')}</div>
           <table className="ac-set-matrix">
             <tbody>
               {permList.map((p) => {

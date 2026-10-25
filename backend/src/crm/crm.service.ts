@@ -16,6 +16,7 @@ import { stageCloseData } from './stage-close';
 import { AutomationService } from './automation.service';
 import { NotificationService } from './notification.service';
 import { assertNewTagsAllowed } from './tags-lock';
+import { RightsService } from '../common/rights/rights.service';
 import {
   AddNoteDto,
   CreateLeadDto,
@@ -99,6 +100,7 @@ export class CrmService {
     private readonly activity: ActivityService,
     private readonly automation: AutomationService,
     private readonly notif: NotificationService,
+    private readonly rights: RightsService,
   ) {}
 
   private async userMap(ids: (string | null)[]) {
@@ -196,12 +198,13 @@ export class CrmService {
     });
   }
 
-  private async leadCtx(userId?: string): Promise<LeadCtx> {
-    const [stages, fields] = await Promise.all([
+  private async leadCtx(userId?: string, action: 'view' | 'export' | 'edit' | 'delete' = 'view'): Promise<LeadCtx> {
+    const [stages, fields, ownerIds] = await Promise.all([
       this.prisma.crmStage.findMany({ select: { key: true, kind: true } }),
       this.prisma.crmField.findMany({ where: { entity: 'lead' }, select: { key: true, type: true } }),
+      this.rights.ownersById(userId, 'leads', action),
     ]);
-    return { userId, kinds: new Map(stages.map((s) => [s.key, s.kind])), fields: new Map(fields.map((f) => [f.key, f.type])) };
+    return { userId, ownerIds, kinds: new Map(stages.map((s) => [s.key, s.kind])), fields: new Map(fields.map((f) => [f.key, f.type])) };
   }
 
   /** Tartiblangan ID'lar (raw SQL) bo'yicha to'liq qatorlarni shu tartibda qaytaradi. */
@@ -778,9 +781,10 @@ export class CrmService {
   // ── Ommaviy amallar (mass actions) ──
   async bulk(dto: { ids?: string[]; action: string; value?: any; all?: boolean; filter?: LeadFilter; excludeIds?: string[] }, user?: AuthUser) {
     let ids = Array.isArray(dto.ids) ? dto.ids : [];
+    const act = dto.action === 'delete' ? 'delete' : 'edit';
     if (dto.all) {
       // "Barchasini belgilash": filtrga mos hamma bitimlar (barcha sahifalar), excludeIds bundan mustasno
-      const ctx = await this.leadCtx(user?.id);
+      const ctx = await this.leadCtx(user?.id, act);
       const found = await this.prisma.$queryRaw<{ id: string }[]>(
         Prisma.sql`SELECT l.id FROM leads l WHERE ${and(leadConds(dto.filter || {}, ctx))}`,
       );
@@ -788,6 +792,13 @@ export class CrmService {
       ids = found.map((r) => r.id).filter((id) => !ex.has(id));
     }
     if (!ids.length) throw new BadRequestException({ error: 'NO_IDS', message: 'Lid tanlanmagan' });
+    // amoCRM «Права доступа»: faqat tahrir/o'chirish huquqi bor bitimlar qoladi
+    const own = await this.rights.ownersById(user?.id, 'leads', act);
+    if (own) {
+      const allowed = new Set((await this.prisma.lead.findMany({ where: { id: { in: ids }, assigneeId: { in: own.length ? own : ['__none__'] } }, select: { id: true } })).map((r) => r.id));
+      ids = ids.filter((id) => allowed.has(id));
+      if (!ids.length) throw new ForbiddenException({ error: 'FORBIDDEN', message: "Tanlangan bitimlar uchun huquqingiz yo'q" });
+    }
     let affected = 0;
     let skipped = 0; // majburiy maydonlari to'ldirilmagani uchun ko'chirilmaganlar
     const CHUNK = 5000; // Postgres bind-parametr limiti (32767) dan oshmaslik uchun
@@ -932,7 +943,7 @@ export class CrmService {
   // ── CSV eksport / import ──
   /** Filtr (listLeads bilan bir xil parametrlar + sort/dir) bo'yicha CSV; filtrsiz — hamma bitimlar. */
   async exportCsv(q: LeadFilter & { sort?: string; dir?: string } = {}, userId?: string): Promise<string> {
-    const ctx = await this.leadCtx(userId);
+    const ctx = await this.leadCtx(userId, 'export');
     const { join, order } = leadOrder(q.sort || 'createdAt', q.dir || 'desc');
     const idRows = await this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`SELECT l.id FROM leads l ${join} WHERE ${and(leadConds(q, ctx))} ${order}`);
     const leads = await this.rowsByIds(idRows.map((r) => r.id));
@@ -1105,9 +1116,15 @@ export class CrmService {
   // ── Saralanmagan (unsorted) inbox ──
   async listUnsorted(q: LeadFilter = {}, userId?: string) {
     // Filtr (leadConds) saralanmaganlarga ham qo'llanadi; filtrsiz — hammasi (eng yangi 200 ta)
-    const ctx = await this.leadCtx(userId);
+    // amoCRM: «Неразобранное» huquqi mas'ulga emas, voronkaga qarab (Запрещено / Разрешено)
+    const ctx = { ...(await this.leadCtx(userId)), ownerIds: null };
+    const denied = await this.rights.unsortedDenied(userId, 'view');
     const { pipelineId: _p, stage: _s, unsorted: _u, ...userFilter } = q as any;
-    const where = and([Prisma.sql`l.unsorted = TRUE`, ...leadConds(userFilter, ctx)]);
+    const where = and([
+      Prisma.sql`l.unsorted = TRUE`,
+      ...(denied.length ? [Prisma.sql`coalesce(l."pipelineId", '') NOT IN (${Prisma.join(denied)})`] : []),
+      ...leadConds(userFilter, ctx),
+    ]);
     const [idRows, aggRows] = await Promise.all([
       this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`SELECT l.id FROM leads l WHERE ${where} ORDER BY l."createdAt" DESC, l.id ASC LIMIT 200`),
       this.prisma.$queryRaw<{ c: number }[]>(Prisma.sql`SELECT count(*)::int AS c FROM leads l WHERE ${where}`),
@@ -1178,9 +1195,12 @@ export class CrmService {
   }
 
   // amoCRM Zadachalar ro'yxati — holat/mas'ul/tur filtrlari bilan
-  async listAllTasks(q?: { status?: string; assigneeId?: string; type?: string }) {
+  async listAllTasks(q?: { status?: string; assigneeId?: string; type?: string }, userId?: string) {
     const status = q?.status;
     const where: Record<string, unknown> = {};
+    // amoCRM «Права доступа»: o'ziga qo'yilgan vazifalar + ko'rish huquqi bor bitimlar vazifalari
+    const own = await this.rights.ownersById(userId, 'leads', 'view');
+    if (own) where.OR = [{ assigneeId: userId }, { lead: { assigneeId: { in: own.length ? own : ['__none__'] } } }];
     if (status === 'open' || status === 'overdue') where.done = false;
     else if (status === 'done') where.done = true;
     if (status === 'overdue') where.dueDate = { not: null, lt: new Date() };

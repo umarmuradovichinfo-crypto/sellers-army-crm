@@ -13,6 +13,9 @@ export const settingsService = {
   setPermission: (roleKey, permission, allowed) =>
     api.patch('/settings/access', { roleKey, permission, allowed }),
 
+  // PUT /settings/roles/:key/rights { rights } — amoCRM «Права доступа» matritsasi
+  setRights: (roleKey, rights) => api.put(`/settings/roles/${roleKey}/rights`, { rights }),
+
   // POST /settings/roles { name }
   createRole: (name) => api.post('/settings/roles', { name }),
 

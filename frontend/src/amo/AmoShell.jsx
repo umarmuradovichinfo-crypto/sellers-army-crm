@@ -44,7 +44,7 @@ function timeLabel(d, tr) {
   return t.toLocaleDateString('ru-RU') + ' ' + hm
 }
 
-const NOTIF_TITLE = { task: 'Vazifa', lead: 'Bitim', mention: 'Eslatma', automation: 'Avtomatlashtirish', info: 'Xabar' }
+const NOTIF_TITLE = { task: 'Vazifa', task_due: 'Vazifa', lead: 'Bitim', mention: 'Eslatma', automation: 'Avtomatlashtirish', info: 'Xabar' }
 
 function NotificationsPanel({ open, onClose, onCount }) {
   const [items, setItems] = useState([])
@@ -53,7 +53,22 @@ function NotificationsPanel({ open, onClose, onCount }) {
   const navigate = useNavigate()
   const t = useT()
 
-  const load = () => crmService_notifications().then((r) => { setItems(r.items || []); onCount(r.unread || 0) }).catch(() => {})
+  // «Браузер» kanali: yangi bildirishnoma brauzer oynasi bo'lib chiqadi (ruxsat berilgan bo'lsa, har biri bir marta)
+  const pushBrowser = (list) => {
+    if (!list?.length || typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+    let seen = []
+    try { seen = JSON.parse(sessionStorage.getItem('amo_notif_pushed') || '[]') } catch { /* */ }
+    for (const n of list) {
+      if (seen.includes(n.id)) continue
+      seen.push(n.id)
+      try {
+        const w = new Notification(t(NOTIF_TITLE[n.type] || 'Xabar'), { body: trActivity(n.text || '', t), tag: n.id })
+        w.onclick = () => { window.focus(); if (n.link) navigate(n.link); w.close() }
+      } catch { /* */ }
+    }
+    try { sessionStorage.setItem('amo_notif_pushed', JSON.stringify(seen.slice(-200))) } catch { /* */ }
+  }
+  const load = () => crmService_notifications().then((r) => { setItems(r.items || []); onCount(r.unread || 0); pushBrowser(r.push) }).catch(() => {})
   useEffect(() => { load(); const t = setInterval(load, 20000); return () => clearInterval(t) }, []) // eslint-disable-line
   useEffect(() => {
     if (!open) { setShown(false); return }
@@ -82,7 +97,7 @@ function NotificationsPanel({ open, onClose, onCount }) {
           {list.length === 0 && <div className="ac-notif__empty">{t("Bildirishnomalar yo'q")}</div>}
           {list.map((n, i) => (
             <div key={n.id} className={`ac-notif__item ${shown ? 'show' : ''} ${n.read ? '' : 'unread'}`} style={{ transitionDelay: `${Math.min(i, 12) * 40}ms` }} onClick={() => openItem(n)}>
-              <div className="ac-notif__avatar"><Ico name={n.type === 'task' ? 'check' : n.type === 'call' ? 'phone' : 'user'} size={18} /></div>
+              <div className="ac-notif__avatar"><Ico name={n.type === 'task' || n.type === 'task_due' ? 'check' : n.type === 'call' ? 'phone' : 'user'} size={18} /></div>
               <div className="ac-notif__body">
                 <div className="ac-notif__head">
                   <span className="ac-notif__title">{t(NOTIF_TITLE[n.type] || 'Xabar')}</span>

@@ -1,3 +1,4 @@
+import { RightsService } from '../common/rights/rights.service';
 import {
   Body,
   Controller,
@@ -30,7 +31,7 @@ import {
 @Controller('crm')
 @RequirePermissions('crm.view')
 export class CrmController {
-  constructor(private readonly crm: CrmService) {}
+  constructor(private readonly crm: CrmService, private readonly rights: RightsService) {}
 
   @Get('pipeline')
   pipeline(@Query() q: Record<string, string>, @CurrentUser('id') userId?: string) {
@@ -76,7 +77,8 @@ export class CrmController {
     return this.crm.exportCsv(q, userId);
   }
   @Post('leads-import')
-  importLeads(@Body() body: { rows: any[] }, @CurrentUser() user: AuthUser) {
+  async importLeads(@Body() body: { rows: any[] }, @CurrentUser() user: AuthUser) {
+    await this.rights.assertAdd(user, 'leads');
     return this.crm.importLeads(body?.rows || [], user);
   }
   @Get('leads-check')
@@ -88,7 +90,9 @@ export class CrmController {
     return this.crm.bulk(dto, user);
   }
   @Post('leads/merge')
-  merge(@Body() dto: { keepId: string; mergeIds: string[]; pick?: MergePick }, @CurrentUser() user: AuthUser) {
+  async merge(@Body() dto: { keepId: string; mergeIds: string[]; pick?: MergePick }, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, dto.keepId, 'edit');
+    for (const id of dto.mergeIds || []) await this.rights.assertLead(user, id, 'delete');
     return this.crm.mergeLeads(dto.keepId, dto.mergeIds || [], user, dto.pick);
   }
   @Post('leads-duplicates/ignore')
@@ -108,61 +112,74 @@ export class CrmController {
     return this.crm.duplicateGroups(by || 'phone');
   }
   @Post('unsorted/:id/accept')
-  acceptUnsorted(@Param('id') id: string, @Body() dto: { assigneeId?: string; stageKey?: string; pipelineId?: string }, @CurrentUser() user: AuthUser) {
+  async acceptUnsorted(@Param('id') id: string, @Body() dto: { assigneeId?: string; stageKey?: string; pipelineId?: string }, @CurrentUser() user: AuthUser) {
+    await this.rights.assertUnsorted(user, id, 'edit');
     return this.crm.acceptUnsorted(id, dto, user);
   }
   @Post('leads')
-  createLead(@Body() dto: CreateLeadDto, @CurrentUser() user: AuthUser) {
+  async createLead(@Body() dto: CreateLeadDto, @CurrentUser() user: AuthUser) {
+    await this.rights.assertAdd(user, 'leads');
     return this.crm.createLead(dto, user);
   }
   @Get('leads/:id')
-  getLead(@Param('id') id: string) {
+  async getLead(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'view');
     return this.crm.getLead(id);
   }
   @Put('leads/:id')
-  updateLead(@Param('id') id: string, @Body() dto: UpdateLeadDto, @CurrentUser() user: AuthUser) {
+  async updateLead(@Param('id') id: string, @Body() dto: UpdateLeadDto, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'edit');
     return this.crm.updateLead(id, dto, user);
   }
   @Delete('leads/:id')
-  deleteLead(@Param('id') id: string) {
+  async deleteLead(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'delete');
     return this.crm.deleteLead(id);
   }
   @Post('leads/:id/contacts')
-  addLeadContact(@Param('id') id: string, @Body() dto: { contactId?: string; name?: string; phone?: string; email?: string }, @CurrentUser() user: AuthUser) {
+  async addLeadContact(@Param('id') id: string, @Body() dto: { contactId?: string; name?: string; phone?: string; email?: string }, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'edit');
     return this.crm.addLeadContact(id, dto, user);
   }
   @Delete('leads/:id/contacts/:contactId')
-  removeLeadContact(@Param('id') id: string, @Param('contactId') contactId: string, @CurrentUser() user: AuthUser) {
+  async removeLeadContact(@Param('id') id: string, @Param('contactId') contactId: string, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'edit');
     return this.crm.removeLeadContact(id, contactId, user);
   }
   @Put('leads/:id/contacts/:contactId/main')
-  setMainLeadContact(@Param('id') id: string, @Param('contactId') contactId: string) {
+  async setMainLeadContact(@Param('id') id: string, @Param('contactId') contactId: string, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'edit');
     return this.crm.setMainLeadContact(id, contactId);
   }
   @Patch('leads/:id/move')
-  moveLead(@Param('id') id: string, @Body() dto: MoveLeadDto, @CurrentUser() user: AuthUser) {
+  async moveLead(@Param('id') id: string, @Body() dto: MoveLeadDto, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'edit');
     return this.crm.moveLead(id, dto.stageId, dto.position, user, dto.lostReason);
   }
   @Post('leads/:id/notes')
-  addNote(@Param('id') id: string, @Body() dto: AddNoteDto, @CurrentUser() user: AuthUser) {
+  async addNote(@Param('id') id: string, @Body() dto: AddNoteDto, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'view');
     return this.crm.addNote(id, dto, user);
   }
 
   // ── Vazifalar (zadacha) ──
   @Get('tasks')
-  allTasks(@Query('status') status?: string, @Query('assigneeId') assigneeId?: string, @Query('type') type?: string, @Query('filter') filter?: string) {
-    return this.crm.listAllTasks({ status: status || filter, assigneeId, type });
+  allTasks(@CurrentUser('id') userId: string, @Query('status') status?: string, @Query('assigneeId') assigneeId?: string, @Query('type') type?: string, @Query('filter') filter?: string) {
+    return this.crm.listAllTasks({ status: status || filter, assigneeId, type }, userId);
   }
   @Get('leads/:id/tasks')
-  leadTasks(@Param('id') id: string) {
+  async leadTasks(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'view');
     return this.crm.listLeadTasks(id);
   }
   @Post('leads/:id/tasks')
-  createTask(@Param('id') id: string, @Body() dto: CreateLeadTaskDto, @CurrentUser() user: AuthUser) {
+  async createTask(@Param('id') id: string, @Body() dto: CreateLeadTaskDto, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'view');
     return this.crm.createTask(id, dto, user);
   }
   @Put('tasks/:id')
-  updateTask(@Param('id') id: string, @Body() dto: UpdateLeadTaskDto, @CurrentUser() user: AuthUser) {
+  async updateTask(@Param('id') id: string, @Body() dto: UpdateLeadTaskDto, @CurrentUser() user: AuthUser) {
+    await this.rights.assertTask(user, id, 'edit');
     return this.crm.updateTask(id, dto, user);
   }
   @Get('task-types')
@@ -183,7 +200,8 @@ export class CrmController {
     return this.crm.restoreTask(id);
   }
   @Delete('tasks/:id')
-  deleteTask(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+  async deleteTask(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    await this.rights.assertTask(user, id, 'delete');
     return this.crm.deleteTask(id, user);
   }
 }
