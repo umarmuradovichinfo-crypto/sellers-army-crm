@@ -20,3 +20,4 @@
 .ac-lists-empty { padding: 60px 0; text-align: center; color: var(--palette-text-secondary-dark); font-size: 14px; }
 .ac-lists-more { padding: 16px; text-align: center; }
 .ac-lists-bulk-count { color: var(--palette-text-secondary-dark); }
+.ac-lists td.name a.unsorted { color: var(--palette-text-secondary-dark); } /* amoCRM .list-row_unsorted */

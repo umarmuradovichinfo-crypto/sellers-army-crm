@@ -169,3 +169,5 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
 ## 21. Yakuniy dizayn solishtirish (PLAN 17)
 - Vazifalar (lenta): ustunlar 350px (ichki 10px, oraliqsiz) markazda — amoCRM .pipeline_status__head; standart «Только мои задачи»
   filtr maydonida chip sifatida ko'rsatilmaydi (amoCRM'da bo'sh «Фильтр») — tuzatildi.
+- Ro'yxatlar: «Списки» standart holatda «КОНТАКТЫ» (amoCRM /contacts/list/contacts/), «Все контакты и компании» — tanlov orqali;
+  faqat saralanmagan arizaga bog'langan kontakt nomi kulrang (amoCRM .list-row_unsorted) — tuzatildi.

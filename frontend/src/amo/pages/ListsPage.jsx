@@ -82,7 +82,8 @@ function PresetTitle({ entity, onPick }) {
 }
 
 export default function ListsPage({ entity: entityProp = 'all' }) {
-  const [entity, setEntity] = useState(entityProp)
+  // "Списки" standart — Kontaktlar (amoCRM); «Все контакты и компании» ?view=all orqali
+  const [entity, setEntity] = useState(() => (entityProp === 'contacts' && new URLSearchParams(window.location.search).get('view') === 'all' ? 'all' : entityProp))
   useEffect(() => setEntity(entityProp), [entityProp])
   const navigate = useNavigate()
   const [importOpen, setImportOpen] = useState(false)
@@ -201,7 +202,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
     <div className="ac-lists">
       {importOpen && <ImportModal entity="contacts" onClose={() => setImportOpen(false)} />}
       <TopBar
-        title={<PresetTitle entity={entity} onPick={(k) => { if (k === 'companies') navigate('/companies/list'); else if (entityProp === 'companies') navigate('/contacts/list'); setEntity(k) }} />}
+        title={<PresetTitle entity={entity} onPick={(k) => { if (k === 'companies') navigate('/companies/list'); else if (entityProp === 'companies') navigate(k === 'all' ? '/contacts/list?view=all' : '/contacts/list'); setEntity(k) }} />}
         search={search}
         onSearch={setSearch}
         filterPanel={(close) => <ListFilter value={filter} members={members} onApply={(f) => { setFilter(f); close() }} />}
@@ -232,7 +233,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
                 <td className="ac-chk"><input type="checkbox" className="ac-check" checked={isOn(r.key)} onChange={() => toggle(r.key)} /></td>
                 <td className="name">
                   {r.kind === 'company' && <Ico name="company" size={14} className="ico" />}
-                  <a onClick={() => open(r)}>{r.name}</a>
+                  <a className={r.unsorted ? 'unsorted' : ''} onClick={() => open(r)}>{r.name}</a>
                 </td>
                 <td>{r.companyName && <span className="u">{r.companyName}</span>}</td>
                 <td>{r.phone && <a className="u" href={`tel:${String(r.phone).replace(/[^\d+]/g, '')}`}>{phoneFmt(r.phone)}</a>}</td>

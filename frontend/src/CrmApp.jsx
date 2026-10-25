@@ -54,7 +54,7 @@ function CrmShell() {
           <Route path="/todo" element={<Navigate to="/todo/line" replace />} />
           <Route path="/todo/calendar" element={<Navigate to="/todo/calendar/month" replace />} />
           <Route path="/todo/*" element={<TasksPage />} />
-          <Route path="/contacts/list" element={<ListsPage entity="all" />} />
+          <Route path="/contacts/list" element={<ListsPage entity="contacts" />} />
           <Route path="/companies/list" element={<ListsPage entity="companies" />} />
           <Route path="/contacts/detail/:id" element={<ContactCard />} />
           <Route path="/contacts/add" element={<ContactCard />} />

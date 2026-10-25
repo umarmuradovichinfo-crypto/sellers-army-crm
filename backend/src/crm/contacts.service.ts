@@ -123,6 +123,15 @@ export class ContactsService {
         ? { kind: 'contact' as const, ...base, position: r.position, companyId: r.companyId, companyName: r.companyName || '', assigneeId }
         : { kind: 'company' as const, ...base, website: r.website, companyName: '', assigneeId };
     });
+    // amoCRM (.list-row_unsorted): faqat saralanmagan arizalarga bog'langan kontakt kulrang ko'rsatiladi
+    const cids = items.filter((i) => i.kind === 'contact').map((i) => i.id);
+    if (cids.length) {
+      const st = await this.prisma.$queryRaw<{ id: string; uns: boolean }[]>(
+        Prisma.sql`SELECT "contactId" AS id, bool_and(unsorted) AS uns FROM leads WHERE "contactId" IN (${Prisma.join(cids)}) GROUP BY 1`,
+      );
+      const uns = new Set(st.filter((x) => x.uns).map((x) => x.id));
+      for (const i of items) if (uns.has(i.id)) (i as any).unsorted = true;
+    }
     return { items, nextCursor: more ? String(offset + limit) : null, total: Number(cnt[0]?.c || 0) };
   }
 
