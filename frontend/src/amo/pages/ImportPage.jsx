@@ -9,6 +9,7 @@ import { Ico } from '../AmoIcons'
 import { useT } from '../i18n'
 import '../i18n/import.ru.js'
 import '../import.css'
+import { dmy } from '../format'
 
 const CHUNK = 500
 const SKIP = ''
@@ -102,27 +103,71 @@ export function ImportModal({ entity = 'leads', onClose }) {
   const t = useT()
   const navigate = useNavigate()
   const inputRef = useRef(null)
+  const [view, setView] = useState('main') // main | history
+  const [sheet, setSheet] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const [hist, setHist] = useState(null)
   const pick = (file) => { if (file) { onClose(); navigate(`/${entity}/import`, { state: { file } }) } }
+  const loadSheet = async () => {
+    if (!sheet.trim() || busy) return
+    setBusy(true); setErr('')
+    try {
+      const r = await api.post('/crm/import-sheet', { url: sheet.trim() })
+      pick(new File([r.csv], r.name, { type: 'text/csv' }))
+    } catch (e) { setErr(e?.data?.message || e?.message || t('Xatolik yuz berdi')) } finally { setBusy(false) }
+  }
+  const openHistory = () => { setView('history'); api.get('/crm/import-history').then((r) => setHist(r.items || [])).catch(() => setHist([])) }
   return (
     <div className="ac-modal-wrap" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="ac-modal ac-import-modal">
         <div className="ac-import-modal__head">
-          <h2 className="ac-modal__title">{t('Import')}</h2>
-          <button className="ac-import-modal__cancel" onClick={onClose}>{t('Bekor qilish')}</button>
+          <h2 className="ac-modal__title">{t(view === 'history' ? 'Import qilingan fayllar' : 'Import')}</h2>
+          <button className="ac-import-modal__cancel" onClick={view === 'history' ? () => setView('main') : onClose}>{t(view === 'history' ? 'Orqaga' : 'Bekor qilish')}</button>
         </div>
-        <div className="ac-import-card">
-          <span className="ac-import-card__ico">XLS</span>
-          <div>
-            <div className="ac-import-card__title">{t('Jadvaldan import')}</div>
-            <p>{t("Excel'dan import .xls, .xlsx va .csv fayllarini qo'llab-quvvatlaydi. Import bir yo'la kontaktlar, bitimlar, barcha qo'shimcha maydonlar va teglarni olib kirish imkonini beradi.")}</p>
-            <p>{t("Agar faylda «Sana» maydoni bo'lsa, Excel faylini «CSV (vergul bilan ajratilgan)» formatiga o'tkazing: «Saqlash…» → «CSV (vergul bilan ajratilgan)» → «Saqlash».")}</p>
-            <div className="ac-import-card__btns">
-              <button className="ac-btn" onClick={() => inputRef.current?.click()}>{t('Faylni yuklash')}</button>
-              <a onClick={() => downloadSample(entity === 'leads')}>{t('Namunani yuklab olish')}</a>
-            </div>
-            <input ref={inputRef} type="file" hidden accept=".csv,.txt,.xlsx,.xls" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
+        {view === 'history' ? (
+          <div className="ac-import-hist">
+            {!hist && <div className="ac-spinner" style={{ margin: 30 }} />}
+            {hist && !hist.length && <div className="ac-muted">{t("Hali import qilinmagan")}</div>}
+            {hist && hist.length > 0 && (
+              <table className="ac-table">
+                <thead><tr><th>{t('Sana')}</th><th>{t('Fayl')}</th><th>{t('Kim')}</th><th>{t("Qo'shildi")}</th><th>{t('Yangilandi')}</th><th>{t("O'tkazildi")}</th><th>{t('Xatolar')}</th></tr></thead>
+                <tbody>{hist.map((h, i) => (
+                  <tr key={i}><td>{dmy(h.at)}</td><td>{h.fileName} <span className="ac-muted">({t(h.entity === 'contacts' ? 'Kontaktlar' : 'Bitimlar')})</span></td><td>{h.userName}</td><td>{h.created}</td><td>{h.updated}</td><td>{h.skipped}</td><td>{h.errors}</td></tr>
+                ))}</tbody>
+              </table>
+            )}
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="ac-import-card">
+              <span className="ac-import-card__ico">XLS</span>
+              <div>
+                <div className="ac-import-card__title">{t('Jadvaldan import')}</div>
+                <p>{t("Excel'dan import .xls, .xlsx va .csv fayllarini qo'llab-quvvatlaydi. Import bir yo'la kontaktlar, bitimlar, barcha qo'shimcha maydonlar va teglarni olib kirish imkonini beradi.")}</p>
+                <p>{t("Agar faylda «Sana» maydoni bo'lsa, Excel faylini «CSV (vergul bilan ajratilgan)» formatiga o'tkazing: «Saqlash…» → «CSV (vergul bilan ajratilgan)» → «Saqlash».")}</p>
+                <div className="ac-import-card__btns">
+                  <button className="ac-btn" onClick={() => inputRef.current?.click()}>{t('Faylni yuklash')}</button>
+                  <a onClick={() => downloadSample(entity === 'leads')}>{t('Namunani yuklab olish')}</a>
+                </div>
+                <input ref={inputRef} type="file" hidden accept=".csv,.txt,.xlsx,.xls" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
+              </div>
+            </div>
+            <div className="ac-import-card ac-import-card--plain">
+              <span className="ac-import-card__ico ac-import-card__ico--docs">DOCS</span>
+              <div>
+                <div className="ac-import-card__title">{t('Google jadvallaridan import')}</div>
+                <p>{t("Bazangiz Google jadvallarida bo'lsa, u bilan darhol ishlashni boshlashingiz mumkin. Jadvalga «Havolaga ega har kim ko'ra oladi» ruxsatini bering va havolani shu yerga qo'ying.")}</p>
+                <div className="ac-import-card__btns">
+                  <input className="ac-input ac-import-card__url" placeholder="https://docs.google.com/spreadsheets/d/…" value={sheet} onChange={(e) => setSheet(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && loadSheet()} />
+                  <button className="ac-btn" disabled={!sheet.trim() || busy} onClick={loadSheet}>{t(busy ? 'Yuklanmoqda…' : 'Jadvalni tanlash')}</button>
+                </div>
+                {err && <div className="ac-import-err" style={{ margin: '8px 0 0' }}>{err}</div>}
+              </div>
+            </div>
+            <a className="ac-import-modal__hist" onClick={openHistory}>{t("Import qilingan fayllarni ko'rish")}</a>
+          </>
+        )}
       </div>
     </div>
   )
@@ -230,6 +275,7 @@ export default function ImportPage({ entity = 'leads' }) {
         // dublikatlar qismlar orasida ham aniqlansin: keyingi partiya yangi yaratilganlarni ko'radi
       }
       setResult({ ...total, stopped: stopRef.current, fatal: '' })
+      api.post('/crm/import-history', { entity, fileName, created: total.created, updated: total.updated, skipped: total.skipped, errors: total.errors.length }).catch(() => {})
     } catch (e) {
       setResult({ ...total, fatal: e.message || t('Importda xatolik') })
     }

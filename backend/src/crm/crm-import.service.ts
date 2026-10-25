@@ -40,6 +40,43 @@ function money(v: unknown): number | null {
 export class CrmImportService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Google Sheets havolasi → CSV (faqat docs.google.com; jadval «havolaga ega har kim ko'ra oladi» bo'lishi kerak). */
+  async fetchSheet(url: string) {
+    let u: URL;
+    try { u = new URL(url.trim()); } catch { throw new BadRequestException({ error: 'BAD_URL', message: 'Google jadval havolasi noto`g`ri' }); }
+    const m = u.pathname.match(/^\/spreadsheets\/d\/([\w-]{20,})/);
+    if (u.protocol !== 'https:' || u.hostname !== 'docs.google.com' || !m) throw new BadRequestException({ error: 'BAD_URL', message: 'Google jadval havolasi noto`g`ri' });
+    const gid = (u.hash.match(/gid=(\d+)/) || u.search.match(/gid=(\d+)/) || [])[1];
+    const exportUrl = `https://docs.google.com/spreadsheets/d/${m[1]}/export?format=csv${gid ? `&gid=${gid}` : ''}`;
+    const res = await fetch(exportUrl, { redirect: 'follow', signal: AbortSignal.timeout(15000) }).catch(() => null);
+    const type = res?.headers.get('content-type') || '';
+    if (!res || !res.ok || !type.includes('csv')) {
+      throw new BadRequestException({ error: 'SHEET_PRIVATE', message: "Jadvalni o'qib bo'lmadi: «Havolaga ega har kim ko'ra oladi» ruxsatini yoqing" });
+    }
+    const csv = await res.text();
+    if (csv.length > 5_000_000) throw new BadRequestException({ error: 'TOO_BIG', message: 'Jadval juda katta (5 MB dan oshmasin)' });
+    return { csv, name: `google-sheet-${m[1].slice(0, 8)}.csv` };
+  }
+
+  async history() {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: 'import_history' } });
+    let items: any[] = [];
+    try { items = JSON.parse(row?.value || '[]'); } catch { /* */ }
+    return { items: Array.isArray(items) ? items : [] };
+  }
+  async addHistory(dto: any, user?: AuthUser) {
+    const n = (v: unknown) => Math.max(0, Math.floor(Number(v) || 0));
+    const item = {
+      at: new Date().toISOString(), entity: dto.entity === 'contacts' ? 'contacts' : 'leads',
+      fileName: String(dto.fileName || '').slice(0, 200), userName: user?.name || '',
+      created: n(dto.created), updated: n(dto.updated), skipped: n(dto.skipped), errors: n(dto.errors),
+    };
+    const items = [item, ...(await this.history()).items].slice(0, 100);
+    const value = JSON.stringify(items);
+    await this.prisma.appSetting.upsert({ where: { key: 'import_history' }, create: { key: 'import_history', value }, update: { value } });
+    return { item };
+  }
+
   async run(entity: string, rows: ImportRow[], opts: ImportOptions, user?: AuthUser): Promise<ImportResult> {
     if (entity !== 'leads' && entity !== 'contacts')
       throw new BadRequestException({ error: 'BAD_ENTITY', message: 'entity leads yoki contacts bo`lishi kerak' });

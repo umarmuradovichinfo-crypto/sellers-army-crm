@@ -207,7 +207,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
         filterPanel={(close) => <ListFilter value={filter} members={members} onApply={(f) => { setFilter(f); close() }} />}
         count={plural(list.total, 'element')}
         menu={[
-          ...(entity === 'contacts' ? [{ label: t('Import'), icon: 'download', onClick: () => setImportOpen(true) }] : []),
+          ...(entity !== 'companies' ? [{ label: t('Import'), icon: 'download', onClick: () => setImportOpen(true) }] : []),
           { label: t('Eksport'), icon: 'excel', onClick: exportCsv },
         ]}
         actions={

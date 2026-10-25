@@ -26,7 +26,7 @@ Batafsil farqlar va tuzatishlar: [AUDIT.md](AUDIT.md). Reja: [PLAN.md](PLAN.md).
 | «…»: Импорт (modal), Экспорт, Печать, Настройки таблицы, Поиск дублей | ✅ | |
 | Dublikatlarni topish va birlashtirish (maydon bo'yicha, «Не дубль») | ✅ | |
 | Ommaviy amallar (mas'ul, bosqich, teg, o'chirish) | ✅ | |
-| Import: Google Sheets, import qilingan fayllar tarixi | ⏳ | Excel/CSV bor |
+| Import: Excel/CSV, Google Sheets (ochiq havola), import qilingan fayllar tarixi | ✅ | Google OAuth o'rniga «havolaga ega har kim» havolasi |
 | «Архивные воронки» (arxivlash/qaytarish) | ✅ | |
 
 ## Bitim kartochkasi

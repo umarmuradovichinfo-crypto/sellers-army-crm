@@ -108,3 +108,10 @@
 .ac-import-card p { margin: 0 0 8px; }
 .ac-import-card__btns { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
 .ac-import-card__btns a { color: var(--palette-link-primary); text-decoration: underline; cursor: pointer; }
+.ac-import-card + .ac-import-card { margin-top: 14px; }
+.ac-import-card--plain { border-color: var(--palette-border-primary); }
+.ac-import-card__ico--docs { background: #2a8a4a; font-size: 13px; }
+.ac-import-card__url { flex: 1; min-width: 0; height: 32px; }
+.ac-import-modal__hist { display: inline-block; margin-top: 16px; color: var(--palette-link-primary); text-decoration: underline; cursor: pointer; font-size: 14px; }
+.ac-import-hist { max-height: 60vh; overflow: auto; }
+.ac-import-hist .ac-table td, .ac-import-hist .ac-table th { white-space: nowrap; }

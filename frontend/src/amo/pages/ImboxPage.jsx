@@ -293,7 +293,7 @@ const IMBOX_PRESETS = [
   ['unanswered', 'Javob berilmaganlar'], ['fav', 'Sevimlilar'], ['open', 'Ochiq suhbatlar'],
   ['needs_reply', 'Javob talab qiladi'], ['mine', "Men mas'ul bo'lganlar"],
 ]
-const IMBOX_PERIODS = [['', 'Butun vaqt uchun'], ['today', 'Bugun'], ['yesterday', 'Kecha'], ['week', 'Shu hafta'], ['month', 'Shu oy'], ['30d', "So'nggi 30 kun"]]
+const IMBOX_PERIODS = [['', 'Butun vaqt uchun'], ['today', 'Bugun'], ['yesterday', 'Kecha'], ['week', 'imb§Shu hafta'], ['month', 'imb§Shu oy'], ['30d', "So'nggi 30 kun"]]
 
 /** amoCRM imBox "Фильтр": qidiruv + presetlar (Неотвеченные, Избранные, Открытые беседы, …), davr va bosqichlar. */
 function ImboxFilter({ value, q, setQ, pipes, open, setOpen, onApply }) {
