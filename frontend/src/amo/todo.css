@@ -99,3 +99,9 @@
 .ac-ttype .nm { flex: 1; }
 .ac-ttype .ac-input { flex: 1; }
 .ac-ttype .ic-sel { width: 110px; height: 30px; }
+/* Telefon: vazifa ustuni ekranga sig'adi */
+@media (max-width: 760px) {
+  .ac-todo-line { padding: 0 12px 80px; scroll-snap-type: x mandatory; }
+  .ac-todo-col { width: calc(100vw - var(--left-menu-width) - 24px); padding: 0; scroll-snap-align: start; }
+  .ac-todo-line__cols { gap: 12px; justify-content: flex-start; }
+}

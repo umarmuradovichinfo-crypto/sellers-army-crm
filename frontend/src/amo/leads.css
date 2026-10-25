@@ -264,3 +264,8 @@
   .ac-page, .ac-content { margin: 0 !important; padding: 0 !important; }
   .ac-table td a { color: #000 !important; text-decoration: none !important; }
 }
+/* Telefon: voronka ustuni ekranga sig'adi (kartochka sanasi qirqilmaydi), ustunlar orasida gorizontal surish */
+@media (max-width: 760px) {
+  .ac-pipeline__scroll { padding: 0 12px 80px; scroll-snap-type: x mandatory; }
+  .ac-col { width: calc(100vw - var(--left-menu-width) - 24px); scroll-snap-align: start; }
+}

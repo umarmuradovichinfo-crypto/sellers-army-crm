@@ -48,7 +48,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
    - [x] Umumiy sozlamalardagi sana/vaqt/valyuta formatlarini format.js ishlatishi
 10. [x] Eski kodni tozalash: 14 ta ishlatilmaydigan fayl (CRM.jsx, Settings.jsx, components/crm/*, FormBuilder), eski CSS 55KB→12KB (faqat Login/LeadForm/CallWidget/Dialog ishlatadigan qoidalar qoldi)
     - [x] Login sahifasi va CallWidget (telefoniya, dial-pad bilan) amoCRM uslubida
-11. [ ] Yakuniy to'liq test va diagnostika: butun tizim, barcha bo'limlar o'zaro bog'liqligi (bitim → kontakt → vazifa → analitika), xatolar ro'yxati va tuzatish
+11. [x] Yakuniy to'liq test va diagnostika: butun tizim, barcha bo'limlar o'zaro bog'liqligi (bitim → kontakt → vazifa → analitika), xatolar ro'yxati va tuzatish
 12. [x] Funksiyalar pariteti: amoCRM'dagi har bir bo'lim, funksiya, tugma, detal ro'yxati (FEATURES.md) — bizda bor/yo'q;
     yo'qlari qo'shiladi
 13. [x] Bog'liq mantiq testi: funksiyalar bir-biriga ta'siri (bitim bosqichi → avtomatlashtirish → vazifa → bildirishnoma → analitika;
@@ -73,7 +73,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 16. [ ] amoCRM akkauntini Chrome orqali TO'LIQ ko'rib chiqish (har bo'lim, har oyna, har menyu, har tugma, hover/ochilish holatlari,
     sozlamalarning har bir sahifasi) — FEATURES.md'ga ro'yxat; bizda yo'q/boshqacha bo'lgan har bir narsa amoCRM'dagi mantiq,
     dizayn, joylashuv va ko'rinish bilan 1:1 qo'shiladi; so'ng hammasi qayta test qilinadi (faqat ko'rish, akkauntda hech narsa o'zgartirilmaydi)
-17. [ ] Yakuniy dizayn solishtirish 1:1: har bir ekran amoCRM bilan yonma-yon (o'lcham, rang, shrift, joylashuv, animatsiya; desktop + mobil), farqlar tuzatiladi
+17. [x] Yakuniy dizayn solishtirish 1:1: har bir ekran amoCRM bilan yonma-yon (o'lcham, rang, shrift, joylashuv, animatsiya; desktop + mobil), farqlar tuzatiladi
 
 18. [x] Tarmoq nazoratchisi / offline rejim: /health ping, GET retry, yozuvlar navbati (Idempotency-Key), banner, PWA app-shell
 19. [x] Bitimlar filtrlari/saralash/statistika amoCRM bilan 1:1 (FILTERS-SPEC.md) — 256 ta tekshiruv psql bilan mos (qa/filtrlar.md)
@@ -118,6 +118,10 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 30. [ ] (25.10 audit) amoCRM «Амма» AI-yordamchisi (ish stolidagi chat oynasi + o'ng pastdagi avatar): CRM bo'yicha savollarga javob,
     statistikalar. LLM API kaliti kerak. FOYDALANUVCHI TASDIG'I KUTILMOQDA.
     («Покупатели» bo'limi bu akkauntda o'chirilgan — ochilganda ish stoliga qaytaradi, shuning uchun klonlanmaydi.)
+
+31. [ ] (foydalanuvchi so'rovi 25.10) Ish stoli amoCRM bilan TO'LIQ 1:1: amoCRM'da ish stoli qanday ishlashini to'liq o'rganish —
+    «Настроить» rejimi, vidjet qo'shish/o'chirish/surish, istalgan statistikani vidjet qilib yaratish (vidjet turlari, manba,
+    filtrlar, davr, voronka/xodim), joylashuvni saqlash — hammasini bizga ko'chirish.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

@@ -175,3 +175,5 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
   tushib joylashuv buzilardi → 6 ustun, katak konteyner kengligidan; kichik vidjet raqamlari katakka moslashadi — tuzatildi.
 - Voronka: saralanmagan ustundan keyin 20px oraliq (boshqalari 10px) — amoCRM o'lchamlari bilan bir xil; chatdan kelgan ariza
   kartochkasida oxirgi kiruvchi xabar (telefon o'rniga, «…» bilan qisqartirilgan) — tuzatildi.
+- Yakuniy telefon tekshiruvi (375px): voronka va vazifalar ustunlari ekrandan keng edi (sana qirqilardi) → ustun ekranga sig'adi,
+  ustunlar orasida surish; ish stoli, kartochka, imBox, ro'yxatlar, analitika, sozlamalar — joyida.
