@@ -170,10 +170,10 @@ export class ChatService {
     const prevAny = await this.prisma.message.count({ where: { leadId: lead.id } });
     const prevIn = await this.prisma.message.count({ where: { leadId: lead.id, direction: 'in' } });
 
+    const convNo = await this.convFor(lead.id, true);
     await this.prisma.message.create({
-      data: { leadId: lead.id, channel: 'telegram', direction: 'in', text: String(text).slice(0, 4000), senderName: name, externalId: String(msg.message_id ?? '') },
+      data: { leadId: lead.id, channel: 'telegram', direction: 'in', text: String(text).slice(0, 4000), senderName: name, externalId: String(msg.message_id ?? ''), convNo },
     });
-    await this.reopenConversation(lead.id);
     await this.automation.salesbot?.onReply(lead.id, String(text)).catch(() => false);
     await this.activity.record(lead.id, 'email', { actorName: name, text: `📨 Telegram: ${String(text).slice(0, 120)}` });
     await this.prisma.lead.update({ where: { id: lead.id }, data: { lastActivityAt: new Date() } }).catch(() => {});
@@ -198,7 +198,7 @@ export class ChatService {
     const lastIn = [...messages].reverse().find((m) => m.direction === 'in');
     const tgOk = !!lead?.telegramChatId && this.tg.enabled();
     const st = await this.prisma.conversationState.findUnique({ where: { leadId } });
-    const base = { messages, telegramLinked: !!lead?.telegramChatId, telegramEnabled: this.tg.enabled(), closed: !!st?.closed, closedAt: st?.closedAt?.toISOString() || null, fav: !!userId && safeList(st?.favJson).includes(userId) };
+    const base = { messages, telegramLinked: !!lead?.telegramChatId, telegramEnabled: this.tg.enabled(), closed: !!st?.closed, closedAt: st?.closedAt?.toISOString() || null, fav: !!userId && safeList(st?.favJson).includes(userId), convNo: st?.number ?? null };
     // Instagram / Messenger: javob oxirgi kiruvchi xabar kanaliga
     if (lastIn && isSocial(lastIn.channel) && lastIn.threadId && lastIn.pageId && this.social) {
       const pageOk = await this.social.hasPage(lastIn.pageId).catch(() => false);
@@ -229,11 +229,12 @@ export class ChatService {
     if (!res.ok) {
       const err = 'Telegram: ' + (res.error || 'yuborilmadi');
       // amoCRM: yuborilmagan xabar lentada «Ошибка» belgisi bilan qoladi
-      await this.prisma.message.create({ data: { leadId, channel: 'telegram', direction: 'out', text: stored, senderName: user?.name || 'Operator', status: 'error', error: err.slice(0, 500) } });
+      await this.prisma.message.create({ data: { leadId, channel: 'telegram', direction: 'out', text: stored, senderName: user?.name || 'Operator', status: 'error', error: err.slice(0, 500), convNo: await this.convFor(leadId, false) } });
       throw new ServiceUnavailableException({ error: 'SEND_FAILED', message: err });
     }
+    // Telegram serveri qabul qildi — amoCRM'dagi «Доставлено»
     const message = await this.prisma.message.create({
-      data: { leadId, channel: 'telegram', direction: 'out', text: stored, senderName: user?.name || 'Operator', externalId: res.messageId || null },
+      data: { leadId, channel: 'telegram', direction: 'out', text: stored, senderName: user?.name || 'Operator', externalId: res.messageId || null, status: 'delivered', convNo: await this.convFor(leadId, false) },
     });
     await this.activity.record(leadId, 'email', { actorId: user?.id, actorName: user?.name, text: `📤 Telegram: ${body.slice(0, 120)}` });
     return { message };
@@ -279,12 +280,12 @@ export class ChatService {
     } catch (e) {
       const f = friendlySocialError(e, channel);
       await this.prisma.message.create({
-        data: { leadId, channel, direction: 'out', text: stored, senderName: user?.name || 'Operator', threadId: target.threadId, pageId: target.pageId, kind: target.kind, status: 'error', error: String((f as any)?.message || 'error').slice(0, 500) },
+        data: { leadId, channel, direction: 'out', text: stored, senderName: user?.name || 'Operator', threadId: target.threadId, pageId: target.pageId, kind: target.kind, status: 'error', error: String((f as any)?.message || 'error').slice(0, 500), convNo: await this.convFor(leadId, false) },
       });
       throw new ServiceUnavailableException(f);
     }
     const message = await this.prisma.message.create({
-      data: { leadId, channel, direction: 'out', text: stored, senderName: user?.name || 'Operator', externalId, threadId: target.threadId, pageId: target.pageId, kind: target.kind },
+      data: { leadId, channel, direction: 'out', text: stored, senderName: user?.name || 'Operator', externalId, threadId: target.threadId, pageId: target.pageId, kind: target.kind, convNo: await this.convFor(leadId, false) },
     });
     const label = comment ? `${CH_LABEL[channel]} izohga javob` : CH_LABEL[channel];
     await this.activity.record(leadId, 'email', { actorId: user?.id, actorName: user?.name, text: `📤 ${label}: ${body.slice(0, 120)}` });
@@ -319,13 +320,13 @@ export class ChatService {
     const { lead, isNew } = await this.findOrCreateSocialLead(a.channel, a.threadId, a.name, a.source);
     const prevAny = await this.prisma.message.count({ where: { leadId: lead.id } });
     const prevIn = await this.prisma.message.count({ where: { leadId: lead.id, direction: 'in' } });
+    const convNo = await this.convFor(lead.id, true);
     await this.prisma.message.create({
       data: {
         leadId: lead.id, channel: a.channel, direction: 'in', text: a.text.slice(0, 4000), senderName: a.name, externalId: a.externalId || null,
-        threadId: a.threadId, pageId: a.pageId, kind: a.kind, ...(a.createdAt ? { createdAt: a.createdAt } : {}),
+        threadId: a.threadId, pageId: a.pageId, kind: a.kind, ...(a.createdAt ? { createdAt: a.createdAt } : {}), convNo,
       },
     });
-    await this.reopenConversation(lead.id);
     await this.automation.salesbot?.onReply(lead.id, a.text).catch(() => false);
     const label = a.kind === 'comment' ? `${CH_LABEL[a.channel]} izoh` : CH_LABEL[a.channel];
     await this.activity.record(lead.id, 'email', { actorName: a.name, text: `📨 ${label}: ${a.text.slice(0, 120)}` });
@@ -428,7 +429,7 @@ export class ChatService {
         channel: last?.channel || 'telegram', kind: last?.kind || 'message',
         senderName: last?.senderName || null, // amoCRM: ro'yxatda "Yuboruvchi: matn"
         avatar: null as string | null, initial: (name.replace(/^@/, '')[0] || '?').toUpperCase(), // rasm yo'q — bosh harf
-        closed: !!st?.closed, fav, unanswered: last?.direction === 'in',
+        closed: !!st?.closed, convNo: st?.number ?? null, fav, unanswered: last?.direction === 'in',
         assigneeId: l.assigneeId || null, stageToken: `${l.pipelineId || 'main'}:${l.stage}`,
       };
     }).filter((c): c is NonNullable<typeof c> => !!c).filter((c) => {
@@ -461,8 +462,31 @@ export class ChatService {
     return { closed: row.closed, fav: !!user?.id && safeList(row.favJson).includes(user.id) };
   }
 
-  private async reopenConversation(leadId: string) {
-    await this.prisma.conversationState.updateMany({ where: { leadId, closed: true }, data: { closed: false, closedAt: null, closedById: null } });
+  // Messenger/Instagram «o'qildi» (message_reads, watermark): shu mijozga yuborilgan, watermark'gacha bo'lgan xabarlar — «Прочитано»
+  async markRead(channel: string, threadId: string, watermark: number, mid?: string) {
+    if (!watermark && mid) {
+      const m = await this.prisma.message.findFirst({ where: { channel, threadId, externalId: mid }, select: { createdAt: true } });
+      watermark = m ? +m.createdAt : 0;
+    }
+    if (!threadId || !watermark) return 0;
+    const r = await this.prisma.message.updateMany({
+      where: { channel, threadId, direction: 'out', status: { in: ['sent', 'delivered'] }, createdAt: { lte: new Date(watermark) } },
+      data: { status: 'read' },
+    });
+    return r.count;
+  }
+
+  /**
+   * Bitimdagi joriy suhbat raqami (amoCRM «Беседа № A…»). reopen=true — kiruvchi xabar: suhbat yopiq bo'lsa,
+   * yangi raqam bilan qayta ochiladi (amoCRM'da yopilgan suhbatga mijoz yozsa — yangi beseda).
+   */
+  private async convFor(leadId: string, reopen: boolean): Promise<number> {
+    if (reopen) {
+      await this.prisma.$executeRaw`UPDATE crm_conversations SET closed = false, "closedAt" = NULL, "closedById" = NULL,
+        "number" = nextval('crm_conv_number_seq'), "updatedAt" = now() WHERE "leadId" = ${leadId} AND closed = true`;
+    }
+    const st = await this.prisma.conversationState.upsert({ where: { leadId }, create: { leadId }, update: {}, select: { number: true } });
+    return st.number;
   }
 
   async setupWebhook(url: string) {

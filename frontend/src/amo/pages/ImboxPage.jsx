@@ -35,8 +35,9 @@ function chatGroups(items) {
   const out = []
   for (const it of items) {
     const g = out[out.length - 1]
-    if (it.kind === 'msg' && g?.kind === 'chat' && g.channel === it.m.channel && new Date(g.at).toDateString() === new Date(it.at).toDateString()) g.msgs.push(it.m)
-    else if (it.kind === 'msg') out.push({ kind: 'chat', channel: it.m.channel, at: it.at, msgs: [it.m] })
+    // amoCRM: xabarlar suhbat («Беседа № …») bo'yicha; raqami yo'q eski xabarlar — kanal va kun bo'yicha
+    if (it.kind === 'msg' && g?.kind === 'chat' && (it.m.convNo ? g.no === it.m.convNo : !g.no && g.channel === it.m.channel && new Date(g.at).toDateString() === new Date(it.at).toDateString())) g.msgs.push(it.m)
+    else if (it.kind === 'msg') out.push({ kind: 'chat', channel: it.m.channel, no: it.m.convNo || null, at: it.at, msgs: [it.m] })
     else out.push(it)
   }
   return out
@@ -71,7 +72,7 @@ function Row({ c, on, onClick, sel }) {
       </div>
       <div className="ac-imbox-row__body">
         <div className="ac-imbox-row__head">
-          <span className={`ac-imbox-row__num ${c.closed ? 'closed' : ''}`}>{convNum(c.leadId)}</span>
+          <span className={`ac-imbox-row__num ${c.closed ? 'closed' : ''}`}>{convNum(c.leadId, c.convNo)}</span>
           {c.fav && <Ico name="star" size={12} className="ac-imbox-row__fav" />}
           <span className="ac-imbox-row__date">{listDate(c.at, t)}</span>
         </div>
@@ -203,7 +204,7 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
     setFeed({
       calls: c.calls || [], tasks: tk.tasks || [], messages: m.messages || [], canReply: !!m.canReply,
       channel: m.channel || null, replyKind: m.replyKind, windowOpen: m.windowOpen !== false, windowExpiresAt: m.windowExpiresAt || null, why: m.replyDisabledReason || null,
-      closed: !!m.closed, fav: !!m.fav,
+      closed: !!m.closed, fav: !!m.fav, convNo: m.convNo || null,
     })
   }, [leadId])
 
@@ -237,7 +238,7 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
 
   const items = []
   for (const a of lead.activity || []) {
-    if (a.type === 'note' || a.type === 'call') continue
+    if (a.type === 'note' || a.type === 'call' || a.type === 'email') continue // email — chat jurnali, xabarlar o'zi chiqadi
     items.push({ at: a.at, kind: 'sys', a })
   }
   for (const n of lead.notes || []) items.push({ at: n.at, kind: 'note', n })
@@ -271,8 +272,11 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
             } else if (it.kind === 'note') el = <NoteItem key={`n${i}`} n={it.n} />
             else if (it.kind === 'call') el = <CallNote key={`c${it.c.id}`} c={it.c} />
             else if (it.kind === 'task') el = <TaskNote key={`t${it.tk.id}`} task={it.tk} onDone={completeTask} />
-            else if (it.kind === 'chat') el = <MsgGroup key={`g${it.msgs[0].id}`} msgs={it.msgs} leadId={lead.id}
-              conv={it.msgs[it.msgs.length - 1].id === feed.messages[feed.messages.length - 1]?.id ? { closed: feed.closed, onClose: () => crmService.conversationAction(lead.id, 'close').then(() => { load(); onChanged && onChanged() }) } : null} />
+            else if (it.kind === 'chat') {
+              const current = it.no ? it.no === feed.convNo : it.msgs[it.msgs.length - 1].id === feed.messages[feed.messages.length - 1]?.id
+              el = <MsgGroup key={`g${it.msgs[0].id}`} msgs={it.msgs} leadId={lead.id} no={it.no || feed.convNo} collapsed={!current}
+                conv={current ? { closed: feed.closed, onClose: () => crmService.conversationAction(lead.id, 'close').then(() => { load(); onChanged && onChanged() }) } : null} />
+            }
             return <React.Fragment key={i}>{sep}{el}</React.Fragment>
           })}
         </div>
@@ -389,7 +393,7 @@ export default function ImboxPage() {
 
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase()
-    return (convs || []).filter((c) => !s || `${c.name} ${c.last} ${convNum(c.leadId)}`.toLowerCase().includes(s))
+    return (convs || []).filter((c) => !s || `${c.name} ${c.last} ${convNum(c.leadId, c.convNo)}`.toLowerCase().includes(s))
   }, [convs, q])
 
   // amoCRM: imBox ochilganda birinchi (eng so'nggi) suhbat avtomatik ochiladi (keng ekranda)

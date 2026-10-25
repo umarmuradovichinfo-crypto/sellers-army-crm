@@ -7,6 +7,7 @@ import { api } from '../../lib/apiClient'
 import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
+import MultiSelect from '../MultiSelect'
 import { feedDate, feedDateFull, dmy, relDay, currency, phoneFmt, money } from '../format'
 import PhoneLink from '../PhoneLink'
 import { useT } from '../i18n'
@@ -484,7 +485,8 @@ export function NoteItem({ n }) {
 }
 
 // Suhbat raqami: leadId'dan barqaror "A1234" ko'rinishidagi yorliq (imBox bilan bir xil)
-export function convNum(id) {
+export function convNum(id, no) {
+  if (no) return `A${no}` // serverdagi haqiqiy raqam (amoCRM «Беседа № A…»)
   let h = 0
   for (let i = 0; i < String(id).length; i++) h = (h * 31 + String(id).charCodeAt(i)) % 9000
   return `A${1000 + h}`
@@ -545,17 +547,30 @@ function BotPick({ leadId, onClose }) {
   )
 }
 
-export function MsgGroup({ msgs, leadId, conv }) {
+export function MsgGroup({ msgs, leadId, conv, no, collapsed }) {
   const t = useT()
+  const [open, setOpen] = useState(!collapsed)
   const ch = msgs[0]?.channel || 'telegram'
   const comment = msgs[0]?.kind === 'comment'
+  const last = msgs[msgs.length - 1]
+  // amoCRM: yopilgan (eski) suhbat bitta qator — sana, muallif, oxirgi xabar va «Беседа № …»; bosilsa yoyiladi
+  if (!open) {
+    return (
+      <div className="ac-chatline" onClick={() => setOpen(true)} title={t('Yoyish')}>
+        <Ico name={ch === 'facebook' ? 'facebook' : ch === 'instagram' ? 'instagram' : 'telegram'} size={12} />
+        <span className="ac-chatline__at">{feedDate(last.createdAt, t)}</span>
+        <span className="ac-chatline__text">{last.senderName ? `${last.senderName}: ` : ''}{last.text}</span>
+        <span className="ac-chatline__no">{t('Suhbat')} № {convNum(leadId, no)}</span>
+      </div>
+    )
+  }
   return (
     <div className="ac-chatblock">
       <div className="ac-chatblock__head"><Ico name={ch === 'facebook' ? 'facebook' : ch === 'instagram' ? 'instagram' : 'telegram'} size={12} /> {CHAN_TITLE[ch] || ch}{comment ? ` (${t('izohlar')})` : ''}</div>
       {msgs.map((m) => <MsgItem key={m.id} m={m} />)}
       <div className="ac-chatblock__foot">
         {conv && (conv.closed ? <span className="ac-chatblock__closed">{t('Suhbat yopilgan')}</span> : <button className="ac-chatblock__close" onClick={conv.onClose}>{t('Yopish')}</button>)}
-        <span className={conv && !conv.closed ? 'open' : ''}>{t('Suhbat')} № {convNum(leadId)}</span>
+        <span className={conv && !conv.closed ? 'open' : ''}>{t('Suhbat')} № {convNum(leadId, no)}</span>
       </div>
     </div>
   )
@@ -570,10 +585,77 @@ export function MsgItem({ m }) {
           {m.status === 'error' && <span className="ac-msg__err" title={m.error || ''}><Ico name="alert" size={11} />{t('Xatolik')}</span>}
         </div>
         <div className="ac-msg__text">{m.text}</div>
+        {m.direction === 'out' && m.status !== 'error' && (
+          <div className={`ac-msg__status ac-msg__status--${m.status || 'sent'}`}>{t(MSG_STATUS[m.status] || MSG_STATUS.sent)}</div>
+        )}
       </div>
     </div>
   )
 }
+
+// amoCRM bitim lentasi «Поиск и фильтр»: chapda «Все события / Только чаты / Только чаты с клиентами»,
+// o'ngda «Сообщения чатов», «Связанные объекты», «Типы событий». Tanlov foydalanuvchi brauzerida saqlanadi.
+const FEED_TYPES = [
+  ['open_tasks', 'feed§Faol vazifalar'], ['call_in', "Kiruvchi qo'ng'iroq"], ['call_out', "Chiquvchi qo'ng'iroq"], ['done_tasks', 'feed§Bajarilgan vazifalar'],
+  ['notes', 'feed§Izohlar'], ['created', 'feed§Element yaratildi'], ['stage', "feed§Bosqich o'zgardi"], ['field', "feed§Maydon o'zgarishi"],
+  ['assignee', "feed§Mas'ul o'zgarishi"], ['tag', 'feed§Teglar'], ['system', 'feed§Tizim izohlari'],
+]
+const FEED_ALL = { preset: 'all', msgs: ['client', 'internal'], related: ['contacts', 'companies'], types: FEED_TYPES.map(([k]) => k) }
+const FEED_KEY = 'amo_feed_filter'
+const loadFeedFilter = () => { try { return { ...FEED_ALL, ...JSON.parse(localStorage.getItem(FEED_KEY) || '{}') } } catch { return FEED_ALL } }
+// lenta elementi → filtr turi
+function feedType(it) {
+  if (it.kind === 'msg') return 'chat'
+  if (it.kind === 'note') return 'notes'
+  if (it.kind === 'call') return it.c.direction === 'in' ? 'call_in' : 'call_out'
+  if (it.kind === 'task') return 'done_tasks'
+  const ty = it.a?.type
+  if (ty === 'created') return 'created'
+  if (ty === 'stage' || ty === 'won' || ty === 'lost') return 'stage'
+  if (ty === 'field' || (ty === 'updated' && it.a.text !== 'Suhbat yopildi')) return 'field'
+  if (ty === 'assignee') return 'assignee'
+  if (ty === 'tag') return 'tag'
+  if (ty === 'task_created') return 'open_tasks'
+  if (ty === 'task_done') return 'done_tasks'
+  return 'system'
+}
+function feedVisible(it, f) {
+  const ty = feedType(it)
+  if (f.preset === 'chats' || f.preset === 'client_chats') return ty === 'chat'
+  if (ty === 'chat') return f.msgs.includes('client')
+  if (it.ct && !f.related.includes('contacts')) return false
+  return f.types.includes(ty)
+}
+
+function FeedFilter({ value, onApply }) {
+  const t = useT()
+  const [f, setF] = useState(value)
+  useEffect(() => setF(value), [value])
+  return (
+    <>
+      <div className="ac-filter__presets">
+        {[['all', 'feed§Barcha voqealar'], ['chats', 'feed§Faqat chatlar'], ['client_chats', 'feed§Faqat mijozlar bilan chatlar']].map(([k, l]) => (
+          <div key={k} className={`ac-filter__preset ${f.preset === k ? 'on' : ''}`} onClick={() => onApply({ ...FEED_ALL, preset: k })}><span className="lbl">{t(l)}</span></div>
+        ))}
+      </div>
+      <div className="ac-filter__col ac-filter__col--fields">
+        <MultiSelect allText search={false} label="" emptyText="feed§Chat xabarlari" value={f.msgs} onChange={(v) => setF((p) => ({ ...p, preset: 'all', msgs: v }))}
+          options={[{ value: 'client', label: t('feed§Mijozlar bilan') }, { value: 'internal', label: t('feed§Ichki') }]} />
+        <MultiSelect allText search={false} label="" emptyText="feed§Bog'langan obyektlar" value={f.related} onChange={(v) => setF((p) => ({ ...p, preset: 'all', related: v }))}
+          options={[{ value: 'contacts', label: t('Kontaktlar') }, { value: 'companies', label: t('Kompaniyalar') }]} />
+        <MultiSelect allText label="" emptyText="ev§Voqea turlari" value={f.types} onChange={(v) => setF((p) => ({ ...p, preset: 'all', types: v }))}
+          options={FEED_TYPES.map(([k, l]) => ({ value: k, label: t(l) }))} />
+        <div className="ac-filter__foot">
+          <button className="ac-btn ac-btn--blue ac-btn--sm" onClick={() => onApply(f)}>{t("Qo'llash")}</button>
+          <button className="ac-btn ac-btn--sm ac-btn--plain" onClick={() => onApply(FEED_ALL)}>{t('Tozalash')}</button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// amoCRM xabar holatlari: Отправлено / Доставлено / Прочитано
+const MSG_STATUS = { sent: 'msg§Yuborildi', delivered: 'msg§Yetkazildi', read: "msg§O'qildi" }
 
 const ACT_TEXT = {
   created: 'Bitim yaratildi',
@@ -602,6 +684,8 @@ function actText(a, t) {
 
 const ACT_GROUP = { created: 'Yaratish', field: "Maydon o'zgarishi", updated: "Maydon o'zgarishi", tag: "Teglar o'zgartirildi" }
 const dayOf = (d) => new Date(d).toDateString()
+const MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr']
+const monthName = (d, t) => t(`mon§${MONTHS[new Date(d).getMonth()]}`)
 const contactsOf = (l) => l.contacts || (l.contact ? [l.contact] : [])
 // "3 события / 13 событий" — ruscha ko'plik i18n'da ("voqea" kalitlari)
 function plEvents(n) {
@@ -749,6 +833,11 @@ export default function LeadCard() {
   const [feed, setFeed] = useState({ calls: [], tasks: [], messages: [], canReply: false })
   const [tab, setTab] = useState('main')
   const [feedQ, setFeedQ] = useState('')
+  const [feedFilter, setFeedFilterState] = useState(loadFeedFilter)
+  const [feedPanel, setFeedPanel] = useState(false)
+  const feedTopRef = useRef(null)
+  useOutside(feedTopRef, () => setFeedPanel(false), feedPanel)
+  const setFeedFilter = (f) => { setFeedFilterState(f); try { localStorage.setItem(FEED_KEY, JSON.stringify(f)) } catch { /* */ } }
   const [tagInput, setTagInput] = useState(null)
   const [botPick, setBotPick] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -770,7 +859,7 @@ export default function LeadCard() {
       crmService.listLeadTasks(id).catch(() => ({ tasks: [] })),
       crmService.leadMessages(id).catch(() => ({ messages: [], canReply: false })),
     ])
-    setFeed({ calls: c.calls || [], tasks: tk.tasks || [], messages: m.messages || [], canReply: !!m.canReply, closed: !!m.closed })
+    setFeed({ calls: c.calls || [], tasks: tk.tasks || [], messages: m.messages || [], canReply: !!m.canReply, closed: !!m.closed, convNo: m.convNo || null })
   }
 
   // Lenta o'zi yangilanib tursin: OnlinePBX/MicroSIP qo'ng'iroqlari, yangi xabarlar (sahifa ko'rinib turganda, 15 s).
@@ -905,7 +994,8 @@ export default function LeadCard() {
   const items = []
   if (!isNew) {
     for (const a of lead.activity || []) {
-      if (a.type === 'note' || a.type === 'call') continue
+      // email — chat xabarlari jurnali: xabarlar lentada o'zi chiqadi (takrorlanmasin)
+      if (a.type === 'note' || a.type === 'call' || a.type === 'email') continue
       items.push({ at: a.at, kind: 'sys', a })
     }
     for (const n of lead.notes || []) items.push({ at: n.at, kind: 'note', n })
@@ -917,20 +1007,23 @@ export default function LeadCard() {
   }
   const q = feedQ.trim().toLowerCase()
   const shown = items
+    .filter((it) => feedVisible(it, feedFilter))
     .filter((it) => !q || JSON.stringify(it).toLowerCase().includes(q))
     .sort((a, b) => new Date(a.at) - new Date(b.at))
-  const openTasks = feed.tasks.filter((x) => !x.done).sort((a, b) => new Date(a.dueDate || 8e15) - new Date(b.dueDate || 8e15))
+  const openTasks = (feedFilter.preset === 'all' && feedFilter.types.includes('open_tasks') ? feed.tasks : []).filter((x) => !x.done).sort((a, b) => new Date(a.dueDate || 8e15) - new Date(b.dueDate || 8e15))
   // amoCRM: ketma-ket kelgan bir turdagi tizim voqealari (3+) "Изменение поля: 13 событий Развернуть" bo'lib yig'iladi
   const groups = []
   for (const it of shown) {
     const g = groups[groups.length - 1]
     if (it.kind === 'sys' && g?.kind === 'grp' && g.type === it.a.type && dayOf(g.items[0].at) === dayOf(it.at)) g.items.push(it)
     else if (it.kind === 'sys') groups.push({ kind: 'grp', type: it.a.type, at: it.at, items: [it] })
-    else if (it.kind === 'msg' && g?.kind === 'chat' && g.channel === it.m.channel && dayOf(g.at) === dayOf(it.at)) g.msgs.push(it.m)
-    else if (it.kind === 'msg') groups.push({ kind: 'chat', channel: it.m.channel, at: it.at, msgs: [it.m] })
+    else if (it.kind === 'msg' && g?.kind === 'chat' && (it.m.convNo ? g.no === it.m.convNo : g.channel === it.m.channel && !g.no && dayOf(g.at) === dayOf(it.at))) g.msgs.push(it.m)
+    else if (it.kind === 'msg') groups.push({ kind: 'chat', channel: it.m.channel, no: it.m.convNo || null, at: it.at, msgs: [it.m] })
     else groups.push(it)
   }
   let lastDay = ''
+  let lastMonth = ''
+  const filtered = JSON.stringify(feedFilter) !== JSON.stringify(FEED_ALL)
 
   return (
     <div className="ac-cardpage">
@@ -1027,10 +1120,16 @@ export default function LeadCard() {
       </div>
 
       <div className="ac-feed">
-        <div className="ac-feed__top">
-          <div className="ac-top__search" style={{ flex: 1 }}>
+        <div className="ac-feed__top" ref={feedTopRef}>
+          <div className="ac-top__search" style={{ flex: 1 }} onClick={() => setFeedPanel(true)}>
             <Ico name="search" />
+            {filtered && (
+              <span className="ac-chip"><span>{t('ev§Filtr')}</span><button onClick={(e) => { e.stopPropagation(); setFeedFilter(FEED_ALL) }}><Ico name="close" size={9} /></button></span>
+            )}
             <input placeholder={t('Qidiruv va filtr')} value={feedQ} onChange={(e) => setFeedQ(e.target.value)} />
+            <div className={`ac-filter ac-feed__filter ${feedPanel ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
+              <FeedFilter value={feedFilter} onApply={(f) => { setFeedFilter(f); setFeedPanel(false) }} />
+            </div>
           </div>
           <div className="ac-feed__dots"><DotsMenu items={[{ label: t('Yangilash'), icon: 'clock', onClick: () => { loadLead(); loadFeed() } }]} /></div>
         </div>
@@ -1038,6 +1137,10 @@ export default function LeadCard() {
           <div className="ac-feed__inner">
             {groups.map((it, i) => {
               const day = dayOf(it.at)
+              const month = String(it.at).slice(0, 7)
+              // amoCRM: oy almashganda oy nomi («Июль»), keyin kun ajratgichi
+              const mhead = month !== lastMonth && lastMonth !== '' ? <div key={`m${i}`} className="ac-feed__month">{monthName(it.at, t)}</div> : null
+              lastMonth = month
               const sep = day !== lastDay ? (lastDay = day, <div key={`s${i}`} className="ac-feed__sep"><span>{t(relDay(it.at) || '') || dmy(it.at)}</span></div>) : null
               let el = null
               if (it.kind === 'grp') {
@@ -1053,9 +1156,13 @@ export default function LeadCard() {
                 : <NoteItem key={`n${i}`} n={it.n} />
               else if (it.kind === 'call') el = <CallNote key={`c${it.c.id}`} c={it.c} />
               else if (it.kind === 'task') el = <TaskNote key={`t${it.tk.id}`} task={it.tk} onDone={completeTask} />
-              else if (it.kind === 'chat') el = <MsgGroup key={`g${it.msgs[0].id}`} msgs={it.msgs} leadId={lead.id}
-                conv={it.msgs[it.msgs.length - 1].id === feed.messages[feed.messages.length - 1]?.id ? { closed: feed.closed, onClose: () => crmService.conversationAction(lead.id, 'close').then(loadFeed) } : null} />
-              return <React.Fragment key={i}>{sep}{el}</React.Fragment>
+              else if (it.kind === 'chat') {
+                const current = it.no ? it.no === feed.convNo : it.msgs[it.msgs.length - 1].id === feed.messages[feed.messages.length - 1]?.id
+                el = <MsgGroup key={`g${it.msgs[0].id}`} msgs={it.msgs} leadId={lead.id} no={it.no || feed.convNo}
+                  collapsed={!current || feed.closed}
+                  conv={current ? { closed: feed.closed, onClose: () => crmService.conversationAction(lead.id, 'close').then(loadFeed) } : null} />
+              }
+              return <React.Fragment key={i}>{mhead}{sep}{el}</React.Fragment>
             })}
           </div>
         </div>

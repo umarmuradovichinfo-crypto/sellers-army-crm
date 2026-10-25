@@ -453,35 +453,36 @@ export class CrmAnalyticsService {
     // 1) bitim faoliyati
     const actWhere: Record<string, any> = { ...rangeOf('createdAt') };
     if (users.length) actWhere.actorId = { in: users };
-    const actTypes = typeList.filter((t) => ![...CALL_TYPES, ...MSG_TYPES, 'conv_closed'].includes(t) && okEntity(t));
-    if (typeList.length) actWhere.type = { in: actTypes.length ? actTypes : ['__none__'] };
-    else if (entity === 'task') actWhere.type = { startsWith: 'task_' };
-    else if (entity === 'lead') actWhere.NOT = { type: { startsWith: 'task_' } };
+    // «email» — chat xabarlari jurnali: xabarlar o'z manbasidan chiqadi (takrorlanmasin); suhbat yopilishi faoliyatdan «Беседа закрыта»
+    const actTypes = typeList.filter((t) => ![...CALL_TYPES, ...MSG_TYPES, 'conv_closed', 'email'].includes(t) && okEntity(t));
+    if (typeList.includes('conv_closed') && entity !== 'task') actTypes.push('updated');
+    const and: any[] = [{ type: { not: 'email' } }];
+    if (typeList.length) and.push({ type: { in: actTypes.length ? actTypes : ['__none__'] } });
+    else if (entity === 'task') and.push({ type: { startsWith: 'task_' } });
+    else if (entity === 'lead') and.push({ NOT: { type: { startsWith: 'task_' } } });
+    // «updated» faqat suhbat yopilishi uchun so'ralgan bo'lsa — boshqa «updated» yozuvlari chiqmasin
+    if (typeList.includes('conv_closed') && !typeList.includes('updated')) and.push({ OR: [{ type: { not: 'updated' } }, { text: 'Suhbat yopildi' }] });
+    actWhere.AND = and;
     // 2) qo'ng'iroqlar  3) xabarlar  4) yopilgan suhbatlar — obyekti «Сделка» (vazifa filtrida chiqmaydi)
     const callDirs = entity === 'task' ? [] : [want('call_in') && 'in', want('call_out') && 'out'].filter(Boolean) as string[];
     const msgDirs = entity === 'task' ? [] : [want('message_in') && 'in', want('message_out') && 'out'].filter(Boolean) as string[];
-    const convOn = entity !== 'task' && want('conv_closed');
     const callWhere: Record<string, any> = { ...rangeOf('startedAt'), direction: { in: callDirs }, status: { not: 'ringing' } };
     if (users.length) callWhere.userId = { in: users };
     // xabar muallifi (xodim) bazada saqlanmaydi — menejer filtri bo'lsa xabarlar chiqmaydi
     const msgWhere: Record<string, any> = { ...rangeOf('createdAt'), direction: { in: users.length ? [] : msgDirs } };
-    const convWhere: Record<string, any> = { closed: true, closedAt: { not: null, ...(rangeOf('closedAt').closedAt || {}) } };
-    if (users.length) convWhere.closedById = { in: users };
 
-    const [acts, calls, msgs, convs, actCount, callCount, msgCount, convCount, byTypeRaw] = await Promise.all([
+    const [acts, calls, msgs, actCount, callCount, msgCount, byTypeRaw] = await Promise.all([
       this.prisma.activity.findMany({ where: actWhere, orderBy: { createdAt: 'desc' }, take: limit }),
       callDirs.length ? this.prisma.callLog.findMany({ where: callWhere, orderBy: { startedAt: 'desc' }, take: limit }) : [],
       msgDirs.length && !users.length ? this.prisma.message.findMany({ where: msgWhere, orderBy: { createdAt: 'desc' }, take: limit }) : [],
-      convOn ? this.prisma.conversationState.findMany({ where: convWhere, orderBy: { closedAt: 'desc' }, take: limit }) : [],
       this.prisma.activity.count({ where: actWhere }),
       callDirs.length ? this.prisma.callLog.count({ where: callWhere }) : 0,
       msgDirs.length && !users.length ? this.prisma.message.count({ where: msgWhere }) : 0,
-      convOn ? this.prisma.conversationState.count({ where: convWhere }) : 0,
       this.prisma.activity.groupBy({ by: ['type'], where: actWhere, _count: { _all: true } }),
     ]);
 
-    const leadIds = [...new Set([...acts, ...calls, ...msgs, ...convs].map((r: any) => r.leadId).filter((x): x is string => !!x))];
-    const userIds = [...new Set([...calls.map((c) => c.userId), ...convs.map((c) => c.closedById)].filter((x): x is string => !!x))];
+    const leadIds = [...new Set([...acts, ...calls, ...msgs].map((r: any) => r.leadId).filter((x): x is string => !!x))];
+    const userIds = [...new Set(calls.map((c) => c.userId).filter((x): x is string => !!x))];
     const [leads, people] = await Promise.all([
       leadIds.length ? this.prisma.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true } }) : [],
       userIds.length ? this.prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true } }) : [],
@@ -492,7 +493,7 @@ export class CrmAnalyticsService {
 
     const items: any[] = [
       ...acts.map((r) => ({
-        id: r.id, type: r.type, entity: isTaskType(r.type) ? 'task' : 'lead', text: r.text || '', actorName: r.actorName || '',
+        id: r.id, type: r.type === 'updated' && r.text === 'Suhbat yopildi' ? 'conv_closed' : r.type, entity: isTaskType(r.type) ? 'task' : 'lead', text: r.text || '', actorName: r.actorName || '',
         leadId: r.leadId, createdAt: r.createdAt,
         ...(() => {
           try {
@@ -517,10 +518,6 @@ export class CrmAnalyticsService {
         id: `msg:${m.id}`, type: m.direction === 'in' ? 'message_in' : 'message_out', entity: 'lead', leadId: m.leadId, createdAt: m.createdAt,
         actorName: m.direction === 'in' ? m.senderName || '' : m.senderName || '', text: m.text.slice(0, 300), channel: m.channel,
       })),
-      ...convs.map((c) => ({
-        id: `conv:${c.leadId}`, type: 'conv_closed', entity: 'lead', leadId: c.leadId, createdAt: c.closedAt as Date,
-        actorName: c.closedById ? userName.get(c.closedById) || '' : '', text: '',
-      })),
     ];
     const has = (v: unknown, q?: string) => !q || String(v ?? '').toLowerCase().includes(q.toLowerCase());
     const filtered = items
@@ -534,7 +531,7 @@ export class CrmAnalyticsService {
       ...(callCount ? [{ type: 'calls', count: callCount }] : []),
       ...(msgCount ? [{ type: 'messages', count: msgCount }] : []),
     ].sort((a, b) => b.count - a.count);
-    return { items: filtered, total: actCount + callCount + msgCount + convCount, byType };
+    return { items: filtered, total: actCount + callCount + msgCount, byType };
   }
 
   // ── Sotuv dinamikasi (vaqt qatori) ──

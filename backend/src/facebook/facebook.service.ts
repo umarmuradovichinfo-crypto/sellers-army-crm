@@ -380,6 +380,9 @@ export class FacebookService implements OnModuleInit, SocialProvider {
       const igId = isIg ? entryId : '';
       for (const m of Array.isArray(entry?.messaging) ? entry.messaging : []) {
         if (pageId && (m?.message || m?.postback)) await this.onMessage(channel, pageId, igId, m).catch(warn('xabar'));
+        // amoCRM «Прочитано»: mijoz xabarlarimizni o'qidi (watermark — shu vaqtgacha yuborilganlar o'qilgan)
+        // Instagram'da watermark o'rniga o'qilgan xabar ID'si (mid) keladi
+        if ((m?.read?.watermark || m?.read?.mid) && m?.sender?.id) await this.chat.markRead(channel, String(m.sender.id), Number(m.read.watermark) || 0, m.read.mid ? String(m.read.mid) : undefined).catch(warn('read'));
       }
       for (const ch of Array.isArray(entry?.changes) ? entry.changes : []) {
         const v = ch?.value || {};

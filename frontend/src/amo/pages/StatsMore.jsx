@@ -35,7 +35,7 @@ const EV = {
   automation: ['Bitim', 'Avtomatika'],
   email: ['Bitim', 'stats§Email'],
 }
-const EV_TYPES = Object.keys(EV).filter((k) => k !== 'call')
+const EV_TYPES = Object.keys(EV).filter((k) => k !== 'call' && k !== 'email') // email — chat jurnali, xabarlar alohida
 const EV_PRESETS = [['all', 'ev§Barcha voqealar'], ['mine', 'ev§Mening voqealarim'], ['today', 'ev§Bugungi voqealar'], ['yesterday', 'ev§Kechagi voqealar'], ['month', 'ev§Oylik voqealar']]
 const EV_EMPTY = { preset: 'all', datePreset: '', from: '', to: '', users: [], entity: '', types: [], before: '', after: '' }
 

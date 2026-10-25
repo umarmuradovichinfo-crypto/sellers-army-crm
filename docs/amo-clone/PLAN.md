@@ -158,15 +158,27 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     Bajarildi: filtr paneli (5 preset, davr, menejerlar, obyekt, turlar qidiruv/hammasini tanlash bilan, oldin/keyin qiymat),
     qo'ng'iroqlar (davomiylik, raqam, xodim, tinglash/yuklab olish), kiruvchi/chiquvchi xabarlar, yopilgan suhbatlar, bitimga havola,
     umumiy son. MultiSelect uslublari endi har sahifada yuklanadi.
-36. [ ] Bitim lentasi (chat tarixi) amoCRM mantig'ida. amoCRM'da: tepada «Поиск и фильтр» — chapda «Все события / Только чаты /
+36. [x] Bitim lentasi (chat tarixi) amoCRM mantig'ida. amoCRM'da: tepada «Поиск и фильтр» — chapda «Все события / Только чаты /
     Только чаты с клиентами», o'ngda «Сообщения чатов», «Связанные объекты», «Типы событий» (Активные задачи, Входящий звонок,
     Выполненные задачи, …); oy/kun bo'yicha guruhlash; tizim voqealari yig'ilgan «Создание: N события — Развернуть»;
     xabarlar «Беседа № A8176» suhbatlariga bog'langan, «Закрыть», yopilgan suhbat bir qatorga yig'iladi; xabarda vaqt, muallif,
     kanal va holat («Доставлено»). Bizda bor: suhbat bloki va «Yopish», xato belgisi. Yo'q: lenta filtri, yig'ilgan tizim
     voqealari, suhbat raqami, yetkazildi/o'qildi holati, oy ajratgichlari.
+    Bajarildi: «Поиск и фильтр» paneli (3 preset, xabarlar, bog'langan obyektlar, 11 tur; «…: Все»), haqiqiy suhbat raqami
+    (migratsiya: crm_conversations.number, crm_messages.convNo; yopilgan suhbatga mijoz yozsa — yangi raqam), eski/yopilgan suhbat
+    bitta qatorga yig'iladi, xabar holati (Отправлено/Доставлено/Прочитано; Messenger/Instagram message_reads), oy sarlavhalari,
+    chat jurnali (email) lentada va voqealarda takrorlanmaydi; IMBOX ham shu raqamlar bilan. test/e2e/60-chat.
 37. [ ] (foydalanuvchi so'rovi 26.10) Sozlamalar bo'limi amoCRM bilan har bir detalda bir xil: amoCRM «Настройки»dagi har bir sahifa
     (Общие, Пользователи, Чаты и мессенджеры, Безопасность, Коммуникации, …) bilan bizdagini birma-bir solishtirib, farqlar
     ro'yxatini tuzish va bir xil qilish.
+
+38. [ ] (foydalanuvchi so'rovi 26.10) BARCHA bo'limlar amoCRM bilan har bir detalda — 34-37-bandlardagi usulda: avval amoCRM'da
+    bo'lim qanday ishlashini, nomlar, joylashuv, filtrlar, menyular, holatlar, bo'sh holat matnlarini o'rganish (faqat ko'rish),
+    keyin bizdagi bilan birma-bir solishtirib farqlar ro'yxatini shu yerga yozish va bir xil qilish. Navbat:
+    a) Ish stoli  b) Bitimlar (voronka, ro'yxat, kartochka, saralanmagan, dublikatlar, import)  c) imBox  d) Vazifalar (ro'yxat,
+    kalendar)  e) Ro'yxatlar (kontaktlar, kompaniyalar, mahsulotlar, kartochkalar)  f) Analitika (barcha hisobotlar, Список
+    событий, Звонки, Цели)  g) AI-agentlar va botlar  h) amoМаркет / integratsiyalar  i) Sozlamalar (37-band)  j) umumiy: chap menyu,
+    bildirishnomalar, akkaunt paneli, qidiruv.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

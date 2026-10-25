@@ -55,6 +55,8 @@ const RU = {
   'Bildirishnoma yuborildi': 'Уведомление отправлено',
   "Teg qo'shildi": 'Добавлен тег',
   'Teg olib tashlandi': 'Удалён тег',
+  'Tanlandi': 'Выбрано',
+  'ms§Hammasi': 'Все',
   'Bosqich': 'Этап',
   'Avtomatlashtirish': 'Автоматизация',
   'Dublikat': 'Дубль',

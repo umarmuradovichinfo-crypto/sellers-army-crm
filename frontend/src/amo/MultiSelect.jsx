@@ -7,7 +7,7 @@ import { useT } from './i18n'
 import './leads.css' // .ac-ms uslublari — komponent qaysi sahifada ishlatilsa ham
 
 // label berilsa — amoCRM filtr uslubi: "Label: Все значения" / "Label: tanlangan", chapda kvadrat belgi, o'q yo'q
-export default function MultiSelect({ options, value, onChange, placeholder, search = true, single = false, quick = null, groups = null, label = null, emptyText = 'Barcha qiymatlar', chevron = false }) {
+export default function MultiSelect({ options, value, onChange, placeholder, search = true, single = false, quick = null, groups = null, label = null, emptyText = 'Barcha qiymatlar', chevron = false, allText = false }) {
   const t = useT()
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
@@ -23,7 +23,9 @@ export default function MultiSelect({ options, value, onChange, placeholder, sea
   }
   const labelOf = (v) => options.find((o) => o.value === v)?.label ?? v
   const shown = [...sel]
-  const text = !shown.length ? '' : shown.length <= 2 ? shown.map(labelOf).join(', ') : `${t('Tanlandi')}: ${shown.length}`
+  // allText — amoCRM: hammasi tanlansa «Сообщения чатов: Все», aks holda «Типы событий: 3»
+  const text = !shown.length ? '' : allText && !single && shown.length === options.length ? `${t(emptyText)}: ${t('ms§Hammasi')}`
+    : shown.length <= 2 ? shown.map(labelOf).join(', ') : allText ? `${t(emptyText)}: ${shown.length}` : `${t('Tanlandi')}: ${shown.length}`
   // guruhlar (masalan voronka bo'yicha): ketma-ket bir xil group qiymatlari sarlavha bilan
   let lastGroup = null
   return (

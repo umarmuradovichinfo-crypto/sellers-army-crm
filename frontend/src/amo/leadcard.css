@@ -279,3 +279,19 @@ a.ac-field__link:hover { color: var(--palette-link-primary); }
 .ac-lprod__pick { width: 100%; margin-top: 4px; }
 .ac-lprod__total { margin-top: 6px; text-align: right; }
 .ac-lprod__empty { margin-top: 4px; font-size: 12px; color: var(--palette-text-secondary-dark); }
+
+/* lenta «Поиск и фильтр» paneli (amoCRM) */
+.ac-feed__top { position: relative; }
+.ac-feed__top .ac-top__search { position: static; }
+.ac-feed__filter { left: 0; right: 0; width: auto; top: 100%; }
+/* oy sarlavhasi (amoCRM: «Июль») */
+.ac-feed__month { margin: 18px 0 4px; text-align: center; font: 700 12px var(--font-caption); letter-spacing: .5px; text-transform: uppercase; color: var(--palette-text-secondary-dark); }
+/* yopilgan suhbat — bitta qator */
+.ac-chatline { display: flex; align-items: center; gap: 8px; margin: 6px 0; padding: 8px 12px; border-radius: 4px; background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); font-size: 13px; cursor: pointer; }
+.ac-chatline:hover { border-color: #1691ff; }
+.ac-chatline__at { flex: none; color: var(--palette-text-secondary-dark); }
+.ac-chatline__text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-chatline__no { flex: none; color: #1691ff; }
+/* xabar holati: Отправлено / Доставлено / Прочитано */
+.ac-msg__status { margin-top: 4px; font-size: 11px; color: var(--palette-text-secondary-dark); text-align: right; }
+.ac-msg__status--read { color: #2ecc71; }

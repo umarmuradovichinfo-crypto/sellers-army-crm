@@ -436,7 +436,8 @@ model Message {
   threadId   String? // kanal suhbat/mijoz id (Messenger PSID, Instagram IGSID) — lidni topish va javob uchun
   pageId     String? // qaysi Facebook sahifa orqali (javob yuborish uchun)
   kind       String   @default("message") // message | comment (Instagram/Facebook izoh)
-  status     String   @default("sent") // sent | error (amoCRM: xabarda «Ошибка»)
+  status     String   @default("sent") // sent | delivered | read | error (amoCRM: «Доставлено», «Прочитано», «Ошибка»)
+  convNo     Int? // qaysi suhbatga tegishli (ConversationState.number)
   error      String?
   createdAt  DateTime @default(now())
 
@@ -453,6 +454,7 @@ model ConversationState {
   closedAt   DateTime?
   closedById String?
   favJson    String    @default("[]") // sevimlilarga qo'shgan foydalanuvchilar
+  number     Int       @default(dbgenerated("nextval('crm_conv_number_seq'::regclass)")) // amoCRM «Беседа № A…»
   updatedAt  DateTime  @updatedAt
 
   @@map("crm_conversations")
