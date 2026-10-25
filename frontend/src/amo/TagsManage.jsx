@@ -51,7 +51,14 @@ export default function TagsManage({ onClose, onChanged }) {
   const saveEdit = (x) => {
     setEditId(null)
     const name = editName.trim()
-    if (name && name !== x.name) run(() => api.put(`/crm/tags/${x.id}`, { name }))
+    if (!name || name === x.name) return
+    // boshqa mavjud teg nomiga o'zgartirilsa — ikkalasi bitta tegga birlashtiriladi (bitimlardagi teglar ham almashadi)
+    const twin = tags.find((o) => o.id !== x.id && o.name.toLowerCase() === name.toLowerCase())
+    if (twin) {
+      if (window.confirm(`«${x.name}» → «${twin.name}»: ${t('teglar birlashtirilsinmi?')}`)) run(() => api.post('/crm/tags/merge', { fromIds: [x.id], intoId: twin.id }))
+      return
+    }
+    run(() => api.put(`/crm/tags/${x.id}`, { name }))
   }
 
   return createPortal(

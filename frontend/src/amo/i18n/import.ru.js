@@ -128,4 +128,5 @@ addRu({
   'Yangilandi': 'Обновлено',
   "O'tkazildi": 'Пропущено',
   'Xatolar': 'Ошибки',
+  'teglar birlashtirilsinmi?': 'объединить теги?',
 })

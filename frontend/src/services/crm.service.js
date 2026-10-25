@@ -1,5 +1,4 @@
-import { api, mockOr } from '../lib/apiClient'
-import { mock } from '../mocks/data'
+import { api } from '../lib/apiClient'
 
 let _pbxMode = null // {callMode, dialScheme} keshi
 
@@ -17,180 +16,173 @@ export const crmService = {
   // GET /crm/pipeline -> bosqichlar + lidlar + statistika + voronkalar
   // params (ixtiyoriy): { limit (har bosqichdan N ta karta; 0 = faqat jamilar), preset, search, period, assigneeId, budgetFrom, budgetTo, tags, task, name }
   // Har bosqichda: count/sumValue (filtrga mos jami), nextCursor (keyingi sahifa bo'lsa) — stageLeads bilan davom ettiriladi.
-  getPipeline: (pipelineId, params) => mockOr(() => api.get(`/crm/pipeline${qs({ pipelineId, ...params })}`), { stages: mock.crm.stages, stats: [], pipelines: [] }),
+  getPipeline: (pipelineId, params) => api.get(`/crm/pipeline${qs({ pipelineId, ...params })}`),
   // GET /crm/pipeline/stage-leads -> { leads, nextCursor }
-  stageLeads: (params) => mockOr(() => api.get(`/crm/pipeline/stage-leads${qs(params)}`), { leads: [], nextCursor: null }),
+  stageLeads: (params) => api.get(`/crm/pipeline/stage-leads${qs(params)}`),
 
   // GET /crm/members -> sotuvchilar (mas'ul uchun)
-  listMembers: () => mockOr(() => api.get('/crm/members'), { members: [] }),
+  listMembers: () => api.get('/crm/members'),
 
   // ── Bosqichlar ──
-  createStage: (payload) => mockOr(() => api.post('/crm/stages', payload), { stage: { key: 'new', ...payload } }),
-  updateStage: (key, payload) => mockOr(() => api.put(`/crm/stages/${key}`, payload), { stage: { key, ...payload } }),
-  deleteStage: (key) => mockOr(() => api.del(`/crm/stages/${key}`), { success: true }),
+  createStage: (payload) => api.post('/crm/stages', payload),
+  updateStage: (key, payload) => api.put(`/crm/stages/${key}`, payload),
+  deleteStage: (key) => api.del(`/crm/stages/${key}`),
 
   // ── Lidlar ──
-  createLead: (payload) => mockOr(() => api.post('/crm/leads', payload), { lead: { id: 'new', n: payload.name } }),
-  getLead: (id) => mockOr(() => api.get(`/crm/leads/${id}`), { lead: { id } }),
-  updateLead: (id, payload) => mockOr(() => api.put(`/crm/leads/${id}`, payload), { lead: { id, ...payload } }),
-  deleteLead: (id) => mockOr(() => api.del(`/crm/leads/${id}`), { success: true }),
+  createLead: (payload) => api.post('/crm/leads', payload),
+  getLead: (id) => api.get(`/crm/leads/${id}`),
+  updateLead: (id, payload) => api.put(`/crm/leads/${id}`, payload),
+  deleteLead: (id) => api.del(`/crm/leads/${id}`),
   // Bitim kontaktlari (amoCRM: bir nechta kontakt; asosiysi birinchi)
   addLeadContact: (id, payload) => api.post(`/crm/leads/${id}/contacts`, payload),
   removeLeadContact: (id, contactId) => api.del(`/crm/leads/${id}/contacts/${contactId}`),
   setMainLeadContact: (id, contactId) => api.put(`/crm/leads/${id}/contacts/${contactId}/main`, {}),
-  moveLead: (id, stageId, position, lostReason) => mockOr(() => api.patch(`/crm/leads/${id}/move`, { stageId, position, lostReason }), { id, stageId }),
-  addNote: (id, text) => mockOr(() => api.post(`/crm/leads/${id}/notes`, { text }), { notes: [] }),
+  moveLead: (id, stageId, position, lostReason) => api.patch(`/crm/leads/${id}/move`, { stageId, position, lostReason }),
+  addNote: (id, text) => api.post(`/crm/leads/${id}/notes`, { text }),
   // params: { limit, cursor, sort, dir, search, preset, period, assigneeId, budgetFrom, budgetTo, tags, pipelineId, stage, task, contactId, companyId, unsorted }
   // limit berilsa -> { leads, nextCursor, total, totalSum }; parametrsiz -> eski shakl (birinchi 500 ta) + total
-  listLeads: (params) => mockOr(() => api.get(`/crm/leads${qs(params)}`), { leads: [], total: 0, totalSum: 0, nextCursor: null }),
+  listLeads: (params) => api.get(`/crm/leads${qs(params)}`),
   // bulk(ids, action, value) yoki bulk(null, action, value, { all: true, filter, excludeIds }) — "barchasini belgilash"
-  bulk: (ids, action, value, extra) => mockOr(() => api.post('/crm/leads/bulk', { ids: ids || undefined, action, value, ...extra }), { ok: true, affected: 0 }),
-  mergeLeads: (keepId, mergeIds, pick) => mockOr(() => api.post('/crm/leads/merge', { keepId, mergeIds, pick }), { ok: true }),
-  checkDuplicate: (phone, email, excludeId) => mockOr(() => api.get(`/crm/leads-check${qs({ phone, email, excludeId })}`), { duplicates: [] }),
-  importLeads: (rows) => mockOr(() => api.post('/crm/leads-import', { rows }), { ok: true, created: 0, skipped: 0 }),
+  bulk: (ids, action, value, extra) => api.post('/crm/leads/bulk', { ids: ids || undefined, action, value, ...extra }),
+  mergeLeads: (keepId, mergeIds, pick) => api.post('/crm/leads/merge', { keepId, mergeIds, pick }),
   exportUrl: (params) => `/crm/leads-export${qs(params)}`,
   // Filtr (listLeads parametrlari) + sort/dir bo'yicha CSV — auth bilan Blob sifatida
   exportCsv: (params) => api.getBlob(`/crm/leads-export${qs(params)}`),
-  listStages: () => mockOr(() => api.get('/crm/stages'), { stages: [] }),
-  listSources: () => mockOr(() => api.get('/crm/sources'), { sources: [] }),
+  listStages: () => api.get('/crm/stages'),
+  listSources: () => api.get('/crm/sources'),
   // GET /crm/leads-duplicates?by=phone|email|name -> { by, total, groups: [{ key, count, leads: [...] }] }
-  leadDuplicates: (by) => mockOr(() => api.get(`/crm/leads-duplicates${qs({ by })}`), { by, total: 0, groups: [] }),
+  leadDuplicates: (by) => api.get(`/crm/leads-duplicates${qs({ by })}`),
   // Foydalanuvchi sozlamasi (backend): kind = card | list -> { fields: [kalit] | null }
-  getLayout: (kind) => mockOr(() => api.get(`/crm/card-layout${qs({ kind })}`), { kind, fields: null, custom: false }),
-  saveLayout: (kind, fields) => mockOr(() => api.put(`/crm/card-layout${qs({ kind })}`, { fields }), { kind, fields, custom: true }),
+  getLayout: (kind) => api.get(`/crm/card-layout${qs({ kind })}`),
+  saveLayout: (kind, fields) => api.put(`/crm/card-layout${qs({ kind })}`, { fields }),
 
   // ── Vazifalar (zadacha) ──
-  listTasks: (params) => mockOr(() => api.get(`/crm/tasks${typeof params === 'string' ? (params ? `?status=${params}` : '') : qs(params)}`), { tasks: [] }),
-  listLeadTasks: (id) => mockOr(() => api.get(`/crm/leads/${id}/tasks`), { tasks: [] }),
-  createTask: (id, payload) => mockOr(() => api.post(`/crm/leads/${id}/tasks`, payload), { task: { id: 'new', ...payload } }),
-  updateTask: (id, payload) => mockOr(() => api.put(`/crm/tasks/${id}`, payload), { task: { id, ...payload } }),
+  listTasks: (params) => api.get(`/crm/tasks${typeof params === 'string' ? (params ? `?status=${params}` : '') : qs(params)}`),
+  listLeadTasks: (id) => api.get(`/crm/leads/${id}/tasks`),
+  createTask: (id, payload) => api.post(`/crm/leads/${id}/tasks`, payload),
+  updateTask: (id, payload) => api.put(`/crm/tasks/${id}`, payload),
   // O'chirilgan vazifalar (amoCRM "Удаленные") va tiklash
   listDeletedTasks: () => api.get('/crm/tasks-deleted'),
   restoreTask: (id) => api.post(`/crm/tasks-deleted/${id}/restore`, {}),
-  deleteTask: (id) => mockOr(() => api.del(`/crm/tasks/${id}`), { success: true }),
+  deleteTask: (id) => api.del(`/crm/tasks/${id}`),
 
   // ── OnlinePBX qo'ng'iroqlar ──
-  callLead: (id, from) => mockOr(() => api.post(`/crm/leads/${id}/call`, { from }), { ok: true }),
-  dial: (to) => mockOr(() => api.post('/crm/calls/dial', { to }), { ok: true, leadName: null }),
-  leadCalls: (id) => mockOr(() => api.get(`/crm/leads/${id}/calls`), { calls: [] }),
-  syncCalls: () => mockOr(() => api.post('/crm/calls/sync', {}), { ok: true, synced: 0 }),
-  listCalls: (filter) => mockOr(() => api.get(`/crm/calls${filter && filter !== 'all' ? `?filter=${filter}` : ''}`), { calls: [], missedCount: 0 }),
+  dial: (to) => api.post('/crm/calls/dial', { to }),
+  leadCalls: (id) => api.get(`/crm/leads/${id}/calls`),
+  listCalls: (filter) => api.get(`/crm/calls${filter && filter !== 'all' ? `?filter=${filter}` : ''}`),
   recordingBlob: (callId) => api.getBlob(`/crm/calls/${callId}/recording`), // yozuvni chatda ijro uchun
-  incomingCall: () => mockOr(() => api.get('/crm/calls/incoming'), { call: null }),
-  dismissCall: (id) => mockOr(() => api.post(`/crm/calls/${id}/dismiss`, {}), { ok: true }),
-  getMyExtension: () => mockOr(() => api.get('/crm/my-extension'), { extension: null, pbxEnabled: false }),
-  setMyExtension: (extension) => mockOr(() => api.put('/crm/my-extension', { extension }), { ok: true, extension }),
+  getMyExtension: () => api.get('/crm/my-extension'),
+  setMyExtension: (extension) => api.put('/crm/my-extension', { extension }),
   // Brauzer WebRTC-telefoni (JsSIP)
-  getWebrtcConfig: () => mockOr(() => api.get('/crm/webrtc/config'), { enabled: false, domain: 'example.onpbx.ru', wss: 'wss://example.onpbx.ru:7443', uri: '', extension: '100', password: '', sipPasswordSet: false }),
-  saveWebrtcConfig: (patch) => mockOr(() => api.put('/crm/webrtc/config', patch), { enabled: false, ...patch }),
-  leadByPhone: (phone) => mockOr(() => api.get(`/crm/lead-by-phone?phone=${encodeURIComponent(phone)}`), { leadId: null, leadName: null }),
+  getWebrtcConfig: () => api.get('/crm/webrtc/config'),
+  saveWebrtcConfig: (patch) => api.put('/crm/webrtc/config', patch),
+  leadByPhone: (phone) => api.get(`/crm/lead-by-phone?phone=${encodeURIComponent(phone)}`),
   // Softphone rejim: MicroSIP o'zi teradi — biz faqat log yozamiz
-  softLogCall: ({ leadId, to } = {}) => mockOr(() => api.post('/crm/calls/soft-log', { leadId, to }), { ok: true, phone: to || '' }),
+  softLogCall: ({ leadId, to } = {}) => api.post('/crm/calls/soft-log', { leadId, to }),
   // Qo'ng'iroq usuli (callMode/dialScheme) keshi — har call tugmasi shuni tekshiradi
   loadPbxMode: async () => {
     if (_pbxMode) return _pbxMode
-    try { const c = await crmService.getPbxConfig(); _pbxMode = { callMode: c.callMode || 'callback', dialScheme: c.dialScheme || 'tel' } }
+    // my-extension: har foydalanuvchi o'qiy oladi (pbx/config faqat admin uchun — sotuvchida doim callback bo'lib qolardi)
+    try { const c = await crmService.getMyExtension(); _pbxMode = { callMode: c.callMode || 'callback', dialScheme: c.dialScheme || 'tel' } }
     catch { _pbxMode = { callMode: 'callback', dialScheme: 'tel' } }
     return _pbxMode
   },
   refreshPbxMode: () => { _pbxMode = null },
   // OnlinePBX ulanish sozlamalari (admin)
-  getPbxConfig: () => mockOr(() => api.get('/crm/pbx/config'), { domain: '', defaultExt: '', apiKeySet: false, webhookSecretSet: false, callMode: 'callback', dialScheme: 'tel', enabled: false, webhookUrl: '' }),
-  savePbxConfig: (patch) => mockOr(() => api.put('/crm/pbx/config', patch), { ...patch, enabled: !!patch.domain }),
-  testPbx: () => mockOr(() => api.post('/crm/pbx/test', {}), { ok: false, message: 'Mock' }),
+  getPbxConfig: () => api.get('/crm/pbx/config'),
+  savePbxConfig: (patch) => api.put('/crm/pbx/config', patch),
+  testPbx: () => api.post('/crm/pbx/test', {}),
 
   // ── Voronkalar (pipelines) ──
-  listPipelines: () => mockOr(() => api.get('/crm/pipelines'), { pipelines: [] }),
-  createPipeline: (name) => mockOr(() => api.post('/crm/pipelines', { name }), { pipeline: {} }),
-  updatePipeline: (id, payload) => mockOr(() => api.put(`/crm/pipelines/${id}`, payload), { pipeline: {} }),
-  deletePipeline: (id) => mockOr(() => api.del(`/crm/pipelines/${id}`), { ok: true }),
+  listPipelines: () => api.get('/crm/pipelines'),
+  createPipeline: (name) => api.post('/crm/pipelines', { name }),
+  updatePipeline: (id, payload) => api.put(`/crm/pipelines/${id}`, payload),
+  deletePipeline: (id) => api.del(`/crm/pipelines/${id}`),
 
   // ── Maxsus maydonlar ──
-  listFields: (entity = 'lead') => mockOr(() => api.get(`/crm/fields?entity=${entity}`), { fields: [] }),
-  createField: (payload) => mockOr(() => api.post('/crm/fields', payload), { field: {} }),
-  updateField: (id, payload) => mockOr(() => api.put(`/crm/fields/${id}`, payload), { field: {} }),
-  deleteField: (id) => mockOr(() => api.del(`/crm/fields/${id}`), { ok: true }),
-  reorderFields: (ids) => mockOr(() => api.post('/crm/fields/reorder', { ids }), { ok: true }),
+  listFields: (entity = 'lead') => api.get(`/crm/fields?entity=${entity}`),
+  createField: (payload) => api.post('/crm/fields', payload),
+  updateField: (id, payload) => api.put(`/crm/fields/${id}`, payload),
+  deleteField: (id) => api.del(`/crm/fields/${id}`),
+  reorderFields: (ids) => api.post('/crm/fields/reorder', { ids }),
 
   // ── Yo'qotish sabablari ──
-  listLostReasons: () => mockOr(() => api.get('/crm/lost-reasons'), { reasons: [] }),
-  createLostReason: (name) => mockOr(() => api.post('/crm/lost-reasons', { name }), { reason: {} }),
-  deleteLostReason: (id) => mockOr(() => api.del(`/crm/lost-reasons/${id}`), { ok: true }),
+  listLostReasons: () => api.get('/crm/lost-reasons'),
+  createLostReason: (name) => api.post('/crm/lost-reasons', { name }),
+  deleteLostReason: (id) => api.del(`/crm/lost-reasons/${id}`),
 
   // ── Teglar katalogi ──
-  listTags: () => mockOr(() => api.get('/crm/tags'), { tags: [] }),
-  upsertTag: (name, color) => mockOr(() => api.post('/crm/tags', { name, color }), { tag: {} }),
-  deleteTag: (id) => mockOr(() => api.del(`/crm/tags/${id}`), { ok: true }),
+  listTags: () => api.get('/crm/tags'),
+  upsertTag: (name, color) => api.post('/crm/tags', { name, color }),
 
   // ── Saqlangan filtrlar ──
-  listFilters: () => mockOr(() => api.get('/crm/filters'), { filters: [] }),
-  createFilter: (name, params) => mockOr(() => api.post('/crm/filters', { name, params }), { filter: {} }),
-  deleteFilter: (id) => mockOr(() => api.del(`/crm/filters/${id}`), { ok: true }),
+  listFilters: () => api.get('/crm/filters'),
+  createFilter: (name, params) => api.post('/crm/filters', { name, params }),
+  deleteFilter: (id) => api.del(`/crm/filters/${id}`),
 
   // ── Avtomatlashtirish ──
-  listAutomations: () => mockOr(() => api.get('/crm/automations'), { automations: [] }),
-  createAutomation: (payload) => mockOr(() => api.post('/crm/automations', payload), { automation: {} }),
-  updateAutomation: (id, payload) => mockOr(() => api.put(`/crm/automations/${id}`, payload), { automation: {} }),
-  deleteAutomation: (id) => mockOr(() => api.del(`/crm/automations/${id}`), { ok: true }),
+  listAutomations: () => api.get('/crm/automations'),
+  createAutomation: (payload) => api.post('/crm/automations', payload),
+  updateAutomation: (id, payload) => api.put(`/crm/automations/${id}`, payload),
+  deleteAutomation: (id) => api.del(`/crm/automations/${id}`),
 
   // ── Analitika (amoCRM hisobotlari) ──
   // Sotuv tahlili pastki bloklari: bosqichlarga yetganlar, saralanmagan arizalar, prognoz
   analyticsFlow: (params) => api.get(`/crm/analytics/flow${qs(params)}`),
-  analytics: (params) => mockOr(() => api.get(`/crm/analytics${qs(params)}`), (mock.crm.analytics || { cards: {}, funnel: [], bySource: [], byEmployee: [], lostReasons: [] })),
-  analyticsCalls: (params) => mockOr(() => api.get(`/crm/analytics/calls${qs(params)}`), (mock.crm.analyticsCalls || { total: 0, inbound: 0, outbound: 0, missed: 0, answered: 0, totalDuration: 0, avgDuration: 0, byEmployee: [], byDay: [] })),
-  analyticsEvents: (params) => mockOr(() => api.get(`/crm/analytics/events${qs(params)}`), (mock.crm.analyticsEvents || { items: [], byType: [] })),
-  analyticsTimeline: (params) => mockOr(() => api.get(`/crm/analytics/timeline${qs(params)}`), (mock.crm.analyticsTimeline || { granularity: 'day', buckets: [] })),
-  analyticsEmployees: (params) => mockOr(() => api.get(`/crm/analytics/employees${qs(params)}`), (mock.crm.analyticsEmployees || [])),
+  analytics: (params) => api.get(`/crm/analytics${qs(params)}`),
+  analyticsCalls: (params) => api.get(`/crm/analytics/calls${qs(params)}`),
+  analyticsEvents: (params) => api.get(`/crm/analytics/events${qs(params)}`),
+  analyticsTimeline: (params) => api.get(`/crm/analytics/timeline${qs(params)}`),
+  analyticsEmployees: (params) => api.get(`/crm/analytics/employees${qs(params)}`),
 
   // ── Lead-capture formalar ──
-  listForms: () => mockOr(() => api.get('/crm/forms'), { forms: [] }),
-  getForm: (id) => mockOr(() => api.get(`/crm/forms/${id}`), { form: {} }),
-  createForm: (payload) => mockOr(() => api.post('/crm/forms', payload), { form: {} }),
-  updateForm: (id, payload) => mockOr(() => api.put(`/crm/forms/${id}`, payload), { form: {} }),
-  deleteForm: (id) => mockOr(() => api.del(`/crm/forms/${id}`), { ok: true }),
+  listForms: () => api.get('/crm/forms'),
+  createForm: (payload) => api.post('/crm/forms', payload),
+  updateForm: (id, payload) => api.put(`/crm/forms/${id}`, payload),
+  deleteForm: (id) => api.del(`/crm/forms/${id}`),
 
   // ── Saralanmagan inbox ──
-  listUnsorted: (params) => mockOr(() => api.get(`/crm/unsorted${qs(params)}`), { leads: [], total: 0 }),
-  acceptUnsorted: (id, payload) => mockOr(() => api.post(`/crm/unsorted/${id}/accept`, payload), { ok: true }),
+  listUnsorted: (params) => api.get(`/crm/unsorted${qs(params)}`),
+  acceptUnsorted: (id, payload) => api.post(`/crm/unsorted/${id}/accept`, payload),
 
   // ── Suhbat (Telegram / omnichannel) ──
-  chatStatus: () => mockOr(() => api.get('/crm/chat-status'), { telegram: false }),
+  chatStatus: () => api.get('/crm/chat-status'),
   // Ish stoli chat vidjetlari: o'rtacha javob vaqti, uzoq javob kutayotganlar
   // Chat sozlamalari: { templates:[{id,name,active,text}], conversationRule }
   chatSettings: () => api.get('/crm/chat-settings'),
   saveChatSettings: (payload) => api.put('/crm/chat-settings', payload),
   chatStats: (params) => api.get(`/crm/chat-stats${qs(params)}`),
-  conversations: (params) => mockOr(() => api.get(`/crm/conversations${qs(params || {})}`), { conversations: [] }),
+  conversations: (params) => api.get(`/crm/conversations${qs(params || {})}`),
   // amoCRM: suhbatni yopish / qayta ochish / sevimlilar — action: close | reopen | fav
-  conversationAction: (leadId, action) => mockOr(() => api.post(`/crm/conversations/${leadId}/${action}`, {}), { ok: true }),
-  leadMessages: (id) => mockOr(() => api.get(`/crm/leads/${id}/messages`), { messages: [], canReply: false }),
-  sendMessage: (id, text) => mockOr(() => api.post(`/crm/leads/${id}/messages`, { text }), { message: {} }),
+  conversationAction: (leadId, action) => api.post(`/crm/conversations/${leadId}/${action}`, {}),
+  leadMessages: (id) => api.get(`/crm/leads/${id}/messages`),
+  sendMessage: (id, text) => api.post(`/crm/leads/${id}/messages`, { text }),
 
   // ── Sotuv rejasi / maqsadlar ──
-  listGoals: (period) => mockOr(() => api.get(`/crm/goals${period ? `?period=${period}` : ''}`), { goals: [], members: [], period: '' }),
-  upsertGoal: (payload) => mockOr(() => api.post('/crm/goals', payload), { goal: {} }),
-  deleteGoal: (id) => mockOr(() => api.del(`/crm/goals/${id}`), { ok: true }),
+  listGoals: (period) => api.get(`/crm/goals${period ? `?period=${period}` : ''}`),
+  upsertGoal: (payload) => api.post('/crm/goals', payload),
+  deleteGoal: (id) => api.del(`/crm/goals/${id}`),
 
   // ── Mahsulotlar ──
-  listProducts: () => mockOr(() => api.get('/crm/products'), { products: [] }),
-  createProduct: (payload) => mockOr(() => api.post('/crm/products', payload), { product: {} }),
-  updateProduct: (id, payload) => mockOr(() => api.put(`/crm/products/${id}`, payload), { product: {} }),
-  deleteProduct: (id) => mockOr(() => api.del(`/crm/products/${id}`), { ok: true }),
+  listProducts: () => api.get('/crm/products'),
+  createProduct: (payload) => api.post('/crm/products', payload),
+  updateProduct: (id, payload) => api.put(`/crm/products/${id}`, payload),
+  deleteProduct: (id) => api.del(`/crm/products/${id}`),
 
   // ── Kompaniya & Kontakt ──
   // q — matn (eski) yoki params obyekti { limit, cursor, sort, dir, search, ... }; javobda total/nextCursor ham bor
-  listCompanies: (q) => mockOr(() => api.get(`/crm/companies${typeof q === 'object' && q ? qs(q) : q ? `?q=${encodeURIComponent(q)}` : ''}`), { companies: [], total: 0, nextCursor: null }),
-  getCompany: (id) => mockOr(() => api.get(`/crm/companies/${id}`), { company: {} }),
-  createCompany: (payload) => mockOr(() => api.post('/crm/companies', payload), { company: {} }),
-  updateCompany: (id, payload) => mockOr(() => api.put(`/crm/companies/${id}`, payload), { company: {} }),
-  deleteCompany: (id) => mockOr(() => api.del(`/crm/companies/${id}`), { ok: true }),
-  listContacts: (q) => mockOr(() => api.get(`/crm/contacts${typeof q === 'object' && q ? qs(q) : q ? `?q=${encodeURIComponent(q)}` : ''}`), { contacts: [], total: 0, nextCursor: null }),
+  listCompanies: (q) => api.get(`/crm/companies${typeof q === 'object' && q ? qs(q) : q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  getCompany: (id) => api.get(`/crm/companies/${id}`),
+  createCompany: (payload) => api.post('/crm/companies', payload),
+  updateCompany: (id, payload) => api.put(`/crm/companies/${id}`, payload),
+  deleteCompany: (id) => api.del(`/crm/companies/${id}`),
+  listContacts: (q) => api.get(`/crm/contacts${typeof q === 'object' && q ? qs(q) : q ? `?q=${encodeURIComponent(q)}` : ''}`),
   // Kontakt + kompaniya birlashgan ro'yxat: { kind: all|contacts|companies, limit, cursor, sort, dir, search, name, phone, email, assigneeId, period, preset } -> { items, nextCursor, total }
-  listEntities: (params) => mockOr(() => api.get(`/crm/entities${qs(params)}`), { items: [], nextCursor: null, total: 0 }),
-  bulkDeleteEntities: (body) => mockOr(() => api.post('/crm/entities/bulk-delete', body), { ok: true, affected: 0 }),
-  createContact: (payload) => mockOr(() => api.post('/crm/contacts', payload), { contact: {} }),
-  updateContact: (id, payload) => mockOr(() => api.put(`/crm/contacts/${id}`, payload), { contact: {} }),
-  deleteContact: (id) => mockOr(() => api.del(`/crm/contacts/${id}`), { ok: true }),
+  listEntities: (params) => api.get(`/crm/entities${qs(params)}`),
+  bulkDeleteEntities: (body) => api.post('/crm/entities/bulk-delete', body),
+  createContact: (payload) => api.post('/crm/contacts', payload),
+  updateContact: (id, payload) => api.put(`/crm/contacts/${id}`, payload),
+  deleteContact: (id) => api.del(`/crm/contacts/${id}`),
 }
 
 // ── Ommaviy lead-capture forma (login'siz) ──
@@ -206,9 +198,9 @@ export const publicLeadForm = {
 
 // ── Bildirishnomalar ──
 export const notifService = {
-  list: () => mockOr(() => api.get('/notifications'), { unread: 0, items: [] }),
-  read: (id) => mockOr(() => api.post(`/notifications/${id}/read`, {}), { ok: true }),
-  readAll: () => mockOr(() => api.post('/notifications/read-all', {}), { ok: true }),
+  list: () => api.get('/notifications'),
+  read: (id) => api.post(`/notifications/${id}/read`, {}),
+  readAll: () => api.post('/notifications/read-all', {}),
 }
 
 function qs(params) {

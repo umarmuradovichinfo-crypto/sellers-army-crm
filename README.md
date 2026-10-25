@@ -20,10 +20,9 @@ Backend modullari (`backend/src`):
 - `facebook` — Lead Ads: OAuth, sahifa/forma ulash, webhook, forma -> CRM voronka moslash
 - `common` (guard, dekoratorlar, filtr, constants/permissions), `config` (env tekshiruvi), `prisma` (servis)
 
-Frontend (`frontend/src`): `CrmApp.jsx` (chap panel: Ish stoli, Lidlar, Vazifalar, Ro'yxatlar, Suhbatlar, Qo'ng'iroqlar,
-Analitika, Sozlamalar, Foydalanuvchilar), `pages/` (Login, CRM, LeadForm, Settings), `components/crm`, `components/forms`,
-`components/ui`, `CallWidget`, `Dialog`, `Icon`, `services` (crm, forms, facebook, settings), `context/AuthContext`,
-`lib` (apiClient, useApi, webrtcPhone), `config/permissions`, `mocks/data.js`, stillar.
+Frontend (`frontend/src`): `CrmApp.jsx` (marshrutlar, sahifalar alohida yuklanadi), `amo/` (amoCRM uslubidagi interfeys:
+qobiq, sahifalar `amo/pages`, tarjimalar `amo/i18n`), `pages/` (Login, ommaviy LeadForm), `components/` (CallWidget,
+Dialog, forms/FormRenderer), `services` (crm, facebook, settings), `context/AuthContext`, `lib` (apiClient, useApi, webrtcPhone).
 
 ## Olib tashlangan modullar (CRM'ga aloqasi yo'q)
 Backend: `ai`, `attendance`, `business`, `checklist`, `forms-media`, `hr`, `onboarding`, `smm`, `stubs`, `tasks`, `video`,
@@ -79,9 +78,9 @@ npm start       # prisma migrate deploy -> seed -> node dist/main
 ```
 `railway.json` tayyor (Railpack). Barcha o'zgaruvchilar `.env.example` da izohlangan.
 
-### Smoke test
-Bo'sh (throwaway) baza bilan: `DATABASE_URL=postgresql://user:pass@localhost:5432/crm_smoke npm run smoke`
-(migratsiya, seed, build, serverni ko'tarish va ~150 ta tekshiruv: auth, RBAC, CRM, forma, analitika, telefoniya/Telegram/Facebook sozlanmagan holat va webhooklar).
+### Testlar (QA)
+`npm run build && npm run test:qa` — alohida test bazasida (`sellers_crm_test`) birinchi sozlashdan boshlab API testlari,
+Chrome orqali UI testlari (UZ/RU/telefon) va ma'lumotlar yaxlitligi tekshiruvi. Batafsil: `docs/amo-clone/QA.md`.
 
 ### Muhim o'zgaruvchilar
 - Majburiy: `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` (>= 32 belgi, bir-biridan farqli).
@@ -90,7 +89,7 @@ Bo'sh (throwaway) baza bilan: `DATABASE_URL=postgresql://user:pass@localhost:543
 - Ixtiyoriy: `SETUP_TOKEN` — berilsa `/auth/setup` shu kodni (`setupToken`) talab qiladi; ochiq deploy'ni begona odam egallab olishidan himoya.
 - Webhook manzillari uchun: `PUBLIC_URL` (masalan `https://crm.example.com`).
 - Ixtiyoriy: `ONLINEPBX_*`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `FB_APP_ID/FB_APP_SECRET/FB_VERIFY_TOKEN`, `CORS_ORIGIN`, `PORT`.
-- Frontend (build vaqtida): `VITE_API_BASE`, `VITE_USE_MOCKS` (demo, backend'siz), `VITE_API_URL` (dev proxy).
+- Frontend (build vaqtida): `VITE_API_BASE`, `VITE_API_URL` (dev proxy).
 
 ## OnlinePBX (telefoniya) ulash
 1. CRM'ga super admin sifatida kiring -> **Sozlamalar -> Telefoniya (OnlinePBX)**: domen (`pbxNNNNN.onpbx.ru`), API kaliti, standart ichki raqam,

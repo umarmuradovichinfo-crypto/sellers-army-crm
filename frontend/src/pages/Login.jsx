@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { api, USE_MOCKS } from '../lib/apiClient'
+import { api } from '../lib/apiClient'
 import { applyTheme, getTheme } from '../amo/theme'
 import { useI18n } from '../amo/i18n'
 import '../amo/i18n/login.ru.js'
@@ -107,9 +107,8 @@ function SetupForm({ tokenRequired }) {
 
 export default function Login() {
   // undefined = tekshirilmoqda; null = holat noma'lum (oddiy login); obyekt = { needsSetup, tokenRequired }
-  const [setupInfo, setSetupInfo] = useState(USE_MOCKS ? null : undefined)
+  const [setupInfo, setSetupInfo] = useState(undefined)
   useEffect(() => {
-    if (USE_MOCKS) return
     let alive = true
     api.get('/auth/setup-status')
       .then((r) => { if (alive) setSetupInfo(r || null) })

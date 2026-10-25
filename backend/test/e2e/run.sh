@@ -9,13 +9,11 @@ BASE_URL_DB="$(grep ^DATABASE_URL .env | cut -d= -f2- | tr -d '"')"
 TEST_DB="${E2E_DB:-sellers_crm_test}"
 export DATABASE_URL="${BASE_URL_DB%/*}/${TEST_DB}"
 export PORT="${E2E_PORT:-8010}"
-# test qiymatlari — faqat lokal test bazasi uchun
-export SEED_ADMIN_EMAIL="qa-admin@test.local"
-export SEED_ADMIN_PASSWORD="qa-test-Passw0rd!"
-export SEED_ADMIN_NAME="QA Admin"
+# test qiymatlari — faqat lokal test bazasi uchun. Admin seed bilan emas, «birinchi sozlash» (POST /auth/setup)
+# orqali yaratiladi — 0-setup.test.mjs shu oqimni tekshiradi
 export E2E_BASE="http://localhost:${PORT}/api/v1"
-export E2E_EMAIL="$SEED_ADMIN_EMAIL" E2E_PASSWORD="$SEED_ADMIN_PASSWORD"
-unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN TELEGRAM_WEBHOOK_SECRET || true
+export E2E_EMAIL="qa-admin@test.local" E2E_PASSWORD="qa-test-Passw0rd!"
+unset SEED_ADMIN_EMAIL SEED_ADMIN_PASSWORD SETUP_TOKEN ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN TELEGRAM_WEBHOOK_SECRET || true
 # Telegram yoqilgan holat (webhook maxfiy kaliti tekshiruvi uchun); API manzili yopiq port — tashqariga hech narsa ketmaydi
 export TELEGRAM_BOT_TOKEN="e2e-test-token" TELEGRAM_API_BASE="http://127.0.0.1:9"
 

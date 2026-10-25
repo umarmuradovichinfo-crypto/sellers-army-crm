@@ -14,6 +14,7 @@ import '../i18n/entitycard.ru.js'
 import '../leadcard.css'
 import '../entitycard.css'
 import { trActivity } from '../activityText'
+import PhoneLink from '../PhoneLink'
 
 const ACT_TEXT = {
   created: 'Bitim yaratildi', stage: 'Yangi bosqich', won: 'Bitim muvaffaqiyatli yopildi', lost: 'Bitim yopildi va amalga oshmadi',
@@ -311,7 +312,7 @@ export function EntityCard({ kind }) {
                     {v.phone && !phoneEdit ? (
                       <span className="ac-field__phone">
                         <span className="ac-field__plusmini" title={t("Telefon qo'shish")} onClick={() => setCustom('phones', [...extraPhones, ''])}><Ico name="plus" size={8} /></span>
-                        <a className="ac-field__link" href={`tel:${String(v.phone).replace(/[^\d+]/g, '')}`}>{phoneFmt(v.phone)}</a>
+                        <PhoneLink value={v.phone} />
                         <span className="ac-field__pen" onClick={() => setPhoneEdit(true)}><Ico name="edit" size={12} /></span>
                       </span>
                     ) : (

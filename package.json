@@ -8,7 +8,6 @@
     "start": "npm --prefix backend run start:prod:migrate",
     "dev:backend": "npm --prefix backend run start:dev",
     "dev:frontend": "npm --prefix frontend run dev",
-    "smoke": "bash scripts/smoke.sh",
     "test:qa": "npm --prefix backend run test:qa",
     "test:e2e": "npm --prefix backend run test:e2e",
     "check:integrity": "npm --prefix backend run check:integrity"

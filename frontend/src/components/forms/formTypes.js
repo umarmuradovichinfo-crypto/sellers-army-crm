@@ -23,9 +23,6 @@ export const FIELD_TYPES = [
 ]
 
 // Backend sanitize uchun ham ishlatiladi
-export const ALL_TYPES = FIELD_TYPES.map((t) => t.v)
-export const CHOICE_TYPES = ['single_choice', 'multi_choice', 'dropdown']
-export const TEXTUAL_TYPES = ['short_text', 'long_text', 'text', 'name', 'phone', 'email', 'number']
 export const typeLabel = (v) => (FIELD_TYPES.find((t) => t.v === v)?.l || v)
 
 export function inputTypeFor(t) {

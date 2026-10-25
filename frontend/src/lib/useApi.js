@@ -57,21 +57,6 @@ function autoKey(fetchFn, deps) {
   return 'k' + hash(src + '|' + d)
 }
 
-// Oddiy useState o'rniga — boshlang'ich qiymat keshdan olinadi (qayta kirishda spinnersiz),
-// har set kesh'ga ham yoziladi. Optimistik yangilanishlar ham keshga tushadi.
-//   const [items, setItems] = useCachedState('crm:companies', null)
-export function useCachedState(key, initial) {
-  const [v, setV] = useState(() => (key != null && cacheHas(key) ? cacheGet(key) : initial))
-  const set = useCallback((u) => {
-    setV((prev) => {
-      const next = typeof u === 'function' ? u(prev) : u
-      if (key != null) cacheSet(key, next)
-      return next
-    })
-  }, [key])
-  return [v, set]
-}
-
 export function useApi(fetchFn, deps = [], cacheKey = null, refreshMs = 0) {
   const key = cacheKey != null ? cacheKey : autoKey(fetchFn, deps)
   const hasCache = cacheHas(key)

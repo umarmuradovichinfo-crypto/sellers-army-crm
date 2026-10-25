@@ -7,7 +7,8 @@ import { api } from '../../lib/apiClient'
 import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
-import { feedDate, feedDateFull, dmy, relDay, currency, phoneFmt } from '../format'
+import { feedDate, feedDateFull, dmy, relDay, currency, phoneFmt, money } from '../format'
+import PhoneLink from '../PhoneLink'
 import { useT } from '../i18n'
 import { tagStyle } from '../tagColors'
 import { FieldModal } from './FieldsSetup'
@@ -188,7 +189,7 @@ export function CustomInput({ field, value, onChange }) {
 }
 
 // ── Kontakt bloki: bitta kontakt (amoCRM .linked-forms__item) ──
-function ContactItem({ contact, isMain, canMain, onUnlink, onMain, onChange }) {
+function ContactItem({ contact, leadId, isMain, canMain, onUnlink, onMain, onChange }) {
   const t = useT()
   const navigate = useNavigate()
   const [more, setMore] = useState(false)
@@ -214,7 +215,7 @@ function ContactItem({ contact, isMain, canMain, onUnlink, onMain, onChange }) {
           {contact.phone && !phoneEdit ? (
             <span className="ac-field__phone">
               <span className="ac-field__plusmini" title={t("Telefon qo'shish")} onClick={() => setPhoneEdit(true)}><Ico name="plus" size={8} /></span>
-              <a className="ac-field__link" href={`tel:${String(contact.phone).replace(/[^\d+]/g, '')}`}>{phoneFmt(contact.phone)}</a>
+              <PhoneLink value={contact.phone} leadId={leadId} />
               <span className="ac-field__pen" onClick={() => setPhoneEdit(true)}><Ico name="edit" size={12} /></span>
             </span>
           ) : (
@@ -273,6 +274,47 @@ function ContactAdder({ exclude, onLink }) {
 }
 
 // ── Kompaniya bloki (amoCRM: "КОМПАНИЯ" yorlig'i, nom, "…", ish tel./email/web) ──
+// amoCRM «Товары» bitimda: katalogdan pozitsiya qo'shish, miqdor; byudjet pozitsiyalar summasidan hisoblanadi
+function LeadProducts({ items, onChange }) {
+  const t = useT()
+  const [catalog, setCatalog] = useState(null)
+  const [adding, setAdding] = useState(false)
+  useEffect(() => { if (adding && !catalog) crmService.listProducts().then((r) => setCatalog(r.products || [])).catch(() => setCatalog([])) }, [adding, catalog])
+  const list = Array.isArray(items) ? items : []
+  const total = list.reduce((a, it) => a + (Number(it.price) || 0) * (Number(it.qty) || 1), 0)
+  const add = (id) => {
+    const p = (catalog || []).find((x) => x.id === id)
+    if (!p) return
+    const i = list.findIndex((x) => x.productId === p.id)
+    onChange(i >= 0 ? list.map((x, j) => (j === i ? { ...x, qty: (Number(x.qty) || 1) + 1 } : x)) : [...list, { productId: p.id, name: p.name, price: p.price, qty: 1 }])
+    setAdding(false)
+  }
+  if (!list.length && !adding) {
+    return <div className="ac-lprod"><a className="ac-lprod__add" onClick={() => setAdding(true)}>+ {t("Mahsulot qo'shish")}</a></div>
+  }
+  return (
+    <div className="ac-lprod">
+      <div className="ac-lprod__head">{t('Mahsulotlar')}</div>
+      {list.map((it, i) => (
+        <div className="ac-lprod__row" key={`${it.productId || it.name}-${i}`}>
+          <span className="ac-lprod__name">{it.name}</span>
+          <input className="ac-field__edit ac-lprod__qty" type="number" min="1" value={it.qty || 1} onChange={(e) => onChange(list.map((x, j) => (j === i ? { ...x, qty: Math.max(1, Number(e.target.value) || 1) } : x)))} />
+          <span className="ac-lprod__sum">× {money(it.price)} = {money((Number(it.price) || 0) * (Number(it.qty) || 1))}</span>
+          <button className="ac-lprod__del" title={t("O'chirish")} onClick={() => onChange(list.filter((_, j) => j !== i))}><Ico name="close" size={10} /></button>
+        </div>
+      ))}
+      {adding ? (
+        <select className="ac-field__edit ac-lprod__pick" autoFocus value="" onBlur={() => setAdding(false)} onChange={(e) => add(e.target.value)}>
+          <option value="">{catalog ? t('Mahsulotni tanlang') : '…'}</option>
+          {(catalog || []).map((p) => <option key={p.id} value={p.id}>{p.name} — {money(p.price)}</option>)}
+        </select>
+      ) : <a className="ac-lprod__add" onClick={() => setAdding(true)}>+ {t("Mahsulot qo'shish")}</a>}
+      {list.length > 0 && <div className="ac-lprod__total">{t('Jami')}: <b>{money(total)}</b></div>}
+      {adding && catalog && !catalog.length && <div className="ac-lprod__empty">{t("Katalog bo'sh")} — <a href="/catalogs/products">{t('Mahsulotlar')}</a></div>}
+    </div>
+  )
+}
+
 function CompanyBlock({ company, name }) {
   const t = useT()
   const navigate = useNavigate()
@@ -299,7 +341,7 @@ function CompanyBlock({ company, name }) {
         ]} />}
       </div>
       <div className="ac-linked__fields">
-        <FieldRow label={t('Ish tel.')}>{val(company?.phone && phoneFmt(company.phone), company?.phone && `tel:${company.phone.replace(/[^\d+]/g, '')}`)}</FieldRow>
+        <FieldRow label={t('Ish tel.')}>{company?.phone ? <PhoneLink value={company.phone} /> : <span className="ac-field__ph">...</span>}</FieldRow>
         <FieldRow label={t('Email ish.')}>{val(company?.email, company?.email && `mailto:${company.email}`)}</FieldRow>
         <FieldRow label="Web">{val(company?.website, company?.website && (/^https?:/.test(company.website) ? company.website : `https://${company.website}`))}</FieldRow>
       </div>
@@ -777,7 +819,7 @@ export default function LeadCard() {
           if (c.isNew) ids.push((await crmService.createContact({ name: c.name, ...(contactEdits[c.id] || {}) })).contact?.id)
           else ids.push(c.id)
         }
-        const r = await crmService.createLead({ name: v.n || `${t('Bitim')} #${Date.now().toString().slice(-6)}`, stage: v.stage, pipelineId: v.pipelineId || undefined, value: payload.value ?? 0, assigneeId: v.assigneeId || undefined, tags: v.tags, custom: v.custom, contactId: ids[0] || undefined })
+        const r = await crmService.createLead({ name: v.n || `${t('Bitim')} #${Date.now().toString().slice(-6)}`, stage: v.stage, pipelineId: v.pipelineId || undefined, value: payload.value ?? 0, assigneeId: v.assigneeId || undefined, tags: v.tags, custom: v.custom, items: v.items?.length ? v.items : undefined, contactId: ids[0] || undefined })
         for (const cid of ids.slice(1).filter(Boolean)) await crmService.addLeadContact(r.lead.id, { contactId: cid })
         navigate(`/leads/detail/${r.lead.id}`, { replace: true })
         return
@@ -936,8 +978,12 @@ export default function LeadCard() {
                   </FieldRow>
                 ))}
               </div>
+              <LeadProducts items={v.items} onChange={(items) => {
+                set('items', items)
+                if (items.length) set('value', items.reduce((a, it) => a + (Number(it.price) || 0) * (Number(it.qty) || 1), 0).toLocaleString('en-US'))
+              }} />
               {contactsOf(lead).map((c, i) => (
-                <ContactItem key={c.id} contact={{ ...c, ...(contactEdits[c.id] || {}) }} isMain={i === 0} canMain={!isNew}
+                <ContactItem key={c.id} leadId={lead?.id} contact={{ ...c, ...(contactEdits[c.id] || {}) }} isMain={i === 0} canMain={!isNew}
                   onChange={(patch) => setContactEdits((m) => ({ ...m, [c.id]: { ...(m[c.id] || {}), ...patch } }))}
                   onUnlink={() => linkOp(() => crmService.removeLeadContact(lead.id, c.id), (l) => ({ ...l, contacts: contactsOf(l).filter((x) => x.id !== c.id) }))}
                   onMain={() => linkOp(() => crmService.setMainLeadContact(lead.id, c.id))} />

@@ -28,4 +28,11 @@ addRu({
   "O'chirib bo'lmadi": 'Не удалось удалить',
   'Xatolik yuz berdi': 'Произошла ошибка',
   'Nomlanish': 'Наименование',
+  'Mahsulotlar': 'Товары',
+  'Artikul': 'Артикул',
+  'Narx': 'Цена',
+  'Mahsulot nomi': 'Название товара',
+  "Mahsulotlar yo'q": 'Нет товаров',
+  "O'chirilsinmi?": 'Удалить?',
+  'Saqlash': 'Сохранить',
 })

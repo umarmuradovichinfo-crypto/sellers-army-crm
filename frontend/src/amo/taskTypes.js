@@ -27,4 +27,3 @@ export function useTaskTypes() {
   useEffect(() => { subs.add(set); loadTaskTypes(); return () => subs.delete(set) }, [])
   return TASK_TYPES
 }
-export const taskTypeOf = (k) => TASK_TYPES.find((x) => x.key === k) || TASK_TYPES[2]

@@ -204,4 +204,7 @@ addRu({
   "Bitimga eslatma qo'shildi": 'Примечание добавлено в сделку',
   "Vazifa qo'shildi": 'Задача добавлена',
   "Web hook qo'shish": 'Добавить hook',
+  'Yuborilgandan keyingi xabar': 'Сообщение после отправки',
+  "So'rovingiz qabul qilindi. Tez orada siz bilan bog'lanamiz.": 'Ваша заявка принята. Мы скоро с вами свяжемся.',
+  'Forma rangi': 'Цвет формы',
 })

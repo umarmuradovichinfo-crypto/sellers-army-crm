@@ -122,4 +122,9 @@ addRu({
   'Kontakt ismi': 'Имя контакта',
   'Kompaniya nomi': 'Название компании',
   'Asosiy qilish': 'Сделать основным',
+  "Mahsulot qo'shish": 'Добавить товар',
+  'Mahsulotlar': 'Товары',
+  'Mahsulotni tanlang': 'Выберите товар',
+  "Katalog bo'sh": 'Каталог пуст',
+  'Jami': 'Всего',
 })

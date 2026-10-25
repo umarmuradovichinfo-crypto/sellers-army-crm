@@ -30,4 +30,7 @@ addRu({
   "Qo'ng'iroq qilish": 'Позвонить',
   "Yig'ish": 'Свернуть',
   'Telefon ulanmagan': 'Телефон не подключен',
+  "Qo'ng'iroq boshlanmadi": 'Звонок не начался',
+  "Telegram'da ochish": 'Открыть в Telegram',
+  'Ichki raqamingiz (extension):': 'Ваш внутренний номер (extension):',
 })

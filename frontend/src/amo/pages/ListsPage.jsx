@@ -55,7 +55,7 @@ function ListFilter({ value, members, onApply }) {
   )
 }
 
-function PresetTitle({ entity, onPick }) {
+export function PresetTitle({ entity, onPick }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const t = useT()
@@ -64,6 +64,7 @@ function PresetTitle({ entity, onPick }) {
     { key: 'all', label: 'Barcha kontaktlar va kompaniyalar' },
     { key: 'contacts', label: 'Kontaktlar' },
     { key: 'companies', label: 'Kompaniyalar' },
+    { key: 'products', label: 'Mahsulotlar' },
   ]
   const cur = items.find((i) => i.key === entity) || items[0]
   return (
@@ -202,7 +203,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
     <div className="ac-lists">
       {importOpen && <ImportModal entity="contacts" onClose={() => setImportOpen(false)} />}
       <TopBar
-        title={<PresetTitle entity={entity} onPick={(k) => { if (k === 'companies') navigate('/companies/list'); else if (entityProp === 'companies') navigate(k === 'all' ? '/contacts/list?view=all' : '/contacts/list'); setEntity(k) }} />}
+        title={<PresetTitle entity={entity} onPick={(k) => { if (k === 'products') return navigate('/catalogs/products'); if (k === 'companies') navigate('/companies/list'); else if (entityProp === 'companies') navigate(k === 'all' ? '/contacts/list?view=all' : '/contacts/list'); setEntity(k) }} />}
         search={search}
         onSearch={setSearch}
         filterPanel={(close) => <ListFilter value={filter} members={members} onApply={(f) => { setFilter(f); close() }} />}

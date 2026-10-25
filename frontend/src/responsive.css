@@ -88,38 +88,4 @@
    Login sahifasi — mobil/desktop (input ustiga tugma chiqib
    qolish muammosi tuzatildi: to'g'ri input + scroll qilinadigan ildiz)
    ============================================================ */
-.login-root{
-  height: auto;
-  min-height: 100vh;
-  min-height: 100dvh;
-  overflow-y: auto;
-  align-items: center;
-  justify-content: center;
-  background: var(--ink2);
-  padding: 24px 16px;
-}.login-card{
-  width: 100%;
-  max-width: 380px;
-  padding: 28px;
-  overflow: visible;
-}.login-lbl{
-  font-weight: 700;
-  display: block;
-  margin-bottom: 6px;
-}.login-in{
-  margin-bottom: 14px;
-  background: #fff;
-}.login-in:last-of-type{
-  margin-bottom: 18px;
-}.login-err{
-  color: var(--dang);
-  font-size: 12.5px;
-  font-weight: 700;
-  margin-bottom: 12px;
-}.login-btn{
-  width: 100%;
-  justify-content: center;
-}@media (max-width: 560px){.login-card{
-    padding: 22px;
-  }
-}
+

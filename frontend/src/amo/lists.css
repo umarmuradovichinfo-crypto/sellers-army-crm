@@ -21,3 +21,13 @@
 .ac-lists-more { padding: 16px; text-align: center; }
 .ac-lists-bulk-count { color: var(--palette-text-secondary-dark); }
 .ac-lists td.name a.unsorted { color: var(--palette-text-secondary-dark); } /* amoCRM .list-row_unsorted */
+
+/* Mahsulotlar katalogi (amoCRM «Товары») */
+.ac-prod td { vertical-align: middle; }
+.ac-prod__in { width: 100%; height: 30px; }
+.ac-prod__in.num { text-align: right; max-width: 160px; margin-left: auto; display: block; }
+.ac-prod__acts { width: 1%; white-space: nowrap; text-align: right; }
+.ac-prod__acts .ac-btn { margin-right: 6px; }
+.ac-prod__new td { background: var(--palette-background-secondary-100); }
+.ac-prod__del { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 0; border-radius: 4px; background: none; color: var(--palette-text-secondary-dark); cursor: pointer; vertical-align: middle; }
+.ac-prod__del:hover { background: var(--palette-background-secondary-200); color: #f37575; }

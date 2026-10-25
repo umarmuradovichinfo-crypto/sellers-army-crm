@@ -1,16 +1,9 @@
 // ====== Autentifikatsiya va RBAC konteksti ======
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
-import { api, tokenStore, refreshStore, setSession, clearSession, USE_MOCKS } from '../lib/apiClient'
-import { permsForRole, ROLES } from '../config/permissions'
+import { api, tokenStore, refreshStore, setSession, clearSession } from '../lib/apiClient'
 import { invalidateCache } from '../lib/useApi'
 
 const AuthContext = createContext(null)
-
-// MOCK rejim uchun standart foydalanuvchi
-const MOCK_USER = {
-  id: 'u1', name: 'Demo Admin', initials: 'DA',
-  email: 'demo@example.com', role: 'super_admin',
-}
 
 // Foydalanuvchini keshda saqlash — sahifa yangilanganda/tarmoq sekin bo'lganda
 // login CHIQMASLIGI uchun darrov ko'rsatamiz, keyin fonda /auth/me bilan tekshiramiz.
@@ -28,10 +21,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let alive = true
     async function boot() {
-      if (USE_MOCKS) {
-        if (alive) { setUser(MOCK_USER); setPermissions(permsForRole(MOCK_USER.role)); setLoading(false) }
-        return
-      }
       // Access token bo'lmasa ham, refresh token bo'lsa — /auth/me ichida refresh orqali tiklanadi.
       const token = tokenStore.get()
       const rt = refreshStore.get()
@@ -60,7 +49,6 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = useCallback(async (email, password) => {
-    if (USE_MOCKS) { setUser(MOCK_USER); setPermissions(permsForRole(MOCK_USER.role)); return }
     const res = await api.post('/auth/login', { email, password }) // -> { token, refreshToken, user, permissions }
     invalidateCache() // boshqa foydalanuvchi keshini ko'rsatmaslik uchun tozalaymiz
     setSession({ token: res.token, refreshToken: res.refreshToken })
@@ -70,7 +58,6 @@ export function AuthProvider({ children }) {
 
   // Birinchi sozlash: { name, email, password, setupToken? } -> super admin yaratadi va darrov kiritadi.
   const setup = useCallback(async (data) => {
-    if (USE_MOCKS) { setUser(MOCK_USER); setPermissions(permsForRole(MOCK_USER.role)); return }
     const res = await api.post('/auth/setup', data) // login bilan bir xil javob
     invalidateCache()
     setSession({ token: res.token, refreshToken: res.refreshToken })
@@ -79,25 +66,17 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback(async () => {
-    if (!USE_MOCKS) { try { await api.post('/auth/logout') } catch {} }
+    try { await api.post('/auth/logout') } catch { /* */ }
     invalidateCache() // keshni tozalab, keyingi foydalanuvchiga sirqib o'tmasin
     clearCachedUser()
     clearSession(); setUser(null); setPermissions([])
   }, [])
 
-  // MOCK/DEMO: rolni almashtirish (backendsiz RBAC'ni ko'rsatish uchun).
-  // Haqiqiy tizimda rol backend tomonidan beriladi — bu faqat demo.
-  const switchRole = useCallback((roleId) => {
-    setUser((u) => ({ ...(u || MOCK_USER), role: roleId }))
-    setPermissions(permsForRole(roleId))
-  }, [])
-
   const can = useCallback((perm) => !perm || permissions.includes(perm), [permissions])
 
   const value = useMemo(() => ({
-    user, permissions, loading, login, setup, logout, switchRole, can,
-    roleLabel: ROLES.find((r) => r.id === user?.role)?.label || '',
-  }), [user, permissions, loading, login, setup, logout, switchRole, can])
+    user, permissions, loading, login, setup, logout, can,
+  }), [user, permissions, loading, login, setup, logout, can])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

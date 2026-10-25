@@ -105,6 +105,12 @@ function Editor({ initial, stages, members, onCancel, onSaved }) {
       <div className="ac-int-field"><label>{t('Forma nomi')}</label><input className="ac-input" value={form.title} onChange={(e) => set('title', e.target.value)} autoFocus /></div>
       <div className="ac-int-field"><label>{t('Tavsif (ixtiyoriy)')}</label><input className="ac-input" value={form.description} onChange={(e) => set('description', e.target.value)} /></div>
       <div className="ac-int-grid2">
+        <div className="ac-int-field"><label>{t('Yuborilgandan keyingi xabar')}</label>
+          <input className="ac-input" value={form.settings?.confirmationMessage || ''} placeholder={t("So'rovingiz qabul qilindi. Tez orada siz bilan bog'lanamiz.")} onChange={(e) => set('settings', { ...(form.settings || {}), confirmationMessage: e.target.value })} /></div>
+        <div className="ac-int-field"><label>{t('Forma rangi')}</label>
+          <input className="ac-input" type="color" style={{ padding: 2, width: 60 }} value={form.settings?.themeColor || '#8cd211'} onChange={(e) => set('settings', { ...(form.settings || {}), themeColor: e.target.value })} /></div>
+      </div>
+      <div className="ac-int-grid2">
         <div className="ac-int-field"><label>{t('Manba belgisi')}</label><input className="ac-input" value={form.source} onChange={(e) => set('source', e.target.value)} /></div>
         <div className="ac-int-field"><label>{t('Bosqich')}</label>
           <select className="ac-select" value={form.stageKey || stages[0]?.id || ''} onChange={(e) => set('stageKey', e.target.value)}>{stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>

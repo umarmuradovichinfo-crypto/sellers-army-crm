@@ -115,6 +115,23 @@ describe('OnlinePBX webhook', () => {
   });
 });
 
+describe('Facebook webhook', () => {
+  test("tasdiqlash: to'g'ri verify_token → challenge, noto'g'ri → rad; imzosiz POST qabul qilinmaydi", async () => {
+    await ok('PUT', '/crm/facebook/config', { verifyToken: 'e2e-verify' }, T, 200);
+    try {
+      const good = await req('GET', '/facebook/webhook?hub.mode=subscribe&hub.verify_token=e2e-verify&hub.challenge=abc123');
+      assert.equal(good.status, 200);
+      assert.ok(String(good.data).includes('abc123'));
+      const bad = await req('GET', '/facebook/webhook?hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=abc');
+      assert.ok([400, 403].includes(bad.status), `${bad.status}`);
+      const post = await req('POST', '/facebook/webhook', { object: 'page', entry: [{ id: '1', changes: [{ field: 'leadgen', value: { leadgen_id: '1', form_id: '1', page_id: '1' } }] }] });
+      assert.ok(post.status < 500, `${post.status}`);
+    } finally {
+      await ok('PUT', '/crm/facebook/config', { verifyToken: '' }, T, 200);
+    }
+  });
+});
+
 describe('iCal', () => {
   test("noto'g'ri token → 404", async () => {
     assert.equal((await req('GET', `/crm/ical/${'a'.repeat(48)}.ics`)).status, 404);

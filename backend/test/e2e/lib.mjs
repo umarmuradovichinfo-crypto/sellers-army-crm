@@ -30,7 +30,12 @@ export async function login(email = process.env.E2E_EMAIL, password = process.en
 }
 
 let adminTok;
-export const admin = async () => (adminTok ??= await login());
+// bitta fayl alohida yurganda ham ishlasin: baza hali sozlanmagan bo'lsa — birinchi adminni yaratamiz
+export async function ensureAdmin() {
+  const st = await req('GET', '/auth/setup-status');
+  if (st.data?.needsSetup) await req('POST', '/auth/setup', { name: 'QA Admin', email: process.env.E2E_EMAIL, password: process.env.E2E_PASSWORD });
+}
+export const admin = async () => (adminTok ??= (await ensureAdmin(), await login()));
 
 let seq = 0;
 export const uniq = (p = 'qa') => `${p}-${Date.now().toString(36)}-${++seq}`;

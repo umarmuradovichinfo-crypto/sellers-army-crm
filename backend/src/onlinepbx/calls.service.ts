@@ -385,7 +385,9 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   // ── Operator ichki raqami (extension) ──
   async getMyExtension(user: AuthUser) {
     const u = await this.prisma.user.findUnique({ where: { id: user.id }, select: { extension: true } });
-    return { extension: u?.extension || null, pbxEnabled: await this.pbx.enabled() };
+    // qo'ng'iroq usuli ham shu yerda: pbx/config faqat admin uchun, sotuvchi esa kartochkadan qo'ng'iroq qilishi kerak
+    const c = await this.cfg.get();
+    return { extension: u?.extension || null, pbxEnabled: await this.pbx.enabled(), callMode: c.callMode || 'callback', dialScheme: c.dialScheme || 'tel' };
   }
   async setMyExtension(user: AuthUser, extension: string) {
     await this.prisma.user.update({ where: { id: user.id }, data: { extension: (extension || '').trim() || null } });

@@ -414,7 +414,18 @@ export class CrmService {
 
   private itemsValue(items: any[]): number {
     if (!Array.isArray(items)) return 0;
-    return items.reduce((a, it) => a + (Number(it.price) || 0) * (Number(it.qty) || 1), 0);
+    return Math.min(items.reduce((a, it) => a + it.price * it.qty, 0), 2_000_000_000);
+  }
+
+  // bitim mahsulot pozitsiyalari: faqat kerakli maydonlar, narx ≥ 0, miqdor ≥ 1 (byudjet manfiy bo'lmasin)
+  private cleanItems(raw: unknown): { productId: string | null; name: string; price: number; qty: number }[] {
+    if (!Array.isArray(raw)) return [];
+    return raw.slice(0, 200).filter((it) => it && typeof it === 'object').map((it: any) => ({
+      productId: it.productId ? String(it.productId) : null,
+      name: String(it.name || '').trim().slice(0, 200) || 'Mahsulot',
+      price: Math.min(Math.max(Math.round(Number(it.price) || 0), 0), 2_000_000_000),
+      qty: Math.min(Math.max(Math.round(Number(it.qty) || 1), 1), 100_000),
+    }));
   }
 
   async createLead(dto: CreateLeadDto & { email?: string; pipelineId?: string; custom?: Record<string, unknown>; items?: any[] }, user?: AuthUser) {
@@ -428,7 +439,7 @@ export class CrmService {
       : await this.prisma.crmStage.findFirst({ where: { pipelineId: pid, kind: 'open' }, orderBy: { order: 'asc' } });
     if (!st) throw new BadRequestException({ error: 'BAD_STAGE', message: "Noto'g'ri bosqich" });
     const stage = st.key;
-    const items = Array.isArray((dto as any).items) ? (dto as any).items : [];
+    const items = this.cleanItems((dto as any).items);
     const value = items.length ? this.itemsValue(items) : (Number(dto.value) || 0);
     // amoCRM tez qo'shish: kontakt nomi berilsa — kontakt yaratib bitimga bog'lanadi
     let contactId = dto.contactId || null;
@@ -521,9 +532,10 @@ export class CrmService {
     if (dto.source !== undefined && dto.source !== existing.source) { data.source = dto.source || null; }
     if (dto.value !== undefined && Number(dto.value) !== existing.value) { data.value = Number(dto.value) || 0; }
     if ((dto as any).items !== undefined) {
-      const items = Array.isArray((dto as any).items) ? (dto as any).items : [];
+      const items = this.cleanItems((dto as any).items);
       data.itemsJson = JSON.stringify(items);
-      data.value = this.itemsValue(items); // pozitsiyalardan summa
+      // pozitsiyalardan summa; hammasi olib tashlansa — qo'lda kiritilgan byudjetga tegmaymiz
+      if (items.length) data.value = this.itemsValue(items);
     }
     if ((dto as any).pipelineId !== undefined) data.pipelineId = (dto as any).pipelineId || null;
     if (dto.tags !== undefined) data.tagsJson = JSON.stringify(Array.isArray(dto.tags) ? dto.tags : []);

@@ -6,7 +6,6 @@
 import { getState, markOnline, markServerUnreachable, subscribe as netSubscribe } from './network'
 
 const BASE = import.meta.env.VITE_API_BASE || '/api/v1'
-export const USE_MOCKS = String(import.meta.env.VITE_USE_MOCKS) === 'true'
 
 const TOKEN_KEY = 'sa_token'
 const REFRESH_KEY = 'sa_refresh'
@@ -298,17 +297,4 @@ export const api = {
   del: (path, opts) => request('DELETE', path, null, opts),
   upload,
   getBlob: downloadBlob,
-}
-
-// Mock yordamchisi: USE_MOCKS=true bo'lsa, real chaqiruv o'rniga namuna ma'lumotni
-// kichik kechikish bilan qaytaradi. Backend tayyor bo'lganda VITE_USE_MOCKS=false.
-export function mockOr(realFn, mockValue, delay = 250) {
-  if (USE_MOCKS) {
-    return new Promise((resolve) => setTimeout(() => resolve(structuredCloneSafe(mockValue)), delay))
-  }
-  return realFn()
-}
-
-function structuredCloneSafe(v) {
-  try { return structuredClone(v) } catch { return JSON.parse(JSON.stringify(v)) }
 }

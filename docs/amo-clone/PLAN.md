@@ -126,6 +126,14 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     filtrlar, davr, voronka/xodim), joylashuvni saqlash — hammasini bizga ko'chirish.
     31b. [x] (foydalanuvchi so'rovi 25.10) Voronkadagi istalgan filtr natijasini ish stoliga qo'shish (amoCRM: filtrdan
     «добавить на рабочий стол»), 2-3 xil ko'rinishda (son, bosqichlar bo'yicha ro'yxat, diagramma) — amoCRM'dagi barcha ko'rinishlar.
+32. [ ] (foydalanuvchi so'rovi 26.10) Eski CRM qoldiqlarini tozalash, eski versiyadagi kerakli funksiyalar yangisida bo'lishi:
+    - [x] kartochkadan qo'ng'iroq (telefon menyusi), mahsulotlar katalogi va bitimdagi mahsulotlar, forma «rahmat» xabari va rangi,
+      teglarni birlashtirish; eski demo (mock) rejim, ishlatilmaydigan metod/komponentlar olib tashlandi
+    - [ ] eski scripts/smoke tekshiruvlari E2E'ga ko'chirilib, skript o'chiriladi; ishlatilmaydigan backend endpointlari
+33. [ ] (foydalanuvchi so'rovi 26.10) Telefoniya eski versiyadagidek ishlashi: OnlinePBX + MicroSIP + tel:.
+    CRM'da raqam yonidagi «Qo'ng'iroq qilish» bosilganda MicroSIP (OnlinePBX'ga ulangan) avtomatik qo'ng'iroq qiladi
+    (softphone rejimi, tel:/sip:/callto: sxemasi), qo'ng'iroq jurnalga yoziladi, kiruvchi/chiquvchi qo'ng'iroqlar
+    OnlinePBX webhook orqali bitimga bog'lanadi. Eski versiya (ae16497) bilan solishtirib tekshirish, xatolarni topib tuzatish.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
