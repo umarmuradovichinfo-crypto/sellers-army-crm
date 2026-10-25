@@ -28,6 +28,7 @@ npx tsx prisma/seed.ts >/dev/null
 LOG="$(mktemp -t crm-e2e)"
 node dist/main.js >"$LOG" 2>&1 &
 PID=$!
+disown $PID 2>/dev/null || true  # oxirida «Terminated: 15» xabari chiqmasin
 trap 'kill $PID 2>/dev/null || true' EXIT
 for i in $(seq 1 60); do
   curl -sf "${E2E_BASE}/health" >/dev/null 2>&1 && break
@@ -44,6 +45,7 @@ if [ "${E2E_UI:-0}" = "1" ]; then
   UI_PORT="${E2E_UI_PORT:-5199}"
   ( cd ../frontend && VITE_API_URL="http://localhost:${PORT}" npx vite --port "$UI_PORT" --strictPort >"$LOG.ui" 2>&1 ) &
   UIPID=$!
+  disown $UIPID 2>/dev/null || true
   trap 'kill $PID $UIPID 2>/dev/null || true; pkill -f "vite --port ${UI_PORT}" 2>/dev/null || true' EXIT
   for i in $(seq 1 60); do curl -sf "http://localhost:${UI_PORT}/" >/dev/null 2>&1 && break; sleep 0.5; done
   ( cd ../frontend && UI_BASE="http://localhost:${UI_PORT}" node test/ui/smoke.mjs ) || CODE=1
