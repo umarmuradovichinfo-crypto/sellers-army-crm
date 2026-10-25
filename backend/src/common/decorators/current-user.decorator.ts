@@ -7,6 +7,7 @@ export interface AuthUser {
   initials: string;
   role: string;
   permissions: string[];
+  sid?: string; // sessiya (RefreshToken.id)
 }
 
 /** Joriy foydalanuvchini (yoki uning bitta maydonini) oladi. */

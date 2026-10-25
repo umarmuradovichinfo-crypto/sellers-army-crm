@@ -177,22 +177,62 @@ export class SettingsService {
     return { user: this.presentUser(u as UserRow) };
   }
 
-  async resetPassword(id: string, password: string) {
+  async resetPassword(id: string, password: string, keepSid?: string) {
     if ((password || '').length < 6) throw new BadRequestException({ error: 'BAD_PASS', message: 'Parol kamida 6 belgi bo`lsin' });
     const existing = await this.prisma.user.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Foydalanuvchi topilmadi' });
     const passwordHash = await bcrypt.hash(password, 10);
     await this.prisma.user.update({ where: { id }, data: { passwordHash } });
+    // amoCRM: parol almashgach boshqa barcha qurilmalardagi sessiyalar yopiladi (joriydan tashqari)
+    await this.prisma.refreshToken.updateMany({ where: { userId: id, revokedAt: null, ...(keepSid ? { NOT: { id: keepSid } } : {}) }, data: { revokedAt: new Date() } });
     return { success: true };
   }
 
   // O'z parolini o'zgartirish (har qanday rol) — joriy parol talab qilinadi
-  async changeOwnPassword(id: string, currentPassword: string, password: string) {
+  async changeOwnPassword(id: string, currentPassword: string, password: string, sid?: string) {
     const me = await this.prisma.user.findUnique({ where: { id } });
     if (!me) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Foydalanuvchi topilmadi' });
     if (!currentPassword || !(await bcrypt.compare(currentPassword, me.passwordHash)))
       throw new BadRequestException({ error: 'BAD_CURRENT', message: "Joriy parol noto'g'ri" });
-    return this.resetPassword(id, password);
+    return this.resetPassword(id, password, sid);
+  }
+
+  // ── amoCRM «Настройки профиля»: ID, Имя, Телефон, Email, Примечание + «Сеансы» ──
+  async getProfile(id: string, sid?: string) {
+    const u = await this.prisma.user.findUnique({ where: { id }, select: { id: true, name: true, email: true, phone: true, note: true, avatar: true } });
+    if (!u) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Foydalanuvchi topilmadi' });
+    const rows = await this.prisma.refreshToken.findMany({
+      where: { userId: id, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: { id: true, ip: true, ua: true, createdAt: true, lastUsedAt: true },
+    });
+    const sessions = rows
+      .map((r) => ({ id: r.id, ip: r.ip || '', ua: r.ua || '', lastAt: (r.lastUsedAt || r.createdAt).toISOString(), current: r.id === sid }))
+      .sort((a, b) => Number(b.current) - Number(a.current) || b.lastAt.localeCompare(a.lastAt));
+    return { profile: { ...u, phone: u.phone || '', note: u.note || '' }, sessions };
+  }
+
+  async saveProfile(id: string, dto: { name?: string; email?: string; phone?: string; note?: string; avatar?: string }) {
+    await this.updateUser(id, { name: dto.name, email: dto.email }, id);
+    const data: Record<string, string | null> = {};
+    if (dto.phone !== undefined) data.phone = String(dto.phone).trim().slice(0, 40) || null;
+    if (dto.note !== undefined) data.note = String(dto.note).slice(0, 2000) || null;
+    if (dto.avatar !== undefined) {
+      const a = String(dto.avatar);
+      if (a && (!/^data:image\/(png|jpeg|webp);base64,/.test(a) || a.length > 300_000))
+        throw new BadRequestException({ error: 'BAD_AVATAR', message: "Rasm noto'g'ri yoki juda katta" });
+      data.avatar = a || null;
+    }
+    if (Object.keys(data).length) await this.prisma.user.update({ where: { id }, data });
+    return this.getProfile(id);
+  }
+
+  /** «Сеансы» → «Выйти»: tanlangan qurilmadagi sessiyani yopish */
+  async closeSession(userId: string, sessionId: string) {
+    const r = await this.prisma.refreshToken.updateMany({ where: { id: sessionId, userId, revokedAt: null }, data: { revokedAt: new Date() } });
+    if (!r.count) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Sessiya topilmadi' });
+    return { success: true };
   }
 
   // ── Xavfsizlik: IP oq ro'yxati (amoCRM "Белый список IP-адресов") ──
@@ -230,6 +270,8 @@ export class SettingsService {
     for (const k of SettingsService.GENERAL_FIELDS) {
       if (typeof body?.[k] === 'string') next[k] = (body[k] as string).trim().slice(0, 200);
     }
+    // amoCRM «Общие настройки» → «Товары» (katalog yoqilgan/o'chirilgan)
+    for (const k of ['products']) if (typeof body?.[k] === 'boolean') next[k] = body[k];
     // Chap menyu rolga qarab (amoCRM "Настройка левого меню"): { '*' | roleKey: [yashirin bo'lim kalitlari] }
     if (body?.navHidden && typeof body.navHidden === 'object' && !Array.isArray(body.navHidden)) {
       const ALLOWED = new Set(['dashboard', 'leads', 'imbox', 'todo', 'lists', 'stats', 'market']);
@@ -247,5 +289,34 @@ export class SettingsService {
       create: { key: SettingsService.GENERAL_KEY, value },
     });
     return { general: next };
+  }
+
+  // ── amoCRM «Резервное копирование»: akkauntning barcha ma'lumotlari JSON (parol xeshlari, tokenlar, kalitlar YO'Q) ──
+  async *backupChunks(): AsyncGenerator<string> {
+    const p = this.prisma as unknown as Record<string, { findMany: (a: object) => Promise<unknown[]> }>;
+    const tables: [string, string, object, object?][] = [
+      ['roles', 'role', { key: 'asc' }],
+      ['users', 'user', { id: 'asc' }, { id: true, name: true, email: true, phone: true, note: true, isActive: true, extension: true, roleId: true, createdAt: true }],
+      ['pipelines', 'crmPipeline', { id: 'asc' }], ['stages', 'crmStage', { id: 'asc' }], ['fields', 'crmField', { id: 'asc' }],
+      ['tags', 'crmTag', { id: 'asc' }], ['lostReasons', 'lostReason', { id: 'asc' }], ['products', 'product', { id: 'asc' }],
+      ['companies', 'company', { id: 'asc' }], ['contacts', 'contact', { id: 'asc' }], ['leads', 'lead', { id: 'asc' }],
+      ['leadContacts', 'leadContact', [{ leadId: 'asc' }, { contactId: 'asc' }]], ['tasks', 'leadTask', { id: 'asc' }],
+      ['calls', 'callLog', { id: 'asc' }], ['messages', 'message', { id: 'asc' }], ['conversations', 'conversationState', { leadId: 'asc' }],
+      ['events', 'activity', { id: 'asc' }], ['automations', 'automation', { id: 'asc' }], ['salesbots', 'salesbot', { id: 'asc' }],
+      ['forms', 'crmForm', { id: 'asc' }], ['goals', 'salesGoal', { id: 'asc' }], ['savedFilters', 'savedFilter', { id: 'asc' }],
+    ];
+    yield `{"createdAt":${JSON.stringify(new Date().toISOString())}`;
+    for (const [name, model, orderBy, select] of tables) {
+      if (!p[model]) continue;
+      yield `,${JSON.stringify(name)}:[`;
+      let first = true;
+      for (let skip = 0; ; skip += 1000) {
+        const rows = await p[model].findMany({ orderBy, skip, take: 1000, ...(select ? { select } : {}) });
+        for (const r of rows) { yield (first ? '' : ',') + JSON.stringify(r); first = false; }
+        if (rows.length < 1000) break;
+      }
+      yield ']';
+    }
+    yield '}';
   }
 }

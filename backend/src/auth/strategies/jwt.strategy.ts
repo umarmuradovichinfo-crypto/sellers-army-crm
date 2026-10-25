@@ -19,9 +19,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string }): Promise<AuthUser> {
+  async validate(payload: { sub: string; sid?: string }): Promise<AuthUser> {
     const ctx = await this.auth.buildUserContext(payload.sub);
     if (!ctx) throw new UnauthorizedException();
-    return ctx; // req.user bo'ladi
+    // «Сеансы» → «Выйти»: yopilgan sessiyaning access tokeni ham darhol ishlamaydi
+    if (payload.sid && !(await this.auth.sessionAlive(payload.sub, payload.sid))) throw new UnauthorizedException();
+    return { ...ctx, sid: payload.sid }; // req.user bo'ladi
   }
 }

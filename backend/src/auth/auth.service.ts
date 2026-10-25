@@ -85,7 +85,7 @@ export class AuthService {
         message: "Email yoki parol noto'g'ri",
       });
     }
-    return this.loginResponse(user.id);
+    return this.loginResponse(user.id, meta);
   }
 
   /** Avtorizatsiya jurnali (Sozlamalar → Foydalanuvchilar → "…" → Лог авторизаций): crm_activities, type='auth'. */
@@ -165,9 +165,9 @@ export class AuthService {
     return this.loginResponse(userId);
   }
 
-  private async loginResponse(userId: string) {
+  private async loginResponse(userId: string, meta?: { ip?: string; ua?: string }) {
     const ctx = (await this.buildUserContext(userId))!;
-    const tokens = await this.issueTokens(userId);
+    const tokens = await this.issueTokens(userId, meta);
 
     return {
       token: tokens.token,
@@ -184,9 +184,9 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string): Promise<Tokens> {
-    let payload: { sub: string };
+    let payload: { sub: string; sid?: string };
     try {
-      payload = await this.jwt.verifyAsync<{ sub: string }>(refreshToken, {
+      payload = await this.jwt.verifyAsync<{ sub: string; sid?: string }>(refreshToken, {
         secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
       });
     } catch {
@@ -197,7 +197,7 @@ export class AuthService {
     }
 
     const stored = await this.prisma.refreshToken.findMany({
-      where: { userId: payload.sub, revokedAt: null },
+      where: { userId: payload.sub, revokedAt: null, ...(payload.sid ? { id: payload.sid } : {}) },
     });
     let matched: (typeof stored)[number] | null = null;
     for (const t of stored) {
@@ -216,15 +216,23 @@ export class AuthService {
     // Rotatsiyasiz: eski refresh token BEKOR QILINMAYDI — faqat yangi access token beramiz.
     // Sabab: foydalanuvchi CRM'ni alohida tabda ochadi; ikkala tab bir vaqtda refresh qilsa,
     // rotatsiya biri RT'ni bekor qilib, ikkinchisini logout qilardi ("tez-tez login"). Endi yo'q.
-    const token = await this.signAccessToken(payload.sub);
+    await this.prisma.refreshToken.update({ where: { id: matched.id }, data: { lastUsedAt: new Date() } }).catch(() => {});
+    const token = await this.signAccessToken(payload.sub, matched.id);
     return { token, refreshToken };
   }
 
-  async logout(userId: string): Promise<void> {
+  /** «выйти»: amoCRM kabi faqat joriy sessiya yopiladi (sid yo'q eski tokenlar — hammasi). */
+  async logout(userId: string, sid?: string): Promise<void> {
     await this.prisma.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
+      where: { userId, revokedAt: null, ...(sid ? { id: sid } : {}) },
       data: { revokedAt: new Date() },
     });
+  }
+
+  /** Access token sessiyasi hali ochiqmi («Сеансы» → «Выйти» qilingan bo'lsa — yo'q). */
+  async sessionAlive(userId: string, sid: string): Promise<boolean> {
+    const r = await this.prisma.refreshToken.findFirst({ where: { id: sid, userId }, select: { revokedAt: true, expiresAt: true } });
+    return !!r && !r.revokedAt && r.expiresAt > new Date();
   }
 
   private ttl(v: string | undefined, def: string): JwtSignOptions['expiresIn'] {
@@ -233,9 +241,9 @@ export class AuthService {
   }
 
   // Faqat access token — refresh'da rotatsiyasiz yangilash uchun.
-  private async signAccessToken(userId: string): Promise<string> {
+  private async signAccessToken(userId: string, sid?: string): Promise<string> {
     return this.jwt.signAsync(
-      { sub: userId },
+      sid ? { sub: userId, sid } : { sub: userId },
       {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         expiresIn: this.ttl(this.config.get<string>('JWT_ACCESS_TTL'), '1h'),
@@ -243,19 +251,15 @@ export class AuthService {
     );
   }
 
-  private async issueTokens(userId: string): Promise<Tokens> {
-    const accessTtl = this.ttl(this.config.get<string>('JWT_ACCESS_TTL'), '1h');
+  private async issueTokens(userId: string, meta?: { ip?: string; ua?: string }): Promise<Tokens> {
     const refreshTtl = this.ttl(this.config.get<string>('JWT_REFRESH_TTL'), '30d');
-
-    const token = await this.jwt.signAsync(
-      { sub: userId },
-      {
-        secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
-        expiresIn: accessTtl,
-      },
-    );
+    // sessiya yozuvi avval yaratiladi — uning id'si (sid) ikkala tokenga yoziladi
+    const session = await this.prisma.refreshToken.create({
+      data: { userId, tokenHash: '', expiresAt: new Date(Date.now() + 60_000), ip: meta?.ip || null, ua: meta?.ua || null, lastUsedAt: new Date() },
+    });
+    const token = await this.signAccessToken(userId, session.id);
     const refreshToken = await this.jwt.signAsync(
-      { sub: userId },
+      { sub: userId, sid: session.id },
       {
         secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
         expiresIn: refreshTtl,
@@ -266,8 +270,9 @@ export class AuthService {
     const expiresAt = new Date(decoded.exp * 1000);
     const tokenHash = await bcrypt.hash(refreshToken, 10);
 
-    await this.prisma.refreshToken.create({
-      data: { userId, tokenHash, expiresAt },
+    await this.prisma.refreshToken.update({
+      where: { id: session.id },
+      data: { tokenHash, expiresAt },
     });
 
     return { token, refreshToken };

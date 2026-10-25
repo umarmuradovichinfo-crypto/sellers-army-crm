@@ -82,6 +82,7 @@ export class ChatService {
   // Telegram webhook update'ini qayta ishlash
   // ── Sozlamalar → Chatlar va messenjerlar (amoCRM): javob shablonlari va "Беседы" qoidasi ──
   private static readonly SETTINGS_KEY = 'chat_settings';
+  static readonly REPLY_LIMITS = [0, 1, 5, 15, 30, 60, 120, 240, 1440];
   async getChatSettings() {
     const row = await this.prisma.appSetting.findUnique({ where: { key: ChatService.SETTINGS_KEY } });
     let v: any = {};
@@ -90,6 +91,10 @@ export class ChatService {
       templates: Array.isArray(v.templates) ? v.templates : [],
       // always — 24 soat jim bo'lgandan keyin yangi suhbat yangi bitimda; no_active — faol bitim bo'lmasa yangi (standart); no_leads — hech bitim bo'lmasa
       conversationRule: ['always', 'no_active', 'no_leads'].includes(v.conversationRule) ? v.conversationRule : 'no_active',
+      // amoCRM: «Меню imBox + центр нотификаций» (true) yoki faqat «Центр нотификаций» (false — imBox menyuda yo'q)
+      imboxMenu: v.imboxMenu !== false,
+      // «Отмечать событие, если превышено время ответа на сообщение» (daqiqa; 0 — o'chiq)
+      replyLimitMin: ChatService.REPLY_LIMITS.includes(Number(v.replyLimitMin)) ? Number(v.replyLimitMin) : 0,
     };
   }
   async saveChatSettings(body: any) {
@@ -104,6 +109,8 @@ export class ChatService {
       })).filter((x: any) => x.name && x.text);
     }
     if (['always', 'no_active', 'no_leads'].includes(body?.conversationRule)) next.conversationRule = body.conversationRule;
+    if (typeof body?.imboxMenu === 'boolean') next.imboxMenu = body.imboxMenu;
+    if (body?.replyLimitMin !== undefined && ChatService.REPLY_LIMITS.includes(Number(body.replyLimitMin))) next.replyLimitMin = Number(body.replyLimitMin);
     const value = JSON.stringify(next);
     await this.prisma.appSetting.upsert({ where: { key: ChatService.SETTINGS_KEY }, update: { value }, create: { key: ChatService.SETTINGS_KEY, value } });
     return next;

@@ -1,6 +1,7 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Javob berish vaqti oshib ketdi': 'Превышено время ответа',
   'Filtr': 'Фильтр',
   'Jami': 'Всего',
   'Yangilash': 'Обновить',

@@ -27,6 +27,7 @@ const ImportPage = lazy(() => import('./amo/pages/ImportPage'))
 const ContactCard = lazy(() => import('./amo/pages/ContactCard'))
 const CompanyCard = lazy(() => import('./amo/pages/CompanyCard'))
 const SettingsPage = lazy(() => import('./amo/pages/SettingsPage'))
+const ProfilePage = lazy(() => import('./amo/pages/ProfilePage'))
 const IntegrationsPage = lazy(() => import('./amo/pages/IntegrationsPage'))
 const BotsPage = lazy(() => import('./amo/pages/BotsPage'))
 const ProductsPage = lazy(() => import('./amo/pages/ProductsPage'))
@@ -79,6 +80,7 @@ function CrmShell() {
           <Route path="/settings/users" element={<SettingsPage section="users" />} />
           <Route path="/settings/chats" element={<SettingsPage section="chats" />} />
           <Route path="/settings/security" element={<SettingsPage section="security" />} />
+          <Route path="/settings/profile" element={<ProfilePage />} />
           <Route path="/settings/pipeline/leads/:pipelineId" element={<PipelineSetupPage />} />
           <Route path="/settings/fields/:entity" element={<FieldsSetupPage />} />
           <Route path="/settings/tags" element={<Navigate to="/leads/list" replace />} />

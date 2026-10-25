@@ -74,3 +74,25 @@ export class ChangeOwnPasswordDto {
   @MinLength(6, { message: 'Parol kamida 6 belgi' })
   password!: string;
 }
+
+export class SaveProfileDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsEmail({}, { message: "Email noto'g'ri" })
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+}

@@ -6,7 +6,7 @@ import { crmService } from '../../services/crm.service'
 import { useApi } from '../../lib/useApi'
 import TopBar, { useOutside } from '../TopBar'
 import { Ico } from '../AmoIcons'
-import { phoneFmt } from '../format'
+import { phoneFmt, productsOn } from '../format'
 import { useT, usePlural } from '../i18n'
 import '../i18n/lists.ru'
 import '../leads.css'
@@ -65,7 +65,7 @@ export function PresetTitle({ entity, onPick }) {
     { key: 'all', label: 'Barcha kontaktlar va kompaniyalar' },
     { key: 'contacts', label: 'Kontaktlar' },
     { key: 'companies', label: 'Kompaniyalar' },
-    { key: 'products', label: 'Mahsulotlar' },
+    ...(productsOn() ? [{ key: 'products', label: 'Mahsulotlar' }] : []),
   ]
   const cur = items.find((i) => i.key === entity) || items[0]
   return (

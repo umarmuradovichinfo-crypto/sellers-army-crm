@@ -63,8 +63,8 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(204)
-  async logout(@CurrentUser('id') userId: string) {
-    await this.auth.logout(userId);
+  async logout(@CurrentUser() user: AuthUser) {
+    await this.auth.logout(user.id, user.sid);
   }
 
   @Public()

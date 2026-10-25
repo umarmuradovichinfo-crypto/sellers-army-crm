@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
 import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
-import { feedDate, dmy, hm, relDay } from '../format'
+import { feedDate, dmy, hm, relDay, replyOverdue } from '../format'
 import { useT } from '../i18n'
 import { SysLine, CallNote, TaskNote, NoteItem, MsgGroup, PersonAvatar, convNum, TemplatePicker } from './LeadCard'
 import '../i18n/imbox.ru.js'
@@ -74,7 +74,7 @@ function Row({ c, on, onClick, sel }) {
         <div className="ac-imbox-row__head">
           <span className={`ac-imbox-row__num ${c.closed ? 'closed' : ''}`}>{convNum(c.leadId, c.convNo)}</span>
           {c.fav && <Ico name="star" size={12} className="ac-imbox-row__fav" />}
-          <span className="ac-imbox-row__date">{listDate(c.at, t)}</span>
+          <span className={`ac-imbox-row__date ${!c.closed && replyOverdue(c.at, c.direction === 'in') ? 'overdue' : ''}`} title={!c.closed && replyOverdue(c.at, c.direction === 'in') ? t('Javob berish vaqti oshib ketdi') : undefined}>{listDate(c.at, t)}</span>
         </div>
         <div className="ac-imbox-row__name">{c.name}</div>
         <div className="ac-imbox-row__text">{author}: {c.last}</div>

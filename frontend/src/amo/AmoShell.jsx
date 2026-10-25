@@ -9,7 +9,7 @@ import { crmService, notifService as notificationsApi } from '../services/crm.se
 import { NavIcon, Ico } from './AmoIcons'
 import { applyTheme, getTheme } from './theme'
 import { useI18n, useT } from './i18n'
-import { setFormatPrefs } from './format'
+import { setFormatPrefs, setChatPrefs } from './format'
 import { settingsService } from '../services/settings.service'
 import NetworkBar from './NetworkBar'
 import { loadTaskTypes } from './taskTypes'
@@ -104,8 +104,8 @@ const crmService_notifications = () => notificationsApi.list()
 function UserBar({ open, onClose }) {
   const { user, logout } = useAuth()
   const { t, lang, setLang } = useI18n()
+  const navigate = useNavigate()
   const [theme, setTheme] = useState(getTheme())
-  const [profile, setProfile] = useState(false)
   const pick = (v) => { setTheme(v); applyTheme(v) }
   return (
     <>
@@ -117,7 +117,7 @@ function UserBar({ open, onClose }) {
             <button className="ac-userbar__copy" title={t('Nusxalash')} onClick={() => navigator.clipboard?.writeText(user?.email || '')}><Ico name="list" size={12} /></button>
           </div>
         </div>
-        <button className="ac-userbar__btn" onClick={() => { setProfile(true); onClose() }}><Ico name="edit" size={18} /><span>{t('profil')}</span></button>
+        <button className="ac-userbar__btn" onClick={() => { navigate('/settings/profile'); onClose() }}><Ico name="edit" size={18} /><span>{t('profil')}</span></button>
         <button className="ac-userbar__btn" onClick={logout}><Ico name="external" size={18} /><span>{t('chiqish')}</span></button>
         <div className="ac-userbar__grow" />
         <div className="ac-userbar__seg">
@@ -130,48 +130,7 @@ function UserBar({ open, onClose }) {
           ))}
         </div>
       </div>
-      {profile && <ProfileModal onClose={() => setProfile(false)} />}
     </>
-  )
-}
-
-// "профиль": ism/email, til va o'z parolini o'zgartirish
-function ProfileModal({ onClose }) {
-  const { user } = useAuth()
-  const { t, lang, setLang } = useI18n()
-  const [cur, setCur] = useState('')
-  const [pw, setPw] = useState('')
-  const [pw2, setPw2] = useState('')
-  const [msg, setMsg] = useState(null)
-  const [busy, setBusy] = useState(false)
-  const bad = !cur || pw.length < 6 || pw !== pw2
-  const save = async () => {
-    if (bad || busy) return
-    setBusy(true); setMsg(null)
-    try { await settingsService.changeOwnPassword(cur, pw); setCur(''); setPw(''); setPw2(''); setMsg({ ok: true, m: t("Parol o'zgartirildi") }) }
-    catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) } finally { setBusy(false) }
-  }
-  return (
-    <div className="ac-modal-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="ac-modal">
-        <h2 className="ac-profile__title">{user?.name}</h2>
-        <div className="ac-profile__mail">{user?.email}</div>
-        <div className="ac-profile__row"><span>{t('Til')}</span>
-          <select className="ac-select" value={lang} onChange={(e) => setLang(e.target.value)}>
-            <option value="uz">O'zbekcha</option><option value="ru">Русский</option>
-          </select>
-        </div>
-        <div className="ac-profile__sub">{t('Parolni almashtirish')}</div>
-        <input className="ac-input" type="password" autoComplete="current-password" placeholder={t('Joriy parol')} value={cur} onChange={(e) => setCur(e.target.value)} />
-        <input className="ac-input" type="password" autoComplete="new-password" placeholder={t('Yangi parol')} value={pw} onChange={(e) => setPw(e.target.value)} />
-        <input className="ac-input" type="password" autoComplete="new-password" placeholder={t('Parolni takrorlang')} value={pw2} onChange={(e) => setPw2(e.target.value)} />
-        {msg && <div className={msg.ok ? 'ac-set-saved' : 'ac-set-err'} style={{ margin: '6px 0 0' }}>{msg.m}</div>}
-        <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-          <button className="ac-btn ac-btn--blue" disabled={bad || busy} onClick={save}>{t('Saqlash')}</button>
-          <button className="ac-btn ac-btn--plain" onClick={onClose}>{t('Yopish')}</button>
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -229,11 +188,16 @@ export default function AmoShell({ children }) {
   // Sozlamalar → "Chap menyuni rolga qarab sozlash": barcha uchun ('*') + joriy rol uchun yashirilgan bo'limlar
   const { user: me } = useAuth()
   const [navHidden, setNavHidden] = useState({})
-  const hiddenNav = new Set([...(navHidden['*'] || []), ...(navHidden[me?.role] || [])])
+  // Chatlar sozlamasi: «Bildirishnomalar markazi» tanlansa imBox bosh menyuda ko'rinmaydi (amoCRM)
+  const [imboxMenu, setImboxMenu] = useState(true)
+  const hiddenNav = new Set([...(navHidden['*'] || []), ...(navHidden[me?.role] || []), ...(imboxMenu ? [] : ['imbox'])])
   useEffect(() => {
     const h = (e) => setNavHidden(e.detail || {})
+    const c = (e) => { setImboxMenu(e.detail?.imboxMenu !== false); setChatPrefs(e.detail || {}) }
     window.addEventListener('amo:nav-hidden', h)
-    return () => window.removeEventListener('amo:nav-hidden', h)
+    window.addEventListener('amo:chat-settings', c)
+    crmService.chatSettings().then((r) => { setImboxMenu(r?.imboxMenu !== false); setChatPrefs(r || {}) }).catch(() => {})
+    return () => { window.removeEventListener('amo:nav-hidden', h); window.removeEventListener('amo:chat-settings', c) }
   }, [])
   useEffect(() => { loadTaskTypes() }, [])
   useEffect(() => {

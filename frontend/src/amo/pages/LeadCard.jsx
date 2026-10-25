@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
 import MultiSelect from '../MultiSelect'
-import { feedDate, feedDateFull, dmy, relDay, currency, phoneFmt, money } from '../format'
+import { feedDate, feedDateFull, dmy, relDay, currency, phoneFmt, money, productsOn } from '../format'
 import PhoneLink from '../PhoneLink'
 import { useT } from '../i18n'
 import { tagStyle } from '../tagColors'
@@ -1084,10 +1084,10 @@ export default function LeadCard() {
                   </FieldRow>
                 ))}
               </div>
-              <LeadProducts items={v.items} onChange={(items) => {
+              {(productsOn() || v.items?.length > 0) && <LeadProducts items={v.items} onChange={(items) => {
                 set('items', items)
                 if (items.length) set('value', items.reduce((a, it) => a + (Number(it.price) || 0) * (Number(it.qty) || 1), 0).toLocaleString('en-US'))
-              }} />
+              }} />}
               {contactsOf(lead).map((c, i) => (
                 <ContactItem key={c.id} leadId={lead?.id} contact={{ ...c, ...(contactEdits[c.id] || {}) }} isMain={i === 0} canMain={!isNew}
                   onChange={(patch) => setContactEdits((m) => ({ ...m, [c.id]: { ...(m[c.id] || {}), ...patch } }))}

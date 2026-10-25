@@ -1,13 +1,15 @@
 import { clientIp } from '../common/guards/ip-whitelist.guard';
-import { Body, Controller, Req, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, Req, Res, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import type { Response } from 'express';
 
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentUser, type AuthUser } from '../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import {
   ChangeOwnPasswordDto,
   CreateRoleDto,
   CreateUserDto,
   ResetPasswordDto,
+  SaveProfileDto,
   SetPermissionDto,
   UpdateUserDto,
 } from './dto/settings.dto';
@@ -63,8 +65,25 @@ export class SettingsController {
 
   // O'z parolini o'zgartirish (ruxsat talab qilinmaydi — faqat login)
   @Post('me/password')
-  changeOwnPassword(@CurrentUser('id') uid: string, @Body() dto: ChangeOwnPasswordDto) {
-    return this.settings.changeOwnPassword(uid, dto.currentPassword, dto.password);
+  changeOwnPassword(@CurrentUser() me: AuthUser, @Body() dto: ChangeOwnPasswordDto) {
+    return this.settings.changeOwnPassword(me.id, dto.currentPassword, dto.password, me.sid);
+  }
+
+  // amoCRM «Настройки профиля» (har qanday foydalanuvchi — faqat o'zini)
+  @Get('me/profile')
+  profile(@CurrentUser() me: AuthUser) {
+    return this.settings.getProfile(me.id, me.sid);
+  }
+
+  @Put('me/profile')
+  async saveProfile(@CurrentUser() me: AuthUser, @Body() dto: SaveProfileDto) {
+    await this.settings.saveProfile(me.id, dto);
+    return this.settings.getProfile(me.id, me.sid);
+  }
+
+  @Delete('me/sessions/:id')
+  closeSession(@CurrentUser('id') uid: string, @Param('id') id: string) {
+    return this.settings.closeSession(uid, id);
   }
 
   // Xavfsizlik: IP oq ro'yxati
@@ -77,6 +96,21 @@ export class SettingsController {
   @RequirePermissions('settings.roles.manage')
   saveSecurity(@Body() body: { ips?: unknown }, @Req() req: any) {
     return this.settings.saveSecurity(body, clientIp(req));
+  }
+
+  // amoCRM «Резервное копирование»: butun akkaunt JSON fayl bo'lib yuklanadi (oqim — xotirani to'ldirmaydi)
+  @Get('backup')
+  @RequirePermissions('settings.roles.manage')
+  async backup(@Res() res: Response) {
+    const day = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="crm-backup-${day}.json"`);
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+      for await (const chunk of this.settings.backupChunks()) {
+        if (!res.write(chunk)) await new Promise((r) => res.once('drain', r));
+      }
+    } finally { res.end(); }
   }
 
   // Umumiy sozlamalar (akkaunt nomi, mintaqa, formatlar, rolga qarab chap menyu) — interfeys har bir foydalanuvchi uchun

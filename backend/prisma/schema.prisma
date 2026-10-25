@@ -52,6 +52,8 @@ model User {
   isActive     Boolean @default(true)
   extension    String? // OnlinePBX ichki raqami (click-to-call shu raqamdan)
   sipPassword  String? // OnlinePBX SIP paroli (brauzer WebRTC-telefoni registratsiyasi uchun)
+  phone        String? // amoCRM «Настройки профиля» → Телефон
+  note         String? // «Примечание»
 
   refreshTokens RefreshToken[]
 
@@ -69,6 +71,10 @@ model RefreshToken {
   expiresAt DateTime
   revokedAt DateTime?
   createdAt DateTime  @default(now())
+  // amoCRM «Сеансы»: bitta refresh token = bitta sessiya (qurilma)
+  ip         String?
+  ua         String?
+  lastUsedAt DateTime?
 
   @@index([userId])
 }

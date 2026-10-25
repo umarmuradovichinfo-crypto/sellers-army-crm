@@ -1,7 +1,7 @@
 // amoCRM formatlari: summa "12,918,600 so'm", sana "Bugun 12:04" / "Kecha 15:44" / "22.10.2026".
 
 // Umumiy sozlamalardan keladigan formatlar (AmoShell yuklaydi): vaqt mintaqasi, sana/vaqt formati, valyuta.
-const PREFS = { offsetMin: 300, dateFormat: '31.12.2026', h12: false, currency: "so'm" }
+const PREFS = { offsetMin: 300, dateFormat: '31.12.2026', h12: false, currency: "so'm", products: true }
 const CURRENCY_LABEL = { "O'zbek so'mi": "so'm", 'Rossiya rubli': '₽', 'AQSh dollari': '$', 'Yevro': '€' }
 
 export function setFormatPrefs(g = {}) {
@@ -10,7 +10,19 @@ export function setFormatPrefs(g = {}) {
   if (g.dateFormat) PREFS.dateFormat = g.dateFormat
   if (g.timeFormat) PREFS.h12 = /12/.test(g.timeFormat)
   if (g.currency) PREFS.currency = CURRENCY_LABEL[g.currency] || PREFS.currency
+  PREFS.products = g.products !== false
 }
+
+// Chatlar sozlamalari (javob vaqti chegarasi) — AmoShell yuklaydi
+const CHAT = { replyLimitMin: 0 }
+export function setChatPrefs(c = {}) { CHAT.replyLimitMin = Number(c.replyLimitMin) || 0 }
+// «Отмечать событие, если превышено время ответа»: oxirgi xabar mijozdan va javobsiz qolgan vaqt chegaradan oshganmi
+export function replyOverdue(lastAt, lastIncoming) {
+  return !!(CHAT.replyLimitMin && lastIncoming && lastAt && Date.now() - new Date(lastAt).getTime() > CHAT.replyLimitMin * 60000)
+}
+
+// «Товары» yoqilganmi (Umumiy sozlamalar) — o'chiq bo'lsa katalog Ro'yxatlar va kartochkada ko'rinmaydi
+export const productsOn = () => PREFS.products
 
 export const currency = () => PREFS.currency
 

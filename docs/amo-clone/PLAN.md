@@ -171,6 +171,23 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 37. [ ] (foydalanuvchi so'rovi 26.10) Sozlamalar bo'limi amoCRM bilan har bir detalda bir xil: amoCRM «Настройки»dagi har bir sahifa
     (Общие, Пользователи, Чаты и мессенджеры, Безопасность, Коммуникации, …) bilan bizdagini birma-bir solishtirib, farqlar
     ro'yxatini tuzish va bir xil qilish.
+    Farqlar (amoCRM ko'rildi 26.10):
+    a) [ ] Profil: amoCRM'da alohida sahifa /settings/profile «Настройки профиля» (akkaunt paneli → «профиль»): avatar, ID
+       пользователя (nusxalash), Language/Язык, Имя, Телефон, Email, Пароль (••••• → almashtirish), Примечание; «Безопасность» →
+       «Сеансы» (brauzer+OS, oxirgi kirish, IP, «Текущий», har biri «Выйти»); «Настройки уведомлений» (tur × kanal jadvali);
+       «Доступ к аккаунту». Bizda: kichik modal (til + parol). → Profil sahifasi, sessiyalar (refresh-token oilasi = sessiya).
+    b) [ ] Общие: amoCRM'da «Язык» yo'q (u profilda) → olib tashlash. «Товары» (katalog yoqish/o'chirish) qo'shish — o'chsa
+       Ro'yxatlar → Mahsulotlar va kartochkadagi «Mahsulotlar» yashiriladi. Yo'q (keyinroq, tarif/katta funksiya): Периодические
+       покупки, Счета/покупки, Личные чаты, Кабинет клиента, Автоматическая загрузка больших файлов, Удаление файлов.
+    c) [ ] Безопасность: amoCRM'da faqat «Белый список IP-адресов» + «Резервное копирование». Bizdagi «Смена пароля» → profilga.
+       «Резервное копирование» qo'shish (admin barcha ma'lumotni JSON arxiv qilib yuklab oladi).
+    d) [ ] Чаты и мессенджеры: amoCRM'da kanal ulash bloki yo'q (u amoМаркет'da) → Telegram blokini olib tashlash (Integratsiyalarda
+       bor). Qo'shish: «Меню imBox + центр нотификаций» / «Центр нотификаций» tanlovi, «Отмечать событие, если превышено время
+       ответа на сообщение» (daqiqa). Beseda qoidalari matni amoCRM'dagidek («…в последнем созданном покупателе…» bizda покупатели
+       yo'q — sdelka). Pro-tarif bloklari (Список ботов, Онлайн чаты, Сокращать ссылки, Типовые вопросы, Обращения и NPS) — keyin.
+    e) [ ] Пользователи: amoCRM'da guruhlar (otdel: ADMINS, CALL CENTRE…) rollardan alohida; «ГРУППА» ustuni guruhni ko'rsatadi.
+    f) [ ] Chap panel: amoCRM tartibi — Общие настройки, Счет и оплата, Пользователи, Чаты и мессенджеры, Безопасность, amoAI,
+       keyin o'rnatilgan vidjetlar (Telegram, WhatsApp…). Bizda Счет и оплата / amoAI kerak emas (o'z serverimiz) — qolgani bir xil.
 
 38. [ ] (foydalanuvchi so'rovi 26.10) BARCHA bo'limlar amoCRM bilan har bir detalda — 34-37-bandlardagi usulda: avval amoCRM'da
     bo'lim qanday ishlashini, nomlar, joylashuv, filtrlar, menyular, holatlar, bo'sh holat matnlarini o'rganish (faqat ko'rish),

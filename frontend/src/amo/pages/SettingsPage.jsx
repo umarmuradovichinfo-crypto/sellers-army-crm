@@ -1,6 +1,5 @@
 // amoCRM "Настройки": chap panel (SectionAside) + bo'limlar — umumiy / foydalanuvchilar / chatlar / xavfsizlik.
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import SectionAside from '../SectionAside'
 import { Ico } from '../AmoIcons'
 import { useI18n, useT } from '../i18n'
@@ -11,6 +10,7 @@ import { settingsService } from '../../services/settings.service'
 import SettingsUsers from './SettingsUsers'
 import '../i18n/settings.ru'
 import '../settings.css'
+import { setFormatPrefs } from '../format'
 
 const ITEMS = [
   { to: '/settings/general', label: 'Umumiy sozlamalar' },
@@ -47,7 +47,7 @@ const CURRENCIES = ["O'zbek so'mi", 'Rossiya rubli', 'AQSh dollari', 'Yevro']
 const NAME_ORDERS = ['Ism, Familiya', 'Familiya, Ism']
 const DEFAULTS = {
   accountName: '', address: '', timezone: '+05:00', country: COUNTRIES[0], dateFormat: DATE_FORMATS[0],
-  timeFormat: TIME_FORMATS[0], currency: CURRENCIES[0], nameOrder: NAME_ORDERS[0],
+  timeFormat: TIME_FORMATS[0], currency: CURRENCIES[0], nameOrder: NAME_ORDERS[0], products: true,
 }
 
 // Chap menyu bo'limlari (Sozlamalar yashirilmaydi)
@@ -59,11 +59,9 @@ function Row({ label, children }) {
 
 function GeneralSection() {
   const t = useT()
-  const { lang, setLang } = useI18n()
   const { can } = useAuth()
   const canManage = can('settings.roles.manage')
   const [form, setForm] = useState({ ...DEFAULTS })
-  const [uiLang, setUiLang] = useState(lang)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
   const { data } = useApi(() => (can('settings.view') ? settingsService.getGeneral() : Promise.resolve({ general: {} })), [], 'settings:general')
@@ -71,7 +69,7 @@ function GeneralSection() {
   const [base, setBase] = useState({ ...DEFAULTS })
   useEffect(() => { if (data?.general) { const g = { ...DEFAULTS, ...data.general }; setForm(g); setBase(g) } }, [data])
   // amoCRM: "Сохранить" o'zgarish bo'lgandagina faol (ko'k)
-  const dirty = JSON.stringify(form) !== JSON.stringify(base) || uiLang !== lang
+  const dirty = JSON.stringify(form) !== JSON.stringify(base)
   const access = useApi(() => (canManage ? settingsService.getAccess() : Promise.resolve({ roles: [] })), [], 'settings:access')
   const [navRole, setNavRole] = useState('*')
   const navHidden = form.navHidden || {}
@@ -86,8 +84,8 @@ function GeneralSection() {
     setBusy(true); setMsg(null)
     try {
       if (canManage) await settingsService.saveGeneral(form)
-      if (uiLang !== lang) setLang(uiLang)
       setBase(form)
+      setFormatPrefs(form)
       window.dispatchEvent(new CustomEvent('amo:nav-hidden', { detail: form.navHidden || {} }))
       setMsg({ ok: true, m: t('Saqlandi') })
       setTimeout(() => setMsg(null), 2500)
@@ -110,18 +108,19 @@ function GeneralSection() {
           <div className="ac-set-block__desc">{t("Akkaunt nomi va manzilini o'zgartirishingiz mumkin. Faqat harf va raqamlardan foydalaning, maxsus belgilar va bo'sh joylar mumkin emas.")}</div>
           <Row label={t('Akkaunt nomi')}><input className="ac-input" value={form.accountName} onChange={set('accountName')} disabled={!canManage} /></Row>
           <Row label={t('Manzil')}><input className="ac-input" value={form.address} onChange={set('address')} disabled={!canManage} /></Row>
-          <Row label={t('Til')}>
-            <select className="ac-select" value={uiLang} onChange={(e) => setUiLang(e.target.value)}>
-              <option value="uz">{"O'zbekcha"}</option>
-              <option value="ru">Русский</option>
-            </select>
-          </Row>
           <Row label={t('Vaqt mintaqasi')}>{sel('timezone', TIMEZONES, (z) => `(GMT ${z}) ${t(TZ_CITY[z] || z)}`)}</Row>
           <Row label={t('Mamlakat')}>{sel('country', COUNTRIES, t)}</Row>
           <Row label={t('Sana formati')}>{sel('dateFormat', DATE_FORMATS)}</Row>
           <Row label={t('Vaqt formati')}>{sel('timeFormat', TIME_FORMATS, t)}</Row>
           <Row label={t('Valyuta')}>{sel('currency', CURRENCIES, t)}</Row>
           <Row label={t('Kontakt ismlari tartibi')}>{sel('nameOrder', NAME_ORDERS, t)}</Row>
+        </div>
+        <div className="ac-set-block">
+          <label className="ac-set-toggle">
+            <span className={`ac-switch ${form.products !== false ? 'on' : ''}`} onClick={(e) => { e.preventDefault(); if (canManage) setForm((f) => ({ ...f, products: f.products === false })) }} />
+            <h2 className="ac-set-block__title" style={{ margin: 0 }}>{t('Mahsulotlar')}</h2>
+          </label>
+          <div className="ac-set-block__desc">{t("Mahsulotlar katalogini yoqing: bitim kartochkasiga mahsulot qo'shish, summani avtomatik hisoblash va «Ro'yxatlar» bo'limidagi katalog. O'chirilsa, katalog va kartochkadagi «Mahsulotlar» bloki yashiriladi (ma'lumotlar saqlanib qoladi).")}</div>
         </div>
         {canManage && (
           <div className="ac-set-block">
@@ -154,7 +153,6 @@ function ChatsSection() {
   const t = useT()
   const { can } = useAuth()
   const canManage = can('settings.roles.manage')
-  const { data, loading } = useApi(() => crmService.chatStatus(), [], 'settings:chat-status', 60000)
   const cs = useApi(() => crmService.chatSettings(), [], 'settings:chat-settings')
   const [form, setForm] = useState(null)
   const [base, setBase] = useState(null)
@@ -162,11 +160,10 @@ function ChatsSection() {
   const [msg, setMsg] = useState(null)
   const [edit, setEdit] = useState(null) // shablon tahrirlash: { id?, name, text, active }
   useEffect(() => { if (cs.data) { setForm(cs.data); setBase(cs.data) } }, [cs.data])
-  const on = !!data?.telegram
   const dirty = form && base && JSON.stringify(form) !== JSON.stringify(base)
   const save = async () => {
     setBusy(true); setMsg(null)
-    try { const r = await crmService.saveChatSettings(form); setForm(r); setBase(r); setMsg({ ok: true, m: t('Saqlandi') }); setTimeout(() => setMsg(null), 2500) }
+    try { const r = await crmService.saveChatSettings(form); setForm(r); setBase(r); window.dispatchEvent(new CustomEvent('amo:chat-settings', { detail: r })); setMsg({ ok: true, m: t('Saqlandi') }); setTimeout(() => setMsg(null), 2500) }
     catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) } finally { setBusy(false) }
   }
   const putTpl = () => {
@@ -193,19 +190,16 @@ function ChatsSection() {
       </Head>
       <div className="ac-set-body">
         <div className="ac-set-block">
-          <h2 className="ac-set-block__title">{t('Chatlar va messenjerlar')}</h2>
-          <div className="ac-set-block__desc">{t("Mijozlar yozishmalari shu kanallar orqali imBox'ga tushadi. Sozlash uchun Integratsiyalar bo'limini oching.")}</div>
-          {loading && !data ? <div className="ac-spinner" /> : (
-            <div className="ac-set-chat">
-              <div className="ac-set-chat__ico"><Ico name="telegram" size={20} /></div>
-              <div style={{ flex: 1 }}>
-                <div className="ac-set-chat__name">Telegram</div>
-                <span className={`ac-set-status ${on ? 'ok' : ''}`}>{on ? t('Ulangan') : t('Ulanmagan')}</span>
-              </div>
-              <Link to="/amo-market">{t('Integratsiyalar')}</Link>
+          {[[true, "imBox menyusi + bildirishnomalar markazi", "Bu tanlov yoqilganda bosh menyuda turli manbalardagi mijoz chatlarini birlashtiruvchi «imBox» bo'limi paydo bo'ladi. Qolgan bildirishnomalar, jumladan xodimlar orasidagi ichki xabarlar, «Bildirishnomalar markazi»ga keladi"],
+            [false, 'Bildirishnomalar markazi', "Bu tanlov yoqilganda bildirishnomalar, jumladan xodimlar orasidagi ichki xabarlar va mijozlar chatlari «Bildirishnomalar markazi»ga keladi."]].map(([v, title, desc]) => (
+            <div key={String(v)} className="ac-set-notifmode">
+              <label className="ac-set-toggle">
+                <span className={`ac-switch ${(form?.imboxMenu !== false) === v ? 'on' : ''}`} onClick={(e) => { e.preventDefault(); if (canManage) setForm((f) => ({ ...f, imboxMenu: v })) }} />
+                <h2 className="ac-set-block__title" style={{ margin: 0 }}>{t(title)}</h2>
+              </label>
+              <div className="ac-set-block__desc">{t(desc)}</div>
             </div>
-          )}
-          {!on && !loading && <div className="ac-set-note" style={{ marginTop: 6 }}>{t("Telegram sozlanmagan: serverda TELEGRAM_BOT_TOKEN qo'shilgach mijozlar bilan yozishasiz.")}</div>}
+          ))}
         </div>
 
         <div className="ac-set-block">
@@ -247,6 +241,18 @@ function ChatsSection() {
               <span>{t(l)}</span>
             </label>
           ))}
+          <label className="ac-set-radio" style={{ marginTop: 10 }}>
+            <input type="checkbox" checked={!!form?.replyLimitMin} disabled={!canManage} onChange={(e) => setForm((f) => ({ ...f, replyLimitMin: e.target.checked ? 15 : 0 }))} />
+            <span>{t("Xabarga javob berish vaqti oshib ketsa, voqeani belgilash")}</span>
+          </label>
+          {!!form?.replyLimitMin && (
+            <div className="ac-set-row" style={{ paddingLeft: 24 }}>
+              <div className="ac-set-row__label">{t('Javob vaqti')}</div>
+              <select className="ac-select" value={form.replyLimitMin} disabled={!canManage} onChange={(e) => setForm((f) => ({ ...f, replyLimitMin: Number(e.target.value) }))}>
+                {[1, 5, 15, 30, 60, 120, 240, 1440].map((m) => <option key={m} value={m}>{m < 60 ? `${m} ${t('daqiqa')}` : `${m / 60} ${t('soat')}`}</option>)}
+              </select>
+            </div>
+          )}
         </div>
       </div>
     </>
@@ -254,9 +260,10 @@ function ChatsSection() {
 }
 
 // ── Xavfsizlik → "IP manzillar oq ro'yxati" (amoCRM "Белый список IP-адресов") ──
-function IpWhitelist() {
+// amoCRM: IP ro'yxati sahifaning yuqorisidagi «Сохранить» bilan saqlanadi — hook blok va saqlash holatini qaytaradi
+function useIpWhitelist(enabled) {
   const t = useT()
-  const { data, reload } = useApi(() => settingsService.getSecurity(), [], 'settings:security')
+  const { data, reload } = useApi(() => (enabled ? settingsService.getSecurity() : Promise.resolve(null)), [enabled], 'settings:security')
   const [list, setList] = useState(null)
   const [ip, setIp] = useState('')
   const [msg, setMsg] = useState(null)
@@ -269,7 +276,7 @@ function IpWhitelist() {
     try { await settingsService.saveSecurity(list); await reload(); setMsg({ ok: true, m: t('Saqlandi') }) }
     catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) } finally { setBusy(false) }
   }
-  return (
+  const block = (
     <div className="ac-set-block">
       <h2 className="ac-set-block__title">{t("IP manzillar oq ro'yxati")}</h2>
       <div className="ac-set-block__desc">{t("Bu ro'yxat akkauntga faqat ko'rsatilgan IP manzillardan kirishga ruxsat beradi, boshqa kompyuterlardan kirish taqiqlanadi.")}</div>
@@ -284,51 +291,46 @@ function IpWhitelist() {
         <button className="ac-btn" onClick={add} disabled={!ip.trim()}>{t("set§Qo'shish")}</button>
         {data?.currentIp && !(list || []).includes(data.currentIp) && <button className="ac-btn ac-btn--plain" onClick={() => setList([...(list || []), data.currentIp])}>{t('Joriy IP')}</button>}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
-        <button className={`ac-set-save ${dirty ? 'on' : ''}`} disabled={busy || !dirty} onClick={save}>{t('card§Saqlash')}</button>
-        {msg && <span className={msg.ok ? 'ac-set-saved' : 'ac-set-err'}>{msg.m}</span>}
-      </div>
     </div>
   )
+  return { block, dirty, busy, save, msg }
 }
 
-// ── Xavfsizlik: parolni o'zgartirish ──
+// amoCRM «Безопасность»: «Белый список IP-адресов» + «Резервное копирование» (parol — profilda)
 function SecuritySection() {
   const t = useT()
-  const { user, can } = useAuth()
+  const { can } = useAuth()
   const canIp = can('settings.roles.manage')
-  const [cur, setCur] = useState('')
-  const [pw, setPw] = useState('')
-  const [pw2, setPw2] = useState('')
+  const ipw = useIpWhitelist(canIp)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
-  const bad = !cur || pw.length < 6 || pw !== pw2
-
-  const save = async () => {
-    if (bad || busy || !user?.id) return
+  const backup = async () => {
     setBusy(true); setMsg(null)
     try {
-      await settingsService.changeOwnPassword(cur, pw)
-      setCur(''); setPw(''); setPw2(''); setMsg({ ok: true, m: t('Parol o\'zgartirildi') })
-    } catch (e) { setMsg({ ok: false, m: e.message || t('Xatolik') }) }
-    finally { setBusy(false) }
+      const blob = await settingsService.backup()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `crm-backup-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000)
+    } catch (e) { setMsg(e.message || t('Xatolik')) } finally { setBusy(false) }
   }
   return (
     <>
       <Head>
-        {msg && <span className={msg.ok ? 'ac-set-saved' : 'ac-set-err'} style={msg.ok ? undefined : { margin: '0 14px 0 0' }}>{msg.m}</span>}
-        <button className={`ac-set-save ${!bad ? 'on' : ''}`} disabled={busy || bad} onClick={save}>{t('card§Saqlash')}</button>
+        {ipw.msg && <span className={ipw.msg.ok ? 'ac-set-saved' : 'ac-set-err'} style={ipw.msg.ok ? undefined : { margin: '0 14px 0 0' }}>{ipw.msg.m}</span>}
+        <button className={`ac-set-save ${ipw.dirty ? 'on' : ''}`} disabled={ipw.busy || !ipw.dirty} onClick={ipw.save}>{t('card§Saqlash')}</button>
       </Head>
       <div className="ac-set-body">
-        {canIp && <IpWhitelist />}
-        <div className="ac-set-block">
-          <h2 className="ac-set-block__title">{t("Parolni o'zgartirish")}</h2>
-          <div className="ac-set-block__desc">{t('Yangi parol kamida 6 belgidan iborat bo\'lsin.')}</div>
-          <Row label={t('Joriy parol')}><input className="ac-input" type="password" autoComplete="current-password" value={cur} onChange={(e) => setCur(e.target.value)} /></Row>
-          <Row label={t('Yangi parol')}><input className="ac-input" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} /></Row>
-          <Row label={t('Parolni takrorlang')}><input className="ac-input" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></Row>
-          {pw2 && pw !== pw2 && <div className="ac-set-err">{t('Parollar mos kelmadi')}</div>}
-        </div>
+        {canIp && ipw.block}
+        {canIp && (
+          <div className="ac-set-block">
+            <h2 className="ac-set-block__title">{t('Zaxira nusxa')}</h2>
+            <div className="ac-set-block__desc">{t("Zaxira nusxa yordamida istalgan vaqtda akkauntdagi barcha ma'lumotlarni (bitimlar, kontaktlar, kompaniyalar, vazifalar, qo'ng'iroqlar, xabarlar, voqealar, sozlamalar) bitta fayl qilib yuklab olishingiz mumkin. Parollar va integratsiya kalitlari faylga kirmaydi.")}</div>
+            <button className="ac-btn ac-btn--blue" disabled={busy} onClick={backup}>{busy ? t('Tayyorlanmoqda…') : t('Zaxira nusxa yaratish')}</button>
+            {msg && <div className="ac-set-err">{msg}</div>}
+          </div>
+        )}
       </div>
     </>
   )

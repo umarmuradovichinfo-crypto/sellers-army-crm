@@ -28,6 +28,12 @@ export const settingsService = {
 
   // POST /settings/me/password { currentPassword, password } — har qanday rol o'z parolini o'zgartiradi
   changeOwnPassword: (currentPassword, password) => api.post('/settings/me/password', { currentPassword, password }),
+  // amoCRM «Настройки профиля»: { profile:{id,name,email,phone,note,avatar}, sessions:[{id,ua,ip,lastAt,current}] }
+  // «Резервное копирование» — JSON fayl (Blob)
+  backup: () => api.getBlob('/settings/backup'),
+  getProfile: () => api.get('/settings/me/profile'),
+  saveProfile: (payload) => api.put('/settings/me/profile', payload),
+  closeSession: (id) => api.del(`/settings/me/sessions/${id}`),
 
   // GET/PUT /settings/general -> { general: { accountName, address, timezone, country, dateFormat, timeFormat, currency, nameOrder } }
   getGeneral: () => api.get('/settings/general'),

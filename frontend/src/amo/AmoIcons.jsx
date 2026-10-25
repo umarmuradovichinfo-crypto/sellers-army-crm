@@ -134,6 +134,7 @@ const SMALL = {
   company: <><rect x="2.5" y="4.5" width="7" height="9.5" {...S} /><path d="M9.5 7.5h4v6.5h-4M4.5 7h3M4.5 10h3" {...S} /></>,
   gear: <><circle cx="8" cy="8" r="2.3" {...S} /><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" {...S} /></>,
   send: <path d="M2 8l12-5.5L9.5 14 7.5 9z" {...S} />,
+  camera: <><path d="M2 5.5h2.5l1.2-1.8h4.6l1.2 1.8H14v7.5H2z" {...S} /><circle cx="8" cy="9" r="2.3" {...S} /></>,
   attach: <path d="M11 5.5L6 10.5a1.8 1.8 0 0 1-2.5-2.5l5.5-5.5a3 3 0 0 1 4.2 4.2L7.5 12.5" {...S} />,
   list: <path d="M5.5 4h8.5M5.5 8h8.5M5.5 12h8.5M2 4h.5M2 8h.5M2 12h.5" {...S} strokeWidth="1.6" />,
   external: <path d="M9 2.5h4.5V7M13.5 2.5L7.5 8.5M11.5 9.5v4h-9v-9h4" {...S} />,
