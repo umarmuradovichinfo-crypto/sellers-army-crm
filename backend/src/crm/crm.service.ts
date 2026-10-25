@@ -672,10 +672,22 @@ export class CrmService {
     return this.getLead(id);
   }
 
+  /** Bitim o'chirilganda unga bog'liq yozuvlar (vazifalar va kontakt bog'lari DB'da kaskad bilan o'chadi). */
+  private async purgeLeadData(ids: string[]) {
+    const where = { leadId: { in: ids } };
+    await this.prisma.activity.deleteMany({ where });
+    await this.prisma.message.deleteMany({ where });
+    await this.prisma.conversationState.deleteMany({ where });
+    await this.prisma.salesbotRun.deleteMany({ where });
+    await this.prisma.automationJob.deleteMany({ where });
+    await this.prisma.deletedTask.deleteMany({ where });
+    await this.prisma.callLog.updateMany({ where, data: { leadId: null } }); // qo'ng'iroq tarixi saqlanadi
+  }
+
   async deleteLead(id: string) {
     const l = await this.prisma.lead.findUnique({ where: { id } });
     if (!l) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
-    await this.prisma.activity.deleteMany({ where: { leadId: id } });
+    await this.purgeLeadData([id]);
     await this.prisma.lead.delete({ where: { id } });
     void this.activity.hook('delete_lead', { leadId: id, name: l.name });
     return { success: true };
@@ -829,7 +841,7 @@ export class CrmService {
       }
       case 'delete': {
         for (const part of chunks) {
-          await this.prisma.activity.deleteMany({ where: { leadId: { in: part } } });
+          await this.purgeLeadData(part);
           affected += (await this.prisma.lead.deleteMany({ where: { id: { in: part } } })).count;
         }
         break;

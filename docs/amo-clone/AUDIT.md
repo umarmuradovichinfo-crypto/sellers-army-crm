@@ -209,3 +209,7 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
   «Свой шаг (код)» (JSON qadamlar, saqlashda tekshiriladi), «Виджеты» (Webhook, SSRF himoyasi). Chat yo'q bitimda amoCRM kabi:
   «сообщение не отправлено — нет активного чата» lentaga, bot davom etadi. Mock Telegram/Graph serverda yuborilgan so'rovlar tekshirildi.
 - Topilib tuzatilgan xato: tugma bosilgandan keyin reaksiya botning o'z xabariga qo'yilardi → mijozning oxirgi yozgan xabariga.
+- To'liq API testi (lid, kontakt, vazifa, analitika, ish stoli vidjetlari, sozlamalar, teglar, maydonlar, voronka arxivi, botlar,
+  import tarixi, imBox, bildirishnomalar — 50+ tekshiruv) o'tdi. Topilib tuzatildi: bitim o'chirilganda chat xabarlari, suhbat holati,
+  bot ishga tushishlari, rejalashtirilgan avtomatlashtirish va arxivdagi vazifalar yetim qolardi (yakka va ommaviy o'chirishda);
+  bot o'chirilganda uning tugagan ishga tushishlari qolardi.

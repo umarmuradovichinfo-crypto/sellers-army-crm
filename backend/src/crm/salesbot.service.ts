@@ -123,7 +123,8 @@ export class SalesbotService implements OnModuleInit {
   }
 
   async remove(id: string) {
-    await this.prisma.salesbotRun.updateMany({ where: { botId: id, state: { in: ACTIVE } }, data: { state: 'stopped' } });
+    // bot o'chirilsa uning barcha ishga tushishlari ham (yetim yozuvlar qolmasin)
+    await this.prisma.salesbotRun.deleteMany({ where: { botId: id } });
     await this.prisma.salesbot.delete({ where: { id } }).catch(() => undefined);
     return { ok: true };
   }
