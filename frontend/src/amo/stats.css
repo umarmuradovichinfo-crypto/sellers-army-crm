@@ -239,6 +239,19 @@
 /* Telefon: bloklar ustma-ust, voronkada Gantt yashiriladi, chiziqlar ekranga sig'adi */
 @media (max-width: 760px) {
   .ac-stats-body { padding: 8px; }
+  .ac-stats-sum { grid-template-columns: minmax(0, 1fr); padding: 10px 8px 14px; }
+  .ac-stats-sum > * { min-width: 0; max-width: 100%; }
+  .ac-stats-call__who { width: 96px; padding-right: 8px; font-size: 12px; }
+  .ac-stats-calls__legend { margin-left: 96px; }
+  .ac-stats-goals__name { width: 92px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+  .ac-stats-goals__none { right: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .ac-stats-goals__cell { margin-right: 12px; min-width: 0; }
+  .ac-stats-donut svg { max-width: 100%; height: auto; }
+  .ac-stats-call__who small { font-size: 11px; }
+  .ac-stats-call__in, .ac-stats-call__out { padding: 0 2px; font-size: 11px; min-width: 0; overflow: hidden; }
+  .ac-stats-tabs { flex-wrap: wrap; max-width: 100%; }
+  .ac-stats-call__bar { max-width: calc(100% - 56px); }
+  .ac-stats-call__total { flex: none; font-size: 18px; }
   .ac-stats-deals { flex-wrap: wrap; }
   .ac-stats-deals__new { width: 100%; flex-direction: row; gap: 10px; padding-bottom: 8px; }
   .ac-stats-deals__new b { font-size: 34px; line-height: 38px; }

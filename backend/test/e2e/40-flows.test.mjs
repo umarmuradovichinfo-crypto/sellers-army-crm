@@ -38,7 +38,7 @@ describe('Kontaktlar va kompaniyalar', () => {
   });
 
   test("ro'yxat va qidiruv", async () => {
-    const name = uniq('QidirK');
+    const name = uniq('SearchK');
     await ok('POST', '/crm/contacts', { name }, T);
     const d = await ok('GET', `/crm/contacts?search=${encodeURIComponent(name)}`, undefined, T, 200);
     assert.ok(JSON.stringify(d).includes(name));

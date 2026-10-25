@@ -218,7 +218,7 @@ describe("O'chirish, ommaviy amallar, birlashtirish", () => {
 
 describe("Qidiruv, filtr, eksport/import", () => {
   test('nom bo`yicha qidiruv va byudjet filtri', async () => {
-    const name = uniq('Qidiruv');
+    const name = uniq('SearchLead');
     await newLead(T, { name, value: 777 });
     const d = await ok('GET', `/crm/leads?search=${encodeURIComponent(name)}`, undefined, T, 200);
     assert.equal(d.leads.length, 1);

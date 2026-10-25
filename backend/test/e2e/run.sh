@@ -38,6 +38,16 @@ done
 set +e
 node --test --test-concurrency=1 --test-reporter=spec ${E2E_FILES:-test/e2e/*.test.mjs}
 CODE=$?
+# E2E_UI=1 — UI tutun testi (kompyuterdagi Chrome): frontend dev server test backendiga ulanadi
+if [ "${E2E_UI:-0}" = "1" ]; then
+  echo; echo "── UI testlari ──"
+  UI_PORT="${E2E_UI_PORT:-5199}"
+  ( cd ../frontend && VITE_API_URL="http://localhost:${PORT}" npx vite --port "$UI_PORT" --strictPort >"$LOG.ui" 2>&1 ) &
+  UIPID=$!
+  trap 'kill $PID $UIPID 2>/dev/null || true; pkill -f "vite --port ${UI_PORT}" 2>/dev/null || true' EXIT
+  for i in $(seq 1 60); do curl -sf "http://localhost:${UI_PORT}/" >/dev/null 2>&1 && break; sleep 0.5; done
+  ( cd ../frontend && UI_BASE="http://localhost:${UI_PORT}" node test/ui/smoke.mjs ) || CODE=1
+fi
 # barcha testlardan keyin test bazasining yaxlitligi (bug izlari: yetim yozuvlar, noto'g'ri bosqich, yopilish sanalari...)
 echo; echo "── Ma'lumotlar yaxlitligi (test bazasi) ──"
 npx tsx scripts/check-integrity.ts || CODE=1

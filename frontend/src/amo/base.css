@@ -177,3 +177,17 @@ textarea.ac-input { height: auto; min-height: 80px; padding: 8px 10px; resize: v
 /* Rangli teg (Sozlamalar → Teglar rangi) */
 .ac-tag--c { background: var(--tag) !important; border-color: var(--tag) !important; color: #363b44 !important; }
 [data-color-scheme="dark"] .ac-tag--c { background: color-mix(in srgb, var(--tag) 22%, transparent) !important; color: var(--palette-text-secondary-dark) !important; border-color: color-mix(in srgb, var(--tag) 75%, transparent) !important; }
+
+/* ── Telefon (≤760px): sahifa butunlay gorizontal siljimasin (UI testi topgan) ──
+   yopiq filtr panellari joy egallamaydi, ochilganda ekranga sig'adi; keng jadvallar o'z blokida suriladi */
+@media (max-width: 760px) {
+  .ac-filter:not(.open), .ac-stats-fpanel:not(.open) { display: none; }
+  .ac-filter { flex-direction: column; overflow-y: auto; width: calc(100vw - var(--left-menu-width) - 8px); }
+  .ac-filter__presets { width: auto; border-right: 0; border-bottom: 1px solid var(--palette-border-primary); }
+  .ac-filter .ac-filter__col, .ac-filter .ac-filter__col--fields { flex: none; width: auto; min-width: 0; }
+  .ac-stats-fpanel { width: calc(100vw - var(--left-menu-width) - 8px); }
+  .ac-table { display: block; max-width: 100%; overflow-x: auto; }
+  .ac-fs-tabs { overflow-x: auto; max-width: 100%; }
+  .ac-stats-head__title { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .ac-top__search input { min-width: 0; width: 0; }
+}
