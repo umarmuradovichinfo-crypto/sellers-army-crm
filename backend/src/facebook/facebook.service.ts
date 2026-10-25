@@ -222,7 +222,8 @@ export class FacebookService implements OnModuleInit, SocialProvider {
     if (!senderId || senderId === pageId || (igId && senderId === igId) || m?.message?.is_echo) return; // o'zimizning xabarlar
     const msg = m.message || m.postback || {};
     const atts: any[] = Array.isArray(m.message?.attachments) ? m.message.attachments : [];
-    let text = String(m.message?.text || m.postback?.title || m.postback?.payload || '').trim();
+    // Salesbot tez javob tugmasi: to'liq matn payload'da (sarlavha 20 belgigacha qisqartiriladi)
+    let text = String(m.message?.quick_reply?.payload || m.message?.text || m.postback?.title || m.postback?.payload || '').trim();
     if (!text && atts.length) text = atts.map((a) => `[${a?.type || 'fayl'}]${a?.payload?.url ? ' ' + a.payload.url : ''}`).join('\n');
     if (!text) return; // reaksiya, o'qildi va h.k.
     const name = await this.senderName(channel, senderId, token);
@@ -255,11 +256,16 @@ export class FacebookService implements OnModuleInit, SocialProvider {
     return { facebook: c.pages.length > 0, instagram: c.pages.some((p) => !!p.igId) };
   }
   async hasPage(pageId: string) { return !!(await this.cfg.pageToken(pageId)); }
-  async sendMessage(a: { pageId: string; recipientId: string; text: string }) {
+  async sendMessage(a: { pageId: string; recipientId: string; text: string; buttons?: string[] }) {
     const token = await this.cfg.pageToken(a.pageId);
     if (!token) throw new BadRequestException({ error: 'NO_PAGE', message: 'Sahifa ulanmagan' });
-    const r = await this.client.sendMessage(a.pageId, token, a.recipientId, a.text);
+    const r = await this.client.sendMessage(a.pageId, token, a.recipientId, a.text, a.buttons);
     return { id: r.message_id };
+  }
+  async react(a: { pageId: string; recipientId: string; messageId: string }) {
+    const token = await this.cfg.pageToken(a.pageId);
+    if (!token) throw new BadRequestException({ error: 'NO_PAGE', message: 'Sahifa ulanmagan' });
+    return this.client.react(a.pageId, token, a.recipientId, a.messageId);
   }
   async replyComment(a: { channel: SocialChannel; pageId: string; commentId: string; text: string }) {
     const token = await this.cfg.pageToken(a.pageId);

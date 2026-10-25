@@ -17,16 +17,21 @@ export class TelegramClient {
   }
 
   private base() {
-    return `https://api.telegram.org/bot${this.token}`;
+    // TELEGRAM_API_BASE — faqat test/mock uchun (standart: rasmiy Bot API)
+    return `${(process.env.TELEGRAM_API_BASE || 'https://api.telegram.org').replace(/\/$/, '')}/bot${this.token}`;
   }
 
-  async sendMessage(chatId: string, text: string): Promise<{ ok: boolean; messageId?: string; error?: string }> {
+  /** buttons — amoCRM Salesbot tugmalari: xabar ostidagi inline tugmalar (bosilganda callback_query keladi). */
+  async sendMessage(chatId: string, text: string, buttons?: string[]): Promise<{ ok: boolean; messageId?: string; error?: string }> {
     if (!this.enabled()) return { ok: false, error: 'TELEGRAM_DISABLED' };
     try {
       const res = await fetch(`${this.base()}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text }),
+        body: JSON.stringify({
+          chat_id: chatId, text,
+          ...(buttons?.length ? { reply_markup: { inline_keyboard: buttons.map((b, i) => [{ text: b.slice(0, 64), callback_data: `sb:${i}` }]) } } : {}),
+        }),
       });
       const json: any = await res.json().catch(() => null);
       if (!json?.ok) return { ok: false, error: json?.description || 'send failed' };
@@ -51,5 +56,24 @@ export class TelegramClient {
     } catch {
       return { ok: false, error: 'network' };
     }
+  }
+
+  private async call(method: string, body: Record<string, unknown>) {
+    if (!this.enabled()) return { ok: false, error: 'TELEGRAM_DISABLED' };
+    try {
+      const res = await fetch(`${this.base()}/${method}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const json: any = await res.json().catch(() => null);
+      return { ok: !!json?.ok, error: json?.description };
+    } catch {
+      return { ok: false, error: 'network' };
+    }
+  }
+
+  /** Tugma bosilganini tasdiqlash (Telegram «soat» belgisini olib tashlaydi). */
+  answerCallback(id: string) { return this.call('answerCallbackQuery', { callback_query_id: id }); }
+
+  /** amoCRM «Реакция»: mijoz xabariga emoji reaksiya. */
+  setReaction(chatId: string, messageId: string, emoji: string) {
+    return this.call('setMessageReaction', { chat_id: chatId, message_id: Number(messageId), reaction: [{ type: 'emoji', emoji }] });
   }
 }

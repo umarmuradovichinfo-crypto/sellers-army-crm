@@ -11,7 +11,7 @@ Batafsil farqlar va tuzatishlar: [AUDIT.md](AUDIT.md). Reja: [PLAN.md](PLAN.md).
 | Akkaunt paneli: профиль, выйти, mavzu auto/light/dark, til UZ/RU | ✅ | |
 | Bildirishnomalar (qo'ng'iroqcha) | ✅ | matnlar hozircha o'zbekcha (server) |
 | Internet uzilganda «Нет подключения / Переподключиться» | ✅ | |
-| «AI-агенты и боты»: botlar ro'yxati va Salesbot konstruktori | ✅ | Реакция, Свой шаг (код), Виджеты — yo'q; tugmalar kanalda raqamli ro'yxat |
+| «AI-агенты и боты»: botlar ro'yxati va Salesbot konstruktori (barcha qadamlar: Реакция, Прерыватель, Свой шаг (код), Виджеты ham) | ✅ | tugmalar: Telegram inline, Messenger/Instagram quick replies |
 | «Амма» AI yordamchisi | ⏳ | PLAN 30 — tasdiq kutilmoqda |
 | «Покупатели» | ➖ | akkauntda o'chiq |
 

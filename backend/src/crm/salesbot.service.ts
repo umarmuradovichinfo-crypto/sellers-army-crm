@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ActivityService } from './activity.service';
 import { AutomationService } from './automation.service';
 import { ChatService } from './chat.service';
+import { webhookUrlProblem } from './webhook-guard';
 
 /*
  * amoCRM Salesbot. Bot — qadamlar grafi:
@@ -17,10 +18,16 @@ import { ChatService } from './chat.service';
  *   distribute — mas'ulni navbat bilan taqsimlash
  *   start_bot  — boshqa botni ishga tushirish
  *   stop       — botni to'xtatish
+ *   reaction   — mijozning oxirgi xabariga reaksiya
+ *   code       — «Свой шаг (код)»: JSON qadamlar ro'yxati ketma-ket bajariladi
+ *   widget     — «Виджеты»: ulangan integratsiya (Webhook) qadami
+ *   interrupt  — «Прерыватель»: bot javob kutayotganda mijoz kalit so'z yozsa, shu tarmoqqa o'tadi (butun bot bo'yicha)
  */
 export type BotStep = Record<string, any> & { id: string; type: string };
 
-const STEP_TYPES = ['message', 'action', 'note', 'condition', 'validator', 'pause', 'distribute', 'start_bot', 'stop'];
+const STEP_TYPES = ['message', 'action', 'note', 'condition', 'validator', 'pause', 'distribute', 'start_bot', 'stop', 'reaction', 'code', 'widget', 'interrupt'];
+// «Свой шаг (код)» ichida ishlatiladigan (javob kutmaydigan) qadamlar
+const CODE_TYPES = ['message', 'action', 'note', 'reaction', 'distribute', 'widget'];
 const TRIGGER_TYPES = ['stage_enter', 'lead_created', 'message_in'];
 const MAX_STEPS = 40; // bitta yurishda (cheksiz aylanishdan himoya)
 const ACTIVE = ['running', 'waiting', 'paused'];
@@ -88,6 +95,11 @@ export class SalesbotService implements OnModuleInit {
       if (!s || typeof s.id !== 'string' || !STEP_TYPES.includes(s.type)) throw new BadRequestException({ error: 'BAD_STEP', message: `Noma'lum qadam: ${s?.type}` });
       if (ids.has(s.id)) throw new BadRequestException({ error: 'BAD_STEP', message: 'Qadam ID takrorlangan' });
       ids.add(s.id);
+      if (s.type === 'code') this.codeSteps(s);
+      if (s.type === 'widget' && s.widget === 'webhook') {
+        const pr = webhookUrlProblem(s.url);
+        if (pr) throw new BadRequestException({ error: 'BAD_URL', message: `Webhook URL: ${pr}` });
+      }
     }
     const triggers = (Array.isArray(dto.triggers) ? dto.triggers : []).filter((t: any) => t && TRIGGER_TYPES.includes(t.type));
     const startId = dto.startId && ids.has(dto.startId) ? dto.startId : null;
@@ -167,6 +179,12 @@ export class SalesbotService implements OnModuleInit {
     if (!bot || !step) { await this.finish(run.id, 'error', 'Qadam topilmadi'); return true; }
     const vars = { ...parse<Record<string, any>>(run.varsJson, {}), lastReply: text };
     await this.prisma.salesbotRun.update({ where: { id: run.id }, data: { varsJson: JSON.stringify(vars), state: 'running' } });
+    // «Прерыватель»: kalit so'z — bot qayerda kutayotganidan qat'i nazar shu tarmoqqa o'tadi
+    const t0 = norm(text);
+    for (const it of steps.filter((x) => x.type === 'interrupt')) {
+      const hit = (it.rules || []).find((r: any) => String(r.keyword || '').split(',').map(norm).filter(Boolean).some((k: string) => t0 === k || t0.includes(k)));
+      if (hit) { await this.advance(run.id, hit.next || null); return true; }
+    }
     let next: string | null = null;
     if (step.type === 'message') {
       const btns: any[] = Array.isArray(step.buttons) ? step.buttons : [];
@@ -227,16 +245,24 @@ export class SalesbotService implements OnModuleInit {
     switch (step.type) {
       case 'message': {
         const btns: any[] = Array.isArray(step.buttons) ? step.buttons.filter((b: any) => String(b?.label || '').trim()) : [];
-        const text = await this.render(String(step.text || ''), leadId, vars);
-        const body = btns.length ? `${text}\n\n${btns.map((b, i) => `${i + 1}. ${b.label}`).join('\n')}` : text;
-        // kanal yo'q yoki yuborilmadi — amoCRM kabi bot to'xtamaydi, lentaga yoziladi
-        if (body.trim()) await this.chat.sendMessage(leadId, body, BOT_USER).catch((e) => this.activity.record(leadId, 'automation', { actorName: 'Salesbot', text: `Salesbot (${botName}): xabar yuborilmadi — ${(e as Error).message}` }));
+        await this.say(leadId, await this.render(String(step.text || ''), leadId, vars), btns.map((b) => String(b.label)), botName);
         if (btns.length || step.wait) {
           await this.prisma.salesbotRun.update({ where: { id: runId }, data: { state: 'waiting' } });
           return 'wait';
         }
         return step.next || null;
       }
+      case 'reaction':
+        await this.chat.react(leadId, String(step.emoji || '👍')).catch((e) => this.activity.record(leadId, 'automation', { actorName: 'Salesbot', text: `Salesbot (${botName}): reaksiya qo'yilmadi — ${(e as Error).message}` }));
+        return step.next || null;
+      case 'code':
+        for (const sub of this.codeSteps(step)) await this.exec(runId, leadId, { ...sub, next: null }, botName);
+        return step.next || null;
+      case 'interrupt': // oqimda uchrasa — shunchaki keyingisi (kalit so'zlar onReply'da tekshiriladi)
+        return step.next || null;
+      case 'widget':
+        if (step.widget === 'webhook' && step.url) await this.automation.runActions([{ type: 'webhook', url: String(step.url) }], leadId, `Salesbot: ${botName}`);
+        return step.next || null;
       case 'action':
         await this.automation.runActions(Array.isArray(step.actions) ? step.actions : [], leadId, `Salesbot: ${botName}`);
         return step.next || null;
@@ -296,7 +322,7 @@ export class SalesbotService implements OnModuleInit {
       return step.validNext || step.next || null;
     }
     if (step.invalidNext) return step.invalidNext;
-    if (step.errorText) await this.chat.sendMessage(leadId, String(step.errorText), BOT_USER).catch(() => undefined);
+    if (step.errorText) await this.say(leadId, String(step.errorText), [], 'Salesbot');
     await this.prisma.salesbotRun.update({ where: { id: runId }, data: { state: 'waiting', stepId: step.id } });
     return undefined;
   }
@@ -320,6 +346,27 @@ export class SalesbotService implements OnModuleInit {
         case 'not_empty': return !(val === undefined || val === null || val === '' || (Array.isArray(val) && !val.length));
         default: return false;
       }
+    });
+  }
+
+  /** Xabar yuborish. Bitimda faol chat bo'lmasa — amoCRM kabi bot to'xtamaydi, lentaga «faol chat yo'q» yoziladi. */
+  private async say(leadId: string, text: string, buttons: string[], botName: string) {
+    if (!text.trim()) return;
+    await this.chat.sendMessage(leadId, text, BOT_USER, { buttons }).catch((e) => {
+      const code = (e as any)?.response?.error;
+      const why = code === 'NO_CHAT' ? "bitimda faol chat yo'q" : (e as Error).message;
+      return this.activity.record(leadId, 'automation', { actorName: 'Salesbot', text: `Salesbot (${botName}): xabar yuborilmadi — ${why}` });
+    });
+  }
+
+  /** «Свой шаг (код)»: JSON massiv — [{type:'message',text:'…'}, {type:'action',actions:[…]}, …]. */
+  private codeSteps(step: BotStep): BotStep[] {
+    let arr: any;
+    try { arr = JSON.parse(String(step.code || '[]')); } catch { throw new BadRequestException({ error: 'BAD_CODE', message: "«Свой шаг»: JSON noto'g'ri" }); }
+    if (!Array.isArray(arr)) throw new BadRequestException({ error: 'BAD_CODE', message: "«Свой шаг»: qadamlar massivi kutilmoqda" });
+    return arr.map((x, i) => {
+      if (!x || !CODE_TYPES.includes(x.type)) throw new BadRequestException({ error: 'BAD_CODE', message: `«Свой шаг»: ${i + 1}-qadam turi ruxsat etilmagan (${x?.type})` });
+      return { ...x, id: `${step.id}:${i}`, buttons: [], wait: false };
     });
   }
 

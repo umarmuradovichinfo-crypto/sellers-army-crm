@@ -13,6 +13,9 @@ export function trActivity(text, t, data) {
     return `«${t(data.label)}»: ${data.from || '—'} → ${data.to || '—'}`
   }
   let s = String(text || '')
+  // Salesbot xizmat matnlari: «Salesbot (Bot nomi): …»
+  const bot = s.match(/^Salesbot \((.+?)\): (.+)$/)
+  if (bot) return `Salesbot (${bot[1]}): ${bot[2].split(' — ').map((x) => t(x)).join(' — ')}`
   const many = s.match(/^Sizga (\d+) ta lid biriktirildi$/)
   if (many) return `${t('Sizga biriktirilgan lidlar')}: ${many[1]}`
   const dup = s.match(/^(\d+) ta dublikat birlashtirildi$/)

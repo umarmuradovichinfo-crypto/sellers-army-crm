@@ -27,8 +27,9 @@ export type SocialChannel = 'instagram' | 'facebook';
 export interface SocialProvider {
   connected(): Promise<{ facebook: boolean; instagram: boolean }>;
   hasPage(pageId: string): Promise<boolean>;
-  sendMessage(a: { pageId: string; recipientId: string; text: string }): Promise<{ id?: string }>;
+  sendMessage(a: { pageId: string; recipientId: string; text: string; buttons?: string[] }): Promise<{ id?: string }>;
   replyComment(a: { channel: SocialChannel; pageId: string; commentId: string; text: string }): Promise<{ id?: string }>;
+  react?(a: { pageId: string; recipientId: string; messageId: string }): Promise<unknown>;
 }
 
 /** Meta 24 soatlik xabar oynasi */
@@ -124,6 +125,13 @@ export class ChatService {
     if (!this.tg.enabled()) return { ok: true, skipped: true };
     const expected = (process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
     if (expected && expected !== (secret || '')) return { ok: false, error: 'BAD_SECRET' };
+    // Salesbot tugmasi bosildi (inline klaviatura) — mijozning shu matnli javobi sifatida
+    const cq = update?.callback_query;
+    if (cq) {
+      this.tg.answerCallback(String(cq.id)).catch(() => undefined);
+      const btn = (cq.message?.reply_markup?.inline_keyboard || []).flat().find((b: any) => b?.callback_data === cq.data);
+      update = { message: { message_id: cq.message?.message_id ? `${cq.message.message_id}-cb-${cq.id}` : cq.id, text: btn?.text || cq.data, chat: cq.message?.chat, from: cq.from } };
+    }
     const msg = update?.message || update?.edited_message;
     const text = msg?.text;
     const chat = msg?.chat;
@@ -203,33 +211,55 @@ export class ChatService {
     return { ...base, canReply: tgOk, channel: lead?.telegramChatId ? 'telegram' : null, channelLabel: lead?.telegramChatId ? 'Telegram' : null, replyKind: 'message', windowOpen: true, windowExpiresAt: null };
   }
 
-  async sendMessage(leadId: string, text: string, user?: AuthUser) {
+  /** opts.buttons — Salesbot tugmalari (Telegram inline, Messenger/Instagram quick replies); lentada matn ostida [Tugma] bo'lib saqlanadi. */
+  async sendMessage(leadId: string, text: string, user?: AuthUser, opts: { buttons?: string[] } = {}) {
     const lead = await this.prisma.lead.findUnique({ where: { id: leadId } });
     if (!lead) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
     const body = String(text || '').slice(0, 4000);
     if (!body.trim()) throw new BadRequestException({ error: 'EMPTY', message: 'Bo`sh xabar' });
 
     const target = await this.replyTarget(leadId);
-    if (target && isSocial(target.channel) && target.threadId && target.pageId) return this.sendSocial(lead.id, target, body, user);
+    const buttons = (opts.buttons || []).map((b) => String(b).trim()).filter(Boolean)
+    const stored = buttons.length ? `${body}\n\n${buttons.map((b) => `[${b}]`).join(' ')}` : body;
+    if (target && isSocial(target.channel) && target.threadId && target.pageId) return this.sendSocial(lead.id, target, body, user, buttons, stored);
 
     if (!lead.telegramChatId) throw new BadRequestException({ error: 'NO_CHAT', message: 'Bu lidda javob yuboriladigan suhbat yo`q' });
     if (!this.tg.enabled()) throw new ServiceUnavailableException({ error: 'TELEGRAM_DISABLED', message: 'Telegram sozlanmagan: TELEGRAM_BOT_TOKEN kerak' });
 
-    const res = await this.tg.sendMessage(lead.telegramChatId, body);
+    const res = await this.tg.sendMessage(lead.telegramChatId, body, buttons);
     if (!res.ok) {
       const err = 'Telegram: ' + (res.error || 'yuborilmadi');
       // amoCRM: yuborilmagan xabar lentada «Ошибка» belgisi bilan qoladi
-      await this.prisma.message.create({ data: { leadId, channel: 'telegram', direction: 'out', text: body, senderName: user?.name || 'Operator', status: 'error', error: err.slice(0, 500) } });
+      await this.prisma.message.create({ data: { leadId, channel: 'telegram', direction: 'out', text: stored, senderName: user?.name || 'Operator', status: 'error', error: err.slice(0, 500) } });
       throw new ServiceUnavailableException({ error: 'SEND_FAILED', message: err });
     }
     const message = await this.prisma.message.create({
-      data: { leadId, channel: 'telegram', direction: 'out', text: body, senderName: user?.name || 'Operator', externalId: res.messageId || null },
+      data: { leadId, channel: 'telegram', direction: 'out', text: stored, senderName: user?.name || 'Operator', externalId: res.messageId || null },
     });
     await this.activity.record(leadId, 'email', { actorId: user?.id, actorName: user?.name, text: `📤 Telegram: ${body.slice(0, 120)}` });
     return { message };
   }
 
-  private async sendSocial(leadId: string, target: { channel: string; threadId: string | null; pageId: string | null; kind: string; externalId: string | null; createdAt: Date }, body: string, user?: AuthUser) {
+  /** amoCRM Salesbot «Реакция»: mijozning oxirgi xabariga reaksiya (Telegram emoji; Messenger/Instagram — yurakcha). */
+  async react(leadId: string, emoji: string) {
+    // tugma bosilishi (callback) — mijozning haqiqiy xabari emas, reaksiya oxirgi yozilgan xabarga
+    const last = await this.prisma.message.findFirst({ where: { leadId, direction: 'in', NOT: { externalId: { contains: '-cb-' } } }, orderBy: { createdAt: 'desc' } });
+    if (!last?.externalId) throw new BadRequestException({ error: 'NO_CHAT', message: 'Reaksiya uchun mijoz xabari yo`q' });
+    if (last.channel === 'telegram') {
+      const lead = await this.prisma.lead.findUnique({ where: { id: leadId }, select: { telegramChatId: true } });
+      if (!lead?.telegramChatId) throw new BadRequestException({ error: 'NO_CHAT', message: 'Faol chat yo`q' });
+      const r = await this.tg.setReaction(lead.telegramChatId, last.externalId, emoji);
+      if (!r.ok) throw new ServiceUnavailableException({ error: 'SEND_FAILED', message: 'Telegram: ' + (r.error || 'reaksiya qo`yilmadi') });
+      return { ok: true };
+    }
+    if (isSocial(last.channel) && last.pageId && last.threadId && this.social?.react) {
+      await this.social.react({ pageId: last.pageId, recipientId: last.threadId, messageId: last.externalId });
+      return { ok: true };
+    }
+    throw new BadRequestException({ error: 'NO_CHAT', message: 'Bu kanalda reaksiya qo`llab-quvvatlanmaydi' });
+  }
+
+  private async sendSocial(leadId: string, target: { channel: string; threadId: string | null; pageId: string | null; kind: string; externalId: string | null; createdAt: Date }, body: string, user?: AuthUser, buttons: string[] = [], stored = body) {
     const channel = target.channel as SocialChannel;
     if (!this.social || !target.pageId || !(await this.social.hasPage(target.pageId).catch(() => false))) {
       throw new ServiceUnavailableException({ error: 'NOT_CONNECTED', message: `${CH_LABEL[channel]} ulanmagan — Integratsiyalar → «Facebook bilan ulash»` });
@@ -245,17 +275,17 @@ export class ChatService {
         if (!target.externalId) throw new Error('Izoh ID topilmadi');
         externalId = (await this.social.replyComment({ channel, pageId: target.pageId, commentId: target.externalId, text: body })).id || null;
       } else {
-        externalId = (await this.social.sendMessage({ pageId: target.pageId, recipientId: target.threadId!, text: body })).id || null;
+        externalId = (await this.social.sendMessage({ pageId: target.pageId, recipientId: target.threadId!, text: body, buttons })).id || null;
       }
     } catch (e) {
       const f = friendlySocialError(e, channel);
       await this.prisma.message.create({
-        data: { leadId, channel, direction: 'out', text: body, senderName: user?.name || 'Operator', threadId: target.threadId, pageId: target.pageId, kind: target.kind, status: 'error', error: String((f as any)?.message || 'error').slice(0, 500) },
+        data: { leadId, channel, direction: 'out', text: stored, senderName: user?.name || 'Operator', threadId: target.threadId, pageId: target.pageId, kind: target.kind, status: 'error', error: String((f as any)?.message || 'error').slice(0, 500) },
       });
       throw new ServiceUnavailableException(f);
     }
     const message = await this.prisma.message.create({
-      data: { leadId, channel, direction: 'out', text: body, senderName: user?.name || 'Operator', externalId, threadId: target.threadId, pageId: target.pageId, kind: target.kind },
+      data: { leadId, channel, direction: 'out', text: stored, senderName: user?.name || 'Operator', externalId, threadId: target.threadId, pageId: target.pageId, kind: target.kind },
     });
     const label = comment ? `${CH_LABEL[channel]} izohga javob` : CH_LABEL[channel];
     await this.activity.record(leadId, 'email', { actorId: user?.id, actorName: user?.name, text: `📤 ${label}: ${body.slice(0, 120)}` });

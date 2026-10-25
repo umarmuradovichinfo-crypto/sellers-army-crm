@@ -10,11 +10,15 @@ import { useFilterMeta } from './filterState'
 export const TRIGGER_LABEL = { stage_enter: "Bosqichga o'tish", lead_created: 'bots§Bitim yaratildi', message_in: 'Kiruvchi xabar' }
 export const emptyBot = () => ({ id: null, name: 'Salesbot', active: true, steps: [], startId: null, triggers: [] })
 
+// amoCRM «Следующий шаг» tartibida
 const STEP_TYPES = [
-  ['message', 'Xabar yuborish', 'send'], ['note', 'Ichki xabar', 'note'], ['action', 'Amalni bajarish', 'gear'],
-  ['condition', 'Shart', 'filter'], ['validator', 'Validator', 'checkCircle'], ['pause', 'Pauza', 'clock'],
-  ['distribute', 'Taqsimlash', 'users'], ['start_bot', 'Botni ishga tushirish', 'play'], ['stop', "Botni to'xtatish", 'close'],
+  ['message', 'Xabar yuborish', 'send'], ['reaction', 'Reaksiya', 'star'], ['note', 'Ichki xabar', 'note'],
+  ['interrupt', "To'xtatuvchi", 'alert'], ['action', 'Amalni bajarish', 'gear'], ['condition', 'Shart', 'filter'],
+  ['validator', 'Validator', 'checkCircle'], ['start_bot', 'Botni ishga tushirish', 'play'], ['code', "O'z qadamim (kod)", 'code'],
+  ['widget', 'Vidjetlar', 'external'], ['distribute', 'Taqsimlash', 'users'], ['pause', 'Pauza', 'clock'], ['stop', "Botni to'xtatish", 'close'],
 ]
+const EMOJIS = ['👍', '❤', '🔥', '🎉', '😁', '👏', '🙏', '👌']
+const CODE_SAMPLE = '[\n  { "type": "message", "text": "Salom, {{name}}!" },\n  { "type": "action", "actions": [{ "type": "edit_tags", "add": ["bot"] }] }\n]'
 const TYPE_TITLE = Object.fromEntries(STEP_TYPES.map(([k, l]) => [k, l]))
 const rid = () => Math.random().toString(36).slice(2, 9)
 const NODE_W = 300
@@ -29,6 +33,10 @@ function defaults(type) {
     case 'validator': return { kind: 'phone', errorText: "Iltimos, to'g'ri qiymat yozing" }
     case 'pause': return { amount: 1, unit: 'hour' }
     case 'distribute': return { userIds: [] }
+    case 'reaction': return { emoji: '👍' }
+    case 'code': return { code: CODE_SAMPLE }
+    case 'widget': return { widget: 'webhook', url: '' }
+    case 'interrupt': return { rules: [{ id: rid(), keyword: '' }] }
     default: return {}
   }
 }
@@ -44,6 +52,8 @@ export function outputs(s, t) {
       return [...(s.branches || []).map((b, i) => ({ key: `br:${b.id}`, label: `${t('Shart')} ${i + 1}` })), { key: 'else', label: t('Aks holda') }]
     case 'validator':
       return [{ key: 'valid', label: t("To'g'ri") }, { key: 'invalid', label: t("Noto'g'ri (ixtiyoriy)") }]
+    case 'interrupt':
+      return [...(s.rules || []).map((r) => ({ key: `ir:${r.id}`, label: r.keyword || t("Kalit so'z") })), { key: 'next', label: t('Keyingi qadam') }]
     case 'start_bot': case 'stop': return []
     default: return [{ key: 'next', label: t('Keyingi qadam') }]
   }
@@ -55,6 +65,7 @@ const getNext = (s, key) => {
   if (key === 'invalid') return s.invalidNext
   if (key.startsWith('btn:')) return (s.buttons || []).find((b) => `btn:${b.id}` === key)?.next
   if (key.startsWith('br:')) return (s.branches || []).find((b) => `br:${b.id}` === key)?.next
+  if (key.startsWith('ir:')) return (s.rules || []).find((r) => `ir:${r.id}` === key)?.next
   return null
 }
 const setNext = (s, key, id) => {
@@ -64,6 +75,7 @@ const setNext = (s, key, id) => {
   if (key === 'invalid') return { ...s, invalidNext: id }
   if (key.startsWith('btn:')) return { ...s, buttons: s.buttons.map((b) => (`btn:${b.id}` === key ? { ...b, next: id } : b)) }
   if (key.startsWith('br:')) return { ...s, branches: s.branches.map((b) => (`br:${b.id}` === key ? { ...b, next: id } : b)) }
+  if (key.startsWith('ir:')) return { ...s, rules: s.rules.map((r) => (`ir:${r.id}` === key ? { ...r, next: id } : r)) }
   return s
 }
 const unlink = (s, id) => {
@@ -71,6 +83,7 @@ const unlink = (s, id) => {
   for (const k of ['next', 'elseNext', 'validNext', 'invalidNext']) if (r[k] === id) r[k] = null
   if (r.buttons) r.buttons = r.buttons.map((b) => (b.next === id ? { ...b, next: null } : b))
   if (r.branches) r.branches = r.branches.map((b) => (b.next === id ? { ...b, next: null } : b))
+  if (r.rules) r.rules = r.rules.map((x) => (x.next === id ? { ...x, next: null } : x))
   return r
 }
 
@@ -226,6 +239,51 @@ function StepBody({ s, update, meta, bots, port, t }) {
           {portRow('next', t('Keyingi qadam'))}
         </>
       )
+    case 'reaction':
+      return (
+        <>
+          <div className="ac-bb-cap">{t("Mijozning oxirgi xabariga reaksiya")}</div>
+          <div className="ac-bb-emojis">{EMOJIS.map((e) => <button key={e} className={s.emoji === e ? 'on' : ''} onClick={() => set({ emoji: e })}>{e}</button>)}</div>
+          {portRow('next', t('Keyingi qadam'))}
+        </>
+      )
+    case 'interrupt':
+      return (
+        <>
+          <div className="ac-bb-cap">{t("Bot javob kutayotganda mijoz kalit so'z yozsa — shu tarmoqqa o'tadi")}</div>
+          {(s.rules || []).map((r) => (
+            <div className="ac-bb-out ac-bb-btn" key={r.id}>
+              <input className="ac-input" value={r.keyword} autoFocus={!r.keyword} placeholder={t("Kalit so'zlar, vergul bilan")} onChange={(e) => set({ rules: s.rules.map((x) => (x.id === r.id ? { ...x, keyword: e.target.value } : x)) })} />
+              {s.rules.length > 1 && <button className="ac-bb-x" onClick={() => set({ rules: s.rules.filter((x) => x.id !== r.id) })}><Ico name="close" size={11} /></button>}
+              {port(`ir:${r.id}`)}
+            </div>
+          ))}
+          <a className="ac-bb-add" onClick={() => set({ rules: [...(s.rules || []), { id: rid(), keyword: '' }] })}>+ {t("Kalit so'z")}</a>
+          {portRow('next', t('Keyingi qadam'))}
+        </>
+      )
+    case 'code': {
+      let bad = ''
+      try { if (!Array.isArray(JSON.parse(s.code || '[]'))) bad = t("Qadamlar massivi kutilmoqda") } catch (e) { bad = t("JSON noto'g'ri") }
+      return (
+        <>
+          <textarea className="ac-input ac-bb-text ac-bb-code" rows={7} spellCheck={false} value={s.code || ''} onChange={(e) => set({ code: e.target.value })} />
+          <div className={`ac-bb-cap ${bad ? 'ac-bb-bad' : ''}`}>{bad || t("Turlar: message, action, note, reaction, distribute, widget")}</div>
+          {portRow('next', t('Keyingi qadam'))}
+        </>
+      )
+    }
+    case 'widget':
+      return (
+        <>
+          <select className="ac-select" value={s.widget || 'webhook'} onChange={(e) => set({ widget: e.target.value })}>
+            <option value="webhook">Webhook</option>
+          </select>
+          <input className="ac-input" placeholder="https://…" value={s.url || ''} onChange={(e) => set({ url: e.target.value })} />
+          <div className="ac-bb-cap">{t("Bitim ma'lumotlari shu manzilga POST qilinadi")}</div>
+          {portRow('next', t('Keyingi qadam'))}
+        </>
+      )
     case 'start_bot':
       return (
         <select className="ac-select" value={s.botId || ''} onChange={(e) => set({ botId: e.target.value })}>
@@ -272,6 +330,14 @@ function Preview({ steps, startId, onClose, t }) {
         id = hit ? hit.next : s.elseNext
       } else if (s.type === 'stop') { push({ sys: t("Bot to'xtatildi") }); setWaiting(null); return }
       else if (s.type === 'start_bot') { push({ sys: t('Boshqa bot ishga tushadi') }); setWaiting(null); return }
+      else if (s.type === 'reaction') { push({ sys: `${t('Reaksiya')}: ${s.emoji || '👍'}` }); id = s.next }
+      else if (s.type === 'code') {
+        let arr = []
+        try { arr = JSON.parse(s.code || '[]') } catch { /* */ }
+        for (const x of Array.isArray(arr) ? arr : []) push(x.type === 'message' ? { bot: String(x.text || '').replace(/\{\{\s*name\s*\}\}/g, t('Aziz')), btns: [] } : { sys: t(TYPE_TITLE[x.type] || x.type) })
+        id = s.next
+      } else if (s.type === 'widget') { push({ sys: `Webhook: ${s.url || '—'}` }); id = s.next }
+      else if (s.type === 'interrupt') id = s.next
       else { push({ sys: `${t(TYPE_TITLE[s.type])}${s.type === 'note' && s.text ? `: ${s.text}` : ''}${s.type === 'pause' ? `: ${s.amount} ${t(s.unit === 'day' ? 'kun' : s.unit === 'min' ? 'daqiqa' : 'soat')}` : ''}` }); id = s.next }
     }
   }
@@ -282,6 +348,11 @@ function Preview({ steps, startId, onClose, t }) {
     if (!val || !waiting) return
     push({ me: val }); setText(''); lastReply.current = val
     const s = waiting; setWaiting(null)
+    const low = val.toLowerCase()
+    for (const it of steps.filter((x) => x.type === 'interrupt')) {
+      const hit = (it.rules || []).find((r) => String(r.keyword || '').split(',').map((k) => k.trim().toLowerCase()).filter(Boolean).some((k) => low === k || low.includes(k)))
+      if (hit) { push({ sys: `${t("To'xtatuvchi")}: ${hit.keyword}` }); run(hit.next); return }
+    }
     if (s.type === 'message') {
       const btns = (s.buttons || []).filter((b) => b.label)
       const hit = btns.find((b, i) => b.label.trim().toLowerCase() === val.toLowerCase() || val === String(i + 1))

@@ -885,7 +885,7 @@ export default function LeadCard() {
                   { label: t('Chop etish'), icon: 'print', onClick: () => window.print() },
                   { label: t('Teglarni boshqarish'), icon: 'hash', onClick: () => setTagInput('') },
                   { label: t("Salesbot'ni ishga tushirish"), icon: 'play', onClick: () => setBotPick(true) },
-                  { label: t("Botni to'xtatish"), icon: 'close', onClick: () => api.post(`/crm/leads/${lead.id}/salesbot-stop`, {}).then((r) => { window.alert(r.stopped ? t("Bot to'xtatildi") : t("Ishlayotgan bot yo'q")); loadLead(); loadFeed() }).catch(() => {}) },
+                  { label: t("card§Botni to'xtatish"), icon: 'close', onClick: () => api.post(`/crm/leads/${lead.id}/salesbot-stop`, {}).then((r) => { window.alert(r.stopped ? t("Bot to'xtatildi") : t("Ishlayotgan bot yo'q")); loadLead(); loadFeed() }).catch(() => {}) },
                   { label: t('Excelga eksport'), icon: 'excel', onClick: () => window.open('/api/v1' + crmService.exportUrl(), '_blank') },
                   { label: t("Bitimni o'chirish"), icon: 'trash', danger: true, onClick: deleteLead },
                 ]} />

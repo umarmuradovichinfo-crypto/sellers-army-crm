@@ -203,3 +203,9 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
 - Backend dvigatel: mijoz javobi kutilayotgan botni davom ettiradi, pauzalar fon taymerida, aylanishdan himoya; bitim kartochkasidan
   qo'lda ishga tushirish/to'xtatish; voronka avtomatlashtirishida «Salesbot» amali.
 - Qilinmagan: «Реакция» (kanalga xos), «Свой шаг (код)», «Виджеты»; tugmalar kanalda inline klaviatura emas, raqamli ro'yxat (javob raqam yoki matn).
+- (25.10, 2-bosqich) Tugmalar haqiqiy: Telegram — inline klaviatura (bosilganda callback_query mijoz javobi sifatida, «soat» olib
+  tashlanadi), Messenger/Instagram — quick replies (sarlavha 20 belgi, to'liq matn payload'da). Qo'shildi: «Реакция» (Telegram emoji,
+  Messenger/Instagram yurakcha — mijozning oxirgi haqiqiy xabariga), «Прерыватель» (kalit so'z — istalgan kutish holatidan tarmoqqa),
+  «Свой шаг (код)» (JSON qadamlar, saqlashda tekshiriladi), «Виджеты» (Webhook, SSRF himoyasi). Chat yo'q bitimda amoCRM kabi:
+  «сообщение не отправлено — нет активного чата» lentaga, bot davom etadi. Mock Telegram/Graph serverda yuborilgan so'rovlar tekshirildi.
+- Topilib tuzatilgan xato: tugma bosilgandan keyin reaksiya botning o'z xabariga qo'yilardi → mijozning oxirgi yozgan xabariga.

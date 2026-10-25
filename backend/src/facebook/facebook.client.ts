@@ -94,11 +94,22 @@ export class FacebookClient {
     return this.get(`/${mediaId}`, { access_token: pageToken, fields: 'permalink' });
   }
   // Messenger / Instagram Direct xabar yuborish: POST /{page-id}/messages
-  async sendMessage(pageId: string, pageToken: string, recipientId: string, text: string): Promise<{ message_id?: string; recipient_id?: string }> {
+  /** buttons — Salesbot tugmalari: Messenger/Instagram «quick replies» (13 tagacha, sarlavha 20 belgigacha). */
+  async sendMessage(pageId: string, pageToken: string, recipientId: string, text: string, buttons?: string[]): Promise<{ message_id?: string; recipient_id?: string }> {
+    const quick = (buttons || []).slice(0, 13).map((b) => ({ content_type: 'text', title: b.slice(0, 20), payload: b.slice(0, 1000) }))
     return this.post(`/${pageId}/messages`, {
       recipient: JSON.stringify({ id: recipientId }),
-      message: JSON.stringify({ text }),
+      message: JSON.stringify(quick.length ? { text, quick_replies: quick } : { text }),
       messaging_type: 'RESPONSE',
+      access_token: pageToken,
+    });
+  }
+  // Salesbot «Реакция»: mijoz xabariga yurakcha (Messenger/Instagram sender_action=react)
+  async react(pageId: string, pageToken: string, recipientId: string, messageId: string) {
+    return this.post(`/${pageId}/messages`, {
+      recipient: JSON.stringify({ id: recipientId }),
+      sender_action: 'react',
+      payload: JSON.stringify({ message_id: messageId, reaction: 'love' }),
       access_token: pageToken,
     });
   }
