@@ -12,6 +12,7 @@ import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { and, columnOrder, Cond, LeadCtx, LeadFilter, leadConds, leadOrder, parsePaging } from './list-query';
 import { ActivityService } from './activity.service';
+import { stageCloseData } from './stage-close';
 import { AutomationService } from './automation.service';
 import { NotificationService } from './notification.service';
 import { assertNewTagsAllowed } from './tags-lock';
@@ -418,7 +419,15 @@ export class CrmService {
 
   async createLead(dto: CreateLeadDto & { email?: string; pipelineId?: string; custom?: Record<string, unknown>; items?: any[] }, user?: AuthUser) {
     if (Array.isArray(dto.tags)) await assertNewTagsAllowed(this.prisma, dto.tags, user);
-    const stage = dto.stage || 'new';
+    const name = String(dto.name || '').trim();
+    if (!name) throw new BadRequestException({ error: 'VALIDATION_ERROR', message: 'Nom majburiy' });
+    // bosqich mavjud bo'lishi shart; berilmasa — tanlangan (yoki standart) voronkaning birinchi ochiq bosqichi
+    const pid = (dto as any).pipelineId || null;
+    const st = dto.stage
+      ? await this.prisma.crmStage.findUnique({ where: { key: dto.stage } })
+      : await this.prisma.crmStage.findFirst({ where: { pipelineId: pid, kind: 'open' }, orderBy: { order: 'asc' } });
+    if (!st) throw new BadRequestException({ error: 'BAD_STAGE', message: "Noto'g'ri bosqich" });
+    const stage = st.key;
     const items = Array.isArray((dto as any).items) ? (dto as any).items : [];
     const value = items.length ? this.itemsValue(items) : (Number(dto.value) || 0);
     // amoCRM tez qo'shish: kontakt nomi berilsa — kontakt yaratib bitimga bog'lanadi
@@ -429,7 +438,7 @@ export class CrmService {
     }
     const lead = (await this.prisma.lead.create({
       data: {
-        name: dto.name,
+        name,
         phone: dto.phone || null,
         email: (dto as any).email || null,
         company: dto.company || null,
@@ -438,7 +447,8 @@ export class CrmService {
         value,
         itemsJson: JSON.stringify(items),
         stage,
-        pipelineId: (dto as any).pipelineId || null,
+        pipelineId: st.pipelineId || null,
+        ...(st.kind !== 'open' ? stageCloseData(st.kind) : {}),
         assigneeId: dto.assigneeId || null,
         tagsJson: JSON.stringify(Array.isArray(dto.tags) ? dto.tags : []),
         customJson: JSON.stringify((dto as any).custom || {}),
@@ -455,8 +465,8 @@ export class CrmService {
     await this.automation.run('lead_created', lead.id, user?.name);
     const fresh = (await this.prisma.lead.findUnique({ where: { id: lead.id } })) as LeadRow;
     const names = await this.userMap([fresh.assigneeId]);
-    const st = await this.prisma.crmStage.findUnique({ where: { key: fresh.stage } });
-    return { lead: this.card(fresh, st?.kind || 'open', names) };
+    const stNow = await this.prisma.crmStage.findUnique({ where: { key: fresh.stage } });
+    return { lead: this.card(fresh, stNow?.kind || 'open', names) };
   }
 
   async getLead(id: string) {
@@ -532,6 +542,7 @@ export class CrmService {
     let stageChanged = false;
     if (dto.stage !== undefined && dto.stage !== existing.stage) {
       const tgKind = (await this.prisma.crmStage.findUnique({ where: { key: dto.stage }, select: { kind: true } }))?.kind;
+      if (!tgKind) throw new BadRequestException({ error: 'BAD_STAGE', message: "Noto'g'ri bosqich" });
       if (tgKind !== 'lost') await this.assertRequiredFields(existing, dto.stage, (dto as any).custom);
       data.stage = dto.stage;
       stageChanged = true;
@@ -604,9 +615,7 @@ export class CrmService {
   private async applyStageClose(stageKey: string, data: Record<string, unknown>, lostReason?: string) {
     const st = await this.prisma.crmStage.findUnique({ where: { key: stageKey } });
     if (!st) return;
-    if (st.kind === 'won') { data.wonAt = new Date(); data.lostAt = null; }
-    else if (st.kind === 'lost') { data.lostAt = new Date(); data.wonAt = null; if (lostReason !== undefined) data.lostReason = lostReason || null; }
-    else { data.wonAt = null; data.lostAt = null; }
+    Object.assign(data, stageCloseData(st.kind, lostReason));
   }
 
   private async recordStageActivity(id: string, lead: LeadRow, kind: string, user?: AuthUser, fromStage?: string) {
@@ -704,9 +713,7 @@ export class CrmService {
     await this.prisma.$transaction(async (tx) => {
       const closeData: Record<string, unknown> = { stage: stageKey, pipelineId: target.pipelineId || null };
       if (changed) {
-        if (target.kind === 'won') { closeData.wonAt = new Date(); closeData.lostAt = null; }
-        else if (target.kind === 'lost') { closeData.lostAt = new Date(); closeData.wonAt = null; if (lostReason !== undefined) closeData.lostReason = lostReason || null; }
-        else { closeData.wonAt = null; closeData.lostAt = null; }
+        Object.assign(closeData, stageCloseData(target.kind, lostReason));
       }
       await tx.lead.update({ where: { id }, data: closeData });
       // Tartib: odatda faqat kerakli joydan keyingilarni 1 ga suramiz (butun bosqichni qayta raqamlash katta bazada sekin).
@@ -787,9 +794,7 @@ export class CrmService {
           const changed = before.filter((b) => b.stage !== target.key);
           if (changed.length) {
             const data: Record<string, unknown> = { stage: target.key, pipelineId: target.pipelineId || null, lastActivityAt: new Date() };
-            if (target.kind === 'won') { data.wonAt = new Date(); data.lostAt = null; }
-            else if (target.kind === 'lost') data.lostAt = new Date(), data.wonAt = null;
-            else { data.wonAt = null; data.lostAt = null; }
+            Object.assign(data, stageCloseData(target.kind));
             await this.prisma.lead.updateMany({ where: { id: { in: changed.map((c) => c.id) } }, data });
             await this.prisma.activity.createMany({
               data: changed.map((c) => ({

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { stageCloseData } from './stage-close';
 import { ActivityService } from './activity.service';
 import { NotificationService } from './notification.service';
 import { TelegramClient } from './telegram.client';
@@ -400,9 +401,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
         if (!target) throw new Error('Maqsad bosqich topilmadi');
         if (target.key === lead.stage) return null;
         const data: Record<string, unknown> = { stage: target.key, pipelineId: target.pipelineId || null, unsorted: false, queue: await this.nextQueue(target.key) };
-        if (target.kind === 'won') { data.wonAt = new Date(); data.lostAt = null; }
-        else if (target.kind === 'lost') { data.lostAt = new Date(); data.wonAt = null; }
-        else { data.wonAt = null; data.lostAt = null; }
+        Object.assign(data, stageCloseData(target.kind));
         await this.prisma.lead.update({ where: { id: leadId }, data });
         await this.activity.record(leadId, target.kind === 'won' || target.kind === 'lost' ? target.kind : 'stage', { actorName: 'Avtomatlashtirish', text: `Bosqich: ${target.name}`, data: { to: target.key } });
         await this.fire('stage_enter', leadId, { actorName: ctx.actorName, depth: ctx.depth + 1 });

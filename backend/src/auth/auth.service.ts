@@ -34,7 +34,10 @@ export class AuthService {
 
   /** Email + parolni tekshiradi. */
   async validateUser(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    // email foydalanuvchi yaratilganda kichik harfga o'tkaziladi — login ham shunday (telefon klaviaturasi birinchi harfni katta qiladi)
+    const e = String(email || '').trim();
+    if (!e) return null;
+    const user = await this.prisma.user.findFirst({ where: { email: { equals: e, mode: 'insensitive' } } });
     if (!user || !user.isActive) return null;
     const ok = await bcrypt.compare(password, user.passwordHash);
     return ok ? user : null;
@@ -123,7 +126,7 @@ export class AuthService {
     if (!name) {
       throw new BadRequestException({ message: 'Ism kiritilishi shart' });
     }
-    const email = dto.email.trim();
+    const email = dto.email.trim().toLowerCase();
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
     const userId = await this.prisma.$transaction(async (tx) => {

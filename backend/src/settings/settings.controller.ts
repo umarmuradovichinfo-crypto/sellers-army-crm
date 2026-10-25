@@ -79,9 +79,9 @@ export class SettingsController {
     return this.settings.saveSecurity(body, clientIp(req));
   }
 
-  // Umumiy sozlamalar (akkaunt nomi, mintaqa, formatlar)
+  // Umumiy sozlamalar (akkaunt nomi, mintaqa, formatlar, rolga qarab chap menyu) — interfeys har bir foydalanuvchi uchun
+  // yuklaydi (sotuvchida settings.view yo'q, aks holda unga «menyuni rolga qarab sozlash» qo'llanmas edi). Faqat o'qish.
   @Get('general')
-  @RequirePermissions('settings.view')
   general() {
     return this.settings.getGeneral();
   }
