@@ -50,4 +50,6 @@ addRu({
   'Avval yangilari': 'Сначала новые',
   'Yopish': 'Закрыть',
   'Suhbat yopilgan': 'Беседа закрыта',
+  "Ovozni o'chirish": 'Отключить звук',
+  'Ovozni yoqish': 'Включить звук',
 })

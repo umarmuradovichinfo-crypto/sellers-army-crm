@@ -11,6 +11,7 @@ import '../i18n/imbox.ru.js'
 import '../leadcard.css'
 import '../imbox.css'
 import { trActivity } from '../activityText'
+import { isMuted, setMuted } from '../sound'
 
 const REFRESH_MS = 15000
 
@@ -357,6 +358,7 @@ export default function ImboxPage() {
   // amoCRM imBox filtri: preset + davr + bosqichlar; saralash "…" menyusida
   const [flt, setFlt] = useState({ preset: '', period: '', stages: [] })
   const [sort, setSort] = useState('new')
+  const [muted, setMutedState] = useState(isMuted)
 
   const loadList = useCallback(() => {
     crmService.conversations({ preset: flt.preset || undefined, period: flt.period || undefined, stages: flt.stages.join(',') || undefined, sort: sort === 'old' ? 'old' : undefined })
@@ -399,6 +401,7 @@ export default function ImboxPage() {
           <DotsMenu items={[
             { label: t('Yangilash'), icon: 'clock', onClick: loadList },
             { label: t(sort === 'new' ? 'Avval eskilari' : 'Avval yangilari'), icon: 'list', onClick: () => setSort((v) => (v === 'new' ? 'old' : 'new')) },
+            { label: t(muted ? 'Ovozni yoqish' : "Ovozni o'chirish"), icon: 'bell', onClick: () => { setMuted(!muted); setMutedState(!muted) } },
           ]} />
         </div>
         <div className="ac-imbox-list__scroll">

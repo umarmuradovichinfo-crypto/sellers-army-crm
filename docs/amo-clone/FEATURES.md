@@ -57,7 +57,7 @@ Batafsil farqlar va tuzatishlar: [AUDIT.md](AUDIT.md). Reja: [PLAN.md](PLAN.md).
 | Filtr: Неотвеченные, Избранные, Открытые беседы, Требует ответа, Где я ответственный, davr, bosqichlar | ✅ | «Где я подписан» — kuzatuvchilar funksiyasi yo'q |
 | «Закрыть» beseda (kiruvchi xabar qayta ochadi), sevimlilar, saralash | ✅ | |
 | Xabar holati «Ошибка» (yuborilmagan xabar sababi bilan) | ✅ | |
-| «Отключить звук», ommaviy amallar | ⏳ | bizda ovozli bildirishnoma yo'q |
+| Yangi xabar/bildirishnomada ovoz, «Отключить звук» | ✅ | ommaviy amallar — rejada |
 
 ## Analitika
 | Funksiya | Holat | Izoh |

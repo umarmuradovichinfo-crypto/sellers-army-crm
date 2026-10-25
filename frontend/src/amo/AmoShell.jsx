@@ -12,6 +12,7 @@ import { settingsService } from '../services/settings.service'
 import NetworkBar from './NetworkBar'
 import { loadTaskTypes } from './taskTypes'
 import { trActivity } from './activityText'
+import { playPing } from './sound'
 
 export const NAV = [
   { key: 'dashboard', to: '/dashboard', title: 'Ish stoli', icon: 'dashboard' },
@@ -50,7 +51,7 @@ function NotificationsPanel({ open, onClose, onCount }) {
   const t = useT()
 
   const load = () => crmService_notifications().then((r) => { setItems(r.items || []); onCount(r.unread || 0) }).catch(() => {})
-  useEffect(() => { load(); const t = setInterval(load, 60000); return () => clearInterval(t) }, []) // eslint-disable-line
+  useEffect(() => { load(); const t = setInterval(load, 20000); return () => clearInterval(t) }, []) // eslint-disable-line
   useEffect(() => {
     if (!open) { setShown(false); return }
     load()
@@ -217,6 +218,7 @@ export default function AmoShell({ children }) {
   const [userOpen, setUserOpen] = useState(false)
   const [flyout, setFlyout] = useState(false)
   const [unread, setUnread] = useState(0)
+  const prevUnread = useRef(null) // birinchi yuklashda ovoz chiqmasin
   const hideTimer = useRef(null)
   const t = useT()
 
@@ -282,7 +284,7 @@ export default function AmoShell({ children }) {
         </div>
       </nav>
       <LeadsFlyout open={flyout} onEnter={showFly} onLeave={hideFly} onPick={() => setFlyout(false)} />
-      <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} onCount={setUnread} />
+      <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} onCount={(n) => setUnread((prev) => { if (prevUnread.current !== null && n > prev) playPing(); prevUnread.current = n; return n })} />
       <UserBar open={userOpen} onClose={() => setUserOpen(false)} />
       <NetworkBar />
       {children}
