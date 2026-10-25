@@ -29,15 +29,8 @@ export class CrmAnalyticsController {
   }
 
   @Get('events')
-  events(
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-    @Query('datePreset') datePreset?: string,
-    @Query('type') type?: string,
-    @Query('userId') userId?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.s.events({ from, to, datePreset, type, userId, limit: limit ? Number(limit) : undefined });
+  events(@Query() q: Record<string, string>, @CurrentUser('id') me?: string) {
+    return this.s.events({ ...q, limit: q.limit ? Number(q.limit) : undefined, me });
   }
 
   @Get('timeline')

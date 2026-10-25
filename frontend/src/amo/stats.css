@@ -148,6 +148,10 @@
 .ac-stats-ev .ac-table td.obj { color: #1691ff; }
 .ac-stats-ev__play { display: inline-flex; align-items: center; gap: 8px; }
 .ac-stats-ev__play .ico { color: #1691ff; cursor: pointer; }
+.ac-stats-ev__rec { display: inline-flex; gap: 2px; }
+.ac-stats-ev__btn { display: inline-flex; padding: 2px; border: 0; background: none; cursor: pointer; }
+.ac-stats-ev__audio { height: 30px; max-width: 220px; vertical-align: middle; }
+.ac-stats-ev__lead { cursor: pointer; }
 .ac-stats-more { display: flex; justify-content: center; padding: 16px 0; }
 
 /* ── Qo'ng'iroqlar ── */

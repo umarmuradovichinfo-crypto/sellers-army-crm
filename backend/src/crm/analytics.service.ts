@@ -428,32 +428,72 @@ export class CrmAnalyticsService {
   }
 
   // ── Hodisalar hisoboti (Activity log) ──
-  async events(params: { from?: string; to?: string; datePreset?: string; type?: string; userId?: string; limit?: number }) {
-    const where: Record<string, any> = { ...this.range('createdAt', params) };
-    if (params.type) where.type = params.type;
-    if (params.userId) where.actorId = params.userId;
+  /**
+   * amoCRM «Аналитика → Список событий»: bitim faoliyati + qo'ng'iroqlar (Входящий/Исходящий звонок) + chat xabarlari
+   * (Входящее/Исходящее сообщение) + yopilgan suhbatlar (Беседа закрыта) — bitta lentada, eng yangisi birinchi.
+   * Filtrlar (amoCRM kabi): preset (all|mine|today|yesterday|month), davr, menejerlar, obyekt, voqea turlari, «значение до/после».
+   */
+  async events(params: {
+    from?: string; to?: string; datePreset?: string; preset?: string; type?: string; types?: string; userId?: string; userIds?: string;
+    entity?: string; before?: string; after?: string; limit?: number; me?: string;
+  }) {
+    const limit = Math.min(Math.max(Math.floor(params.limit || 0) || 100, 1), 300);
+    const preset = params.preset || '';
+    const datePreset = preset === 'today' ? 'today' : preset === 'yesterday' ? 'yesterday' : preset === 'month' ? 'this_month' : params.datePreset;
+    const rangeOf = (field: string) => this.range(field, { from: params.from, to: params.to, datePreset });
+    const users = (params.userIds || params.userId || '').split(',').map((x) => x.trim()).filter(Boolean);
+    if (preset === 'mine' && params.me) users.splice(0, users.length, params.me);
+    const typeList = (params.types || params.type || '').split(',').map((x) => x.trim()).filter(Boolean);
+    const want = (t: string) => !typeList.length || typeList.includes(t);
+    const entity = params.entity || '';
+    const isTaskType = (t: string) => t.startsWith('task_');
+    const okEntity = (t: string) => !entity || (entity === 'task' ? isTaskType(t) : entity === 'lead' ? !isTaskType(t) : true);
+    const CALL_TYPES = ['call_in', 'call_out'], MSG_TYPES = ['message_in', 'message_out'];
 
-    const [rows, byTypeRaw] = await Promise.all([
-      this.prisma.activity.findMany({ where, orderBy: { createdAt: 'desc' }, take: Math.min(Math.max(Math.floor(params.limit || 0) || 100, 1), 300) }),
-      this.prisma.activity.groupBy({ by: ['type'], where, _count: { _all: true } }),
+    // 1) bitim faoliyati
+    const actWhere: Record<string, any> = { ...rangeOf('createdAt') };
+    if (users.length) actWhere.actorId = { in: users };
+    const actTypes = typeList.filter((t) => ![...CALL_TYPES, ...MSG_TYPES, 'conv_closed'].includes(t) && okEntity(t));
+    if (typeList.length) actWhere.type = { in: actTypes.length ? actTypes : ['__none__'] };
+    else if (entity === 'task') actWhere.type = { startsWith: 'task_' };
+    else if (entity === 'lead') actWhere.NOT = { type: { startsWith: 'task_' } };
+    // 2) qo'ng'iroqlar  3) xabarlar  4) yopilgan suhbatlar — obyekti «Сделка» (vazifa filtrida chiqmaydi)
+    const callDirs = entity === 'task' ? [] : [want('call_in') && 'in', want('call_out') && 'out'].filter(Boolean) as string[];
+    const msgDirs = entity === 'task' ? [] : [want('message_in') && 'in', want('message_out') && 'out'].filter(Boolean) as string[];
+    const convOn = entity !== 'task' && want('conv_closed');
+    const callWhere: Record<string, any> = { ...rangeOf('startedAt'), direction: { in: callDirs }, status: { not: 'ringing' } };
+    if (users.length) callWhere.userId = { in: users };
+    // xabar muallifi (xodim) bazada saqlanmaydi — menejer filtri bo'lsa xabarlar chiqmaydi
+    const msgWhere: Record<string, any> = { ...rangeOf('createdAt'), direction: { in: users.length ? [] : msgDirs } };
+    const convWhere: Record<string, any> = { closed: true, closedAt: { not: null, ...(rangeOf('closedAt').closedAt || {}) } };
+    if (users.length) convWhere.closedById = { in: users };
+
+    const [acts, calls, msgs, convs, actCount, callCount, msgCount, convCount, byTypeRaw] = await Promise.all([
+      this.prisma.activity.findMany({ where: actWhere, orderBy: { createdAt: 'desc' }, take: limit }),
+      callDirs.length ? this.prisma.callLog.findMany({ where: callWhere, orderBy: { startedAt: 'desc' }, take: limit }) : [],
+      msgDirs.length && !users.length ? this.prisma.message.findMany({ where: msgWhere, orderBy: { createdAt: 'desc' }, take: limit }) : [],
+      convOn ? this.prisma.conversationState.findMany({ where: convWhere, orderBy: { closedAt: 'desc' }, take: limit }) : [],
+      this.prisma.activity.count({ where: actWhere }),
+      callDirs.length ? this.prisma.callLog.count({ where: callWhere }) : 0,
+      msgDirs.length && !users.length ? this.prisma.message.count({ where: msgWhere }) : 0,
+      convOn ? this.prisma.conversationState.count({ where: convWhere }) : 0,
+      this.prisma.activity.groupBy({ by: ['type'], where: actWhere, _count: { _all: true } }),
     ]);
 
-    const leadIds = [...new Set(rows.map((r) => r.leadId).filter((x): x is string => !!x))];
-    const leads = leadIds.length
-      ? await this.prisma.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true } })
-      : [];
-    const leadName = new Map(leads.map((l) => [l.id, l.name]));
+    const leadIds = [...new Set([...acts, ...calls, ...msgs, ...convs].map((r: any) => r.leadId).filter((x): x is string => !!x))];
+    const userIds = [...new Set([...calls.map((c) => c.userId), ...convs.map((c) => c.closedById)].filter((x): x is string => !!x))];
+    const [leads, people] = await Promise.all([
+      leadIds.length ? this.prisma.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true } }) : [],
+      userIds.length ? this.prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true } }) : [],
+    ]);
+    const leadName = new Map<string, string>(leads.map((l: { id: string; name: string }) => [l.id, l.name] as [string, string]));
+    const userName = new Map<string, string>(people.map((u: { id: string; name: string }) => [u.id, u.name] as [string, string]));
+    const mmss = (sec: number) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 
-    return {
-      items: rows.map((r) => ({
-        id: r.id,
-        type: r.type,
-        text: r.text || '',
-        actorName: r.actorName || '',
-        leadId: r.leadId,
-        leadName: r.leadId ? leadName.get(r.leadId) || null : null,
-        createdAt: r.createdAt.toISOString(),
-        // "Значение до / после": maydon/mas'ul/teg/bosqich o'zgarishlarida
+    const items: any[] = [
+      ...acts.map((r) => ({
+        id: r.id, type: r.type, entity: isTaskType(r.type) ? 'task' : 'lead', text: r.text || '', actorName: r.actorName || '',
+        leadId: r.leadId, createdAt: r.createdAt,
         ...(() => {
           try {
             const d = JSON.parse(r.dataJson || '{}');
@@ -463,10 +503,38 @@ export class CrmAnalyticsService {
           return {};
         })(),
       })),
-      byType: byTypeRaw
-        .map((g) => ({ type: g.type, count: g._count._all }))
-        .sort((a, b) => b.count - a.count),
-    };
+      ...calls.map((c) => {
+        const who = c.userId ? userName.get(c.userId) || '' : '';
+        return {
+          id: `call:${c.id}`, type: c.direction === 'in' ? 'call_in' : 'call_out', entity: 'lead', leadId: c.leadId, createdAt: c.startedAt,
+          actorName: who || 'OnlinePBX',
+          // amoCRM: «00:31 998909656655 к CLOSER | DIYORBEK»
+          text: `${mmss(c.durationSec || 0)} ${c.phone}${who ? ` ${c.direction === 'in' ? '→' : '←'} ${who}` : ''}`,
+          call: { id: c.id, status: c.status, durationSec: c.durationSec, phone: c.phone, hasRecording: !!(c.externalId || c.recordUrl) },
+        };
+      }),
+      ...msgs.map((m) => ({
+        id: `msg:${m.id}`, type: m.direction === 'in' ? 'message_in' : 'message_out', entity: 'lead', leadId: m.leadId, createdAt: m.createdAt,
+        actorName: m.direction === 'in' ? m.senderName || '' : m.senderName || '', text: m.text.slice(0, 300), channel: m.channel,
+      })),
+      ...convs.map((c) => ({
+        id: `conv:${c.leadId}`, type: 'conv_closed', entity: 'lead', leadId: c.leadId, createdAt: c.closedAt as Date,
+        actorName: c.closedById ? userName.get(c.closedById) || '' : '', text: '',
+      })),
+    ];
+    const has = (v: unknown, q?: string) => !q || String(v ?? '').toLowerCase().includes(q.toLowerCase());
+    const filtered = items
+      .filter((x) => has(x.from, params.before) && has(x.to ?? x.text, params.after))
+      .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+      .slice(0, limit)
+      .map((x) => ({ ...x, createdAt: new Date(x.createdAt).toISOString(), leadName: x.leadId ? leadName.get(x.leadId) || null : null }));
+
+    const byType = [
+      ...byTypeRaw.map((g) => ({ type: g.type, count: g._count._all })),
+      ...(callCount ? [{ type: 'calls', count: callCount }] : []),
+      ...(msgCount ? [{ type: 'messages', count: msgCount }] : []),
+    ].sort((a, b) => b.count - a.count);
+    return { items: filtered, total: actCount + callCount + msgCount + convCount, byType };
   }
 
   // ── Sotuv dinamikasi (vaqt qatori) ──

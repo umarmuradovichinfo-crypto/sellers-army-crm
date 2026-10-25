@@ -4,6 +4,7 @@ import React, { useMemo, useRef, useState } from 'react'
 import { Ico } from './AmoIcons'
 import { useOutside } from './TopBar'
 import { useT } from './i18n'
+import './leads.css' // .ac-ms uslublari — komponent qaysi sahifada ishlatilsa ham
 
 // label berilsa — amoCRM filtr uslubi: "Label: Все значения" / "Label: tanlangan", chapda kvadrat belgi, o'q yo'q
 export default function MultiSelect({ options, value, onChange, placeholder, search = true, single = false, quick = null, groups = null, label = null, emptyText = 'Barcha qiymatlar', chevron = false }) {

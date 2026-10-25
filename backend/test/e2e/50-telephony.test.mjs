@@ -91,6 +91,24 @@ describe('Telefoniya (OnlinePBX + MicroSIP)', () => {
     assert.equal(tasks[0].type, 'call');
   });
 
+  test("Список событий (amoCRM): qo'ng'iroqlar «Звонки» filtrida, yozuv belgisi bilan; tur/obyekt/preset filtrlari", async () => {
+    const n = rnd9();
+    const l = await newLead(T, { phone: `+998${n}` });
+    await hook({ event: 'call_end', caller: '101', callee: `998${n}`, uuid: uniq('evc'), dialog_duration: 31, call_duration: 35, download_url: 'https://e2e.onpbx.ru/r.mp3' });
+    const ev = await ok('GET', '/crm/analytics/events?types=call_in,call_out&preset=today', undefined, T, 200);
+    const row = ev.items.find((x) => x.leadId === l.id);
+    assert.ok(row, "qo'ng'iroq voqealar ro'yxatida yo'q");
+    assert.equal(row.type, 'call_out');
+    assert.ok(row.call?.hasRecording && /00:35 998/.test(row.text), JSON.stringify(row));
+    assert.ok(ev.items.every((x) => x.type.startsWith('call_')), 'tur filtri boshqa voqealarni ham qaytardi');
+    const tasks = await ok('GET', '/crm/analytics/events?entity=task', undefined, T, 200);
+    assert.ok(tasks.items.every((x) => x.type.startsWith('task_')), 'obyekt filtri ishlamadi');
+    const all = await ok('GET', '/crm/analytics/events', undefined, T, 200);
+    assert.ok(all.total >= all.items.length && all.items.some((x) => x.type === 'call_out'), "umumiy ro'yxatda qo'ng'iroq yo'q");
+    const mine = await ok('GET', '/crm/analytics/events?preset=mine', undefined, S.token, 200);
+    assert.ok(mine.items.every((x) => !x.call), "«Mening voqealarim»da boshqaning qo'ng'iroqlari chiqdi");
+  });
+
   test("qalqib chiquvchi oyna sozlamasi sotuvchiga ham ko'rinadi", async () => {
     await ok('PUT', '/crm/pbx/config', { popups: false }, T, 200);
     assert.equal((await ok('GET', '/crm/my-extension', undefined, S.token, 200)).popups, false);

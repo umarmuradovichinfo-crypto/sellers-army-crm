@@ -152,9 +152,12 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     jiringlayotgan qo'ng'iroq «ringing» (oldin darhol «o'tkazib yuborilgan» bo'lardi); yangi raqam → kontakt + Saralanmagan bitim;
     o'tkazib yuborilgan → mas'ulga «Qayta qo'ng'iroq qiling» vazifasi (takrorlanmaydi; eski tarix sinxronida faqat so'nggi sutka).
     Ochiq: qo'ng'iroqni mas'ulga yo'naltirish OnlinePBX panelida sozlanadi (CRM'da API yo'q).
-35. [ ] Аналитика → Список событий amoCRM kabi: filtr paneli (Все события / Мои события / Сегодня / Вчера / Месяц / За все время,
+35. [x] Аналитика → Список событий amoCRM kabi: filtr paneli (Все события / Мои события / Сегодня / Вчера / Месяц / За все время,
     «Все сущности», «Типы событий» guruhlari bilan), ro'yxatga qo'ng'iroqlar (yozuvni tinglash/yuklab olish) va chat voqealari
     (Входящее/Исходящее сообщение, Беседа создана/закрыта, Внутреннее сообщение) ham tushadi.
+    Bajarildi: filtr paneli (5 preset, davr, menejerlar, obyekt, turlar qidiruv/hammasini tanlash bilan, oldin/keyin qiymat),
+    qo'ng'iroqlar (davomiylik, raqam, xodim, tinglash/yuklab olish), kiruvchi/chiquvchi xabarlar, yopilgan suhbatlar, bitimga havola,
+    umumiy son. MultiSelect uslublari endi har sahifada yuklanadi.
 36. [ ] Bitim lentasi (chat tarixi) amoCRM mantig'ida. amoCRM'da: tepada «Поиск и фильтр» — chapda «Все события / Только чаты /
     Только чаты с клиентами», o'ngda «Сообщения чатов», «Связанные объекты», «Типы событий» (Активные задачи, Входящий звонок,
     Выполненные задачи, …); oy/kun bo'yicha guruhlash; tizim voqealari yig'ilgan «Создание: N события — Развернуть»;
