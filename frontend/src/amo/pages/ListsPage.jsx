@@ -12,6 +12,7 @@ import '../i18n/lists.ru'
 import '../leads.css'
 import '../lists.css'
 import { ImportModal } from './ImportPage'
+import PhoneLink from '../PhoneLink'
 
 const PAGE = 50
 const EMPTY = { preset: 'all', name: '', phone: '', email: '', assigneeId: '', period: '' }
@@ -237,7 +238,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
                   <a className={r.unsorted ? 'unsorted' : ''} onClick={() => open(r)}>{r.name}</a>
                 </td>
                 <td>{r.companyName && <span className="u">{r.companyName}</span>}</td>
-                <td>{r.phone && <a className="u" href={`tel:${String(r.phone).replace(/[^\d+]/g, '')}`}>{phoneFmt(r.phone)}</a>}</td>
+                <td>{r.phone && <PhoneLink value={r.phone} />}</td>
                 <td>{r.assignee}</td>
                 <td>{r.email}</td>
               </tr>

@@ -139,6 +139,28 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     bitim kartochkasi lentasi qo'ng'iroq/xabarlarni o'zi yangilaydi; test/e2e/50-telephony (7 test).
     OnlinePBX panelidagi webhook manzili — Sozlamalar → Telefoniya'da ko'rsatilgan manzil (?secret= bilan).
 
+34. [ ] (foydalanuvchi so'rovi 26.10) Telefoniya amoCRM + OnlinePBX vidjeti mantig'ida (eski CRM'dan to'g'ridan-to'g'ri ko'chirmasdan).
+    amoCRM'da o'rganildi (Маркет → onlinePBX vidjeti tavsifi va sozlamasi):
+    - bir bosishda qo'ng'iroq (bor: raqam yonidagi tugma / raqam menyusi);
+    - kiruvchi qo'ng'iroqda qalqib chiquvchi oyna: mijoz nomi, kartochkaga o'tish; sozlama «Показывать всплывающие уведомления?»;
+    - yangi raqamdan kiruvchi → kontakt avtomatik yaratiladi (+ «Неразобранное»); o'tkazib yuborilgan → mas'ulga vazifa;
+    - qo'ng'iroqlar tarixi va yozuv kartochkada (bor);
+    - kiruvchi qo'ng'iroqni kontakt mas'uliga yo'naltirish — OnlinePBX tomonidagi funksiya (CRM'dan mas'ul ichki raqamini berish imkoniyatini o'rganish).
+    Eski CRM'dagi «Qo'ng'iroqlar» ro'yxatining amoCRM'dagi o'rni: Аналитика → Список событий → Типы событий → «Звонки»
+    (Входящий/Исходящий звонок) — alohida sahifa emas (35-band).
+35. [ ] Аналитика → Список событий amoCRM kabi: filtr paneli (Все события / Мои события / Сегодня / Вчера / Месяц / За все время,
+    «Все сущности», «Типы событий» guruhlari bilan), ro'yxatga qo'ng'iroqlar (yozuvni tinglash/yuklab olish) va chat voqealari
+    (Входящее/Исходящее сообщение, Беседа создана/закрыта, Внутреннее сообщение) ham tushadi.
+36. [ ] Bitim lentasi (chat tarixi) amoCRM mantig'ida. amoCRM'da: tepada «Поиск и фильтр» — chapda «Все события / Только чаты /
+    Только чаты с клиентами», o'ngda «Сообщения чатов», «Связанные объекты», «Типы событий» (Активные задачи, Входящий звонок,
+    Выполненные задачи, …); oy/kun bo'yicha guruhlash; tizim voqealari yig'ilgan «Создание: N события — Развернуть»;
+    xabarlar «Беседа № A8176» suhbatlariga bog'langan, «Закрыть», yopilgan suhbat bir qatorga yig'iladi; xabarda vaqt, muallif,
+    kanal va holat («Доставлено»). Bizda bor: suhbat bloki va «Yopish», xato belgisi. Yo'q: lenta filtri, yig'ilgan tizim
+    voqealari, suhbat raqami, yetkazildi/o'qildi holati, oy ajratgichlari.
+37. [ ] (foydalanuvchi so'rovi 26.10) Sozlamalar bo'limi amoCRM bilan har bir detalda bir xil: amoCRM «Настройки»dagi har bir sahifa
+    (Общие, Пользователи, Чаты и мессенджеры, Безопасность, Коммуникации, …) bilan bizdagini birma-bir solishtirib, farqlar
+    ro'yxatini tuzish va bir xil qilish.
+
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
   matnlari tarjimasi; Sozlamalar → Umumiy sozlamalarga "Til" maydoni (9-bosqich).

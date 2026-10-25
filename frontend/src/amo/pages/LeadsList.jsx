@@ -19,6 +19,7 @@ import '../leads.css'
 import { ImportModal } from './ImportPage'
 import DuplicatesModal from '../DuplicatesModal'
 import { CountWidget } from '../dashboardWidgets'
+import PhoneLink from '../PhoneLink'
 
 addRu({
   'Barcha bitimlar': 'Все сделки',
@@ -187,7 +188,7 @@ export default function LeadsList() {
       )
       case 'contact': return <td key={c.key}>{l.contactName ? <span className="u" style={{ cursor: 'pointer' }} onClick={() => navigate(`/contacts/detail/${l.contactId}`)}>{l.contactName}</span> : ''}</td>
       case 'company': return <td key={c.key}>{l.companyName || ''}</td>
-      case 'phone': return <td key={c.key}>{(l.contactPhone || l.phone) ? <a className="u" href={`tel:${l.contactPhone || l.phone}`}>{phoneFmt(l.contactPhone || l.phone)}</a> : ''}</td>
+      case 'phone': return <td key={c.key} onClick={(e) => e.stopPropagation()}>{(l.contactPhone || l.phone) ? <PhoneLink value={l.contactPhone || l.phone} leadId={l.id} /> : ''}</td>
       case 'email': return <td key={c.key}>{l.email || l.contactEmail || ''}</td>
       case 'stage': return <td key={c.key}>{l.stageName}</td>
       case 'budget': return <td key={c.key}>{l.value ? money(l.value) : ''}</td>

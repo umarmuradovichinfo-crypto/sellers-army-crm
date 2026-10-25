@@ -70,6 +70,9 @@ export const crmService = {
   dial: (to) => api.post('/crm/calls/dial', { to }),
   leadCalls: (id) => api.get(`/crm/leads/${id}/calls`),
   listCalls: (filter) => api.get(`/crm/calls${filter && filter !== 'all' ? `?filter=${filter}` : ''}`),
+  // kiruvchi qo'ng'iroq oynasi (OnlinePBX webhook → so'nggi 45 s dagi ko'rilmagan kiruvchi) va uni yopish
+  incomingCall: () => api.get('/crm/calls/incoming'),
+  dismissCall: (id) => api.post(`/crm/calls/${id}/dismiss`, {}),
   recordingBlob: (callId) => api.getBlob(`/crm/calls/${callId}/recording`), // yozuvni chatda ijro uchun
   getMyExtension: () => api.get('/crm/my-extension'),
   setMyExtension: (extension) => api.put('/crm/my-extension', { extension }),
