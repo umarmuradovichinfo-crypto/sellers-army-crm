@@ -5,8 +5,9 @@ import { useSearchParams } from 'react-router-dom'
 import { crmService } from '../services/crm.service'
 import { useApi } from '../lib/useApi'
 
+// amoCRM: Bitimlar ochilganda filtr yo'q («Поиск и фильтр», ?skip_filter=Y) — hamma bitimlar
 export const EMPTY_FILTER = {
-  preset: 'open', name: '',
+  preset: '', name: '',
   dateField: 'created', datePreset: '', from: '', to: '',
   stages: [], lostReasons: [], unsortedCategory: [], sources: [],
   assigneeIds: [], createdByIds: [], updatedByIds: [],
@@ -92,11 +93,10 @@ export function toParams(f) {
   return out
 }
 
-/** Filtr -> URL query (standart "ochiq bitimlar" filtri bo'sh query). */
+/** Filtr -> URL query (filtrsiz holat — bo'sh query). */
 export function filterToQuery(f) {
   const p = toParams(f)
-  if (!f.preset) p.preset = ''
-  if (p.preset === 'open' && Object.keys(p).length === 1) return {}
+  if (!p.preset) delete p.preset
   return p
 }
 
@@ -241,7 +241,7 @@ export const CARD_FIELDS = [
   { key: 'budget', label: 'Byudjet' }, { key: 'tags', label: 'Teglar' }, { key: 'source', label: 'Manba' },
   { key: 'task', label: 'Vazifa' }, { key: 'assignee', label: "Mas'ul" },
 ]
-export const CARD_DEFAULT = ['avatar', 'contact', 'date', 'assignee', 'budget', 'tags', 'task']
+export const CARD_DEFAULT = ['avatar', 'contact', 'date', 'assignee', 'budget', 'phone', 'tags', 'task']
 
 export const LIST_COLUMNS = [
   { key: 'name', label: 'Bitim nomi', sort: 'name' }, { key: 'contact', label: 'Asosiy kontakt', sort: 'contact' },

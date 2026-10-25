@@ -45,14 +45,13 @@ function Avatar({ src }) {
   )
 }
 
-// amoCRM: rejalashtirilgan vazifa bo'lsa belgi yo'q; vazifa yo'q — sariq, muddati o'tgan — qizil.
-// Matn faqat teglar bo'lmaganda (joy bo'lsa) ko'rinadi.
-function TaskMark({ s, compact }) {
+// amoCRM: rejalashtirilgan vazifa bo'lsa belgi yo'q; vazifa yo'q — sariq, muddati o'tgan — qizil nuqta (matn — faqat tooltip'da)
+function TaskMark({ s }) {
   const t = useT()
   if (!s) return null
   const kind = s.kind || 'none'
   if (kind === 'today' || kind === 'future') return null
-  return <span className={`ac-card__task ${kind}`} title={t(s.label)}>{!compact && t(s.label)}<i /></span>
+  return <span className={`ac-card__task ${kind}`} title={t(s.label)}><i /></span>
 }
 
 function LeadCard({ lead, onOpen, onPointerDown, dragging, fields, bulk, selected, onToggle }) {
@@ -61,6 +60,7 @@ function LeadCard({ lead, onOpen, onPointerDown, dragging, fields, bulk, selecte
   const tags = has('tags') ? lead.tags || [] : []
   const title = has('contact') ? lead.contactName || lead.n : lead.n
   const t = useT()
+  const phoneLine = (lead.contactPhone || lead.phone) ? String(lead.contactPhone || lead.phone).replace(/[^\d+]/g, '') : ''
   // Qo'shimcha qatorlar kartochka sozlamasidagi tartibda
   const lines = fields.map((k) => {
     if (k === 'company') return lead.company
@@ -85,18 +85,19 @@ function LeadCard({ lead, onOpen, onPointerDown, dragging, fields, bulk, selecte
         {has('contact') && lead.contactName && lead.contactName !== lead.n && <div className="ac-card__sub">{lead.n}</div>}
         {fields.map((k, i) => {
           if (k === 'budget') return lead.value > 0 ? <div key={k} className="ac-card__budget">{money(lead.value)}</div> : null
-          if (k === 'company') return null
+          if (k === 'company' || k === 'phone') return null // telefon — pastda chip (amoCRM)
           const v = lines[i]
           if (v == null || v === '') return null
           return <div key={k} className={k === 'assignee' ? 'ac-card__sub' : 'ac-card__extra'}>{v}</div>
         })}
-        {(has('tags') || has('task')) && (
+        {(has('tags') || has('task') || (has('phone') && phoneLine)) && (
           <div className="ac-card__foot">
             <div className="ac-card__tags">
+              {has('phone') && phoneLine && <span className="ac-card__phone">{phoneLine}</span>}
               {tags.slice(0, 2).map((x) => <span key={x} className={`ac-tag ac-tag--sm ${tagColors[x] ? 'ac-tag--c' : ''}`} style={tagStyle(tagColors[x])}>{x}</span>)}
               {tags.length > 2 && <span className="ac-tag ac-tag--sm ac-tag--more">+{tags.length - 2}</span>}
             </div>
-            {has('task') && <TaskMark s={lead.taskStatus} compact={tags.length > 0} />}
+            {has('task') && <TaskMark s={lead.taskStatus} />}
           </div>
         )}
       </div>
