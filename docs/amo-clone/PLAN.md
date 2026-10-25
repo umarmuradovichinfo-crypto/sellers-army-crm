@@ -218,7 +218,8 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
        lentasi, vidjetlar, «Настроить», «События») avval moslangan.
     b) Bitimlar — farqlar (26.10): [x] kartochkada vazifa holati faqat nuqta (matn tooltip'da), kontakt telefoni pastki qatorda
        chip (standart maydonlarda); [x] ochilganda filtr yo'q («Поиск и фильтр», hamma bitimlar) — oldin «Открытые сделки».
-       Keyingisi: kartochka (bitim) sahifasi, saralanmagan, dublikatlar, import — batafsil solishtirish.
+       [x] kartochka: bosqichda turgan muddat «(130 дней)» (oldin sana), «Дубль?» pushti chip — shu telefon/email bilan boshqa
+       bitimlar ro'yxati. Keyingisi: saralanmagan, dublikatlar oynasi, import — batafsil solishtirish.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

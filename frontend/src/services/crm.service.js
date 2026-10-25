@@ -44,6 +44,8 @@ export const crmService = {
   listLeads: (params) => api.get(`/crm/leads${qs(params)}`),
   // bulk(ids, action, value) yoki bulk(null, action, value, { all: true, filter, excludeIds }) — "barchasini belgilash"
   bulk: (ids, action, value, extra) => api.post('/crm/leads/bulk', { ids: ids || undefined, action, value, ...extra }),
+  // GET /crm/leads-check?phone&email&excludeId -> { duplicates:[{id,name,phone,email,stage}] } (kartochkadagi «Дубль?»)
+  checkDuplicates: (phone, email, excludeId) => api.get(`/crm/leads-check${qs({ phone, email, excludeId })}`),
   mergeLeads: (keepId, mergeIds, pick) => api.post('/crm/leads/merge', { keepId, mergeIds, pick }),
   exportUrl: (params) => `/crm/leads-export${qs(params)}`,
   // Filtr (listLeads parametrlari) + sort/dir bo'yicha CSV — auth bilan Blob sifatida

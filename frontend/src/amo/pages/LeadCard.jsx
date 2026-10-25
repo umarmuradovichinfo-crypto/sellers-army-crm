@@ -10,7 +10,7 @@ import { DotsMenu, useOutside } from '../TopBar'
 import MultiSelect from '../MultiSelect'
 import { feedDate, feedDateFull, dmy, relDay, currency, phoneFmt, money, productsOn } from '../format'
 import PhoneLink from '../PhoneLink'
-import { useT } from '../i18n'
+import { useT, usePlural } from '../i18n'
 import { tagStyle } from '../tagColors'
 import { FieldModal } from './FieldsSetup'
 import { useFilterMeta } from '../filterState'
@@ -121,13 +121,16 @@ function StatusPicker({ lead, pipes, onPick }) {
   const st = stages[idx]
   const openStages = stages.filter((s) => s.kind === 'open')
   const pos = st?.kind === 'open' ? openStages.findIndex((s) => s.id === st.id) + 1 : openStages.length
-  const since = lead.stageSince ? relDay(lead.stageSince) || dmy(lead.stageSince) : null
+  // amoCRM: bosqichda turgan muddat — «(130 дней)»; bugun o'tgan bo'lsa «(Сегодня)»
+  const plural = usePlural()
+  const days = lead.stageSince ? Math.floor((Date.now() - new Date(lead.stageSince).getTime()) / 86400000) : null
+  const since = days == null ? null : days < 1 ? t('Bugun') : plural(days, 'kun')
   return (
     <div className="ac-status" ref={ref}>
       <button className="ac-status__btn" onClick={() => { setExpanded(lead.pipelineId || ''); setOpen(true) }}>
         <div className="ac-status__pipe">{current?.name || t('Asosiy voronka')}</div>
         <div className="ac-status__name">
-          {st?.name || '—'} {since && <small>({t(since)})</small>}
+          {st?.name || '—'} {since && <small>({since})</small>}
           <span className="ac-status__chev"><Ico name="chevronDown" /></span>
         </div>
       </button>
@@ -833,6 +836,16 @@ export default function LeadCard() {
   const [feed, setFeed] = useState({ calls: [], tasks: [], messages: [], canReply: false })
   const [tab, setTab] = useState('main')
   const [feedQ, setFeedQ] = useState('')
+  // amoCRM «Дубль?»: shu telefon/email bilan boshqa bitimlar bormi
+  const [dups, setDups] = useState([])
+  const [dupOpen, setDupOpen] = useState(false)
+  const dupPhone = lead ? (contactsOf(lead)[0]?.phone || lead.phone || '') : ''
+  const dupEmail = lead ? (contactsOf(lead)[0]?.email || lead.email || '') : ''
+  useEffect(() => {
+    setDupOpen(false)
+    if (!lead?.id || (!dupPhone && !dupEmail)) { setDups([]); return }
+    crmService.checkDuplicates(dupPhone || undefined, dupEmail || undefined, lead.id).then((r) => setDups(r.duplicates || [])).catch(() => setDups([]))
+  }, [lead?.id, dupPhone, dupEmail]) // eslint-disable-line
   const [feedFilter, setFeedFilterState] = useState(loadFeedFilter)
   const [feedPanel, setFeedPanel] = useState(false)
   const feedTopRef = useRef(null)
@@ -1048,6 +1061,17 @@ export default function LeadCard() {
             </div>
             <div className="ac-cf__meta" onClick={(e) => { if (e.target === e.currentTarget && tagInput === null) setTagInput('') }}>
               {!isNew && v.n && <span>#{String(lead.id).slice(-8)}</span>}
+              {dups.length > 0 && (
+                <span className="ac-cf__dup-wrap">
+                  <button className="ac-cf__dup" onClick={() => setDupOpen((x) => !x)}>{t('Dubl?')}</button>
+                  {dupOpen && (
+                    <div className="ac-menu ac-cf__dupmenu">
+                      <div className="ac-cf__duphead">{t("Ehtimoliy dublikatlar (telefon yoki email bir xil)")}</div>
+                      {dups.map((d) => <a key={d.id} className="ac-menu__item" href={`/leads/detail/${d.id}`} onClick={(e) => { e.preventDefault(); setDupOpen(false); navigate(`/leads/detail/${d.id}`) }}>{d.name || `#${d.id.slice(-6)}`}</a>)}
+                    </div>
+                  )}
+                </span>
+              )}
               {(v.tags || []).map((tg) => <span key={tg} className={`ac-cf__tagpill ${tagColors[tg] ? 'ac-tag--c' : ''}`} style={tagStyle(tagColors[tg])}>{tg}<button onClick={() => removeTag(tg)}><Ico name="close" size={10} /></button></span>)}
               {tagInput === null
                 ? <button className={`ac-cf__tagbtn ${(v.tags || []).length ? 'ac-cf__tagbtn--more' : ''}`} onClick={() => setTagInput('')}>{(v.tags || []).length ? '+' : `#${t('card§Teglash')}`}</button>

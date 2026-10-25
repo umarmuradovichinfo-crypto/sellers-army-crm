@@ -179,11 +179,12 @@ const RU_FORMS = {
   element: ['элемент', 'элемента', 'элементов'],
   "so'rov": ['заявка', 'заявки', 'заявок'],
   voqea: ['событие', 'события', 'событий'],
+  kun: ['день', 'дня', 'дней'],
 }
 export function usePlural() {
   const { lang } = useI18n()
   return (n, word) => {
-    if (lang !== 'ru' || !RU_FORMS[word]) return `${n} ta ${word}`
+    if (lang !== 'ru' || !RU_FORMS[word]) return word === 'kun' ? `${n} kun` : `${n} ta ${word}`
     const f = RU_FORMS[word]
     const m10 = n % 10, m100 = n % 100
     const form = m10 === 1 && m100 !== 11 ? f[0] : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? f[1] : f[2]

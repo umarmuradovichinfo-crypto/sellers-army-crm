@@ -2,6 +2,8 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Dubl?': 'Дубль?',
+  "Ehtimoliy dublikatlar (telefon yoki email bir xil)": 'Возможные дубли (совпадает телефон или email)',
   "Sanani to'g'ri kiriting": 'Введите корректную дату',
   'Xatolik yuz berdi': 'Произошла ошибка',
   "Qo'ng'iroq": 'Звонок',

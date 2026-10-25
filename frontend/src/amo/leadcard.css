@@ -295,3 +295,8 @@ a.ac-field__link:hover { color: var(--palette-link-primary); }
 /* xabar holati: Отправлено / Доставлено / Прочитано */
 .ac-msg__status { margin-top: 4px; font-size: 11px; color: var(--palette-text-secondary-dark); text-align: right; }
 .ac-msg__status--read { color: #2ecc71; }
+/* amoCRM «Дубль?» — pushti chip, bosilganda ehtimoliy dublikatlar */
+.ac-cf__dup-wrap { position: relative; display: inline-flex; }
+.ac-cf__dup { height: 22px; padding: 0 7px; border: 0; border-radius: 3px; background: #f24f8e; color: #fff; font: 400 13px var(--font-main); cursor: pointer; }
+.ac-cf__dupmenu { position: absolute; top: 26px; left: 0; z-index: 40; min-width: 240px; }
+.ac-cf__duphead { padding: 6px 12px; font-size: 11px; color: var(--palette-text-secondary-dark); }
