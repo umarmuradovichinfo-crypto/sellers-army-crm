@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { useT } from '../i18n'
 import BotBuilder, { TRIGGER_LABEL, emptyBot } from '../BotBuilder'
+import { AmmaAvatar, openAmma } from '../Amma'
 import '../i18n/bots.ru.js'
 import '../bots.css'
 
@@ -17,6 +18,8 @@ export default function BotsPage() {
   const [sel, setSel] = useState(new Set())
   const [open, setOpen] = useState(null) // bot obyekti (yangi yoki mavjud)
   const fileRef = useRef(null)
+  const [amma, setAmma] = useState(null)
+  useEffect(() => { api.get('/crm/amma').then(setAmma).catch(() => null) }, [])
   const load = () => api.get('/crm/salesbots').then((r) => setBots(r.bots || [])).catch(() => setBots([]))
   useEffect(() => { load() }, [])
 
@@ -41,6 +44,18 @@ export default function BotsPage() {
     <div className="ac-content ac-bots">
       <div className="ac-top"><div className="ac-top__preset"><span className="ac-top__title">{t('Agentlar va botlar')}</span></div></div>
       <div className="ac-bots__body">
+        <div className="ac-amma-card">
+          <AmmaAvatar size={48} />
+          <div className="ac-amma-card__main">
+            <div className="ac-amma-card__cap">{t('Mahsulot ichidagi agent')}</div>
+            <div className="ac-amma-card__name">{t('AMMA')}</div>
+            <div className="ac-amma-card__desc">{t("Amma bitimlarni tahlil qiladi, vazifa qo'yadi va mijozga javob tayyorlaydi")}</div>
+            {amma && !amma.configured && <div className="ac-amma-card__warn">{t("Sozlanmagan: serverda ANTHROPIC_API_KEY o'rnatilmagan")}</div>}
+          </div>
+          <div className="ac-amma-card__stat"><b>{amma?.processedLeads ?? '—'}</b><span>{t('Ishlangan bitimlar')}</span></div>
+          <div className="ac-amma-card__stat"><b>{amma?.unanswered ?? '—'}</b><span>{t('Javobsiz chatlar')}</span></div>
+          <button className="ac-btn ac-btn--blue" onClick={() => openAmma()}>{t('Chatni ochish')}</button>
+        </div>
         <h2 className="ac-bots__h">{t('Sizning botlaringiz')}</h2>
         <div className="ac-bots__card">
           <div className="ac-bots__card-title">{t("Botlar ro'yxati")}</div>

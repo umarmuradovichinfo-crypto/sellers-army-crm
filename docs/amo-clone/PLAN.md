@@ -115,8 +115,10 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
 29. [x] (25.10 audit) «AI-агенты и боты» bo'limi (/agents-and-bots): «Ваши боты — Список ботов» (nom, triggerlar, konversiya,
     jami ishga tushish), Salesbot konstruktori (xabar yuborish, tugmalar, javobni kutish, shartlar, harakatlar: bosqich/teg/vazifa/maydon)
     — Telegram/Instagram/Messenger chatlarida ishlaydi, voronka triggerlarida «Salesbot» harakati. Taxminan 6–10 soat. FOYDALANUVCHI TASDIG'I KUTILMOQDA.
-30. [ ] (25.10 audit) amoCRM «Амма» AI-yordamchisi (ish stolidagi chat oynasi + o'ng pastdagi avatar): CRM bo'yicha savollarga javob,
-    statistikalar. LLM API kaliti kerak. FOYDALANUVCHI TASDIG'I KUTILMOQDA.
+30. [x] (25.10) amoCRM «Амма» AI-yordamchisi: ish stolidagi chat qutisi, o'ng pastdagi avatar → o'ng panel (takliflar, ogohlantirish),
+    «AI-агенты» sahifasida «Агент внутри продукта — АММА» kartasi (ishlangan bitimlar, javobsiz chatlar). Backend: crm/amma (Claude API,
+    tool use: get_lead, search_leads, list_tasks, create_task, add_note, pipeline_summary, unanswered_chats). Railway'da
+    ANTHROPIC_API_KEY o'rnatilishi kerak (ixtiyoriy AMMA_MODEL); kalitsiz «sozlanmagan» xabari chiqadi.
     («Покупатели» bo'limi bu akkauntda o'chirilgan — ochilganda ish stoliga qaytaradi, shuning uchun klonlanmaydi.)
 
 31. [x] (foydalanuvchi so'rovi 25.10) Ish stoli amoCRM bilan TO'LIQ 1:1: amoCRM'da ish stoli qanday ishlashini to'liq o'rganish —

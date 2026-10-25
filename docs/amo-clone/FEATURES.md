@@ -89,6 +89,13 @@ Batafsil farqlar va tuzatishlar: [AUDIT.md](AUDIT.md). Reja: [PLAN.md](PLAN.md).
 | Instagram Direct/izohlar, Messenger, Telegram | ✅ | |
 | Sayt formalari, IP-telefoniya, Web hooks | ✅ | |
 
+## Amma (AI yordamchi)
+| Funksiya | Holat | Izoh |
+|---|---|---|
+| Ish stolidagi chat qutisi, pastki o'ng avatar, o'ng panel | ✅ | takliflar: bitim tahlili, bugungi vazifa, mijozga javob |
+| Bitim tahlili, vazifa/izoh yaratish, voronka statistikasi, javobsiz chatlar | ✅ | Claude API tool use; ANTHROPIC_API_KEY kerak |
+| «Агент внутри продукта — АММА» kartasi | ✅ | ishlangan bitimlar va javobsiz chatlar soni |
+
 ## Til
 | Funksiya | Holat | Izoh |
 |---|---|---|

@@ -1,5 +1,6 @@
 // amoCRM "Рабочий стол" — /dashboard. Fon + voronka kartalari + vidjetlar to'ri + voqealar paneli.
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { AmmaDashBox } from '../Amma'
 import { crmService } from '../../services/crm.service'
 import { settingsService } from '../../services/settings.service'
 import { useAuth } from '../../context/AuthContext'
@@ -363,6 +364,7 @@ export default function DashboardPage() {
       )}
 
       <h1 className="ac-dash__title">{accountName}</h1>
+      {!editing && <AmmaDashBox />}
 
       {editing ? (
         <div className="ac-dash-setup-panel">

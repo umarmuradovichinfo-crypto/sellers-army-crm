@@ -731,6 +731,12 @@ export default function LeadCard() {
     setFeed({ calls: c.calls || [], tasks: tk.tasks || [], messages: m.messages || [], canReply: !!m.canReply, closed: !!m.closed })
   }
 
+  // Amma vazifa/izoh qo'shganda kartochka va lentani yangilash
+  useEffect(() => {
+    const h = () => { if (!isNew) { loadLead(); loadFeed() } }
+    window.addEventListener('amo:lead-changed', h)
+    return () => window.removeEventListener('amo:lead-changed', h)
+  })
   useEffect(() => {
     setDraft({}); setContactEdits({}); setTab('main')
     const pid = sp.get('pipeline') || ''

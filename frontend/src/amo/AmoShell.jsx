@@ -1,6 +1,7 @@
 // amoCRM qobig'i: chap menyu (65px), Сделки flyout, akkaunt paneli, bildirishnomalar paneli.
 // Bo'limlar amoCRM URL tuzilmasida: /dashboard, /leads/..., /imbox, /todo/..., /contacts/..., /stats/..., /settings/...
 import React, { useEffect, useRef, useState } from 'react'
+import AmmaWidget from './Amma'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { crmService, notifService as notificationsApi } from '../services/crm.service'
@@ -289,6 +290,7 @@ export default function AmoShell({ children }) {
       <UserBar open={userOpen} onClose={() => setUserOpen(false)} />
       <NetworkBar />
       {children}
+      <AmmaWidget />
     </div>
   )
 }
