@@ -19,6 +19,7 @@ export const NAV = [
   { key: 'leads', to: '/leads/pipeline', title: 'Bitimlar', icon: 'leads', flyout: true },
   { key: 'imbox', to: '/imbox', title: 'imBox', icon: 'imbox' },
   { key: 'todo', to: '/todo/line', title: 'Vazifalar', icon: 'tasks' },
+  { key: 'bots', to: '/agents-and-bots', title: 'AI-agentlar va botlar', icon: 'bots' },
   { key: 'lists', to: '/contacts/list', title: "Ro'yxatlar", icon: 'lists', match: ['/contacts', '/companies'] },
   { key: 'stats', to: '/stats', title: 'Analitika', icon: 'stats', match: ['/stats', '/events'] },
   { key: 'market', to: '/amo-market', title: 'Market', icon: 'market' },

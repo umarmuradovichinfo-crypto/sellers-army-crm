@@ -51,7 +51,7 @@ const DEFAULTS = {
 }
 
 // Chap menyu bo'limlari (Sozlamalar yashirilmaydi)
-const NAV_ITEMS = [['dashboard', 'Ish stoli'], ['leads', 'Bitimlar'], ['imbox', 'imBox'], ['todo', 'Vazifalar'], ['lists', "Ro'yxatlar"], ['stats', 'Analitika'], ['market', 'Market']]
+const NAV_ITEMS = [['dashboard', 'Ish stoli'], ['leads', 'Bitimlar'], ['imbox', 'imBox'], ['todo', 'Vazifalar'], ['bots', 'AI-agentlar va botlar'], ['lists', "Ro'yxatlar"], ['stats', 'Analitika'], ['market', 'Market']]
 
 function Row({ label, children }) {
   return <div className="ac-set-row"><div className="ac-set-row__label">{label}</div>{children}</div>

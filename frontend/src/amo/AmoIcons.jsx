@@ -61,6 +61,13 @@ const NAV = {
       <circle cx="15.5" cy="17" r="1.8" fill={on ? '#e2453c' : 'currentColor'} />
     </>
   ),
+  bots: (on) => (
+    <>
+      <circle cx="15" cy="15" r="12" {...S} fill={on ? '#fff' : 'none'} stroke={on ? '#fff' : 'currentColor'} />
+      <rect x="9" y="11" width="12" height="9" rx="3" {...S} stroke={on ? '#1b3446' : 'currentColor'} />
+      <path d="M15 11V8M12.5 15h.01M17.5 15h.01" {...S} stroke={on ? '#1b3446' : 'currentColor'} strokeWidth="2" />
+    </>
+  ),
   market: (on) => (
     <>
       <circle cx="13" cy="17" r="9" {...S} fill={on ? '#1f8ef1' : 'none'} stroke={on ? '#1f8ef1' : 'currentColor'} />

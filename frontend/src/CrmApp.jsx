@@ -26,6 +26,7 @@ import ContactCard from './amo/pages/ContactCard'
 import CompanyCard from './amo/pages/CompanyCard'
 import SettingsPage from './amo/pages/SettingsPage'
 import IntegrationsPage from './amo/pages/IntegrationsPage'
+import BotsPage from './amo/pages/BotsPage'
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
@@ -78,6 +79,7 @@ function CrmShell() {
           <Route path="/settings/tags" element={<Navigate to="/leads/list" replace />} />
           <Route path="/settings/*" element={<Navigate to="/settings/general" replace />} />
           <Route path="/amo-market" element={<IntegrationsPage />} />
+          <Route path="/agents-and-bots" element={<BotsPage />} />
           {/* Eski manzillar */}
           <Route path="/ish-stoli" element={<Navigate to="/dashboard" replace />} />
           <Route path="/vazifalar" element={<Navigate to="/todo/line" replace />} />

@@ -26,6 +26,7 @@ const RU = {
   'Barcha bitimlar': 'Все сделки',
   'Arxivdagi voronkalar': 'Архивные воронки',
   'Belgilandi': 'Выбрано',
+  'AI-agentlar va botlar': 'AI-агенты и боты',
   "Tanlangan bitimlar o'chirilsinmi?": 'Удалить выбранные сделки?',
   'Bitimlar topilmadi': 'Сделки не найдены',
   "so'm": "so'm",

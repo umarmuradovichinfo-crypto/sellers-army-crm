@@ -266,7 +266,7 @@ export class SalesbotService implements OnModuleInit {
           const key = `bot_rr:${step.id}`;
           const row = await this.prisma.appSetting.findUnique({ where: { key } });
           const idx = (Number(row?.value) || 0) % users.length;
-          await this.automation.runActions([{ type: 'change_assignee', assignee: users[idx] }], leadId, `Salesbot: ${botName}`);
+          await this.automation.runActions([{ type: 'change_assignee', userId: users[idx] }], leadId, `Salesbot: ${botName}`);
           await this.prisma.appSetting.upsert({ where: { key }, create: { key, value: String(idx + 1) }, update: { value: String(idx + 1) } });
         }
         return step.next || null;
