@@ -259,6 +259,11 @@ a.ac-field__link:hover { color: var(--palette-link-primary); }
 /* telefon raqami menyusi (qo'ng'iroq / nusxalash / Telegram) */
 .ac-phone { position: relative; display: inline-flex; }
 .ac-phone__menu { top: 100%; left: 0; margin-top: 4px; }
+.ac-phone { align-items: center; gap: 4px; max-width: 100%; }
+.ac-phone .ac-field__link { white-space: nowrap; }
+.ac-phone__call { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: #2ecc71; color: #fff; cursor: pointer; flex: none; }
+.ac-phone__call:hover { background: #27ae60; }
+.ac-phone__call.busy { opacity: .5; cursor: progress; }
 .ac-menu a.ac-menu__item, .ac-menu a.ac-menu__item:hover { color: var(--palette-text-primary); text-decoration: none; }
 
 /* bitimdagi mahsulotlar (amoCRM «Товары») */

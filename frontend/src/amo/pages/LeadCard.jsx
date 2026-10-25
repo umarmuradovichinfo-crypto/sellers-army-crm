@@ -773,6 +773,19 @@ export default function LeadCard() {
     setFeed({ calls: c.calls || [], tasks: tk.tasks || [], messages: m.messages || [], canReply: !!m.canReply, closed: !!m.closed })
   }
 
+  // Lenta o'zi yangilanib tursin: OnlinePBX/MicroSIP qo'ng'iroqlari, yangi xabarlar (sahifa ko'rinib turganda, 15 s).
+  // Kartochkadan qo'ng'iroq boshlanganda — webhook kelishiga vaqt berib, tezroq tekshiramiz.
+  useEffect(() => {
+    if (isNew) return
+    const tick = () => { if (document.visibilityState === 'visible') loadFeed() }
+    const iv = setInterval(tick, 15000)
+    let t1, t2
+    const onCall = () => { clearTimeout(t1); clearTimeout(t2); t1 = setTimeout(tick, 5000); t2 = setTimeout(tick, 30000) }
+    window.addEventListener('pbx:outgoing', onCall)
+    document.addEventListener('visibilitychange', tick)
+    return () => { clearInterval(iv); clearTimeout(t1); clearTimeout(t2); window.removeEventListener('pbx:outgoing', onCall); document.removeEventListener('visibilitychange', tick) }
+  }, [id, isNew]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Amma vazifa/izoh qo'shganda kartochka va lentani yangilash
   useEffect(() => {
     const h = () => { if (!isNew) { loadLead(); loadFeed() } }

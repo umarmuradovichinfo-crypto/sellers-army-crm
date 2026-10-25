@@ -54,8 +54,9 @@ export default function PhoneLink({ value, leadId }) {
   return (
     <span ref={ref} className="ac-phone">
       <a className="ac-field__link" href={`tel:${digits}`} onClick={(e) => { e.preventDefault(); setOpen((v) => !v) }}>
-        {phoneFmt(value)}{busy ? '…' : ''}
+        {phoneFmt(value)}
       </a>
+      <button className={`ac-phone__call ${busy ? 'busy' : ''}`} title={t("Qo'ng'iroq qilish")} disabled={busy} onClick={call}><Ico name="phone" size={13} /></button>
       {open && (
         <div className="ac-menu ac-phone__menu">
           <button className="ac-menu__item" onClick={call}><Ico name="phone" size={14} />{t("Qo'ng'iroq qilish")}</button>

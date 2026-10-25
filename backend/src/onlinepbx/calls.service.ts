@@ -15,6 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OnlinePbxClient } from './onlinepbx.client';
 import { OnlinePbxConfigService, PbxConfig } from './onlinepbx-config.service';
 import { createHash, timingSafeEqual } from 'crypto';
+import { Prisma } from '../generated/prisma/client';
 
 function digits(p?: string | null): string {
   return (p || '').replace(/\D/g, '');
@@ -93,13 +94,25 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Telefon bo'yicha lidni topish (oxirgi 9 raqam bo'yicha)
+  // Raqam bo'yicha bitim: avval bitimning o'z telefoni, keyin kontakt telefonlari (asosiy + qo'shimcha) — yangi interfeysda
+  // telefon odatda kontaktda turadi. Ochiq (yopilmagan) va oxirgi o'zgargan bitim afzal. Indekslangan ustunlar bilan.
   private async findLeadByPhone(phone: string): Promise<{ id: string; name: string } | null> {
     const tail = digits(phone).slice(-9);
     if (tail.length < 7) return null;
-    const leads = await this.prisma.lead.findMany({ where: { phone: { not: null } }, select: { id: true, name: true, phone: true } });
-    const m = leads.find((l) => digits(l.phone).slice(-9) === tail);
-    return m ? { id: m.id, name: m.name } : null;
+    const own = await this.prisma.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
+      SELECT l.id, l.name FROM leads l WHERE l."phoneTail" = ${tail}
+      ORDER BY (l."wonAt" IS NULL AND l."lostAt" IS NULL) DESC, l."updatedAt" DESC LIMIT 1`);
+    if (own[0]) return own[0];
+    const re = `(^| )[0-9]*${tail}( |$)`;
+    const viaContact = await this.prisma.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
+      SELECT l.id, l.name FROM crm_contacts c
+      JOIN leads l ON l."contactId" = c.id
+        OR EXISTS (SELECT 1 FROM crm_lead_contacts lc WHERE lc."leadId" = l.id AND lc."contactId" = c.id)
+      WHERE c."phoneDigits" ~ ${re}
+      ORDER BY (l."wonAt" IS NULL AND l."lostAt" IS NULL) DESC, l."updatedAt" DESC LIMIT 1`);
+    return viaContact[0] || null;
   }
+
 
   // Ikki raqamdan (caller/callee) yo'nalish + mijoz (tashqi) raqamini aniqlaydi.
   // Ichki raqam (extension) qisqa (<=5 raqam); mijoz raqami uzun.
