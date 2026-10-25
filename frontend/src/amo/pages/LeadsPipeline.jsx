@@ -408,7 +408,10 @@ export default function LeadsPipeline() {
   const toggleSel = (id) => setSel((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
   const runBulk = async (action, value) => {
     if (!sel.size) return
-    try { await crmService.bulk([...sel], action, value) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')); return }
+    try {
+      const r = await crmService.bulk([...sel], action, value)
+      if (r?.skipped) window.alert(`${t("Majburiy maydonlari to'ldirilmagani uchun ko'chirilmadi")}: ${r.skipped}`)
+    } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')); return }
     setSel(new Set()); reload()
   }
 

@@ -777,6 +777,7 @@ export class CrmService {
     }
     if (!ids.length) throw new BadRequestException({ error: 'NO_IDS', message: 'Lid tanlanmagan' });
     let affected = 0;
+    let skipped = 0; // majburiy maydonlari to'ldirilmagani uchun ko'chirilmaganlar
     const CHUNK = 5000; // Postgres bind-parametr limiti (32767) dan oshmaslik uchun
     const chunks: string[][] = [];
     for (let i = 0; i < ids.length; i += CHUNK) chunks.push(ids.slice(i, i + CHUNK));
@@ -787,8 +788,14 @@ export class CrmService {
         if (!target) throw new NotFoundException({ error: 'BAD_STAGE', message: "Noto'g'ri bosqich" });
         let base = await this.nextQueue(target.key);
         const stageName = target.name;
+        // amoCRM: bosqich uchun majburiy maydonlari to'ldirilmagan bitimlar ko'chirilmaydi (yo'qotilganga o'tkazish bundan mustasno)
+        const reqFields = target.kind === 'lost' ? [] : (await this.prisma.crmField.findMany({ where: { entity: 'lead', active: true }, select: { key: true, requiredStagesJson: true } }))
+          .filter((f) => parse<string[]>(f.requiredStagesJson, []).includes(target.key)).map((f) => f.key);
+        const isEmpty = (v: unknown) => v == null || (typeof v === 'string' && !v.trim()) || (Array.isArray(v) && !v.length) || v === false;
         for (const part of chunks) {
-          const before = await this.prisma.lead.findMany({ where: { id: { in: part } }, select: { id: true, stage: true, value: true, lostReason: true } });
+          const rows = await this.prisma.lead.findMany({ where: { id: { in: part } }, select: { id: true, stage: true, value: true, lostReason: true, customJson: true } });
+          const before = rows.filter((r) => r.stage === target.key || !reqFields.some((k) => isEmpty(parse<Record<string, unknown>>(r.customJson, {})[k])));
+          skipped += rows.length - before.length;
           const found = before.map((b) => b.id);
           if (!found.length) continue;
           const changed = before.filter((b) => b.stage !== target.key);
@@ -854,7 +861,7 @@ export class CrmService {
       default:
         throw new BadRequestException({ error: 'BAD_ACTION', message: 'Noma`lum amal' });
     }
-    return { ok: true, affected };
+    return { ok: true, affected, ...(skipped ? { skipped } : {}) };
   }
 
   // ── List ko'rinishi + kengaytirilgan filtr ──

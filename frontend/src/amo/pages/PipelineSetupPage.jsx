@@ -35,13 +35,9 @@ function PipeName({ pid, pipes, name, archived, onChanged }) {
     try {
       if (mode === 'new') {
         const r = await crmService.createPipeline(v)
+        // standart bosqichlar (Birlamchi aloqa / Muvaffaqiyatli / Muvaffaqiyatsiz) server tomonida birga yaratiladi
         const id = r?.pipeline?.id
-        if (id) {
-          await crmService.createStage({ name: 'Birlamchi aloqa', kind: 'open', color: COLORS[1], pipelineId: id })
-          await crmService.createStage({ name: 'Muvaffaqiyatli', kind: 'won', color: '#c9efb0', pipelineId: id })
-          await crmService.createStage({ name: 'Muvaffaqiyatsiz', kind: 'lost', color: '#d0d0d0', pipelineId: id })
-          go(id)
-        }
+        if (id) go(id)
       } else {
         await crmService.updatePipeline(pid, { name: v })
         onChanged()
@@ -56,7 +52,7 @@ function PipeName({ pid, pipes, name, archived, onChanged }) {
     catch (e) { window.alert(e?.message || t('Xatolik')) }
   }
   const remove = async () => {
-    if (!window.confirm(t("Voronka o'chirilsinmi? Bosqichlar va bitimlar asosiy voronkaga o'tkaziladi."))) return
+    if (!window.confirm(t("Voronka o'chirilsinmi?"))) return
     try { await crmService.deletePipeline(pid); go('main') }
     catch (e) { window.alert(e?.message || t('Xatolik')) }
   }

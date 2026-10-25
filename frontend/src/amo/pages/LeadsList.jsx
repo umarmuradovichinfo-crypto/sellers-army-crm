@@ -206,8 +206,8 @@ export default function LeadsList() {
   const runBulk = async (action, value) => {
     if (!selCount) return
     try {
-      if (allMode) await crmService.bulk(null, action, value, { all: true, filter: filterParams, excludeIds: [...excluded] })
-      else await crmService.bulk([...sel], action, value)
+      const r = allMode ? await crmService.bulk(null, action, value, { all: true, filter: filterParams, excludeIds: [...excluded] }) : await crmService.bulk([...sel], action, value)
+      if (r?.skipped) window.alert(`${t("Majburiy maydonlari to'ldirilmagani uchun ko'chirilmadi")}: ${r.skipped}`)
     } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')); return }
     clearSel(); reload()
   }

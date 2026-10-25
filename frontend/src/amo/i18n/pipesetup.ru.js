@@ -7,7 +7,7 @@ addRu({
   "Yangi voronka qo'shish": 'Добавить воронку',
   "Nomini o'zgartirish": 'Переименовать',
   "Voronkani o'chirish": 'Удалить воронку',
-  "Voronka o'chirilsinmi? Bosqichlar va bitimlar asosiy voronkaga o'tkaziladi.": 'Удалить воронку? Этапы и сделки будут перенесены в основную воронку.',
+  "Voronka o'chirilsinmi?": 'Удалить воронку?',
   'Voronka nomi': 'Название воронки',
   'Orqaga': 'Назад',
   'Saqlash': 'Сохранить',

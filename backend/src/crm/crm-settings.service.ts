@@ -40,7 +40,24 @@ export class CrmSettingsService {
     const name = (dto.name || '').trim();
     if (!name) throw new BadRequestException({ error: 'BAD_NAME', message: 'Nom majburiy' });
     const agg = await this.prisma.crmPipeline.aggregate({ _max: { order: true } });
-    const pipeline = await this.prisma.crmPipeline.create({ data: { name: name.slice(0, 100), order: (agg._max.order ?? -1) + 1 } });
+    // voronka standart bosqichlari bilan birga bitta tranzaksiyada (bosqichsiz «yarim» voronka qolmasin)
+    const pipeline = await this.prisma.$transaction(async (tx) => {
+      const p = await tx.crmPipeline.create({ data: { name: name.slice(0, 100), order: (agg._max.order ?? -1) + 1 } });
+      const so = (await tx.crmStage.aggregate({ _max: { order: true } }))._max.order ?? -1;
+      const base = `p${p.id.slice(-8)}`;
+      const defs = Array.isArray((dto as any).stages) && (dto as any).stages.length ? (dto as any).stages : [
+        { name: 'Birlamchi aloqa', kind: 'open', color: '#99ccff' },
+        { name: 'Muvaffaqiyatli', kind: 'won', color: '#c9efb0' },
+        { name: 'Muvaffaqiyatsiz', kind: 'lost', color: '#d0d0d0' },
+      ];
+      let i = 0;
+      for (const d of defs) {
+        const kind = ['open', 'won', 'lost'].includes(d.kind) ? d.kind : 'open';
+        await tx.crmStage.create({ data: { key: `${base}-${i}`, name: String(d.name || 'Bosqich').slice(0, 100), color: d.color || '#3F77DD', kind, order: so + 1 + i, pipelineId: p.id } });
+        i++;
+      }
+      return p;
+    });
     return { pipeline };
   }
   async updatePipeline(id: string, dto: { name?: string; order?: number; archived?: boolean }) {
@@ -58,15 +75,20 @@ export class CrmSettingsService {
   }
   async deletePipeline(id: string) {
     if (!(await this.prisma.crmPipeline.findUnique({ where: { id }, select: { id: true } }))) throw notFound('Voronka');
-    // bosqichlar, lidlar va avtomatlashtirishlarni standart (null) voronkaga qaytaramiz
+    // amoCRM: bitimlari bor voronkani o'chirib bo'lmaydi (bitimlar yo'qolmasin, asosiy voronka begona bosqichlar bilan buzilmasin)
+    const stageKeys = (await this.prisma.crmStage.findMany({ where: { pipelineId: id }, select: { key: true } })).map((x) => x.key);
+    const leads = await this.prisma.lead.count({ where: { OR: [{ pipelineId: id }, ...(stageKeys.length ? [{ stage: { in: stageKeys } }] : [])] } });
+    if (leads) throw new BadRequestException({ error: 'PIPELINE_NOT_EMPTY', message: `Voronkada ${leads} ta bitim bor — avval ularni boshqa voronkaga o'tkazing yoki voronkani arxivlang` });
     await this.prisma.$transaction([
-      this.prisma.crmStage.updateMany({ where: { pipelineId: id }, data: { pipelineId: null } }),
-      this.prisma.lead.updateMany({ where: { pipelineId: id }, data: { pipelineId: null } }),
-      this.prisma.automation.updateMany({ where: { pipelineId: id }, data: { pipelineId: null } }),
+      this.prisma.automation.deleteMany({ where: { pipelineId: id } }),
+      this.prisma.crmForm.updateMany({ where: { pipelineId: id }, data: { pipelineId: null } }),
+      this.prisma.fbLeadForm.updateMany({ where: { pipelineId: id }, data: { pipelineId: null } }),
+      this.prisma.crmStage.deleteMany({ where: { pipelineId: id } }),
       this.prisma.crmPipeline.delete({ where: { id } }),
     ]);
     return { ok: true };
   }
+
 
   // ── Maxsus maydonlar ──
   async listFields(entity = 'lead') {

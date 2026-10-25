@@ -123,4 +123,5 @@ addRu({
   "Kamayish bo'yicha": 'По убыванию',
   'Chop etish': 'Печать',
   'Jadval sozlamalari': 'Настройки таблицы',
+  "Majburiy maydonlari to'ldirilmagani uchun ko'chirilmadi": 'Не перенесено из-за незаполненных обязательных полей',
 })
