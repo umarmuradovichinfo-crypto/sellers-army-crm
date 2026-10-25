@@ -1,5 +1,5 @@
 // amoCRM "Рабочий стол" — /dashboard. Fon + voronka kartalari + vidjetlar to'ri + voqealar paneli.
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { crmService } from '../../services/crm.service'
 import { settingsService } from '../../services/settings.service'
 import { useAuth } from '../../context/AuthContext'
@@ -9,6 +9,7 @@ import { useOutside } from '../TopBar'
 import { money, feedDate } from '../format'
 import { useT, usePlural } from '../i18n'
 import '../i18n/dashboard.ru.js'
+import { DEFAULT_LAYOUT, SYSTEM_WIDGETS, FilterWidget, WidgetModal, loadLayout, saveLayout, sizeOf } from '../dashboardWidgets'
 import '../dashboard.css'
 
 const BG_KEY = 'ac-dash-bg'
@@ -108,21 +109,54 @@ function fmtWait(sec, t) {
 export default function DashboardPage() {
   const t = useT()
   const plural = usePlural()
-  const { user } = useAuth()
+  const { user, can } = useAuth()
   const [preset, setPreset] = useState('month')
   const [custom, setCustom] = useState({ from: '', to: '' })
   const [dateOpen, setDateOpen] = useState(false)
   const [scope, setScope] = useState('all')
   const [pipelineId, setPipelineId] = useState('')
-  const [bg, setBg] = useState(() => { try { return localStorage.getItem(BG_KEY) || 'sea' } catch { return 'sea' } })
-  const [bgOpen, setBgOpen] = useState(false)
   const [eventsOpen, setEventsOpen] = useState(false)
-  const bgRef = useRef(null)
   const dateRef = useRef(null)
-  useOutside(bgRef, () => setBgOpen(false), bgOpen)
   useOutside(dateRef, () => setDateOpen(false), dateOpen)
 
-  const pickBg = (k) => { setBg(k); try { localStorage.setItem(BG_KEY, k) } catch { /* */ } }
+  // amoCRM: joylashuv serverda (vidjetlar, mavzu, shrift, fon); «Настроить» — tahrirlash rejimi (draft)
+  const [layout, setLayout] = useState(null)
+  const [draft, setDraft] = useState(null)
+  const [applyAll, setApplyAll] = useState(false)
+  const [modal, setModal] = useState(null) // { index, widget }
+  const [catalog, setCatalog] = useState(false)
+  const [dragId, setDragId] = useState(null)
+  const [saving, setSaving] = useState(false)
+  useEffect(() => { loadLayout().then(setLayout) }, [])
+  const L = draft || layout || DEFAULT_LAYOUT
+  const editing = !!draft
+  const patch = (p) => setDraft((d) => ({ ...d, ...p }))
+  const startEdit = () => { setDraft(JSON.parse(JSON.stringify(layout || DEFAULT_LAYOUT))); setApplyAll(false) }
+  const cancelEdit = () => { setDraft(null); setCatalog(false) }
+  const saveEdit = async () => {
+    setSaving(true)
+    try { await saveLayout(draft, applyAll); setLayout(draft); setDraft(null); setCatalog(false) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')) } finally { setSaving(false) }
+  }
+  const removeWidget = (id) => {
+    const w = draft.widgets.find((x) => x.id === id)
+    patch({ widgets: draft.widgets.filter((x) => x.id !== id), library: w?.type === 'filter' ? [...(draft.library || []), w] : draft.library })
+  }
+  const addWidget = (w) => {
+    setCatalog(false)
+    patch({ widgets: [...draft.widgets, w.type === 'filter' ? w : { id: w.type, type: w.type }], library: (draft.library || []).filter((x) => x.id !== w.id) })
+  }
+  const moveWidget = (fromId, toId) => {
+    if (!fromId || fromId === toId) return
+    const list = [...draft.widgets]
+    const a = list.findIndex((x) => x.id === fromId)
+    const [w] = list.splice(a, 1)
+    const b = list.findIndex((x) => x.id === toId)
+    list.splice(b < 0 ? list.length : b, 0, w)
+    patch({ widgets: list })
+  }
+
+  // Fon: tayyor sahnalar yoki o'z rasmingiz (rasm brauzerda, tanlov joylashuvda)
+  const bg = L.bg || (() => { try { return localStorage.getItem(BG_KEY) || 'sea' } catch { return 'sea' } })()
   const [bgImg, setBgImg] = useState(() => { try { return localStorage.getItem(BG_IMG_KEY) || '' } catch { return '' } })
   const fileRef = useRef(null)
   const uploadBg = (file) => {
@@ -135,7 +169,7 @@ export default function DashboardPage() {
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
       const url = c.toDataURL('image/jpeg', 0.82)
       try { localStorage.setItem(BG_IMG_KEY, url) } catch { /* juda katta */ }
-      setBgImg(url); pickBg('custom')
+      setBgImg(url); patch({ bg: 'custom' })
       URL.revokeObjectURL(img.src)
     }
     img.src = URL.createObjectURL(file)
@@ -158,6 +192,8 @@ export default function DashboardPage() {
   const { data: chatSt } = useApi(() => crmService.chatStats(range).catch(() => null), [range.from, range.to])
   const { data: taskData } = useApi(() => crmService.listTasks({ status: 'open' }), [])
   const { data: memberData } = useApi(() => crmService.listMembers(), [])
+  const hasForecast = L.widgets.some((w) => w.type === 'forecast')
+  const { data: flowData } = useApi(() => (hasForecast ? crmService.analyticsFlow({ pipelineId: pipelineId || 'main' }).catch(() => null) : Promise.resolve(null)), [hasForecast, pipelineId])
 
   const pipelines = [{ id: '', name: t('Asosiy voronka') }, ...((pipe?.pipelines || []).map((p) => ({ id: p.id, name: p.name })))]
   const mine = scope === 'mine'
@@ -184,23 +220,16 @@ export default function DashboardPage() {
   const overdue = tasks.filter((x) => dueDay(x) && dueDay(x) < today)
   const todays = tasks.filter((x) => dueDay(x) === today)
 
-  // Widget 1/2
   const totalAll = allLeads.length
   const monthRange = rangeOf('month')
   const monthNew = allLeads.filter((l) => inRange(l.createdAt, monthRange))
   const pipeName = pipelines.find((p) => p.id === pipelineId)?.name || t('Asosiy voronka')
   const sources = (an?.bySource || []).slice(0, 4)
   const memberCount = (memberData?.members || []).length
+  const periodWord = PERIOD_WORD[preset] || 'oy uchun'
 
   const periodBtn = (k, label) => (
     <button key={k} className={preset === k ? 'on' : ''} onClick={() => { setPreset(k); setDateOpen(false) }}>{t(label)}</button>
-  )
-
-  const tile = (cap, children, cls = '') => (
-    <div className={`ac-dash-tile ${cls}`}>
-      <div className="ac-dash-tile__title">{cap}</div>
-      {children}
-    </div>
   )
   const stageRows = (list, total, withDelta) => (
     <div className="ac-dash-chart">
@@ -220,142 +249,200 @@ export default function DashboardPage() {
   const allRows = stages.map((s) => ({ id: s.id, name: s.name, color: s.color, n: s.leads.length, sum: sumOf(s.leads), d: fresh(s).length })).sort((a, b) => b.n - a.n)
   const monthRows = stages.map((s) => { const f = s.leads.filter((l) => inRange(l.createdAt, monthRange)); return { id: s.id, name: s.name, color: s.color, n: f.length, sum: sumOf(f) } }).filter((r) => r.n).sort((a, b) => b.n - a.n)
   const bgStyle = bg === 'custom' && bgImg ? { backgroundImage: `url(${bgImg})` } : undefined
+  const small = (n, cap, cls = '') => <><div className={`ac-dash-big ac-dash-big--sm ${cls}`}>{n}</div>{cap}</>
+
+  // Tizim vidjetlari mazmuni
+  const content = (w) => {
+    switch (w.type) {
+      case 'total': return (<>
+        <div className="ac-dash-tile__top">
+          <div><div className="ac-dash-big">{totalAll}</div><div className="ac-dash-sum">{money(sumOf(allLeads))}</div></div>
+          <div className="ac-dash-delta"><b>+{newLeads.length}</b><span>{t(periodWord)}</span></div>
+        </div>
+        <hr className="ac-dash-hr" />{stageRows(allRows, totalAll, true)}</>)
+      case 'month': return (<><div className="ac-dash-tile__top"><div className="ac-dash-big">{monthNew.length}</div></div><hr className="ac-dash-hr" />{stageRows(monthRows, monthNew.length, false)}</>)
+      case 'sources': return sources.length === 0 ? <div className="ac-dash-empty">{t("Ma'lumot yo'q")}</div> : (
+        <div className="ac-dash-src">
+          <SourceRings items={sources} />
+          <ul className="ac-dash-legend">{sources.map((s, i) => <li key={s.source + i} style={{ color: SRC_COLORS[i] }} title={`${s.count}`}>{s.source === '—' ? t('Boshqa') : s.source}</li>)}</ul>
+        </div>)
+      case 'forecast': { const f = flowData?.forecast; return small(f ? f.d30.count : 0, <div className="ac-dash-cap">{money(f?.d30.sum || 0)} · {t('30 kun')}</div>) }
+      case 'overdue': return small(overdue.length, <div className="ac-dash-cap">{t('Hammasi')}: {tasks.length}</div>)
+      case 'today_tasks': return small(todays.length, <><hr className="ac-dash-hr" /><div className="ac-dash-mini">{todays.slice(0, 3).map((x) => <div key={x.id} title={x.leadName || ''}>{x.title}</div>)}</div></>)
+      case 'calls': return small(calls?.total || 0, <div className="ac-dash-cap">{t('Kiruvchi')} {calls?.inbound || 0} · {t('Chiquvchi')} {calls?.outbound || 0}</div>)
+      case 'missed': return small(calls?.missed || 0, <div className="ac-dash-cap">{t("O'rtacha davomiylik")} {Math.floor((calls?.avgDuration || 0) / 60)}:{pad((calls?.avgDuration || 0) % 60)}</div>)
+      case 'processed': return small(chatSt?.processed || 0, <div className="ac-dash-cap">{t(periodWord)}</div>)
+      case 'incoming': return small(chatSt?.incoming || 0, <div className="ac-dash-cap">{t(periodWord)}</div>)
+      case 'outgoing': return small(chatSt?.outgoing || 0, <div className="ac-dash-cap">{t(periodWord)}</div>)
+      case 'avg_resp': return small(fmtWait(chatSt?.avgResponseSec || 0, t), <div className="ac-dash-cap">{t('davr uchun')}</div>, 'ac-dash-big--green')
+      case 'median_resp': return small(fmtWait(chatSt?.medianResponseSec || 0, t), <div className="ac-dash-cap">{t('davr uchun')}</div>, 'ac-dash-big--green')
+      case 'long_wait': return small(chatSt?.waiting || 0, <hr className="ac-dash-hr" />)
+      case 'members': return small(memberCount)
+      case 'filter': return <FilterWidget w={w} range={range} mineId={mineId} periodWord={periodWord} />
+      default: return null
+    }
+  }
+  const titleOf = (w) => {
+    if (w.type === 'filter') return w.title || t('Filtr')
+    if (w.type === 'total') return `${t('Jami bitimlar')} (${pipeName})`
+    if (w.type === 'month') return `${t("Oy bo'yicha bitimlar")} (${pipeName})`
+    return t(SYSTEM_WIDGETS[w.type]?.title || '')
+  }
+
+  // amoCRM «Анализ продаж» — voronka bloki (butun qator)
+  const flow = (
+    <>
+      <ul className="ac-dash-pipes">
+        {pipelines.map((p) => <li key={p.id || 'main'} className={p.id === pipelineId ? 'on' : ''} onClick={() => setPipelineId(p.id)} title={p.name}>{p.name}</li>)}
+      </ul>
+      <div className="ac-dash-sausages">
+        <div className="ac-dash-new">
+          <b><small>+</small>{newLeads.length}</b>
+          <span>{t('YANGI')}</span>
+          <div className="ac-dash-new__lost">{t("Yo'qotilganlar")}</div>
+        </div>
+        {loading && !pipe && <div className="ac-spinner" />}
+        {openStages.map((s) => {
+          const f = fresh(s)
+          return (
+            <div className="ac-dash-sausage" key={s.id}>
+              <div className="ac-dash-sausage__head" title={s.name}>
+                <div className="ac-dash-sausage__title">{s.name}</div>
+                <div className="ac-dash-sausage__count">{plural(s.leads.length, 'bitim')}, {money(sumOf(s.leads))}</div>
+                <i className="ac-dash-sausage__color" style={{ background: s.color || '#fff' }} />
+              </div>
+              <div className="ac-dash-sausage__body"><b>{f.length ? <><small>+</small>{f.length}</> : 0}</b><span>{money(sumOf(f))}</span></div>
+              <div className="ac-dash-sausage__foot"><i style={{ background: '#fff' }} /><span>{plural(0, 'bitim')}, {money(0)}</span></div>
+            </div>
+          )
+        })}
+        <div className="ac-dash-sausage ac-dash-sausage--won">
+          <div className="ac-dash-sausage__head" />
+          <div className="ac-dash-sausage__body"><b>{wonLeads.length ? <><small>+</small>{wonLeads.length}</> : 0}</b><span>{money(sumOf(wonLeads))}</span></div>
+          <div className="ac-dash-sausage__foot"><i style={{ background: '#e2453c' }} /><span>{plural(lostLeads.length, 'bitim')}, {money(sumOf(lostLeads))}</span></div>
+        </div>
+      </div>
+    </>
+  )
+
+  // Tahrirlash rejimidagi boshqaruvlar (amoCRM: o'chirish, ⚙, surish)
+  const controls = (w, i) => editing && (
+    <>
+      {w.type === 'filter' && <button className="ac-dash-wgear" title={t('Sozlash')} onClick={() => setModal({ index: i, widget: w })}><Ico name="gear" size={15} /></button>}
+      <button className="ac-dash-wdel" title={t("O'chirish")} onClick={() => removeWidget(w.id)}><Ico name="trash" size={14} /></button>
+    </>
+  )
+  const dragProps = (w) => (editing ? {
+    draggable: true,
+    onDragStart: (e) => { setDragId(w.id); e.dataTransfer.effectAllowed = 'move' },
+    onDragOver: (e) => e.preventDefault(),
+    onDrop: (e) => { e.preventDefault(); moveWidget(dragId, w.id); setDragId(null) },
+    onDragEnd: () => setDragId(null),
+  } : {})
+  const used = new Set(L.widgets.map((w) => w.type))
+  const catalogItems = [
+    ...Object.keys(SYSTEM_WIDGETS).filter((k) => !used.has(k)).map((k) => ({ id: k, type: k, label: t(SYSTEM_WIDGETS[k].title) })),
+    ...(L.library || []).map((w) => ({ ...w, label: w.title || t('Filtr') })),
+  ]
 
   return (
-    <div className={`ac-content ac-dash ac-dash--${bg}`} style={bgStyle}>
+    <div className={`ac-content ac-dash ac-dash--${bg} ac-dash--font-${L.font || 'light'} ac-dash--theme-${L.theme || 'navy'} ${editing ? 'ac-dash--editing' : ''}`} style={bgStyle}>
       {bg !== 'custom' && <div className="ac-dash__scene" />}
-      <button className="ac-dash-evbtn" onClick={() => setEventsOpen(true)}><Ico name="burger" size={16} /><span>{t('Voqealar')}</span></button>
-      <EventsPanel open={eventsOpen} onClose={() => setEventsOpen(false)} />
+      {editing ? (
+        <div className="ac-dash-editbar">
+          {can?.('crm.settings') !== false && <label><input type="checkbox" className="ac-check" checked={applyAll} onChange={(e) => setApplyAll(e.target.checked)} /> {t("Ish stoli sozlamalarini barcha foydalanuvchilarga qo'llash")}</label>}
+          <span className="grow" />
+          <button className="ac-dash-editbar__cancel" onClick={cancelEdit}>{t('Bekor qilish')}</button>
+          <button className="ac-btn ac-btn--blue" disabled={saving} onClick={saveEdit}>{t('Saqlash')}</button>
+        </div>
+      ) : (
+        <>
+          <button className="ac-dash-evbtn" onClick={() => setEventsOpen(true)}><Ico name="burger" size={16} /><span>{t('Voqealar')}</span></button>
+          <EventsPanel open={eventsOpen} onClose={() => setEventsOpen(false)} />
+        </>
+      )}
 
       <h1 className="ac-dash__title">{accountName}</h1>
 
-      <div className="ac-dash-bar">
-        <div className="ac-dash-toggler">
-          {PERIODS.map(([k, l]) => periodBtn(k, l))}
-          <span className="ac-dash-toggler__wrap" ref={dateRef}>
-            <button className={preset === 'range' ? 'on' : ''} onClick={() => setDateOpen((v) => !v)}><Ico name="calendar" size={13} /> {t('Davr')}</button>
-            {dateOpen && (
-              <div className="ac-dash-date">
-                <input type="date" className="ac-input" value={custom.from} onChange={(e) => setCustom({ ...custom, from: e.target.value })} />
-                <input type="date" className="ac-input" value={custom.to} onChange={(e) => setCustom({ ...custom, to: e.target.value })} />
-                <button className="ac-btn ac-btn--blue ac-btn--sm" onClick={() => { setPreset('range'); setDateOpen(false) }}>{t('Qo\'llash')}</button>
-              </div>
-            )}
-          </span>
-          <span className="ac-dash-toggler__sep" />
-          <button className={scope === 'all' ? 'on' : ''} onClick={() => setScope('all')}>{t('Hammasi')}</button>
-          <button className={scope === 'mine' ? 'on' : ''} onClick={() => setScope('mine')}>{t('Meniki')} <Ico name="chevronDown" size={10} /></button>
+      {editing ? (
+        <div className="ac-dash-setup-panel">
+          <div className="ac-dash-font">
+            <span className={L.font !== 'dark' ? 'on' : ''}>{t("Och rangli shrift")}</span>
+            <span className={`ac-switch ${L.font === 'dark' ? 'on' : ''}`} onClick={() => patch({ font: L.font === 'dark' ? 'light' : 'dark' })} />
+            <span className={L.font === 'dark' ? 'on' : ''}>{t("To'q rangli shrift")}</span>
+          </div>
+          <div className="ac-dash-setup-panel__cap">{t('Vidjetlar mavzusi')}</div>
+          <div className="ac-dash-themes">
+            {['navy', 'white', 'black', 'blue'].map((k) => (
+              <button key={k} className={`ac-dash-themes__sw ac-dash-themes__sw--${k} ${L.theme === k ? 'on' : ''}`} onClick={() => patch({ theme: k })}><i /><i /><i /></button>
+            ))}
+          </div>
+          <div className="ac-dash-setup-panel__cap">{t('Fon rasmi')}</div>
+          <div className="ac-dash-bgs">
+            {BGS.filter((k) => k !== 'custom').map((k) => (
+              <button key={k} title={t(BG_NAMES[k])} className={`ac-dash-bgs__sw ac-dash--${k} ${bg === k ? 'on' : ''}`} onClick={() => patch({ bg: k })}><span className="ac-dash__scene" /></button>
+            ))}
+            {bgImg && <button title={t(BG_NAMES.custom)} className={`ac-dash-bgs__sw ${bg === 'custom' ? 'on' : ''}`} style={{ backgroundImage: `url(${bgImg})` }} onClick={() => patch({ bg: 'custom' })} />}
+            <button className="ac-dash-bgs__sw ac-dash-bgs__add" title={t('Rasm yuklash')} onClick={() => fileRef.current?.click()}><Ico name="plus" size={18} /></button>
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => uploadBg(e.target.files?.[0])} />
+          </div>
         </div>
-        <div className="ac-dash-setup" ref={bgRef}>
-          <button className="ac-dash-setup__btn" onClick={() => setBgOpen((v) => !v)}><Ico name="gear" size={14} /> {t('Sozlash')}</button>
-          {bgOpen && (
-            <div className="ac-dash-bgpick">
-              <div className="ac-dash-bgpick__cap">{t('Fon')}</div>
-              <div className="ac-dash-bgpick__row">
-                {BGS.filter((k) => k !== 'custom').map((k) => (
-                  <button key={k} title={t(BG_NAMES[k])} className={`ac-dash-bgpick__sw ac-dash--${k} ${bg === k ? 'on' : ''}`} onClick={() => pickBg(k)}><span className="ac-dash__scene" /></button>
-                ))}
-                {bgImg && <button title={t(BG_NAMES.custom)} className={`ac-dash-bgpick__sw ${bg === 'custom' ? 'on' : ''}`} style={{ backgroundImage: `url(${bgImg})` }} onClick={() => pickBg('custom')} />}
-              </div>
-              <button className="ac-btn ac-btn--sm ac-btn--plain" style={{ marginTop: 10, width: '100%' }} onClick={() => fileRef.current?.click()}><Ico name="attach" size={13} /> {t('Rasm yuklash')}</button>
-              <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => uploadBg(e.target.files?.[0])} />
-            </div>
-          )}
+      ) : (
+        <div className="ac-dash-bar">
+          <div className="ac-dash-toggler">
+            {PERIODS.map(([k, l]) => periodBtn(k, l))}
+            <span className="ac-dash-toggler__wrap" ref={dateRef}>
+              <button className={preset === 'range' ? 'on' : ''} onClick={() => setDateOpen((v) => !v)}><Ico name="calendar" size={13} /> {t('Davr')}</button>
+              {dateOpen && (
+                <div className="ac-dash-date">
+                  <input type="date" className="ac-input" value={custom.from} onChange={(e) => setCustom({ ...custom, from: e.target.value })} />
+                  <input type="date" className="ac-input" value={custom.to} onChange={(e) => setCustom({ ...custom, to: e.target.value })} />
+                  <button className="ac-btn ac-btn--blue ac-btn--sm" onClick={() => { setPreset('range'); setDateOpen(false) }}>{t('Qo\'llash')}</button>
+                </div>
+              )}
+            </span>
+            <span className="ac-dash-toggler__sep" />
+            <button className={scope === 'all' ? 'on' : ''} onClick={() => setScope('all')}>{t('Hammasi')}</button>
+            <button className={scope === 'mine' ? 'on' : ''} onClick={() => setScope('mine')}>{t('Meniki')} <Ico name="chevronDown" size={10} /></button>
+          </div>
+          <div className="ac-dash-setup">
+            <button className="ac-dash-setup__btn" onClick={startEdit}><Ico name="gear" size={14} /> {t('Sozlash')}</button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="ac-dash-gridwrap"><div className="ac-dash-grid">
-        {/* Voronka (top-chart) */}
-        <section className="ac-dash-top">
-          <ul className="ac-dash-pipes">
-            {pipelines.map((p) => (
-              <li key={p.id || 'main'} className={p.id === pipelineId ? 'on' : ''} onClick={() => setPipelineId(p.id)} title={p.name}>{p.name}</li>
-            ))}
-          </ul>
-          <div className="ac-dash-sausages">
-            <div className="ac-dash-new">
-              <b><small>+</small>{newLeads.length}</b>
-              <span>{t('YANGI')}</span>
-              <div className="ac-dash-new__lost">{t("Yo'qotilganlar")}</div>
+        {L.widgets.map((w, i) => {
+          if (w.type === 'members' && !memberCount && !editing) return null
+          const size = sizeOf(w)
+          if (size === 'wide') return <section key={w.id} className={`ac-dash-top ${dragId === w.id ? 'dragging' : ''}`} {...dragProps(w)}>{flow}{controls(w, i)}</section>
+          return (
+            <div key={w.id} className={`ac-dash-tile ${size === 'big' ? 'ac-dash-tile--big' : ''} ${dragId === w.id ? 'dragging' : ''}`} {...dragProps(w)}>
+              <div className="ac-dash-tile__title">{titleOf(w)}</div>
+              {content(w)}
+              {controls(w, i)}
             </div>
-            {loading && !pipe && <div className="ac-spinner" />}
-            {openStages.map((s) => {
-              const f = fresh(s)
-              return (
-                <div className="ac-dash-sausage" key={s.id}>
-                  <div className="ac-dash-sausage__head" title={s.name}>
-                    <div className="ac-dash-sausage__title">{s.name}</div>
-                    <div className="ac-dash-sausage__count">{plural(s.leads.length, 'bitim')}, {money(sumOf(s.leads))}</div>
-                    <i className="ac-dash-sausage__color" style={{ background: s.color || '#fff' }} />
-                  </div>
-                  <div className="ac-dash-sausage__body">
-                    <b>{f.length ? <><small>+</small>{f.length}</> : 0}</b>
-                    <span>{money(sumOf(f))}</span>
-                  </div>
-                  <div className="ac-dash-sausage__foot">
-                    <i style={{ background: '#fff' }} />
-                    <span>{plural(0, 'bitim')}, {money(0)}</span>
-                  </div>
-                </div>
-              )
-            })}
-            <div className="ac-dash-sausage ac-dash-sausage--won">
-              <div className="ac-dash-sausage__head" />
-              <div className="ac-dash-sausage__body">
-                <b>{wonLeads.length ? <><small>+</small>{wonLeads.length}</> : 0}</b>
-                <span>{money(sumOf(wonLeads))}</span>
+          )
+        })}
+        {editing && (
+          <div className="ac-dash-tile ac-dash-addtile">
+            <button className="ac-dash-addtile__plus" onClick={() => setCatalog((v) => !v)}><Ico name="plus" size={22} /></button>
+            {catalog && (
+              <div className="ac-dash-catalog">
+                {catalogItems.length === 0 && <div className="ac-dash-catalog__empty">{t("Barcha vidjetlar qo'shilgan")}</div>}
+                {catalogItems.map((c) => <div key={c.id} className="ac-dash-catalog__item" onClick={() => addWidget(c)}>{c.label}</div>)}
+                <div className="ac-dash-catalog__hint">{t("Filtr vidjeti: Bitimlar → filtr natijasi soni ustiga bosing")}</div>
               </div>
-              <div className="ac-dash-sausage__foot">
-                <i style={{ background: '#e2453c' }} />
-                <span>{plural(lostLeads.length, 'bitim')}, {money(sumOf(lostLeads))}</span>
-              </div>
-            </div>
+            )}
           </div>
-        </section>
-
-        {tile(`${t('Jami bitimlar')} (${pipeName})`, (
-          <>
-            <div className="ac-dash-tile__top">
-              <div>
-                <div className="ac-dash-big">{totalAll}</div>
-                <div className="ac-dash-sum">{money(sumOf(allLeads))}</div>
-              </div>
-              <div className="ac-dash-delta"><b>+{newLeads.length}</b><span>{t(PERIOD_WORD[preset] || 'oy uchun')}</span></div>
-            </div>
-            <hr className="ac-dash-hr" />
-            {stageRows(allRows, totalAll, true)}
-          </>
-        ), 'ac-dash-tile--big')}
-
-        {tile(`${t("Oy bo'yicha bitimlar")} (${pipeName})`, (
-          <>
-            <div className="ac-dash-tile__top"><div className="ac-dash-big">{monthNew.length}</div></div>
-            <hr className="ac-dash-hr" />
-            {stageRows(monthRows, monthNew.length, false)}
-          </>
-        ), 'ac-dash-tile--big')}
-
-        {tile(t('Bitim manbalari'), sources.length === 0 ? <div className="ac-dash-empty">{t("Ma'lumot yo'q")}</div> : (
-          <div className="ac-dash-src">
-            <SourceRings items={sources} />
-            <ul className="ac-dash-legend">
-              {sources.map((s, i) => <li key={s.source + i} style={{ color: SRC_COLORS[i] }} title={`${s.count}`}>{s.source === '—' ? t('Boshqa') : s.source}</li>)}
-            </ul>
-          </div>
-        ), 'ac-dash-tile--big')}
-
-        {tile(t("Muddati o'tgan vazifalar"), (<><div className="ac-dash-big ac-dash-big--sm">{overdue.length}</div><div className="ac-dash-cap">{t('Hammasi')}: {tasks.length}</div></>))}
-        {tile(t('Bugungi vazifalar'), (<><div className="ac-dash-big ac-dash-big--sm">{todays.length}</div><hr className="ac-dash-hr" />
-          <div className="ac-dash-mini">{todays.slice(0, 3).map((x) => <div key={x.id} title={x.leadName || ''}>{x.title}</div>)}</div></>))}
-        {tile(t("Qo'ng'iroqlar"), (<><div className="ac-dash-big ac-dash-big--sm">{calls?.total || 0}</div>
-          <div className="ac-dash-cap">{t('Kiruvchi')} {calls?.inbound || 0} · {t('Chiquvchi')} {calls?.outbound || 0}</div></>))}
-        {tile(t("O'tkazib yuborilgan qo'ng'iroqlar"), (<><div className="ac-dash-big ac-dash-big--sm">{calls?.missed || 0}</div>
-          <div className="ac-dash-cap">{t("O'rtacha davomiylik")} {Math.floor((calls?.avgDuration || 0) / 60)}:{pad((calls?.avgDuration || 0) % 60)}</div></>))}
-        {/* amoCRM chat vidjetlari */}
-        {tile(t("O'rtacha javob vaqti"), (<><div className="ac-dash-big ac-dash-big--sm ac-dash-big--green">{fmtWait(chatSt?.avgResponseSec || 0, t)}</div><div className="ac-dash-cap">{t('davr uchun')}</div></>))}
-        {tile(t('Uzoq javob kutmoqda'), (<><div className="ac-dash-big ac-dash-big--sm">{chatSt?.waiting || 0}</div><hr className="ac-dash-hr" /></>))}
-        {memberCount > 0 && tile(t('Xodimlar'), (<div className="ac-dash-big ac-dash-big--sm">{memberCount}</div>))}
+        )}
       </div></div>
+
+      {modal && (
+        <WidgetModal value={modal.widget} onCancel={() => setModal(null)}
+          onApply={(w) => { patch({ widgets: draft.widgets.map((x, j) => (j === modal.index ? { ...x, ...w } : x)) }); setModal(null) }}
+          onDelete={() => { removeWidget(modal.widget.id); setModal(null) }} />
+      )}
     </div>
   )
 }

@@ -19,6 +19,7 @@ import '../i18n/leadsfilter.ru.js'
 import '../leads.css'
 import { ImportModal } from './ImportPage'
 import DuplicatesModal from '../DuplicatesModal'
+import { CountWidget } from '../dashboardWidgets'
 
 const PAGE = 50
 
@@ -424,7 +425,7 @@ export default function LeadsPipeline() {
         onSearch={setSearch}
         filterPanel={(close) => <LeadsFilter value={filter} meta={meta} onApply={(f) => { Q.applyFilter(f); close() }} />}
         chips={filterChips(filter, meta, t).map((c) => ({ id: c.id, label: c.label, onRemove: () => Q.removeChip(c.clear) }))}
-        count={<>{plural(totalCount, 'bitim')}:<b>{money(totalSum)}</b></>}
+        count={<CountWidget filter={{ ...Q.params, pipelineId: pipelineId || 'main' }} defaultTitle={pipeName}><>{plural(totalCount, 'bitim')}:<b>{money(totalSum)}</b></></CountWidget>}
         menu={[
           // amoCRM tartibi: Настроить воронку, Импорт, Экспорт, Внешний вид карточки, Поиск дублей, Массовые действия, Сортировка, Автообновление
           { label: t('Voronkani sozlash'), icon: 'gear', onClick: () => navigate(`/settings/pipeline/leads/${pipelineId || 'main'}`) },

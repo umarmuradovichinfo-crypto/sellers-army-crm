@@ -119,10 +119,10 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     statistikalar. LLM API kaliti kerak. FOYDALANUVCHI TASDIG'I KUTILMOQDA.
     («Покупатели» bo'limi bu akkauntda o'chirilgan — ochilganda ish stoliga qaytaradi, shuning uchun klonlanmaydi.)
 
-31. [ ] (foydalanuvchi so'rovi 25.10) Ish stoli amoCRM bilan TO'LIQ 1:1: amoCRM'da ish stoli qanday ishlashini to'liq o'rganish —
+31. [x] (foydalanuvchi so'rovi 25.10) Ish stoli amoCRM bilan TO'LIQ 1:1: amoCRM'da ish stoli qanday ishlashini to'liq o'rganish —
     «Настроить» rejimi, vidjet qo'shish/o'chirish/surish, istalgan statistikani vidjet qilib yaratish (vidjet turlari, manba,
     filtrlar, davr, voronka/xodim), joylashuvni saqlash — hammasini bizga ko'chirish.
-    31b. [ ] (foydalanuvchi so'rovi 25.10) Voronkadagi istalgan filtr natijasini ish stoliga qo'shish (amoCRM: filtrdan
+    31b. [x] (foydalanuvchi so'rovi 25.10) Voronkadagi istalgan filtr natijasini ish stoliga qo'shish (amoCRM: filtrdan
     «добавить на рабочий стол»), 2-3 xil ko'rinishda (son, bosqichlar bo'yicha ro'yxat, diagramma) — amoCRM'dagi barcha ko'rinishlar.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)

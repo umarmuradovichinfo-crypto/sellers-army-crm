@@ -18,6 +18,7 @@ import '../i18n/leadsfilter.ru.js'
 import '../leads.css'
 import { ImportModal } from './ImportPage'
 import DuplicatesModal from '../DuplicatesModal'
+import { CountWidget } from '../dashboardWidgets'
 
 addRu({
   'Barcha bitimlar': 'Все сделки',
@@ -224,7 +225,7 @@ export default function LeadsList() {
         onSearch={setSearch}
         filterPanel={(close) => <LeadsFilter value={filter} meta={meta} onApply={(f) => { Q.applyFilter(f); close() }} />}
         chips={filterChips(filter, meta, t).map((c) => ({ id: c.id, label: c.label, onRemove: () => Q.removeChip(c.clear) }))}
-        count={<>{plural(list.total, 'bitim')}:<b>{money(list.totalSum)}</b></>}
+        count={<CountWidget filter={Q.params} defaultTitle={t('Barcha bitimlar')}><>{plural(list.total, 'bitim')}:<b>{money(list.totalSum)}</b></></CountWidget>}
         menu={[
           { label: t('Import'), icon: 'download', onClick: () => setImportOpen(true) },
           { label: t('Eksport'), icon: 'excel', onClick: () => downloadLeadsCsv({ ...filterParams, sort: sort.key, dir: sort.dir }).catch((e) => window.alert(e?.message || t('Xatolik yuz berdi'))) },

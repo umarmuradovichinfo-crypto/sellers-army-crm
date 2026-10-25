@@ -177,3 +177,14 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
   kartochkasida oxirgi kiruvchi xabar (telefon o'rniga, «…» bilan qisqartirilgan) — tuzatildi.
 - Yakuniy telefon tekshiruvi (375px): voronka va vazifalar ustunlari ekrandan keng edi (sana qirqilardi) → ustun ekranga sig'adi,
   ustunlar orasida surish; ish stoli, kartochka, imBox, ro'yxatlar, analitika, sozlamalar — joyida.
+
+## 22. Ish stoli to'liq (PLAN 31, 31b)
+- amoCRM «Настроить»: «Применить настройки рабочего стола ко всем пользователям», Отмена/Сохранить; «Светлый/Темный шрифт»;
+  «Тема виджетов» (4 ta); «Фоновое изображение»; har vidjetda o'chirish, filtr vidjetida ⚙; bo'sh katakdagi «+» → vidjetlar katalogi
+  (Прогноз продаж, Обработанные беседы, Входящие/Исходящие сообщения, Среднее/Медианное время ответа, …, olib tashlangan filtr vidjetlari);
+  vidjetlarni surib joylashtirish. Bizda faqat fon tanlash bor edi → hammasi qo'shildi, joylashuv serverda (foydalanuvchi / barcha uchun).
+- Filtr vidjeti: voronka yoki ro'yxatda natija soni ustiga bosish («Создать виджет на раб. стол») → nom va ko'rinish:
+  «Цифра» (son, summa), «Диаграмма» («Сравнение с показателем»: Статус сделки, Ответственный менеджер, Причина отказа, ro'yxatli
+  qo'shimcha maydonlar; top-5 + Другие, davrdagi o'sish), «Список» (filtr natijalari jadvali). Vidjet sozlamasida ko'rinishni o'zgartirish
+  va «Удалить виджет». Ish stoli davri va «Мои» filtr vidjetlariga ham ta'sir qiladi.
+- «Добавить свой виджет» (tashqi SSL sahifa iframe) — qo'shilmadi (amoCRM dasturchilar vidjeti).
