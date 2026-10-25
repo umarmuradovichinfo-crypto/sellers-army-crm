@@ -4,6 +4,23 @@ import { Ico } from '../AmoIcons'
 import { useOutside } from '../TopBar'
 import { useT } from '../i18n'
 import { ACTIONS, DELAYS, FIELD_TARGETS, TASK_TYPES, UNSORTED_TRIGGERS, WHEN_GROUPS, actionMeta, delayLabel, whenText } from './PipelineSetupApi'
+import { api } from '../../lib/apiClient'
+
+
+// «Salesbot» amali: qaysi bot ishga tushadi (AI-агенты и боты ro'yxatidan)
+function BotSelect({ value, onChange, t }) {
+  const [bots, setBots] = React.useState([])
+  React.useEffect(() => { api.get('/crm/salesbots').then((r) => setBots(r.bots || [])).catch(() => {}) }, [])
+  return (
+    <>
+      <select className="ac-select" value={value || ''} onChange={(e) => onChange(e.target.value, bots.find((b) => b.id === e.target.value)?.name || '')}>
+        <option value="">{t('Botni tanlang')}</option>
+        {bots.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+      </select>
+      <div className="ac-ps-hint">{t("Botlar «AI-agentlar va botlar» bo'limida yaratiladi")}</div>
+    </>
+  )
+}
 
 export { ACTIONS, actionMeta }
 
@@ -334,6 +351,8 @@ function ActionFields({ a, set, ctx }) {
         </>
       )
     }
+    case 'run_bot':
+      return <BotSelect value={a.botId} onChange={(id, name) => set({ botId: id, botName: name })} t={t} />
     case 'send_message':
       return (
         <>
@@ -401,6 +420,7 @@ export function TriggerForm({ anchor, initial, actionType, stageKey, ctx, onSave
     if (a.type === 'change_assignee' && a.mode !== 'queue' && !a.userId) return "Mas'ulni tanlang"
     if (a.type === 'change_field' && !has(a.field)) return 'Maydonni tanlang'
     if (a.type === 'send_message' && !has(a.text)) return 'Matnni kiriting'
+    if (a.type === 'run_bot' && !a.botId) return 'Botni tanlang'
     if (a.type === 'webhook' && !/^https?:\/\/\S+$/i.test(String(a.url || '').trim())) return "To'g'ri URL kiriting (http:// yoki https://)"
     return ''
   }

@@ -17,6 +17,7 @@ export const psApi = {
 // Bizda mavjud amallar (amoCRM: Salesbot → "Xabar yuborish"; Xat/Fayl/Anketa/Businessbot — yo'q).
 export const ACTIONS = [
   { v: 'send_message', l: 'Xabar yuborish', icon: 'send' },
+  { v: 'run_bot', l: 'Salesbot', icon: 'play' },
   { v: 'create_task', l: 'Vazifa yaratish', icon: 'plusCircle' },
   { v: 'create_lead', l: 'Bitim yaratish', icon: 'dollar' },
   { v: 'webhook', l: 'Webhook yuborish', icon: 'code' },
@@ -132,6 +133,7 @@ export function actionSummary(a, ctx = {}) {
     case 'set_assignee': val = a.assigneeName || (a.assignee === 'round_robin' ? 'round-robin' : ''); break
     case 'change_field': case 'set_field': val = [a.field, a.value].filter((x) => x !== undefined && x !== '').join(' = '); break
     case 'send_message': case 'add_note': case 'notify': val = a.text || ''; break
+    case 'run_bot': val = a.botName || ''; break
     default: break
   }
   return [m.l, val]

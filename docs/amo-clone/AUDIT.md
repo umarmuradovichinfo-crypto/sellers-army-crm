@@ -190,3 +190,16 @@ amoCRM: media-qoidalar 1300–1000px oralig'ida, body min-width 768px (telefonda
 - «Добавить свой виджет» (tashqi SSL sahifa iframe) — qo'shilmadi (amoCRM dasturchilar vidjeti).
 - Yakuniy test (ish stolidan keyin): barcha asosiy sahifalar konsol xatosisiz, backend logida xato yo'q; production'da yangi
   migratsiyalar qo'llangan (ish stoli, suhbatlar, arxiv voronkalar, import tarixi, teglar sozlamasi — barcha API 200).
+
+## 23. AI-агенты и боты — Salesbot (PLAN 29)
+- Chap menyuda «AI-агенты и боты»; «Ваши боты — Список ботов»: nom, triggerlar, konversiya, jami ishga tushishlar, hozir ishlayotgan;
+  «Создать нового бота или импортировать» (JSON), yoqish/o'chirish, ommaviy o'chirish.
+- Konstruktor (amoCRM salesbot-designer kabi): kanvas (surish, +/− masshtab), «Триггеры» paneli (bosqichga o'tish, bitim yaratildi,
+  kiruvchi xabar), «Запуск бота» tuguni, qadam tugunlari va ulanish chiziqlari; nuqtadan bo'sh joyga tortilsa «Следующий шаг» menyusi;
+  tugun «…»: birinchi qadam qilish, klonlash, o'chirish; eksport (JSON); «Превью бота» — suhbat simulyatsiyasi.
+- Qadamlar: Отправить сообщение (tugmalar, javobni kutish, «boshqa javob»), Внутреннее сообщение, Выполнить действие (bosqich, mas'ul,
+  teg, vazifa, maydon, bildirishnoma), Условие (javob/bosqich/teg/byudjet/manba/mas'ul/qo'shimcha maydon; «иначе»), Валидатор (telefon,
+  email, raqam; xato matni va qayta kutish; javobni maydonga saqlash), Пауза, Распределение (navbat), Запустить бота, Остановка бота.
+- Backend dvigatel: mijoz javobi kutilayotgan botni davom ettiradi, pauzalar fon taymerida, aylanishdan himoya; bitim kartochkasidan
+  qo'lda ishga tushirish/to'xtatish; voronka avtomatlashtirishida «Salesbot» amali.
+- Qilinmagan: «Реакция» (kanalga xos), «Свой шаг (код)», «Виджеты»; tugmalar kanalda inline klaviatura emas, raqamli ro'yxat (javob raqam yoki matn).

@@ -106,4 +106,9 @@ addRu({
   "O'chirish": 'Удалить',
   'Ulash uchun suring; ikki marta bosish — uzish': 'Потяните для соединения; двойной клик — отвязать',
   'bots§Faol': 'Активен',
+  "Salesbot'ni ishga tushirish": 'Запустить Salesbot',
+  "Botni to'xtatish": 'Остановить бота',
+  "Ishlayotgan bot yo'q": 'Нет работающего бота',
+  "Faol botlar yo'q — «AI-agentlar va botlar» bo'limida yarating": 'Нет активных ботов — создайте в разделе «AI-агенты и боты»',
+  "Botlar «AI-agentlar va botlar» bo'limida yaratiladi": 'Боты создаются в разделе «AI-агенты и боты»',
 })

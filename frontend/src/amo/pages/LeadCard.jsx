@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
+import { api } from '../../lib/apiClient'
 import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
@@ -479,6 +480,29 @@ export function TemplatePicker({ onPick }) {
 }
 
 // conv — faqat oxirgi suhbat blokiga: { closed, onClose } (amoCRM: «Закрыть · Беседа № …»)
+// Bitim kartochkasidan Salesbot'ni qo'lda ishga tushirish (amoCRM: «запускайте вручную – через карточку сделки»)
+function BotPick({ leadId, onClose }) {
+  const t = useT()
+  const [bots, setBots] = useState(null)
+  const [err, setErr] = useState('')
+  useEffect(() => { api.get('/crm/salesbots').then((r) => setBots((r.bots || []).filter((b) => b.active))).catch(() => setBots([])) }, [])
+  const run = async (id) => {
+    try { await api.post(`/crm/salesbots/${id}/run`, { leadId }); onClose(true) } catch (e) { setErr(e?.data?.message || e?.message || t('Xatolik yuz berdi')) }
+  }
+  return (
+    <div className="ac-modal-wrap" onMouseDown={(e) => e.target === e.currentTarget && onClose(false)}>
+      <div className="ac-modal" style={{ maxWidth: 420 }}>
+        <button className="ac-modal__close" onClick={() => onClose(false)}><Ico name="close" /></button>
+        <h2 className="ac-modal__title">{t("Salesbot'ni ishga tushirish")}</h2>
+        {!bots && <div className="ac-spinner" />}
+        {bots && !bots.length && <div className="ac-muted">{t("Faol botlar yo'q — «AI-agentlar va botlar» bo'limida yarating")}</div>}
+        {bots?.map((b) => <div key={b.id} className="ac-botpick__item" onClick={() => run(b.id)}><Ico name="play" size={13} /> {b.name}</div>)}
+        {err && <div className="ac-import-err" style={{ marginTop: 10 }}>{err}</div>}
+      </div>
+    </div>
+  )
+}
+
 export function MsgGroup({ msgs, leadId, conv }) {
   const t = useT()
   const ch = msgs[0]?.channel || 'telegram'
@@ -684,6 +708,7 @@ export default function LeadCard() {
   const [tab, setTab] = useState('main')
   const [feedQ, setFeedQ] = useState('')
   const [tagInput, setTagInput] = useState(null)
+  const [botPick, setBotPick] = useState(false)
   const [saving, setSaving] = useState(false)
   const [tagColors, setTagColors] = useState({})
   const [modeReq, setModeReq] = useState(null)
@@ -859,10 +884,13 @@ export default function LeadCard() {
                 <DotsMenu items={[
                   { label: t('Chop etish'), icon: 'print', onClick: () => window.print() },
                   { label: t('Teglarni boshqarish'), icon: 'hash', onClick: () => setTagInput('') },
+                  { label: t("Salesbot'ni ishga tushirish"), icon: 'play', onClick: () => setBotPick(true) },
+                  { label: t("Botni to'xtatish"), icon: 'close', onClick: () => api.post(`/crm/leads/${lead.id}/salesbot-stop`, {}).then((r) => { window.alert(r.stopped ? t("Bot to'xtatildi") : t("Ishlayotgan bot yo'q")); loadLead(); loadFeed() }).catch(() => {}) },
                   { label: t('Excelga eksport'), icon: 'excel', onClick: () => window.open('/api/v1' + crmService.exportUrl(), '_blank') },
                   { label: t("Bitimni o'chirish"), icon: 'trash', danger: true, onClick: deleteLead },
                 ]} />
               )}
+              {botPick && <BotPick leadId={lead.id} onClose={(ran) => { setBotPick(false); if (ran) { loadLead(); loadFeed() } }} />}
             </div>
             <div className="ac-cf__meta" onClick={(e) => { if (e.target === e.currentTarget && tagInput === null) setTagInput('') }}>
               {!isNew && v.n && <span>#{String(lead.id).slice(-8)}</span>}

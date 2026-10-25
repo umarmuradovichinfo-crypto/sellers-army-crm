@@ -27,6 +27,7 @@ const RU = {
   'Arxivdagi voronkalar': 'Архивные воронки',
   'Belgilandi': 'Выбрано',
   'AI-agentlar va botlar': 'AI-агенты и боты',
+  'Salesbot ishga tushdi': 'Запущен Salesbot',
   "Tanlangan bitimlar o'chirilsinmi?": 'Удалить выбранные сделки?',
   'Bitimlar topilmadi': 'Сделки не найдены',
   "so'm": "so'm",

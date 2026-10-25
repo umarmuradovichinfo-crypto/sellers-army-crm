@@ -1,6 +1,7 @@
 // Server yozgan voqea matnlari (o'zbekcha) — interfeys tilida ko'rsatish: ma'lum boshlanishlar t() orqali,
 // maydon o'zgarishlari esa data'dan («Maydon»: oldin → keyin) quriladi.
 const PREFIXES = [
+  'Salesbot ishga tushdi', 'Salesbot',
   // bildirishnomalar
   'Avtomatik vazifa', 'Yangi lid biriktirildi', 'Sizga lid biriktirildi', 'Yangi vazifa',
   'Saralanmagandan qabul qilindi', 'Suhbat yopildi', 'Kontakt biriktirildi', 'Kontakt uzildi', "Mas'ul (ommaviy)", "Mas'ul",
