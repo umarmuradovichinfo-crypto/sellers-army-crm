@@ -173,7 +173,7 @@ export function AmmaDashBox() {
   const t = useT()
   return (
     <div className="ac-amma-dash">
-      <AmmaAvatar size={30} />
+      <AmmaAvatar size={58} />
       <Composer onSend={openAmma} placeholder={t('Salom, men Ammaman. Ishga tayyorman! Nimadan boshlaymiz?')} />
     </div>
   )

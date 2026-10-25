@@ -324,8 +324,12 @@ export class CrmService {
   }
 
   async listMembers() {
-    const users = await this.prisma.user.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
-    return { members: users };
+    const [users, groups] = await Promise.all([
+      this.prisma.user.findMany({ where: { isActive: true }, select: { id: true, name: true, groupId: true }, orderBy: { name: 'asc' } }),
+      this.prisma.userGroup.findMany({ orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }], select: { id: true, name: true } }),
+    ]);
+    // amoCRM ish stoli «Мои ▾»: guruhlar (otdellar) va ulardagi foydalanuvchilar
+    return { members: users, groups };
   }
 
   private ensureSuper(user?: AuthUser) {

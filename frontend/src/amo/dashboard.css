@@ -56,13 +56,13 @@
 
 .ac-dash-bar { display: flex; align-items: center; justify-content: center; margin: 46px auto 22px; max-width: 1310px; position: relative; }
 .ac-dash-toggler { display: flex; align-items: center; height: 34px; border: 1px solid rgba(255, 255, 255, .55); border-radius: 17px; background: rgba(12, 37, 61, .25); overflow: visible; }
-.ac-dash-toggler > button, .ac-dash-toggler__wrap > button {
+.ac-dash-toggler > button, .ac-dash-toggler__wrap > button, .ac-dash-scope > button {
   height: 32px; padding: 0 20px; border: 0; background: transparent; color: #fff; cursor: pointer;
   font: 400 15px var(--font-main); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; transition: background .15s;
 }
 .ac-dash-toggler > button:first-child { border-radius: 17px 0 0 17px; }
-.ac-dash-toggler > button:last-child { border-radius: 0 17px 17px 0; }
-.ac-dash-toggler > button:hover, .ac-dash-toggler__wrap > button:hover { background: rgba(211, 222, 255, .1); }
+.ac-dash-toggler > button:last-child, .ac-dash-scope > button { border-radius: 0 17px 17px 0; }
+.ac-dash-toggler > button:hover, .ac-dash-toggler__wrap > button:hover, .ac-dash-scope > button:hover { background: rgba(211, 222, 255, .1); }
 .ac-dash-toggler button.on { background: rgba(211, 222, 255, .2); font-weight: 700; }
 .ac-dash-toggler__sep { width: 1px; align-self: stretch; background: rgba(255, 255, 255, .55); }
 .ac-dash-toggler__wrap { position: relative; }
@@ -258,3 +258,14 @@
 .ac-wmodal__pic.w-number { align-items: center; }
 .ac-wmodal__pic.w-number i { display: none; }
 .ac-wmodal__pic.w-number::before { content: '100'; font: 600 22px var(--font-main); color: #4c6a8d; border-bottom: 2px solid #4c8bf7; padding: 0 4px 2px; }
+/* amoCRM «Мои ▾» — bo'lim/xodim tanlash */
+.ac-dash-scope { position: relative; display: inline-flex; }
+.ac-dash-scope__chev { display: inline-flex; padding: 4px 0 4px 4px; }
+.ac-dash-scope__menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; width: 260px; background: rgba(12, 37, 61, .97); border-radius: 4px; box-shadow: 0 6px 24px rgba(0,0,0,.35); overflow: hidden; }
+.ac-dash-scope__q { width: 100%; height: 34px; padding: 0 10px; border: 0; border-bottom: 1px solid rgba(255,255,255,.2); background: transparent; color: #fff; font: inherit; outline: 0; }
+.ac-dash-scope__list { max-height: 300px; overflow: auto; }
+.ac-dash-scope__group { display: flex; align-items: center; justify-content: space-between; padding: 5px 10px; color: #2b3e50; font: 700 11px var(--font-main); text-transform: uppercase; }
+.ac-dash-scope__group button { border: 1px solid rgba(43,62,80,.5); border-radius: 2px; background: rgba(255,255,255,.4); color: #2b3e50; font: 700 9px var(--font-main); text-transform: uppercase; padding: 1px 5px; cursor: pointer; }
+.ac-dash-scope__user { padding: 7px 10px; color: #fff; font-size: 13px; text-transform: uppercase; cursor: pointer; }
+.ac-dash-scope__user:hover, .ac-dash-scope__user.sel { background: rgba(76,139,247,.18); }
+.ac-dash .ac-dash-bar { z-index: 6; }

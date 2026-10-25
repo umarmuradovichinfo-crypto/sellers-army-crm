@@ -1,6 +1,9 @@
 import { addRu } from '../i18n'
 
 addRu({
+  "Butun bo'lim": 'Весь отдел',
+  'Guruhsiz': 'Без группы',
+  'Qidirish': 'Поиск',
   'Mening rasmim': 'Моё изображение',
   'Rasm yuklash': 'Загрузить изображение',
   "Muddati o'tgan vazifalar": 'Просроченные задачи',

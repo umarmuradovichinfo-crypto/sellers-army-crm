@@ -1,4 +1,5 @@
 // amoCRM "Рабочий стол" — /dashboard. Fon + voronka kartalari + vidjetlar to'ri + voqealar paneli.
+import { useSearchParams } from 'react-router-dom'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { AmmaDashBox } from '../Amma'
 import { crmService } from '../../services/crm.service'
@@ -107,15 +108,66 @@ function fmtWait(sec, t) {
   return `${Math.floor(m / 60)} ${t('soat')} ${m % 60} ${t('daq.')}`
 }
 
+// amoCRM «Мои ▾»: qidiruvli ro'yxat — bo'limlar (rangli sarlavha, «Butun bo'lim») va ulardagi xodimlar
+const GROUP_COLORS = ['#cfd8e3', '#f7c6c6', '#c5dcf7', '#d6f0c6', '#f2e0b8', '#e2d1f5']
+function ScopePicker({ scope, setScope, members, groups }) {
+  const t = useT()
+  const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const ref = useRef(null)
+  useOutside(ref, () => setOpen(false), open)
+  const pick = (v) => { setScope(v); setOpen(false); setQ('') }
+  const label = scope.startsWith('u:') ? members.find((m) => m.id === scope.slice(2))?.name
+    : scope.startsWith('g:') ? groups.find((g) => g.id === scope.slice(2))?.name : null
+  const s = q.trim().toLowerCase()
+  const sections = [...groups.map((g) => ({ ...g, users: members.filter((m) => m.groupId === g.id) })), { id: '', name: t('Guruhsiz'), users: members.filter((m) => !m.groupId || !groups.some((g) => g.id === m.groupId)) }]
+    .map((g) => ({ ...g, users: g.users.filter((u) => !s || u.name.toLowerCase().includes(s) || g.name.toLowerCase().includes(s)) }))
+    .filter((g) => g.users.length)
+  const on = scope !== 'all'
+  return (
+    <span ref={ref} className="ac-dash-scope">
+      <button className={on ? 'on' : ''} onClick={() => (scope === 'all' ? pick('my') : setOpen((v) => !v))}>
+        {label || t('Meniki')} <span className="ac-dash-scope__chev" onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}><Ico name="chevronDown" size={10} /></span>
+      </button>
+      {open && (
+        <div className="ac-dash-scope__menu">
+          <input className="ac-dash-scope__q" autoFocus placeholder={t('Qidirish')} value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="ac-dash-scope__list">
+            <div className={`ac-dash-scope__user ${scope === 'my' || scope === 'mine' ? 'sel' : ''}`} onClick={() => pick('my')}>{t('Meniki')}</div>
+            {sections.map((g, i) => (
+              <React.Fragment key={g.id || 'none'}>
+                <div className="ac-dash-scope__group" style={{ background: GROUP_COLORS[i % GROUP_COLORS.length] }}>
+                  <span>{g.name}</span>
+                  {g.id && <button onClick={() => pick(`g:${g.id}`)}>{t("Butun bo'lim")}</button>}
+                </div>
+                {g.users.map((u) => <div key={u.id} className={`ac-dash-scope__user ${scope === `u:${u.id}` ? 'sel' : ''}`} onClick={() => pick(`u:${u.id}`)}>{u.name}</div>)}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      )}
+    </span>
+  )
+}
+
 export default function DashboardPage() {
   const t = useT()
   const plural = usePlural()
   const { user, can } = useAuth()
-  const [preset, setPreset] = useState('month')
-  const [custom, setCustom] = useState({ from: '', to: '' })
+  // amoCRM: filtr holati manzilda (?sel=all&period=month&pipeline_id=…) — havola bilan ulashish, orqaga qaytish
+  const [sp, setSp] = useSearchParams()
+  const [preset, setPreset] = useState(() => (['today', 'yesterday', 'week', 'month', 'range'].includes(sp.get('period')) ? sp.get('period') : 'month'))
+  const [custom, setCustom] = useState(() => ({ from: sp.get('from') || '', to: sp.get('to') || '' }))
   const [dateOpen, setDateOpen] = useState(false)
-  const [scope, setScope] = useState('all')
-  const [pipelineId, setPipelineId] = useState('')
+  const [scope, setScope] = useState(() => sp.get('sel') || 'all')
+  const [pipelineId, setPipelineId] = useState(() => sp.get('pipeline_id') || '')
+  useEffect(() => {
+    const next = new URLSearchParams()
+    next.set('sel', scope); next.set('period', preset)
+    if (preset === 'range') { if (custom.from) next.set('from', custom.from); if (custom.to) next.set('to', custom.to) }
+    if (pipelineId) next.set('pipeline_id', pipelineId)
+    if (next.toString() !== sp.toString()) setSp(next, { replace: true })
+  }, [scope, preset, custom.from, custom.to, pipelineId]) // eslint-disable-line
   const [eventsOpen, setEventsOpen] = useState(false)
   const dateRef = useRef(null)
   useOutside(dateRef, () => setDateOpen(false), dateOpen)
@@ -181,28 +233,36 @@ export default function DashboardPage() {
   const accountName = general?.general?.accountName || 'Sellers Army'
 
   const { data: pipe, loading } = useApi(() => crmService.getPipeline(pipelineId || undefined), [pipelineId])
-  const mineId = scope === 'mine' ? user?.id : undefined
+  const { data: memberData } = useApi(() => crmService.listMembers(), [])
+  // amoCRM «Все / Мои ▾»: my — o'zim, u:<id> — xodim, g:<id> — butun bo'lim (guruh)
+  const selIds = useMemo(() => {
+    if (scope === 'my' || scope === 'mine') return user?.id ? [user.id] : []
+    if (scope.startsWith('u:')) return [scope.slice(2)]
+    if (scope.startsWith('g:')) return (memberData?.members || []).filter((m) => m.groupId === scope.slice(2)).map((m) => m.id)
+    return null
+  }, [scope, user?.id, memberData])
+  const mineId = selIds ? selIds.join(',') || '__none__' : undefined
   const { data: an } = useApi(() => crmService.analytics({ ...range, pipelineId: pipelineId || 'main', userIds: mineId }), [range.from, range.to, pipelineId, mineId])
   const { data: callsAll } = useApi(() => crmService.analyticsCalls(range), [range.from, range.to])
   const calls = useMemo(() => {
-    if (!mineId || !callsAll) return callsAll
-    const r = (callsAll.byEmployee || []).find((e) => e.id === mineId)
-    if (!r) return { total: 0, inbound: 0, outbound: 0, missed: 0, avgDuration: 0 }
-    return { total: r.count, inbound: r.inCount, outbound: r.outCount, missed: r.missed, avgDuration: r.avgDur }
-  }, [callsAll, mineId])
+    if (!selIds || !callsAll) return callsAll
+    const rs = (callsAll.byEmployee || []).filter((e) => selIds.includes(e.id))
+    if (!rs.length) return { total: 0, inbound: 0, outbound: 0, missed: 0, avgDuration: 0 }
+    const sum = (k) => rs.reduce((a, r) => a + (Number(r[k]) || 0), 0)
+    const total = sum('count')
+    return { total, inbound: sum('inCount'), outbound: sum('outCount'), missed: sum('missed'), avgDuration: total ? Math.round(rs.reduce((a, r) => a + (r.avgDur || 0) * (r.count || 0), 0) / total) : 0 }
+  }, [callsAll, selIds])
   const { data: chatSt } = useApi(() => crmService.chatStats(range).catch(() => null), [range.from, range.to])
   const { data: taskData } = useApi(() => crmService.listTasks({ status: 'open' }), [])
-  const { data: memberData } = useApi(() => crmService.listMembers(), [])
   const hasForecast = L.widgets.some((w) => w.type === 'forecast')
   const { data: flowData } = useApi(() => (hasForecast ? crmService.analyticsFlow({ pipelineId: pipelineId || 'main' }).catch(() => null) : Promise.resolve(null)), [hasForecast, pipelineId])
 
   const pipelines = [{ id: '', name: t('Asosiy voronka') }, ...((pipe?.pipelines || []).map((p) => ({ id: p.id, name: p.name })))]
-  const mine = scope === 'mine'
-  const uid = user?.id
+  const inSel = (id) => !selIds || selIds.includes(id)
 
   const stages = (pipe?.stages || []).map((s) => ({
     ...s,
-    leads: (s.leads || []).filter((l) => !mine || !uid || l.assigneeId === uid),
+    leads: (s.leads || []).filter((l) => inSel(l.assigneeId)),
   }))
   const sumOf = (ls) => ls.reduce((a, l) => a + (Number(l.value) || 0), 0)
   const fresh = (s) => s.leads.filter((l) => inRange(l.createdAt, range))
@@ -215,7 +275,7 @@ export default function DashboardPage() {
   const wonLeads = wonStages.flatMap(fresh)
 
   // Vazifalar
-  const tasks = (taskData?.tasks || []).filter((x) => !x.done && (!mine || !uid || x.assigneeId === uid))
+  const tasks = (taskData?.tasks || []).filter((x) => !x.done && inSel(x.assigneeId))
   const today = iso(new Date())
   const dueDay = (x) => (x.dueDate ? iso(new Date(x.dueDate)) : null)
   const overdue = tasks.filter((x) => dueDay(x) && dueDay(x) < today)
@@ -405,7 +465,7 @@ export default function DashboardPage() {
             </span>
             <span className="ac-dash-toggler__sep" />
             <button className={scope === 'all' ? 'on' : ''} onClick={() => setScope('all')}>{t('Hammasi')}</button>
-            <button className={scope === 'mine' ? 'on' : ''} onClick={() => setScope('mine')}>{t('Meniki')} <Ico name="chevronDown" size={10} /></button>
+            <ScopePicker scope={scope} setScope={setScope} members={memberData?.members || []} groups={memberData?.groups || []} />
           </div>
           <div className="ac-dash-setup">
             <button className="ac-dash-setup__btn" onClick={startEdit}><Ico name="gear" size={14} /> {t('Sozlash')}</button>

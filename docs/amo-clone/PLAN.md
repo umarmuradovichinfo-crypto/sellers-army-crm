@@ -212,6 +212,10 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     kalendar)  e) Ro'yxatlar (kontaktlar, kompaniyalar, mahsulotlar, kartochkalar)  f) Analitika (barcha hisobotlar, Список
     событий, Звонки, Цели)  g) AI-agentlar va botlar  h) amoМаркет / integratsiyalar  i) Sozlamalar (37-band)  j) umumiy: chap menyu,
     bildirishnomalar, akkaunt paneli, qidiruv.
+    a) Ish stoli — farqlar (26.10): [x] Amma qutisi amoCRM'dagidek (chapda katta avatar halqa bilan, ko'p qatorli maydon, kamalak
+       ramka, yumaloq yuborish); [x] filtr holati manzilda (?sel=all|my|u:…|g:…&period=…&pipeline_id=…); [x] «Мои ▾» — qidiruvli
+       ro'yxat: bo'limlar rangli sarlavha + «Весь отдел», ulardagi xodimlar (crm/members → groups). Qolgan bloklar (voronka
+       lentasi, vidjetlar, «Настроить», «События») avval moslangan.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

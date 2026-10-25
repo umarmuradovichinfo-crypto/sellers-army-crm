@@ -48,8 +48,6 @@ body:has(.ac-amma-fab) .ac-compose { margin-right: 46px; }
 .ac-amma-hint__go { display: block; margin: 8px 0 0 auto; padding: 4px 12px; border: 0; border-radius: 12px; background: var(--palette-ai-gradient-fill); color: #fff; font: 13px/18px var(--font-main); cursor: pointer; }
 
 /* ish stoli: akkaunt nomi ostidagi chat qutisi */
-.ac-amma-dash { display: flex; align-items: center; gap: 10px; width: 560px; max-width: calc(100% - 32px); margin: 16px auto 0; padding: 8px 8px 8px 10px; border-radius: 14px; background: var(--palette-background-primary); box-shadow: 0 2px 12px rgba(0, 0, 0, .2); color: var(--palette-text-primary); }
-.ac-amma-dash .ac-amma-input { flex: 1; background: none; padding: 0; }
 
 /* AI-агенты: «Агент внутри продукта — АММА» kartasi */
 .ac-amma-card { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 10px; background: linear-gradient(var(--palette-background-primary), var(--palette-background-primary)) padding-box, var(--palette-ai-gradient-stroke) border-box; border: 1px solid transparent; color: var(--palette-text-primary); }
@@ -65,4 +63,21 @@ body:has(.ac-amma-fab) .ac-compose { margin-right: 46px; }
 @media (max-width: 600px) {
   .ac-amma-panel { width: 100vw; }
   .ac-amma-card { flex-wrap: wrap; }
+}
+
+/* Ish stoli: amoCRM kabi — chapda katta avatar (rangli halqa), o'ngda ko'p qatorli maydon, kamalak ramka, pastda o'ngda yumaloq yuborish */
+.ac-amma-dash { display: flex; align-items: flex-start; gap: 14px; width: 600px; max-width: calc(100% - 32px); margin: 16px auto 0; color: #fff; }
+.ac-amma-dash > .ac-amma-ava { flex: none; padding: 3px; border-radius: 50%; background: conic-gradient(from 200deg, #ffb347, #ff5f9e, #a35bff, #3fbafe, #ffb347); box-shadow: 0 2px 12px rgba(0,0,0,.25); }
+.ac-amma-dash > .ac-amma-ava svg { display: block; border-radius: 50%; }
+.ac-amma-dash .ac-amma-input { flex: 1; position: relative; min-height: 118px; align-items: stretch; padding: 14px 56px 14px 18px; border: 2px solid transparent; border-radius: 22px;
+  background: linear-gradient(rgba(22, 32, 42, .82), rgba(22, 32, 42, .82)) padding-box, linear-gradient(100deg, #ffb347, #ff5f9e 30%, #a35bff 65%, #3fbafe) border-box;
+  box-shadow: 0 0 18px rgba(163, 91, 255, .35); }
+.ac-amma-dash .ac-amma-input textarea { min-height: 86px; font-size: 15px; color: #fff; }
+.ac-amma-dash .ac-amma-input textarea::placeholder { color: rgba(255, 255, 255, .7); }
+.ac-amma-dash .ac-amma-send { position: absolute; right: 12px; bottom: 12px; width: 36px; height: 36px; border-radius: 50%; background: #4c8bf7; }
+.ac-amma-dash .ac-amma-send:disabled { opacity: 1; background: #4c8bf7; }
+@media (max-width: 600px) {
+  .ac-amma-dash > .ac-amma-ava { display: none; }
+  .ac-amma-dash .ac-amma-input { min-height: 80px; }
+  .ac-amma-dash .ac-amma-input textarea { min-height: 50px; }
 }
