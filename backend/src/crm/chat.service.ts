@@ -349,10 +349,18 @@ export class ChatService {
       SELECT DISTINCT ON ("leadId") direction, "createdAt" FROM crm_messages ORDER BY "leadId", "createdAt" DESC`;
     const hourAgo = Date.now() - 3600000;
     const waiting = last.filter((m) => m.direction === 'in' && new Date(m.createdAt).getTime() < hourAgo).length;
+    // ish stoli vidjetlari: kiruvchi/chiquvchi xabarlar, ishlov berilgan suhbatlar (javob berilgan), mediana
+    const inPer = msgs.filter((m) => m.createdAt >= from && m.createdAt <= to);
+    const sorted = [...waits].sort((a, b) => a - b);
+    const median = sorted.length ? Math.round(sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2) : 0;
     return {
       avgResponseSec: waits.length ? Math.round(waits.reduce((a, b) => a + b, 0) / waits.length) : 0,
+      medianResponseSec: median,
       answered: waits.length,
       waiting,
+      incoming: inPer.filter((m) => m.direction === 'in').length,
+      outgoing: inPer.filter((m) => m.direction === 'out').length,
+      processed: new Set(inPer.filter((m) => m.direction === 'out').map((m) => m.leadId)).size,
     };
   }
 

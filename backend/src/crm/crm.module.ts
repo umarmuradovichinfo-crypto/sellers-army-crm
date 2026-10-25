@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 
 import { ActivityService } from './activity.service';
 import { CrmAnalyticsController } from './analytics.controller';
+import { DashboardController } from './dashboard.controller';
 import { CrmAnalyticsService } from './analytics.service';
 import { AutomationController } from './automation.controller';
 import { AutomationService } from './automation.service';
@@ -36,6 +37,7 @@ import { ReminderService } from './reminder.service';
     CrmImportController,
     AutomationController,
     CrmAnalyticsController,
+    DashboardController,
     ContactsController,
     NotificationController,
     CrmFormsController,

@@ -64,6 +64,66 @@ export class CrmAnalyticsService {
     return { rows, ctx };
   }
 
+  /**
+   * amoCRM ish stoli «filtr vidjeti»: voronka/ro'yxat filtridan yaratilgan vidjet ma'lumoti.
+   * view: number (son, summa, davrdagi o'sish) | chart (ko'rsatkich bo'yicha guruhlar, top 5 + «Boshqalar») | list (10 ta bitim).
+   * compareBy: stage | assignee | lostReason | cf:<kalit>. from/to — ish stoli davri (o'sish uchun), userIds — «Meniki».
+   */
+  async widgetData(q: { filter?: string; view?: string; compareBy?: string; from?: string; to?: string; userIds?: string }, userId?: string) {
+    let f: Record<string, any> = {};
+    try { f = JSON.parse(q.filter || '{}') || {}; } catch { f = {}; }
+    if (q.userIds) f.userIds = q.userIds;
+    const { rows } = await this.filteredLeads(f, userId);
+    const from = q.from ? parseFrom(q.from) : null;
+    const to = q.to ? parseTo(q.to) : null;
+    const inPeriod = (d: Date) => (!from || d >= from) && (!to || d <= to);
+    const sum = (ls: any[]) => ls.reduce((a, l) => a + (Number(l.value) || 0), 0);
+    const base = { count: rows.length, sum: sum(rows), delta: rows.filter((l) => inPeriod(new Date(l.createdAt))).length };
+    if (q.view === 'list') {
+      const stages = await this.prisma.crmStage.findMany({ select: { key: true, name: true, color: true } });
+      const st = new Map(stages.map((x) => [x.key, x]));
+      const users = await this.prisma.user.findMany({ select: { id: true, name: true } });
+      const un = new Map(users.map((u) => [u.id, u.name]));
+      const items = [...rows].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)).slice(0, 10).map((l) => ({
+        id: l.id, name: l.name, value: Number(l.value) || 0, stage: st.get(l.stage)?.name || l.stage, color: st.get(l.stage)?.color || null,
+        assignee: l.assigneeId ? un.get(l.assigneeId) || null : null, createdAt: new Date(l.createdAt).toISOString(),
+      }));
+      return { ...base, items };
+    }
+    if (q.view !== 'chart') return base;
+    const by = q.compareBy || 'stage';
+    const groups = new Map<string, { key: string; label: string; color: string | null; rows: any[] }>();
+    const add = (key: string, label: string, color: string | null, l: any) => {
+      if (!groups.has(key)) groups.set(key, { key, label, color, rows: [] });
+      groups.get(key)!.rows.push(l);
+    };
+    if (by === 'stage') {
+      const stages = await this.prisma.crmStage.findMany({ select: { key: true, name: true, color: true } });
+      const st = new Map(stages.map((x) => [x.key, x]));
+      for (const l of rows) add(l.stage, st.get(l.stage)?.name || l.stage, st.get(l.stage)?.color || null, l);
+    } else if (by === 'assignee') {
+      const users = await this.prisma.user.findMany({ select: { id: true, name: true } });
+      const un = new Map(users.map((u) => [u.id, u.name]));
+      for (const l of rows) add(l.assigneeId || '-', l.assigneeId ? un.get(l.assigneeId) || '—' : "Mas'ulsiz", null, l);
+    } else if (by === 'lostReason') {
+      for (const l of rows) add(l.lostReason || '-', l.lostReason || "Sabab ko'rsatilmagan", null, l);
+    } else if (by.startsWith('cf:')) {
+      const key = by.slice(3);
+      for (const l of rows) {
+        let v: any;
+        try { v = JSON.parse(l.customJson || '{}')[key]; } catch { v = undefined; }
+        const vals = Array.isArray(v) ? v : v === undefined || v === null || v === '' ? [] : [v];
+        if (!vals.length) add('-', "Qiymat yo'q", null, l);
+        for (const x of vals) add(String(x), String(x), null, l);
+      }
+    }
+    const all = [...groups.values()].map((g) => ({ key: g.key, label: g.label, color: g.color, count: g.rows.length, sum: sum(g.rows), delta: g.rows.filter((l) => inPeriod(new Date(l.createdAt))).length }))
+      .sort((a, b) => b.count - a.count);
+    const top = all.slice(0, 5);
+    const rest = all.slice(5);
+    return { ...base, groups: top, other: rest.length ? { count: rest.reduce((a, g) => a + g.count, 0), sum: rest.reduce((a, g) => a + g.sum, 0) } : { count: 0, sum: 0 } };
+  }
+
   async overview(params: Record<string, any>, userId?: string) {
     // «Saralanmagan» arizalar hali bitim emas (voronka bilan bir xil)
     const pv = pipeVal(params.pipelineId);
