@@ -1,4 +1,4 @@
-// amoCRM "Списки" — kontaktlar va kompaniyalar jadvali (/contacts/list, /companies/list).
+// amoCRM "Списки" — kontaktlar va kompaniyalar jadvali (/contacts, /companies).
 // Kartochkalar bu yerda emas: nom bosilganda detail sahifaga o'tiladi.
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -161,7 +161,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
   }
   const sortBy = (key) => setSort((s) => (s.key === key ? { key, dir: -s.dir } : { key, dir: 1 }))
 
-  const open = (r) => navigate(r.kind === 'contact' ? `/contacts/detail/${r.id}` : `/companies/detail/${r.id}`)
+  const open = (r) => navigate(r.kind === 'contact' ? `/contacts/${r.id}` : `/companies/${r.id}`)
   const removeSelected = async () => {
     if (!window.confirm(t('Tanlanganlarni o\'chirishni tasdiqlaysizmi?') + (allMode ? ` (${selCount})` : ''))) return
     try {
@@ -204,7 +204,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
     <div className="ac-lists">
       {importOpen && <ImportModal entity="contacts" onClose={() => setImportOpen(false)} />}
       <TopBar
-        title={<PresetTitle entity={entity} onPick={(k) => { if (k === 'products') return navigate('/catalogs/products'); if (k === 'companies') navigate('/companies/list'); else if (entityProp === 'companies') navigate(k === 'all' ? '/contacts/list?view=all' : '/contacts/list'); setEntity(k) }} />}
+        title={<PresetTitle entity={entity} onPick={(k) => { if (k === 'products') return navigate('/products'); if (k === 'companies') navigate('/companies'); else if (entityProp === 'companies') navigate(k === 'all' ? '/contacts?view=all' : '/contacts'); setEntity(k) }} />}
         search={search}
         onSearch={setSearch}
         filterPanel={(close) => <ListFilter value={filter} members={members} onApply={(f) => { setFilter(f); close() }} />}
@@ -214,7 +214,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
           { label: t('Eksport'), icon: 'excel', onClick: exportCsv },
         ]}
         actions={
-          <button className="ac-btn ac-btn--blue" onClick={() => navigate(entity === 'companies' ? '/companies/add' : '/contacts/add')}>
+          <button className="ac-btn ac-btn--blue" onClick={() => navigate(entity === 'companies' ? '/companies/new' : '/contacts/new')}>
             <span className="ac-btn__plus">+</span>{t(entity === 'companies' ? "Kompaniya qo'shish" : "Kontakt qo'shish")}
           </button>
         }

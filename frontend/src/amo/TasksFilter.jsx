@@ -1,4 +1,4 @@
-// amoCRM vazifalar filtri (.filter-search /todo): chapda presetlar, o'ngda ixcham qatorlar.
+// amoCRM vazifalar filtri (.filter-search /tasks): chapda presetlar, o'ngda ixcham qatorlar.
 // Filtr mijoz tomonida qo'llanadi (vazifalar ro'yxati to'liq yuklanadi).
 import React, { useEffect, useMemo, useState } from 'react'
 import MultiSelect from './MultiSelect'

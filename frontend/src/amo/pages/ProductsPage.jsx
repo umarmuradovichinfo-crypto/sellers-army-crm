@@ -61,7 +61,7 @@ export default function ProductsPage() {
   return (
     <div className="ac-lists">
       <TopBar
-        title={<PresetTitle entity="products" onPick={(k) => navigate(k === 'companies' ? '/companies/list' : k === 'all' ? '/contacts/list?view=all' : k === 'products' ? '/catalogs/products' : '/contacts/list')} />}
+        title={<PresetTitle entity="products" onPick={(k) => navigate(k === 'companies' ? '/companies' : k === 'all' ? '/contacts?view=all' : k === 'products' ? '/products' : '/contacts')} />}
         search={q}
         onSearch={setQ}
         count={items ? `${shown.length}` : ''}

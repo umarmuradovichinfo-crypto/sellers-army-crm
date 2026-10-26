@@ -272,15 +272,15 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     firuza, do'ppi bodom naqshli, atlas yoqa; «siz»lab, iliq, maqol bilan, «Barakalla!»); yangi SVG avatar; tizim prompti, salom,
     taklif, kartochka tagline'i. Statistika kaliti (amma:stats) eski ma'lumot yo'qolmasligi uchun o'zgarmadi.
 
-41. [ ] (foydalanuvchi so'rovi 27.10) URL/navigatsiya — dasturlashdagi standart qoidalar bo'yicha: HAR sahifa, tab, ichki bo'lim o'z manziliga
-    ega (deep-link: yangilaganda, nusxalab ochganda, orqaga/oldinga tugmasida shu joyga qaytadi). Qoidalar: ierarxik kebab-case manzillar
-    (`/<bo'lim>/<pastbo'lim>/<id>`, masalan `/settings/users`, `/settings/pipelines/:id`), filtr/saralash/sahifa — query'da (`?preset=…`),
-    menyu/havolalar haqiqiy `<a>`/`<NavLink>` (yangi tabda ochiladi, aktiv holat URL'dan), noma'lum manzil — 404 sahifa (hozir jimgina
-    /dashboard'ga yo'naltiriladi), kirish talab qilinsa `/login?next=<manzil>` va kirgach shu manzilga qaytish, eski manzillar → 301-uslubda
-    `Navigate replace`, bitim kartochkasi tablari (Основное/Статистика/Настроить), Sozlamalar ichki sahifalari, Integratsiyalar tablari,
-    profil (modal emas — sahifa, bajarilgan), `<title>` va breadcrumb har sahifada. Qaror kutilmoqda: `/crm/…` prefiksi (ilova `/crm/*`,
-    ildiz — landing/narxlar/to'lov) yoki amoCRM kabi prefiks­siz.
-42. [ ] (foydalanuvchi so'rovi 27.10) Stripe orqali to'lov va obunalar (billing). Muhim: Stripe O'zbekistonda ro'yxatdan o'tgan biznes uchun
+41. [x] (foydalanuvchi so'rovi 27.10) URL/navigatsiya — standart qoidalar: har sahifa o'z manziliga ega, nomlar mazmunli (prefikssiz, `/crm` kerak emas —
+    foydalanuvchi qarori). Yangi manzillar: `/dashboard`, `/leads/pipeline/:id`, `/leads/list`, `/leads/new`, `/leads/:id`, `/inbox`, `/inbox/:leadId`,
+    `/tasks/{line,list,calendar/{day,week,month}}`, `/contacts`, `/contacts/new`, `/contacts/:id`, `/companies…` (xuddi shunday), `/products`,
+    `/stats/{pipeline,consolidated,activities,calls,goals}`, `/events`, `/settings/{general,users,chats,security,profile,pipelines/:id,fields/:entity}`,
+    `/integrations`, `/bots`; ochiq forma `/lead/:slug`. Eski manzillar (`/todo`, `/imbox`, `/amo-market`, `/leads/detail/:id`, `/contacts/list`…) yangisiga
+    yo'naltiriladi (param/query/hash saqlanadi — bildirishnoma va Facebook qaytish havolasi buzilmaydi). Noma'lum manzil — 404 sahifa;
+    kirmagan foydalanuvchi `/login?next=…` ga, kirgach shu joyga qaytadi (faqat ichki yo'l); brauzer `<title>` har bo'limda. UI smoke eski manzillar
+    yo'naltirishi va 404 ni tekshiradi. Qoldi (ixtiyoriy): bitim kartochkasi tablari va Integratsiyalar tablarini ham URL (`?tab=`) ga chiqarish, breadcrumb.
+42. [ ] (foydalanuvchi so'rovi 27.10; QAROR 26.10: Payme/Stripe KERAK EMAS — to'lov QO'LDA: karta raqami + chek Telegramdagi adminga, tasdiqni super-admin qo'lda beradi; tariflar/narx foydalanuvchi o'ylab aytadi) Stripe orqali to'lov va obunalar (billing). Muhim: Stripe O'zbekistonda ro'yxatdan o'tgan biznes uchun
     to'g'ridan-to'g'ri qo'llab-quvvatlanmaydi (hisob xorijiy yuridik shaxs — masalan AQSh LLC/Stripe Atlas — orqali ochiladi; mahalliy
     to'lovlar uchun Payme/Click/Uzum alohida). Reja: to'lov provayderi abstraksiyasi + Stripe Checkout/Customer Portal/webhook; tariflar
     (plan), sinov muddati, o'rindiq (foydalanuvchi) bo'yicha yoki tarif bo'yicha narx, limitlar (foydalanuvchi, bitim, kanal), holatlar

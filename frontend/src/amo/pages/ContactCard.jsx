@@ -25,7 +25,7 @@ const digits = (s) => String(s || '').replace(/\D/g, '')
 
 function LeadLink({ lead, navigate }) {
   const t = useT()
-  return <a className="ac-ec-leadlink" onClick={() => navigate(`/leads/detail/${lead.id}`)}>{t('Bitim')} #{String(lead.id).slice(-8)}</a>
+  return <a className="ac-ec-leadlink" onClick={() => navigate(`/leads/${lead.id}`)}>{t('Bitim')} #{String(lead.id).slice(-8)}</a>
 }
 
 // Bog'lash uchun qidiruv (kompaniya yoki kontakt)
@@ -233,7 +233,7 @@ export function EntityCard({ kind }) {
     const body = { name: `${t('Bitim')} #${Date.now().toString().slice(-6)}`, stage, assigneeId: v.custom._assigneeId || user?.id }
     if (isContact) { body.contactId = id; if (company) body.companyId = company.id } else body.companyId = id
     const r = await crmService.createLead(body)
-    navigate(`/leads/detail/${r.lead.id}`)
+    navigate(`/leads/${r.lead.id}`)
     } finally { setBusyLead(false) }
   })
   const pickCompany = guard(async (c) => {
@@ -345,10 +345,10 @@ export function EntityCard({ kind }) {
                         <div className="ac-linked__avatar ac-linked__avatar--co"><Ico name="company" size={16} /></div>
                         <div style={{ minWidth: 0 }}>
                           <div className="ac-linked__kind">{t('Kompaniya')}</div>
-                          <div className="ac-linked__name" onClick={() => navigate(`/companies/detail/${company.id}`)}>{company.name}</div>
+                          <div className="ac-linked__name" onClick={() => navigate(`/companies/${company.id}`)}>{company.name}</div>
                         </div>
                         <DotsMenu align="left" className="ac-linked__dots" items={[
-                          { label: t("Kartochkaga o'tish"), icon: 'external', onClick: () => navigate(`/companies/detail/${company.id}`) },
+                          { label: t("Kartochkaga o'tish"), icon: 'external', onClick: () => navigate(`/companies/${company.id}`) },
                           { label: t('Ismni nusxalash'), icon: 'list', onClick: () => navigator.clipboard?.writeText(company.name || '') },
                           { label: t('Uzish'), icon: 'link', onClick: unlinkCompany },
                         ]} />
@@ -364,7 +364,7 @@ export function EntityCard({ kind }) {
                       <div className="ac-linked__head">
                         <div className="ac-linked__avatar"><PersonAvatar /></div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="ac-linked__name" onClick={() => navigate(`/contacts/detail/${c.id}`)}>{c.name}</div>
+                          <div className="ac-linked__name" onClick={() => navigate(`/contacts/${c.id}`)}>{c.name}</div>
                           {(c.position || c.phone) && <div className="ac-linked__sub">{[c.position, c.phone].filter(Boolean).join(' · ')}</div>}
                         </div>
                         <DotsMenu items={[{ label: t('Uzish'), icon: 'close', onClick: () => unlinkPerson(c) }]} />
@@ -381,7 +381,7 @@ export function EntityCard({ kind }) {
           {tab === 'leads' && !isNew && (
             <div className="ac-ec-leads">
               {leads.map((l) => (
-                <div key={l.id} className="ac-ec-lead" onClick={() => navigate(`/leads/detail/${l.id}`)}>
+                <div key={l.id} className="ac-ec-lead" onClick={() => navigate(`/leads/${l.id}`)}>
                   <div className="ac-ec-lead__name">{l.n}</div>
                   <div className="ac-ec-lead__row">
                     <span className="ac-ec-lead__stage"><i style={{ background: l.stageColor || '#99ccfd' }} />{l.stageName || l.stage}</span>

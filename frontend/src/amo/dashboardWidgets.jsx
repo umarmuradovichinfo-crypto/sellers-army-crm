@@ -136,7 +136,7 @@ export function FilterWidget({ w, range, mineId, periodWord }) {
         <hr className="ac-dash-hr" />
         <div className="ac-dash-wlist">
           {(d.items || []).map((x) => (
-            <div key={x.id} className="ac-dash-wlist__row" onClick={() => navigate(`/leads/detail/${x.id}`)}>
+            <div key={x.id} className="ac-dash-wlist__row" onClick={() => navigate(`/leads/${x.id}`)}>
               <span className="ac-dash-wlist__name">{x.name}</span>
               <span className="ac-dash-status" style={{ background: x.color || '#d5d8db' }}>{x.stage}</span>
               <span className="ac-dash-wlist__sum">{money(x.value)}</span>

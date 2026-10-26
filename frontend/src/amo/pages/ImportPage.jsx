@@ -433,7 +433,7 @@ export default function ImportPage({ entity = 'leads' }) {
                   </>
                 )}
                 <div className="ac-import-foot">
-                  <button className="ac-btn ac-btn--blue" onClick={() => navigate(isLeads ? '/leads/list' : '/contacts/list')}>{t(isLeads ? "Bitimlarga o'tish" : "Kontaktlarga o'tish")}</button>
+                  <button className="ac-btn ac-btn--blue" onClick={() => navigate(isLeads ? '/leads/list' : '/contacts')}>{t(isLeads ? "Bitimlarga o'tish" : "Kontaktlarga o'tish")}</button>
                   <button className="ac-btn" onClick={reset}>{t('Yangi import')}</button>
                 </div>
               </>

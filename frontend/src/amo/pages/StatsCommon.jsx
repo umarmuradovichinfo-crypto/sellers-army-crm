@@ -13,8 +13,8 @@ import '../stats.css'
 export const ASIDE_ITEMS = [
   { to: '/stats/pipeline', label: 'Sotuv tahlili' },
   { to: '/stats/consolidated', label: 'Umumiy hisobot' },
-  { to: '/stats/by_activities', label: "Xodimlar bo'yicha hisobot" },
-  { to: '/events/list', label: "Voqealar ro'yxati" },
+  { to: '/stats/activities', label: "Xodimlar bo'yicha hisobot" },
+  { to: '/events', label: "Voqealar ro'yxati" },
   { to: '/stats/calls', label: "Qo'ng'iroqlar" },
   { to: '/stats/goals', label: 'Maqsadlar' },
 ]

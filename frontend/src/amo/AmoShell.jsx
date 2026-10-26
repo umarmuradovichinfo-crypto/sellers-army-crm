@@ -1,5 +1,5 @@
 // amoCRM qobig'i: chap menyu (65px), Сделки flyout, akkaunt paneli, bildirishnomalar paneli.
-// Bo'limlar amoCRM URL tuzilmasida: /dashboard, /leads/..., /imbox, /todo/..., /contacts/..., /stats/..., /settings/...
+// Bo'limlar amoCRM URL tuzilmasida: /dashboard, /leads/..., /inbox, /tasks/..., /contacts/..., /stats/..., /settings/...
 import React, { useEffect, useRef, useState } from 'react'
 import DonoWidget from './Dono'
 import IncomingCall from './IncomingCall'
@@ -21,12 +21,12 @@ import { playPing } from './sound'
 export const NAV = [
   { key: 'dashboard', to: '/dashboard', title: 'Ish stoli', icon: 'dashboard' },
   { key: 'leads', to: '/leads/pipeline', title: 'Bitimlar', icon: 'leads', flyout: true },
-  { key: 'imbox', to: '/imbox', title: 'imBox', icon: 'imbox' },
-  { key: 'todo', to: '/todo/line', title: 'Vazifalar', icon: 'tasks' },
-  { key: 'bots', to: '/agents-and-bots', title: 'AI-agentlar va botlar', icon: 'bots' },
-  { key: 'lists', to: '/contacts/list', title: "Ro'yxatlar", icon: 'lists', match: ['/contacts', '/companies'] },
+  { key: 'imbox', to: '/inbox', title: 'imBox', icon: 'imbox' },
+  { key: 'todo', to: '/tasks/line', title: 'Vazifalar', icon: 'tasks' },
+  { key: 'bots', to: '/bots', title: 'AI-agentlar va botlar', icon: 'bots' },
+  { key: 'lists', to: '/contacts', title: "Ro'yxatlar", icon: 'lists', match: ['/contacts', '/companies', '/products'] },
   { key: 'stats', to: '/stats', title: 'Analitika', icon: 'stats', match: ['/stats', '/events'] },
-  { key: 'market', to: '/amo-market', title: 'Market', icon: 'market' },
+  { key: 'market', to: '/integrations', title: 'Market', icon: 'market' },
   { key: 'settings', to: '/settings/general', title: 'Sozlamalar', icon: 'settings' },
 ]
 

@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../lib/apiClient'
 import { applyTheme, getTheme } from '../amo/theme'
 import { useI18n } from '../amo/i18n'
 import '../amo/i18n/login.ru.js'
 import '../amo/login.css'
+
+// /login?next=/leads/12 — kirgach shu manzilga qaytadi (faqat ichki yo'l: '//evil.com' kabilar rad etiladi)
+function nextPath(sp) {
+  const n = sp.get('next') || ''
+  return /^\/(?!\/|login)/.test(n) ? n : '/dashboard'
+}
 
 const REMEMBER_KEY = 'amo_login_email'
 
@@ -45,6 +51,7 @@ function SetupForm({ tokenRequired }) {
   const { setup } = useAuth()
   const { t } = useI18n()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -63,7 +70,7 @@ function SetupForm({ tokenRequired }) {
     setBusy(true)
     try {
       await setup({ name: name.trim(), email: email.trim(), password, ...(tokenRequired ? { setupToken } : {}) })
-      navigate('/')
+      navigate(nextPath(searchParams), { replace: true })
     } catch (e) {
       setErr(e?.message || t('Sozlashda xatolik'))
     } finally { setBusy(false) }
@@ -124,6 +131,7 @@ function LoginForm() {
   const { login } = useAuth()
   const { t } = useI18n()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const saved = (() => { try { return localStorage.getItem(REMEMBER_KEY) || '' } catch { return '' } })()
   const [email, setEmail] = useState(saved)
   const [password, setPassword] = useState('')
@@ -137,7 +145,7 @@ function LoginForm() {
     try {
       await login(email, password)
       try { if (remember) localStorage.setItem(REMEMBER_KEY, email); else localStorage.removeItem(REMEMBER_KEY) } catch { /* */ }
-      navigate('/dashboard')
+      navigate(nextPath(searchParams), { replace: true })
     } catch (e) {
       setErr(e?.message || t('Kirishda xatolik'))
     } finally { setBusy(false) }

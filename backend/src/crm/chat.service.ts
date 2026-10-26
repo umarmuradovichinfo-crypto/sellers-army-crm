@@ -131,7 +131,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     const score = Number(m[1]);
     const lead = await this.prisma.lead.findUnique({ where: { id: leadId }, select: { assigneeId: true, name: true } });
     await this.activity.record(leadId, 'nps', { actorName: 'Mijoz', text: `Baho: ${score}/10`, data: { score, assigneeId: lead?.assigneeId || null } });
-    if (lead?.assigneeId) await this.notif.notify(lead.assigneeId, `Mijoz bahosi ${score}/10: ${lead.name}`, { type: 'mention', link: `/leads/detail/${leadId}` });
+    if (lead?.assigneeId) await this.notif.notify(lead.assigneeId, `Mijoz bahosi ${score}/10: ${lead.name}`, { type: 'mention', link: `/leads/${leadId}` });
     const { nps } = await this.getChatSettings();
     await this.sendMessage(leadId, nps.thanks, undefined).catch(() => undefined);
     return true;
@@ -256,7 +256,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (l.leadId && first && !ChatService.isPreviewBot(ua)) {
       await this.activity.record(l.leadId, 'link', { actorName: 'Mijoz', text: `Havola ochildi: ${l.url}` });
       const lead = await this.prisma.lead.findUnique({ where: { id: l.leadId }, select: { assigneeId: true, name: true } });
-      if (lead?.assigneeId) await this.notif.notify(lead.assigneeId, `Mijoz havolani ochdi: ${lead.name}`, { type: 'mention', link: `/leads/detail/${l.leadId}` });
+      if (lead?.assigneeId) await this.notif.notify(lead.assigneeId, `Mijoz havolani ochdi: ${lead.name}`, { type: 'mention', link: `/leads/${l.leadId}` });
     }
     return l.url;
   }
@@ -419,7 +419,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (prevIn === 0) await this.automation.fire('message_in', lead.id, { actorName: 'Telegram' });
     // «Типовые вопросы» — triggerlar (Salesbot) ishga tushgandan KEYIN, bot allaqachon javob berayotgan bo'lmasa
     if (!consumed) await this.applyIntents(lead.id, String(text)).catch(() => false);
-    if (lead.assigneeId) await this.notif.notify(lead.assigneeId, `Telegram xabar: ${name}`, { type: 'mention', link: `/leads/detail/${lead.id}` });
+    if (lead.assigneeId) await this.notif.notify(lead.assigneeId, `Telegram xabar: ${name}`, { type: 'mention', link: `/leads/${lead.id}` });
 
     return { ok: true, leadId: lead.id };
   }
@@ -583,7 +583,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (prevAny === 0) await this.automation.fire('conversation_created', lead.id, { actorName: actor });
     if (prevIn === 0) await this.automation.fire('message_in', lead.id, { actorName: actor });
     if (!consumed && a.kind !== 'comment') await this.applyIntents(lead.id, a.text).catch(() => false);
-    if (lead.assigneeId) await this.notif.notify(lead.assigneeId, `${label}: ${a.name}`, { type: 'mention', link: `/leads/detail/${lead.id}` });
+    if (lead.assigneeId) await this.notif.notify(lead.assigneeId, `${label}: ${a.name}`, { type: 'mention', link: `/leads/${lead.id}` });
     return { ok: true, leadId: lead.id };
   }
 

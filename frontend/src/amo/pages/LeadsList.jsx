@@ -180,13 +180,13 @@ export default function LeadsList() {
         <td key={c.key}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {!l.unsorted && <span className="ac-dot" style={{ background: l.stageColor || '#c1c1c1' }} />}
-            <a className={l.unsorted ? 'ac-list__unsorted' : ''} onClick={() => navigate(`/leads/detail/${l.id}`)} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.n}</a>
+            <a className={l.unsorted ? 'ac-list__unsorted' : ''} onClick={() => navigate(`/leads/${l.id}`)} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.n}</a>
             {l.unsorted && <span className="ac-list__srcbadge"><Ico name="form" size={11} /> {l.formName || l.source || t('Forma')}</span>}
             {!cols.fields.includes('tags') && (l.tags || []).slice(0, 3).map((tg) => <span key={tg} className={`ac-tag ac-tag--sm ${tagColors[tg] ? 'ac-tag--c' : ''}`} style={tagStyle(tagColors[tg])}>{tg}</span>)}
           </div>
         </td>
       )
-      case 'contact': return <td key={c.key}>{l.contactName ? <span className="u" style={{ cursor: 'pointer' }} onClick={() => navigate(`/contacts/detail/${l.contactId}`)}>{l.contactName}</span> : ''}</td>
+      case 'contact': return <td key={c.key}>{l.contactName ? <span className="u" style={{ cursor: 'pointer' }} onClick={() => navigate(`/contacts/${l.contactId}`)}>{l.contactName}</span> : ''}</td>
       case 'company': return <td key={c.key}>{l.companyName || ''}</td>
       case 'phone': return <td key={c.key} onClick={(e) => e.stopPropagation()}>{(l.contactPhone || l.phone) ? <PhoneLink value={l.contactPhone || l.phone} leadId={l.id} /> : ''}</td>
       case 'email': return <td key={c.key}>{l.email || l.contactEmail || ''}</td>
@@ -235,8 +235,8 @@ export default function LeadsList() {
           { label: t('Dublikatlarni qidirish'), icon: 'search', onClick: () => setDupOpen(true) },
         ]}
         actions={<>
-          <button className="ac-btn" onClick={() => navigate('/settings/pipeline/leads/main')}>{t('Sozlash')}</button>
-          <button className="ac-btn ac-btn--blue" onClick={() => navigate('/leads/add')}><span className="ac-btn__plus">+</span>{t('Yangi bitim')}</button>
+          <button className="ac-btn" onClick={() => navigate('/settings/pipelines/main')}>{t('Sozlash')}</button>
+          <button className="ac-btn ac-btn--blue" onClick={() => navigate('/leads/new')}><span className="ac-btn__plus">+</span>{t('Yangi bitim')}</button>
         </>}
       />
       <div className="ac-table-wrap">

@@ -1,4 +1,4 @@
-// amoCRM «AI-агенты и боты» (/agents-and-bots): «Ваши боты — Список ботов» (nom, triggerlar, konversiya, ishga tushishlar)
+// amoCRM «AI-агенты и боты» (/bots): «Ваши боты — Список ботов» (nom, triggerlar, konversiya, ishga tushishlar)
 // va Salesbot konstruktori (BotBuilder).
 import React, { useEffect, useRef, useState } from 'react'
 import { api } from '../../lib/apiClient'

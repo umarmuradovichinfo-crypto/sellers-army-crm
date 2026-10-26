@@ -1,4 +1,4 @@
-// amoCRM bitim kartochkasi: /leads/detail/:id va /leads/add (yaratish rejimi).
+// amoCRM bitim kartochkasi: /leads/:id va /leads/new (yaratish rejimi).
 // Chapda maydonlar paneli (520px), o'ngda lenta: tizim voqealari, eslatmalar, qo'ng'iroqlar, vazifalar, chat.
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -198,7 +198,7 @@ function ContactItem({ contact, leadId, isMain, canMain, onUnlink, onMain, onCha
   const navigate = useNavigate()
   const [more, setMore] = useState(false)
   const [phoneEdit, setPhoneEdit] = useState(false)
-  const open = () => contact.id && !contact.isNew && navigate(`/contacts/detail/${contact.id}`)
+  const open = () => contact.id && !contact.isNew && navigate(`/contacts/${contact.id}`)
   return (
     <div className="ac-linked">
       <div className="ac-linked__head">
@@ -314,7 +314,7 @@ function LeadProducts({ items, onChange }) {
         </select>
       ) : <a className="ac-lprod__add" onClick={() => setAdding(true)}>+ {t("Mahsulot qo'shish")}</a>}
       {list.length > 0 && <div className="ac-lprod__total">{t('Jami')}: <b>{money(total)}</b></div>}
-      {adding && catalog && !catalog.length && <div className="ac-lprod__empty">{t("Katalog bo'sh")} — <a href="/catalogs/products">{t('Mahsulotlar')}</a></div>}
+      {adding && catalog && !catalog.length && <div className="ac-lprod__empty">{t("Katalog bo'sh")} — <a href="/products">{t('Mahsulotlar')}</a></div>}
     </div>
   )
 }
@@ -324,12 +324,12 @@ function CompanyBlock({ company, name }) {
   const navigate = useNavigate()
   if (!company && !name) {
     return (
-      <button className="ac-linked__add" onClick={() => navigate('/companies/add')}>
+      <button className="ac-linked__add" onClick={() => navigate('/companies/new')}>
         <span className="ac-linked__plus"><Ico name="plus" /></span>{t("Kompaniya qo'shish")}
       </button>
     )
   }
-  const open = () => company?.id && navigate(`/companies/detail/${company.id}`)
+  const open = () => company?.id && navigate(`/companies/${company.id}`)
   const val = (v, href) => v ? (href ? <a className="ac-field__link" href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noreferrer">{v}</a> : v) : <span className="ac-field__ph">...</span>
   return (
     <div className="ac-linked">
@@ -974,7 +974,7 @@ export default function LeadCard() {
         }
         const r = await crmService.createLead({ name: v.n || `${t('Bitim')} #${Date.now().toString().slice(-6)}`, stage: v.stage, pipelineId: v.pipelineId || undefined, value: payload.value ?? 0, assigneeId: v.assigneeId || undefined, tags: v.tags, custom: v.custom, items: v.items?.length ? v.items : undefined, contactId: ids[0] || undefined })
         for (const cid of ids.slice(1).filter(Boolean)) await crmService.addLeadContact(r.lead.id, { contactId: cid })
-        navigate(`/leads/detail/${r.lead.id}`, { replace: true })
+        navigate(`/leads/${r.lead.id}`, { replace: true })
         return
       }
       if (payload.n !== undefined) { payload.name = payload.n; delete payload.n }
@@ -1117,7 +1117,7 @@ export default function LeadCard() {
                   {dupOpen && (
                     <div className="ac-menu ac-cf__dupmenu">
                       <div className="ac-cf__duphead">{t("Ehtimoliy dublikatlar (telefon yoki email bir xil)")}</div>
-                      {dups.map((d) => <a key={d.id} className="ac-menu__item" href={`/leads/detail/${d.id}`} onClick={(e) => { e.preventDefault(); setDupOpen(false); navigate(`/leads/detail/${d.id}`) }}>{d.name || `#${d.id.slice(-6)}`}</a>)}
+                      {dups.map((d) => <a key={d.id} className="ac-menu__item" href={`/leads/${d.id}`} onClick={(e) => { e.preventDefault(); setDupOpen(false); navigate(`/leads/${d.id}`) }}>{d.name || `#${d.id.slice(-6)}`}</a>)}
                     </div>
                   )}
                 </span>
@@ -1244,7 +1244,7 @@ export default function LeadCard() {
                   </div>
                 )
               } else if (it.kind === 'note') el = it.ct
-                ? <div key={`n${i}`} className="ac-ec-wrap"><NoteItem n={it.n} /><a className="ac-ec-wrap__link" onClick={() => navigate(`/contacts/detail/${it.ct.id}`)}>{it.ct.name}</a></div>
+                ? <div key={`n${i}`} className="ac-ec-wrap"><NoteItem n={it.n} /><a className="ac-ec-wrap__link" onClick={() => navigate(`/contacts/${it.ct.id}`)}>{it.ct.name}</a></div>
                 : <NoteItem key={`n${i}`} n={it.n} />
               else if (it.kind === 'call') el = <CallNote key={`c${it.c.id}`} c={it.c} />
               else if (it.kind === 'task') el = <TaskNote key={`t${it.tk.id}`} task={it.tk} onDone={completeTask} />

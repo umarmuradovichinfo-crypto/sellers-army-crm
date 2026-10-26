@@ -91,7 +91,7 @@ export class FacebookWebhookController {
     }
     const origin = this.frontendOrigin(req);
     const payload = JSON.stringify({ type: 'fb-connect', ...result }).replace(/</g, '\\u003c');
-    const fallback = `${origin}/amo-market?fb=${result.ok ? 'ok&pages=' + result.pages.length : 'error&msg=' + encodeURIComponent(result.error || '')}`;
+    const fallback = `${origin}/integrations?fb=${result.ok ? 'ok&pages=' + result.pages.length : 'error&msg=' + encodeURIComponent(result.error || '')}`;
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Facebook</title></head><body style="font-family:sans-serif;text-align:center;padding-top:40px">` +
       `<p>${result.ok ? 'OK' : 'Error'}</p><script>(function(){var d=${payload},o=${JSON.stringify(origin)};` +
       `if(window.opener&&!window.opener.closed){try{window.opener.postMessage(d,o);}catch(e){}window.close();}` +

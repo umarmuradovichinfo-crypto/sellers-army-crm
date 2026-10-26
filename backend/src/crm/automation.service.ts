@@ -350,7 +350,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
         const t = await this.prisma.leadTask.create({
           data: { leadId, title: text.slice(0, 1000), type: act.taskType || 'task', dueDate, assigneeId: assigneeId || null },
         });
-        if (t.assigneeId) await this.notif.notify(t.assigneeId, `Avtomatik vazifa: ${t.title}`, { type: 'task', link: `/leads/detail/${leadId}` });
+        if (t.assigneeId) await this.notif.notify(t.assigneeId, `Avtomatik vazifa: ${t.title}`, { type: 'task', link: `/leads/${leadId}` });
         return `vazifa "${t.title}" yaratildi`;
       }
       case 'create_lead': {
@@ -374,7 +374,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
           },
         });
         await this.activity.record(created.id, 'created', { actorName: 'Avtomatlashtirish', text: `Avtomatlashtirish: ${ctx.a.name} — bitim "${lead.name}" asosida yaratildi` });
-        if (created.assigneeId) await this.notif.notify(created.assigneeId, `Yangi bitim biriktirildi: ${created.name}`, { type: 'lead', link: `/leads/detail/${created.id}` });
+        if (created.assigneeId) await this.notif.notify(created.assigneeId, `Yangi bitim biriktirildi: ${created.name}`, { type: 'lead', link: `/leads/${created.id}` });
         await this.fire('lead_created', created.id, { actorName: ctx.actorName, depth: ctx.depth + 1 });
         return `yangi bitim "${created.name}" yaratildi (${stage.name})`;
       }
@@ -445,7 +445,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
         if (assignee === lead.assigneeId) return null;
         const u = await this.prisma.user.findUnique({ where: { id: assignee }, select: { name: true } });
         await this.prisma.lead.update({ where: { id: leadId }, data: { assigneeId: assignee } });
-        await this.notif.notify(assignee, `Sizga lid biriktirildi: ${lead.name}`, { type: 'lead', link: `/leads/detail/${leadId}` });
+        await this.notif.notify(assignee, `Sizga lid biriktirildi: ${lead.name}`, { type: 'lead', link: `/leads/${leadId}` });
         await this.log(leadId, ctx.a, `mas'ul o'zgartirildi: ${u?.name || assignee}`);
         await this.fire('assignee_changed', leadId, { actorName: ctx.actorName, depth: ctx.depth + 1 });
         return null; // allaqachon yozildi (zanjir tartibini saqlash uchun)
@@ -500,7 +500,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
         return 'izoh qo\'shildi';
       }
       case 'notify': {
-        if (lead.assigneeId) await this.notif.notify(lead.assigneeId, act.text || ctx.a.name, { type: 'automation', link: `/leads/detail/${leadId}` });
+        if (lead.assigneeId) await this.notif.notify(lead.assigneeId, act.text || ctx.a.name, { type: 'automation', link: `/leads/${leadId}` });
         return 'bildirishnoma yuborildi';
       }
       default:

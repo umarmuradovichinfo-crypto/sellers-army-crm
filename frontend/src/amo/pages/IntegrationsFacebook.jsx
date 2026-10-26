@@ -80,7 +80,7 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
   }
   useEffect(() => { load().catch((e) => setMsg({ ok: false, m: e.message || t('Xatolik') })) }, []) // eslint-disable-line
 
-  // Redirect (popup bloklangan yoki opener yo'q) orqali qaytish: /amo-market?fb=ok|error
+  // Redirect (popup bloklangan yoki opener yo'q) orqali qaytish: /integrations?fb=ok|error
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
     if (p.get('fb')) {

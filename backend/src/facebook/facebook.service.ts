@@ -105,7 +105,7 @@ export class FacebookService implements OnModuleInit, SocialProvider {
     if (!c.appId || !c.appSecret) {
       // Standart rejim: markaziy Meta Connector (mijoz hech narsa sozlamaydi)
       const base = this.connector.publicUrl();
-      return { url: await this.connector.startUrl(`${base}/amo-market`) };
+      return { url: await this.connector.startUrl(`${base}/integrations`) };
     }
     // Zaxira: o'z Meta ilovasi bilan to'g'ridan-to'g'ri rejim
     const state = await this.createState(userId);

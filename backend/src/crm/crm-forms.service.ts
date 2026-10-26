@@ -120,7 +120,7 @@ export class CrmFormsService {
     );
     if (dup) {
       await this.prisma.crmForm.update({ where: { id: f.id }, data: { submissions: { increment: 1 } } });
-      if (dup.assigneeId) await this.notif.notify(dup.assigneeId, `Formadan dublikat so'rov: ${name}`, { type: 'lead', link: `/leads/detail/${dup.id}` });
+      if (dup.assigneeId) await this.notif.notify(dup.assigneeId, `Formadan dublikat so'rov: ${name}`, { type: 'lead', link: `/leads/${dup.id}` });
       return { ok: true, merged: true };
     }
     // "Saralanmagan" switch o'chiq bo'lsa — to'g'ridan-to'g'ri birinchi ochiq bosqichga (unsorted=false)
@@ -141,7 +141,7 @@ export class CrmFormsService {
     await this.prisma.crmForm.update({ where: { id: f.id }, data: { submissions: { increment: 1 } } });
     await this.activity.record(lead.id, 'created', { actorName: 'Web forma', text: `Formadan keldi: ${f.title}` });
     await this.automation.run('lead_created', lead.id, 'Web forma');
-    if (f.assigneeId) await this.notif.notify(f.assigneeId, `Formadan yangi lid: ${name}`, { type: 'lead', link: `/leads/detail/${lead.id}` });
+    if (f.assigneeId) await this.notif.notify(f.assigneeId, `Formadan yangi lid: ${name}`, { type: 'lead', link: `/leads/${lead.id}` });
     return { ok: true };
   }
 
@@ -164,7 +164,7 @@ export class CrmFormsService {
       src,
     );
     if (dup) {
-      if (dup.assigneeId) await this.notif.notify(dup.assigneeId, `${src}'dan dublikat so'rov: ${name}`, { type: 'lead', link: `/leads/detail/${dup.id}` });
+      if (dup.assigneeId) await this.notif.notify(dup.assigneeId, `${src}'dan dublikat so'rov: ${name}`, { type: 'lead', link: `/leads/${dup.id}` });
       return dup;
     }
     const place = await this.pset.place(input.pipelineId, input.stageKey);
@@ -182,7 +182,7 @@ export class CrmFormsService {
     });
     await this.activity.record(lead.id, 'created', { actorName: src, text: input.label ? `${src}: ${input.label}` : `${src} Lead Ads` });
     await this.automation.run('lead_created', lead.id, src);
-    if (input.assigneeId) await this.notif.notify(input.assigneeId, `${src}'dan yangi lid: ${name}`, { type: 'lead', link: `/leads/detail/${lead.id}` });
+    if (input.assigneeId) await this.notif.notify(input.assigneeId, `${src}'dan yangi lid: ${name}`, { type: 'lead', link: `/leads/${lead.id}` });
     return lead;
   }
 }

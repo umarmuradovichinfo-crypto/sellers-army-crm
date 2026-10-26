@@ -1,4 +1,4 @@
-// amoCRM imBox (/imbox, /imbox/:leadId): chapda suhbatlar ro'yxati (325px), o'ngda tanlangan bitim lentasi.
+// amoCRM imBox (/inbox, /inbox/:leadId): chapda suhbatlar ro'yxati (325px), o'ngda tanlangan bitim lentasi.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
@@ -92,7 +92,7 @@ function NotConnected({ compact }) {
     <div className="ac-imbox-empty">
       <div className="ac-imbox-empty__title">{t('Telegram ulanmagan')}</div>
       <div className="ac-imbox-empty__text">{t("Mijozlar bilan yozishmalarni bir joyda olib borish uchun Telegram botni ulang. Xabarlar shu yerda paydo bo'ladi.")}</div>
-      <button className="ac-btn ac-btn--blue" onClick={() => navigate('/amo-market')}>{t('Integratsiyalar marketiga')}</button>
+      <button className="ac-btn ac-btn--blue" onClick={() => navigate('/integrations')}>{t('Integratsiyalar marketiga')}</button>
     </div>
   )
 }
@@ -255,7 +255,7 @@ function Conversation({ leadId, pipes, onToggleList, onChanged }) {
       <div className="ac-imbox-view__top">
         <button className="ac-imbox-burger" onClick={onToggleList}><Ico name="burger" size={20} /></button>
         <button className={`ac-imbox-view__fav ${feed.fav ? 'on' : ''}`} title={t('Sevimlilar')} onClick={() => crmService.conversationAction(lead.id, 'fav').then((r) => { setFeed((f) => ({ ...f, fav: !!r.fav })); onChanged && onChanged() })}><Ico name="star" size={16} /></button>
-        <span className="ac-imbox-view__title" title={t('Bitimni ochish')} onClick={() => navigate(`/leads/detail/${lead.id}`)}>{lead.n || `${t('Bitim')} #${String(lead.id).slice(-8)}`}</span>
+        <span className="ac-imbox-view__title" title={t('Bitimni ochish')} onClick={() => navigate(`/leads/${lead.id}`)}>{lead.n || `${t('Bitim')} #${String(lead.id).slice(-8)}`}</span>
         {feed.channel && feed.channel !== 'telegram' && <span className={`ac-imbox-view__chan ac-imbox-view__chan--${feed.channel}`}><Ico name={feed.channel} size={11} />{CHAN_NAME[feed.channel]}</span>}
         <div className="ac-imbox-view__tags">{(lead.tags || []).map((tg) => <span key={tg} className="ac-tag">{tg}</span>)}</div>
         {pipes.length > 0 && <PipePicker lead={lead} pipes={pipes} onPick={pickStatus} />}
@@ -400,7 +400,7 @@ export default function ImboxPage() {
 
   // amoCRM: imBox ochilganda birinchi (eng so'nggi) suhbat avtomatik ochiladi (keng ekranda)
   useEffect(() => {
-    if (!leadId && convs && convs.length && window.innerWidth > 760) navigate(`/imbox/${convs[0].leadId}`, { replace: true })
+    if (!leadId && convs && convs.length && window.innerWidth > 760) navigate(`/inbox/${convs[0].leadId}`, { replace: true })
   }, [leadId, convs]) // eslint-disable-line
 
   const empty = convs && convs.length === 0 && status && !status.telegram && !status.facebook && !status.instagram
@@ -422,7 +422,7 @@ export default function ImboxPage() {
           {convs === null && [0, 1, 2, 3, 4].map((i) => <div key={i} className="ac-imbox-row"><div className="ac-plug" style={{ width: 36, height: 36, borderRadius: '50%' }} /><div style={{ flex: 1 }}><div className="ac-plug" style={{ height: 14, width: '60%', marginBottom: 8 }} /><div className="ac-plug" style={{ height: 12 }} /></div></div>)}
           {convs && convs.length === 0 && <div className="ac-imbox-list__empty">{t("Suhbatlar yo'q")}</div>}
           {convs && convs.length > 0 && shown.length === 0 && <div className="ac-imbox-list__empty">{t('Suhbatlar topilmadi')}</div>}
-          {shown.map((c) => <Row key={c.leadId} c={c} on={c.leadId === leadId} onClick={() => navigate(`/imbox/${c.leadId}`)}
+          {shown.map((c) => <Row key={c.leadId} c={c} on={c.leadId === leadId} onClick={() => navigate(`/inbox/${c.leadId}`)}
             sel={picked ? { checked: picked.has(c.leadId), toggle: () => setPicked((p) => { const n = new Set(p); n.has(c.leadId) ? n.delete(c.leadId) : n.add(c.leadId); return n }) } : null} />)}
         </div>
         {picked && (

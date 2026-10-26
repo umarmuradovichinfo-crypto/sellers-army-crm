@@ -152,7 +152,7 @@ export function DonoPanel({ open, onClose, chat }) {
             <div className="ac-dono-msg__text">
               {m.error ? t(m.content) : m.role === 'assistant' ? <Md text={m.content} /> : m.content}
               {m.actions?.map((a, k) => (
-                <div key={k} className="ac-dono-act" onClick={() => a.leadId && nav(`/leads/detail/${a.leadId}`)}>
+                <div key={k} className="ac-dono-act" onClick={() => a.leadId && nav(`/leads/${a.leadId}`)}>
                   <Ico name={a.type === 'task' ? 'check' : 'note'} size={12} /> {t(a.type === 'task' ? 'Vazifa yaratildi' : "Izoh qo'shildi")}: {a.text}
                 </div>
               ))}

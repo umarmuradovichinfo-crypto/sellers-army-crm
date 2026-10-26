@@ -1,4 +1,4 @@
-// amoCRM "Воронка — настройка" (/settings/pipeline/leads/:pipelineId): chapda bitim manbalari, o'ngda bosqich ustunlari
+// amoCRM "Воронка — настройка" (/settings/pipelines/:pipelineId): chapda bitim manbalari, o'ngda bosqich ustunlari
 // va har bir bosqichdagi avtomatlashtirish (Digital Pipeline trigger) kartochkalari. "main" = asosiy voronka (backendda pipelineId = null).
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -26,7 +26,7 @@ function PipeName({ pid, pipes, name, archived, onChanged }) {
   const ref = useRef(null)
   const busy = useRef(false)
   useOutside(ref, () => { setOpen(false); setMode('list') }, open)
-  const go = (id) => { setOpen(false); navigate(`/settings/pipeline/leads/${id || 'main'}`) }
+  const go = (id) => { setOpen(false); navigate(`/settings/pipelines/${id || 'main'}`) }
   const isMain = pid === 'main'
   const submit = async () => {
     const v = text.trim()
@@ -456,7 +456,7 @@ export default function PipelineSetupPage() {
         <Sources settings={settings} sources={sources}
           onUnsorted={() => patchSettings({ unsortedEnabled: !settings.unsortedEnabled })}
           onDupSwitch={() => patchSettings({ dups: { enabled: !settings.dups.enabled } })}
-          onRules={() => setDupOpen(true)} onAdd={() => setSrcOpen(true)} onOpen={() => navigate('/amo-market')} />
+          onRules={() => setDupOpen(true)} onAdd={() => setSrcOpen(true)} onOpen={() => navigate('/integrations')} />
         <div className="ac-ps-cols">
           {!data ? <div style={{ padding: 30 }}><div className="ac-spinner" /></div> : (
             <>
@@ -479,7 +479,7 @@ export default function PipelineSetupPage() {
       {hintsFor && <HintsModal stageName={hintsFor.name} hints={hintsFor.hints} onSave={saveHints} onClose={() => setHintsFor(null)} />}
       {dupOpen && <DupModal settings={settings} sources={sources} fields={fields} pipes={ctx.pipes} members={members} onClose={() => setDupOpen(false)}
         onSave={async (d) => { await patchSettings({ dups: { ...d, enabled: settings.dups.enabled } }); setDupOpen(false) }} />}
-      {srcOpen && <SourcesCatalog metaOn={metaOn} tgOn={tgOn} onClose={() => setSrcOpen(false)} onGo={(k) => navigate(k === 'instagram' ? '/amo-market?open=instagram' : k === 'facebook' ? '/amo-market?open=messenger' : '/amo-market')} />}
+      {srcOpen && <SourcesCatalog metaOn={metaOn} tgOn={tgOn} onClose={() => setSrcOpen(false)} onGo={(k) => navigate(k === 'instagram' ? '/integrations?open=instagram' : k === 'facebook' ? '/integrations?open=messenger' : '/integrations')} />}
       {confirmExit && <ConfirmModal title={t('Saqlanmagan o\'zgarishlar')} text={t("Bosqichlardagi o'zgarishlar saqlanmadi. Baribir chiqasizmi?")} yes={t('Saqlamasdan chiqish')} no={t('Qolish')} onYes={back} onNo={() => setConfirmExit(false)} />}
     </div>
   )

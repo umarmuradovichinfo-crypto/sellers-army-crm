@@ -421,7 +421,7 @@ export default function LeadsPipeline() {
     reload()
   }
   const rejectUnsorted = async (lead) => { try { await crmService.deleteLead(lead.id) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')) } reload() }
-  const openLead = (lead) => navigate(`/leads/detail/${lead.id}`)
+  const openLead = (lead) => navigate(`/leads/${lead.id}`)
   const toggleSel = (id) => setSel((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
   const runBulk = async (action, value) => {
     if (!sel.size) return
@@ -448,7 +448,7 @@ export default function LeadsPipeline() {
         count={<CountWidget filter={{ ...Q.params, pipelineId: pipelineId || 'main' }} defaultTitle={pipeName}><>{plural(totalCount, 'bitim')}:<b>{money(totalSum)}</b></></CountWidget>}
         menu={[
           // amoCRM tartibi: Настроить воронку, Импорт, Экспорт, Внешний вид карточки, Поиск дублей, Массовые действия, Сортировка, Автообновление
-          { label: t('Voronkani sozlash'), icon: 'gear', onClick: () => navigate(`/settings/pipeline/leads/${pipelineId || 'main'}`) },
+          { label: t('Voronkani sozlash'), icon: 'gear', onClick: () => navigate(`/settings/pipelines/${pipelineId || 'main'}`) },
           { label: t('Import'), icon: 'download', onClick: () => setImportOpen(true) },
           { label: t('Eksport'), icon: 'excel', onClick: () => downloadLeadsCsv({ ...filterParams, pipelineId: pipelineId || 'main', unsorted: '0' }).catch((e) => window.alert(e?.message || t('Xatolik yuz berdi'))) },
           { label: t("Kartochka ko'rinishi"), icon: 'edit', onClick: () => setCardModal(true) },
@@ -458,8 +458,8 @@ export default function LeadsPipeline() {
           { label: t('Avto-yangilash'), switch: autoRefresh, onClick: () => setAutoRefresh((v) => { try { localStorage.setItem('amo_autorefresh', v ? '0' : '1') } catch { /* */ } return !v }) },
         ]}
         actions={<>
-          <button className="ac-btn" onClick={() => navigate(`/settings/pipeline/leads/${pipelineId || 'main'}`)}>{t('Sozlash')}</button>
-          <button className="ac-btn ac-btn--blue" onClick={() => navigate(`/leads/add${pipelineId ? `?pipeline=${pipelineId}` : ''}`)}><span className="ac-btn__plus">+</span>{t('Yangi bitim')}</button>
+          <button className="ac-btn" onClick={() => navigate(`/settings/pipelines/${pipelineId || 'main'}`)}>{t('Sozlash')}</button>
+          <button className="ac-btn ac-btn--blue" onClick={() => navigate(`/leads/new${pipelineId ? `?pipeline=${pipelineId}` : ''}`)}><span className="ac-btn__plus">+</span>{t('Yangi bitim')}</button>
         </>}
       />
       <div className="ac-pipeline__scroll">

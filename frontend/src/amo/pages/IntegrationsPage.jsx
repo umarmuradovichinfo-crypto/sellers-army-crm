@@ -1,4 +1,4 @@
-// amoМаркет o'rnida: "Integratsiyalar" (/amo-market) — kartochkalar grid'i, bosilganda vidjet oynasi (modal).
+// amoМаркет o'rnida: "Integratsiyalar" (/integrations) — kartochkalar grid'i, bosilganda vidjet oynasi (modal).
 import React, { useEffect, useMemo, useState } from 'react'
 import TopBar from '../TopBar'
 import { useAuth } from '../../context/AuthContext'

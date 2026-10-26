@@ -44,7 +44,7 @@ export default function IncomingCall() {
 
   if (!call) return null
   const close = () => { closed.current.add(call.id); crmService.dismissCall(call.id).catch(() => {}); setCall(null) }
-  const open = () => { if (call.leadId) navigate(`/leads/detail/${call.leadId}`); close() }
+  const open = () => { if (call.leadId) navigate(`/leads/${call.leadId}`); close() }
   return (
     <div className="ac-incall" role="alertdialog" aria-label={t("Kiruvchi qo'ng'iroq")}>
       <div className="ac-incall__icon"><Ico name="phone" size={18} /></div>

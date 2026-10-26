@@ -117,7 +117,7 @@ export default function DuplicatesModal({ onClose, onMerged }) {
                   <div key={l.id} className="ac-dupm__col">
                     <div className="ac-dupm__links">
                       <a onClick={() => selectAll(l.id)}>{t('Hammasini tanlash')}</a>
-                      <a href={`/leads/detail/${l.id}`} target="_blank" rel="noreferrer">{t("Kartochkaga o'tish")}</a>
+                      <a href={`/leads/${l.id}`} target="_blank" rel="noreferrer">{t("Kartochkaga o'tish")}</a>
                     </div>
                     {ROWS.map((r) => <div key={r.key} className="ac-dupm__row">{cell(r.key, l, r.key === 'name' ? <b>{r.show(l)}</b> : r.show(l))}</div>)}
                     <div className="ac-dupm__row ac-dupm__row--tags">

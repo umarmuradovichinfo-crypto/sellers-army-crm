@@ -26,11 +26,11 @@ const contact = (await api('POST', '/crm/contacts', { name: 'UI Kontakt', phone:
 const company = (await api('POST', '/crm/companies', { name: 'UI MChJ' }, token)).company
 
 const ROUTES = [
-  '/dashboard', '/leads/pipeline', '/leads/list', `/leads/detail/${lead.id}`, '/leads/add', '/leads/duplicates', '/leads/import',
-  '/contacts/list', `/contacts/detail/${contact.id}`, '/companies/list', `/companies/detail/${company.id}`, '/contacts/import',
-  '/imbox', `/imbox/${lead.id}`, '/todo', '/todo/calendar', '/events/list', '/stats', '/stats/consolidated', '/stats/by_activities',
-  '/stats/calls', '/stats/goals', '/stats/pipeline', '/analitika', '/agents-and-bots', '/amo-market',
-  '/settings/profile', '/catalogs/products', '/settings/general', '/settings/users', '/settings/security', '/settings/chats', '/settings/tags', '/settings/fields/lead', '/settings/pipeline/leads/main',
+  '/dashboard', '/leads/pipeline', '/leads/list', `/leads/${lead.id}`, '/leads/new', '/leads/duplicates', '/leads/import',
+  '/contacts', `/contacts/${contact.id}`, '/companies', `/companies/${company.id}`, '/contacts/import',
+  '/inbox', `/inbox/${lead.id}`, '/tasks', '/tasks/calendar', '/events', '/stats', '/stats/consolidated', '/stats/activities',
+  '/stats/calls', '/stats/goals', '/stats/pipeline', '/analitika', '/bots', '/integrations',
+  '/settings/profile', '/products', '/settings/general', '/settings/users', '/settings/security', '/settings/chats', '/settings/tags', '/settings/fields/lead', '/settings/pipelines/main',
 ]
 
 // RU rejimida ko'rinib qolgan o'zbekcha so'zlar (foydalanuvchi ma'lumotlari emas — interfeys matnlari uchun evristika)
@@ -52,6 +52,18 @@ async function visit(lang, viewport) {
     errors.push(`${tag} ${route} console.error: ${txt.slice(0, 200)}`)
   })
   page.on('response', (r) => { if (r.url().includes('/api/') && r.status() >= 500 && !(r.status() === 503 && r.url().includes('/crm/dono/'))) errors.push(`${tag} ${route} API ${r.status()}: ${r.url().replace(/^.*\/api\/v1/, '')}`) })
+  // Eski manzillar yangisiga yo'naltirilishi, query saqlanishi va noma'lum manzil 404 berishi
+  const REDIRECTS = [['/todo/line', '/tasks/line'], ['/imbox', '/inbox'], ['/amo-market?foo=1', '/integrations?foo=1'], ['/contacts/list', '/contacts'],
+    ['/catalogs/products', '/products'], ['/events/list', '/events'], ['/stats/by_activities', '/stats/activities'], ['/agents-and-bots', '/bots']]
+  for (const [from, to] of REDIRECTS) {
+    await page.goto(UI + from, { waitUntil: 'domcontentloaded' })
+    await page.waitForTimeout(600)
+    const at = await page.evaluate(() => location.pathname + location.search)
+    if (at !== to && !(to === '/inbox' && at.startsWith('/inbox'))) errors.push(`${tag} yo'naltirish: ${from} → ${at} (kutilgan ${to})`)
+  }
+  await page.goto(UI + '/yoq-sahifa-xyz', { waitUntil: 'domcontentloaded' })
+  await page.waitForTimeout(600)
+  if (!/404/.test(await page.evaluate(() => document.body.innerText))) errors.push(`${tag} noma'lum manzil 404 bermadi`)
   for (route of ROUTES) {
     await page.goto(UI + route, { waitUntil: 'domcontentloaded' })
     await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {})
@@ -105,7 +117,7 @@ async function flows() {
   try {
     // bitim kartochkasi: izoh yozish → lentada paydo bo'ladi
     step = 'izoh'
-    await page.goto(`${UI}/leads/detail/${lead.id}`, { waitUntil: 'networkidle' })
+    await page.goto(`${UI}/leads/${lead.id}`, { waitUntil: 'networkidle' })
     await page.locator('.ac-compose').first().click()
     const note = `UI izoh ${Date.now()}`
     await page.locator('.ac-compose__text').first().fill(note)

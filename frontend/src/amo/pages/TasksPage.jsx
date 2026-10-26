@@ -1,4 +1,4 @@
-// amoCRM "Задачи" — /todo/line, /todo/list, /todo/calendar/{day,week,month}.
+// amoCRM "Задачи" — /tasks/line, /tasks/list, /tasks/calendar/{day,week,month}.
 // Yuqori panel → (line: ustunlar | list: jadval | calendar: kun/hafta/oy to'ri). Kartalar kunlar orasida drag-and-drop qilinadi.
 import React, { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -114,7 +114,7 @@ function DeletedTasks({ onRestored }) {
           <span className="d">{x.dueDate ? `${dmy(x.dueDate)} ${hm(x.dueDate)}` : '—'}</span>
           <span className="ty">{t(typeLabel(x.type))}</span>
           <span className="ti">{x.title}</span>
-          <a className="ld" onClick={() => x.leadExists && navigate(`/leads/detail/${x.leadId}`)}>{x.leadName || '—'}</a>
+          <a className="ld" onClick={() => x.leadExists && navigate(`/leads/${x.leadId}`)}>{x.leadName || '—'}</a>
           <span className="who">{x.assigneeName || ''}</span>
           <span className="del">{t("O'chirildi")}: {dmy(x.deletedAt)}</span>
           {x.leadExists && <button className="ac-btn ac-btn--sm" onClick={() => restore(x)}>{t('Tiklash')}</button>}
@@ -139,8 +139,8 @@ function exportTasksCsv(tasks, t) {
 const typeLabel = (k) => (TASK_TYPES.find((x) => x.key === k) || TASK_TYPES[2]).label
 
 function viewFromPath(path) {
-  if (path.startsWith('/todo/list')) return { mode: 'list' }
-  const m = path.match(/^\/todo\/calendar\/(day|week|month)/)
+  if (path.startsWith('/tasks/list')) return { mode: 'list' }
+  const m = path.match(/^\/tasks\/calendar\/(day|week|month)/)
   if (m) return { mode: 'calendar', cal: m[1] }
   return { mode: 'line' }
 }
@@ -151,12 +151,12 @@ function TopSwitch({ mode, cal }) {
   return (
     <span className="ac-todo-top">
       <div className="ac-top__switch">
-        <button className={mode === 'line' ? 'on' : ''} onClick={() => navigate('/todo/line')}><Ico name="pipeline" /></button>
-        <button className={mode === 'list' ? 'on' : ''} onClick={() => navigate('/todo/list')}><Ico name="burger" /></button>
+        <button className={mode === 'line' ? 'on' : ''} onClick={() => navigate('/tasks/line')}><Ico name="pipeline" /></button>
+        <button className={mode === 'list' ? 'on' : ''} onClick={() => navigate('/tasks/list')}><Ico name="burger" /></button>
       </div>
       <span className="ac-todo-modes">
         {[['day', 'Kun'], ['week', 'Hafta'], ['month', 'Oy']].map(([k, l]) => (
-          <button key={k} className={mode === 'calendar' && cal === k ? 'on' : ''} onClick={() => navigate(`/todo/calendar/${k}`)}>{t(l)}</button>
+          <button key={k} className={mode === 'calendar' && cal === k ? 'on' : ''} onClick={() => navigate(`/tasks/calendar/${k}`)}>{t(l)}</button>
         ))}
       </span>
     </span>
@@ -224,7 +224,7 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
     return (data?.tasks || []).filter((x) => matchTask(x, filter) && (!s || `${x.title} ${x.leadName || ''} ${x.assigneeName || ''}`.toLowerCase().includes(s)))
   }, [data, search, filter])
 
-  const openLead = (task) => navigate(`/leads/detail/${task.leadId}`)
+  const openLead = (task) => navigate(`/leads/${task.leadId}`)
   // Xato bo'lsa CompleteModal ochiq qoladi va xatoni ko'rsatadi (throw qaytariladi)
   const complete = async (task, result) => {
     await crmService.updateTask(task.id, { done: true, ...(result ? { result } : {}) })

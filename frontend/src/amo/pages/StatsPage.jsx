@@ -1,4 +1,4 @@
-// amoCRM "Аналитика" — /stats/pipeline | /stats/consolidated | /stats/by_activities | /events/list | /stats/calls | /stats/goals
+// amoCRM "Аналитика" — /stats/pipeline | /stats/consolidated | /stats/activities | /events | /stats/calls | /stats/goals
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
@@ -348,7 +348,7 @@ function ByActivities({ filter, params }) {
         <tbody>
           {rows.map((r) => (
             <tr key={r.id}>
-              <td><a onClick={() => navigate(`/events/list?user=${r.id}`)}>{r.name}</a></td>
+              <td><a onClick={() => navigate(`/events?user=${r.id}`)}>{r.name}</a></td>
               <td className="r">{r.leads ? `${num(r.leads)} (${money(r.leadSum)})` : ''}</td>
               <td className="l">{r.notes || ''}</td>
               <td className="l">{r.tasksOpen || ''}</td>

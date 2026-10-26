@@ -149,7 +149,7 @@ export function StatsEvents({ members }) {
                     <td>{feedDate(e.createdAt, t)}</td>
                     <td>{e.actorName || '—'}</td>
                     <td className="obj">{t(obj)}</td>
-                    <td>{e.leadId ? <a className="ac-stats-ev__lead" onClick={() => navigate(`/leads/detail/${e.leadId}`)}>{e.leadName || '—'}</a> : '—'}</td>
+                    <td>{e.leadId ? <a className="ac-stats-ev__lead" onClick={() => navigate(`/leads/${e.leadId}`)}>{e.leadName || '—'}</a> : '—'}</td>
                     <td>{t(label)}{e.fieldLabel ? <span className="ac-muted"> «{t(e.fieldLabel)}»</span> : null}</td>
                     <td title={e.from || ''}>{e.fieldLabel ? (e.from || '—') : ''}</td>
                     <td title={e.text}>

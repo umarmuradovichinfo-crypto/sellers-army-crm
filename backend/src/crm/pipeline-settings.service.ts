@@ -216,7 +216,7 @@ export class PipelineSettingsService {
           data: { leadId: target.id, title: s.afterTask.text || 'Dublikat birlashtirildi — tekshiring', type: 'task', dueDate: new Date(Date.now() + 3600_000), assigneeId: assigneeId || null },
         });
         await this.activity.record(target.id, 'task_created', { actorName: actorName || label, text: `Vazifa: ${t.title}` });
-        if (t.assigneeId) await this.notif.notify(t.assigneeId, `Dublikat: ${t.title}`, { type: 'task', link: `/leads/detail/${target.id}` });
+        if (t.assigneeId) await this.notif.notify(t.assigneeId, `Dublikat: ${t.title}`, { type: 'task', link: `/leads/${target.id}` });
       }
       return await this.prisma.lead.findUnique({ where: { id: target.id } });
     } catch (e) {

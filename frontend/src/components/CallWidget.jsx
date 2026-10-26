@@ -67,7 +67,7 @@ export default function CallWidget() {
 
   if (!allowed || !cfg || !cfg.domain) return null // PBX umuman sozlanmagan
 
-  const openLead = (id) => navigate(id ? `/leads/detail/${id}` : '/dashboard')
+  const openLead = (id) => navigate(id ? `/leads/${id}` : '/dashboard')
 
   const doDial = async () => {
     const to = num.trim()
