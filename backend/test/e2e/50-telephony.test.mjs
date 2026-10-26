@@ -215,4 +215,20 @@ describe('Telefoniya (OnlinePBX + MicroSIP)', () => {
     assert.equal(r.tiles.notcalledback, 0, 'qayta qo`ng`iroq qilingan raqam hali ham «qilinmagan» hisoblanadi');
     assert.equal((await req('GET', '/crm/calls/report?from=2000-01-01', undefined, S.token)).status, 200);
   });
+
+  test("qo'ng'iroq hisobotlari (/crm/calls/stats): kunlik qator, xodimlar, o'tkazib yuborilganlar va natijalar; davr chegarasi", async () => {
+    const n = rnd9();
+    await hook({ accountcode: 'inbound', caller: `998${n}`, callee: '100', uuid: uniq('s1'), dialog_duration: 0, call_duration: 9, hangup_cause: 'NO_ANSWER' });
+    await hook({ accountcode: 'outbound', caller: '101', callee: `998${n}`, uuid: uniq('s2'), dialog_duration: 30, call_duration: 35 });
+    const st = await ok('GET', '/crm/calls/stats?from=2000-01-01&to=2000-01-03', undefined, T, 200);
+    assert.equal(st.series.length, 3, 'davr kunlari soni');
+    const cur = await ok('GET', '/crm/calls/stats', undefined, T, 200);
+    assert.equal(cur.series.length, 7, 'standart davr 7 kun');
+    assert.ok(cur.series.some((d) => d.in + d.out > 0), 'bugungi qo`ng`iroqlar qatorga tushmadi');
+    assert.ok(cur.missed.count >= 1);
+    assert.ok(cur.missed.calledBack >= 1, "qayta qo'ng'iroq qilingan o'tkazib yuborilgan hisoblanmadi");
+    assert.ok(cur.outcomes.success >= 1 && cur.outcomes.total >= cur.outcomes.success);
+    assert.ok(Array.isArray(cur.employees));
+    assert.equal((await req('GET', '/crm/calls/stats?from=2000-01-01&to=2026-12-31', undefined, T)).status, 400, 'juda uzun davr rad etilishi kerak');
+  });
 });

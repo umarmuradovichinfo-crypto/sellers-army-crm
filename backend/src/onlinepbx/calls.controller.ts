@@ -35,6 +35,11 @@ export class CallsController {
   }
 
   // Barcha qo'ng'iroqlar ro'yxati (CRM "Qo'ng'iroqlar" bo'limi)
+  @Get('calls/stats')
+  callsStats(@Query() q: Record<string, string>, @CurrentUser('id') userId: string) {
+    return this.calls.callsStats(q, userId);
+  }
+
   @Get('calls/report')
   callsReport(@Query() q: Record<string, string>, @CurrentUser('id') userId: string) {
     return this.calls.callsReport(q, userId);

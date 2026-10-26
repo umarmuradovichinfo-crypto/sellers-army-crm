@@ -73,6 +73,7 @@ export const crmService = {
   // ── OnlinePBX qo'ng'iroqlar ──
   dial: (to) => api.post('/crm/calls/dial', { to }),
   leadCalls: (id) => api.get(`/crm/leads/${id}/calls`),
+  callsStats: (params) => api.get(`/crm/calls/stats${Object.keys(params || {}).length ? `?${new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString()}` : ''}`),
   callsReport: (params) => api.get(`/crm/calls/report${Object.keys(params || {}).length ? `?${new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString()}` : ''}`),
   listCalls: (filter) => api.get(`/crm/calls${filter && filter !== 'all' ? `?filter=${filter}` : ''}`),
   // kiruvchi qo'ng'iroq oynasi (OnlinePBX webhook → so'nggi 45 s dagi ko'rilmagan kiruvchi) va uni yopish

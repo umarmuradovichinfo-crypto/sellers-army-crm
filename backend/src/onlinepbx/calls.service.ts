@@ -458,6 +458,64 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  /**
+   * Qo'ng'iroq hisobotlari (OnlinePBX «Отчёты» uslubida): xodimlar guruhi, bitta xodim, o'tkazib yuborilganlar, muvaffaqiyatli/muvaffaqiyatsiz.
+   * Davr — Toshkent kunlari (from/to), ixtiyoriy ext (ichki raqam). Huquq: faqat ko'rinadigan qo'ng'iroqlar.
+   */
+  async callsStats(q: Record<string, string | undefined>, userId?: string) {
+    const TZ = 5 * 3_600_000;
+    const day = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? Date.parse(v + 'T00:00:00Z') - TZ : null);
+    const todayMs = day(new Date(Date.now() + TZ).toISOString().slice(0, 10))!;
+    const fromMs = day(q.from) ?? todayMs - 6 * 86_400_000;
+    const toMs = (day(q.to) ?? todayMs) + 86_400_000;
+    if (toMs - fromMs > 93 * 86_400_000) throw new BadRequestException({ error: 'RANGE', message: "Davr 93 kundan oshmasin" });
+    let rows = await this.prisma.callLog.findMany({ where: { startedAt: { gte: new Date(fromMs), lt: new Date(toMs) } }, orderBy: { startedAt: 'asc' }, take: 20000 });
+    const vis = await this.rights.visibleLeadIds(userId, [...new Set(rows.map((r) => r.leadId).filter(Boolean) as string[])]);
+    if (vis) rows = rows.filter((r) => r.userId === userId || (r.leadId && vis.has(r.leadId)));
+    const users = await this.prisma.user.findMany({ where: { isActive: true }, select: { id: true, name: true, extension: true } });
+    const uById = new Map(users.map((u) => [u.id, u]));
+    let scope = rows;
+    if (q.ext) { const u = users.find((x) => x.extension === q.ext); scope = u ? rows.filter((r) => r.userId === u.id) : []; }
+    const dayKey = (d: Date) => new Date(d.getTime() + TZ).toISOString().slice(0, 10);
+    const isInt = (r: { phone: string }) => r.phone.replace(/\D/g, '').length <= 4;
+    const days: string[] = [];
+    for (let t = fromMs; t < toMs; t += 86_400_000) days.push(new Date(t + TZ).toISOString().slice(0, 10));
+    const series = days.map((d) => ({ day: d, in: 0, out: 0, internal: 0, missed: 0, talkMin: 0 }));
+    const sIdx = new Map(series.map((x) => [x.day, x]));
+    const perUser = new Map<string, { id: string; name: string; ext: string | null; in: number; out: number; missed: number; answered: number; talkSec: number; ratings: number[] }>();
+    for (const r of scope) {
+      const s = sIdx.get(dayKey(r.startedAt));
+      if (s) { if (isInt(r)) s.internal++; else if (r.direction === 'in') s.in++; else s.out++; if (r.direction === 'in' && r.status === 'missed') s.missed++; s.talkMin += r.talkSec / 60; }
+      const u = r.userId ? uById.get(r.userId) : undefined;
+      const key = u?.id || '—';
+      const e = perUser.get(key) || { id: key, name: u?.name || '—', ext: u?.extension || null, in: 0, out: 0, missed: 0, answered: 0, talkSec: 0, ratings: [] as number[] };
+      if (r.direction === 'in') e.in++; else e.out++;
+      if (r.direction === 'in' && r.status === 'missed') e.missed++;
+      if (r.talkSec > 0) e.answered++;
+      e.talkSec += r.talkSec;
+      if (r.rating) e.ratings.push(r.rating);
+      perUser.set(key, e);
+    }
+    const employees = [...perUser.values()].map((e) => ({
+      id: e.id, name: e.name, ext: e.ext, in: e.in, out: e.out, missed: e.missed, total: e.in + e.out, answered: e.answered, talkSec: e.talkSec,
+      avgTalkSec: e.answered ? Math.round(e.talkSec / e.answered) : 0, avgRating: e.ratings.length ? Math.round((e.ratings.reduce((a, b) => a + b, 0) / e.ratings.length) * 10) / 10 : null, ratings: e.ratings.length,
+    })).sort((a, b) => b.total - a.total);
+    // o'tkazib yuborilganlar: qayta qo'ng'iroq kechikishi
+    const outsByPhone = new Map<string, Date[]>();
+    for (const r of rows) if (r.direction === 'out') { const a = outsByPhone.get(r.phone) || []; a.push(r.startedAt); outsByPhone.set(r.phone, a); }
+    const missed = scope.filter((r) => r.direction === 'in' && r.status === 'missed' && !isInt(r)).map((r) => {
+      const next = (outsByPhone.get(r.phone) || []).find((d) => d > r.startedAt);
+      return { id: r.id, at: r.startedAt.toISOString(), phone: r.phone, waitSec: r.durationSec, callbackSec: next ? Math.round((next.getTime() - r.startedAt.getTime()) / 1000) : null };
+    });
+    const cb = missed.filter((m) => m.callbackSec !== null) as (typeof missed[number] & { callbackSec: number })[];
+    const real = scope.filter((r) => !isInt(r) && r.status !== 'ringing');
+    return {
+      range: { from: days[0], to: days[days.length - 1] }, series, employees,
+      missed: { list: missed.slice(-200).reverse(), count: missed.length, calledBack: cb.length, calledBack15: cb.filter((m) => m.callbackSec <= 900).length, avgCallbackSec: cb.length ? Math.round(cb.reduce((a, m) => a + m.callbackSec, 0) / cb.length) : null, avgWaitSec: missed.length ? Math.round(missed.reduce((a, m) => a + m.waitSec, 0) / missed.length) : 0 },
+      outcomes: { success: real.filter((r) => r.talkSec > 0).length, missedIn: real.filter((r) => r.direction === 'in' && r.talkSec === 0).length, failedOut: real.filter((r) => r.direction === 'out' && r.talkSec === 0).length, total: real.length },
+    };
+  }
+
   // ── Lid qo'ng'iroqlari tarixi ──
   async leadCalls(leadId: string) {
     await this.syncHistory({ minutes: 15 }).catch(() => {}); // har pollда OnlinePBX'dan tortamiz (throttle ~2.5s)

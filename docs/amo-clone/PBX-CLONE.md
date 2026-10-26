@@ -69,3 +69,6 @@ Tablar Оплата / Лицензии / История платежей / По�
 
 ## Hali o'rganilmagan
 «Звонки → Разговоры» tabi, ИИ-менеджер, amoCRM integratsiya sozlamalari, Webhooks va API sahifalari (hujjat: onlinepbx.evateam.ru), mobil ilova, foydalanuvchining «Клиенты» bo'limi, hisobotlarning ichki sahifalari, hisob profili/foydalanuvchi sozlamalari, «Дашборд» ichi.
+
+## Klon holati (26.10)
+Bajarildi: Входящие modullari (12 tur, formalar), Исходящие, Чёрный список, Музыка, Диагностика (marshrut tekshiruvi), Звонки jurnali, Отчёты (4 tur), Asterisk generatori. Qoldi: Конфигуратор (qurilma avto-sozlash), Чаты (Telegram/WhatsApp), Сервисы (Оценка качества, Автоперезвон, Автоинформатор, Callback, TTS, ИИ-менеджер), Интеграция sahifasi (Webhooks/API), Лицензия/to'lov, Главная sahifasi, Dashboard, stansiya serveri.

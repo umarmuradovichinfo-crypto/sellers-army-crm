@@ -17,6 +17,7 @@ export const ASIDE_ITEMS = [
   { to: '/events', label: "Voqealar ro'yxati" },
   { to: '/stats/calls', label: "Qo'ng'iroqlar" },
   { to: '/calls', label: "Qo'ng'iroqlar jurnali" },
+  { to: '/calls/reports', label: "Qo'ng'iroq hisobotlari" },
   { to: '/stats/goals', label: 'Maqsadlar' },
 ]
 
