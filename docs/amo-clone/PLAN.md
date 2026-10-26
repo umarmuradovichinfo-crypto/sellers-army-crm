@@ -254,12 +254,15 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     rejaga yozadi → bir xil qilib amalga oshiradi (37–38-bandlardagi usulda: test, commit, push) → WATCH.md ni yangilaydi.
     amoCRM'ga kirilmagan bo'lsa — to'xtab, WATCH.md ga eslatma qoldiradi (parol so'ralmaydi).
 
-40. [ ] (foydalanuvchi so'rovi 27.10) O'zimizning AI-agent: «Amma» (amoCRM'niki) o'rniga o'zbekcha, kreativ nom (ism bo'lishi shart
+40. [x] (foydalanuvchi so'rovi 27.10; tanlandi: «Dono») O'zimizning AI-agent: «Amma» (amoCRM'niki) o'rniga o'zbekcha, kreativ nom (ism bo'lishi shart
     emas) + personaj (xarakter, ovoz, muomala uslubi, tashqi ko'rinish/avatar) o'ylab topish va CRM'ga joylash:
     a) nom va personaj tavsifi (taklif ro'yxati: «Dono», «Zukko», «Mirzo», «Oqshom», «Barchin»…) — foydalanuvchi bilan kelishib tanlanadi;
     b) joylash: ish stolidagi qutisi, o'ng panel (FAB/sarlavha), «AI-агенты и боты» kartochkasi, bildirishnoma/chat sarlavhalari,
        tizim prompti (Amma haqidagi barcha matn va ruscha tarjimalar), avatar (SVG, uz/ru mos), test va hujjatlar;
     c) personaj muomalasi: salomlashuv, xato/«sozlanmagan» holatidagi gaplar, hazil darajasi — tizim promptida.
+    Bajarildi: nom «Dono» (barcha kod, fayl, ruscha «Доно»); personaj — docs/amo-clone/DONO.md (milliy ustoz-maslahatchi: Samarqand
+    firuza, do'ppi bodom naqshli, atlas yoqa; «siz»lab, iliq, maqol bilan, «Barakalla!»); yangi SVG avatar; tizim prompti, salom,
+    taklif, kartochka tagline'i. Statistika kaliti (amma:stats) eski ma'lumot yo'qolmasligi uchun o'zgarmadi.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

@@ -97,7 +97,7 @@ export default function ListsPage({ entity: entityProp = 'all' }) {
   // amoCRM: standart — eng yangisi tepada (strelkasiz)
   const [sort, setSort] = useState({ key: 'createdAt', dir: -1 })
   const [list, setList] = useState({ rows: [], next: null, total: 0, loading: true, error: '' })
-  // Tanlash: sel — qo'lda belgilanganlar (kind:id); allMode — filtrga mos HAMMA yozuvlar (barcha sahifalar), excluded — undan olib tashlanganlar
+  // Tanlash: sel — qo'lda belgilanganlar (kind:id); allMode — filtrga mos HDONO yozuvlar (barcha sahifalar), excluded — undan olib tashlanganlar
   const [sel, setSel] = useState(() => new Set())
   const [allMode, setAllMode] = useState(false)
   const [excluded, setExcluded] = useState(() => new Set())

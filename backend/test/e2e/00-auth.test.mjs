@@ -26,7 +26,7 @@ test("noto'g'ri parol → 401, xabar parolni oshkor qilmaydi", async () => {
 });
 
 test('tokensiz CRM → 401', async () => {
-  for (const p of ['/crm/leads', '/crm/pipeline', '/crm/tasks', '/settings/users', '/crm/amma']) {
+  for (const p of ['/crm/leads', '/crm/pipeline', '/crm/tasks', '/settings/users', '/crm/dono']) {
     const r = await req('GET', p);
     assert.equal(r.status, 401, `${p} → ${r.status}`);
   }

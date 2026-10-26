@@ -1,0 +1,84 @@
+/* amoCRM «Доно» — AI yordamchi */
+.ac-dono-ava { display: inline-flex; flex: none; box-sizing: border-box; border-radius: 50%; overflow: hidden; }
+.ac-dono-ava img, .ac-dono-ava svg { width: 100% !important; height: 100% !important; border-radius: 50%; object-fit: cover; }
+.ac-dono-fab { position: fixed; right: 10px; bottom: 12px; z-index: 900; padding: 3px; border: 0; border-radius: 50%; background: var(--palette-ai-gradient-stroke); box-shadow: 0 4px 14px rgba(70, 60, 200, .35); cursor: pointer; transition: transform .15s; }
+.ac-dono-fab:hover { transform: scale(1.06); }
+.ac-dono-fab .ac-dono-ava { border: 2px solid #fff; }
+
+.ac-dono-panel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 950; width: 400px; max-width: 100vw; display: flex; flex-direction: column; background: var(--palette-background-primary); box-shadow: -4px 0 24px rgba(0, 0, 0, .18); color: var(--palette-text-primary); font: 14px/20px var(--font-main); }
+.ac-dono-panel__head { display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 12px; border-bottom: 1px solid var(--palette-border-primary); }
+.ac-dono-panel__title { font-weight: 700; letter-spacing: .06em; font-size: 13px; }
+.ac-dono-panel__x { margin-left: auto; }
+.ac-dono-icon { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 0; border-radius: 6px; background: none; color: var(--palette-text-secondary-dark); cursor: pointer; }
+.ac-dono-icon:hover { background: var(--palette-background-secondary-200); }
+.ac-dono-panel__body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.ac-dono-hello { margin: auto 0 8px; text-align: center; font: 600 20px/28px var(--font-main); background: var(--palette-ai-gradient-fill); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ac-dono-msg { display: flex; gap: 8px; align-items: flex-start; }
+.ac-dono-msg--user { justify-content: flex-end; }
+.ac-dono-msg__text { max-width: 85%; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; white-space: pre-wrap; }
+.ac-dono-msg--user .ac-dono-msg__text { background: var(--palette-ai-surface); border-bottom-right-radius: 4px; }
+.ac-dono-msg--assistant .ac-dono-msg__text { white-space: normal; background: var(--palette-background-secondary-200); border-bottom-left-radius: 4px; }
+.ac-dono-msg.err .ac-dono-msg__text { background: #fdecec; color: #c0392b; }
+.ac-dono-msg__text p { margin: 0 0 6px; }
+.ac-dono-msg__text p:last-child { margin-bottom: 0; }
+.ac-dono-msg__text p.h { font-weight: 700; }
+.ac-dono-msg__text ul { margin: 0 0 6px; padding-left: 18px; }
+.ac-dono-msg__text code { padding: 0 3px; border-radius: 3px; background: rgba(0, 0, 0, .06); font-size: 12px; }
+.ac-dono-act { margin-top: 6px; padding: 4px 8px; border-radius: 6px; background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); font-size: 12px; cursor: pointer; }
+.ac-dono-act:hover { border-color: #4b5ff7; }
+.ac-dono-typing { display: flex; gap: 4px; padding: 12px; border-radius: 12px; background: var(--palette-background-secondary-200); }
+.ac-dono-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--palette-ai-dot-1); animation: ac-dono-dot 1s infinite ease-in-out; }
+.ac-dono-typing i:nth-child(2) { background: var(--palette-ai-dot-2); animation-delay: .15s; }
+.ac-dono-typing i:nth-child(3) { background: var(--palette-ai-dot-3); animation-delay: .3s; }
+@keyframes ac-dono-dot { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+.ac-dono-panel__foot { padding: 12px 16px 10px; border-top: 1px solid var(--palette-border-primary); }
+.ac-dono-input { display: flex; align-items: flex-end; gap: 6px; padding: 6px 6px 6px 12px; border: 1px solid transparent; border-radius: 12px; background: linear-gradient(var(--palette-background-primary), var(--palette-background-primary)) padding-box, var(--palette-ai-gradient-stroke) border-box; }
+.ac-dono-input textarea { flex: 1; min-height: 24px; max-height: 120px; padding: 3px 0; border: 0; outline: 0; resize: none; background: transparent; color: inherit; font: inherit; field-sizing: content; }
+.ac-dono-send { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 0; border-radius: 8px; background: var(--palette-ai-gradient-fill); color: #fff; cursor: pointer; }
+.ac-dono-send:disabled { opacity: .4; cursor: default; }
+.ac-dono-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ac-dono-chips button { padding: 5px 10px; border: 1px solid var(--palette-border-primary); border-radius: 14px; background: var(--palette-background-primary); color: inherit; font: 13px/18px var(--font-main); cursor: pointer; }
+.ac-dono-chips button:hover { border-color: #4b5ff7; color: #4b5ff7; }
+.ac-dono-note { margin-top: 8px; text-align: center; font-size: 11px; line-height: 14px; color: var(--palette-text-secondary-dark); }
+
+/* kartochkada yozish maydoni burchakdagi avatar bilan ustma-ust tushmasin */
+body:has(.ac-dono-fab) .ac-compose { margin-right: 46px; }
+/* bitim kartochkasida: «Похоже, с этой сделкой что-то не так» taklifi */
+.ac-dono-hint { position: fixed; right: 14px; bottom: 64px; z-index: 900; width: 250px; padding: 12px 14px; border-radius: 12px; background: linear-gradient(var(--palette-background-primary), var(--palette-background-primary)) padding-box, var(--palette-ai-gradient-stroke) border-box; border: 1px solid transparent; box-shadow: 0 4px 16px rgba(0, 0, 0, .25); color: var(--palette-text-primary); font-size: 13px; line-height: 18px; }
+.ac-dono-hint__x { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; }
+.ac-dono-hint__go { display: block; margin: 8px 0 0 auto; padding: 4px 12px; border: 0; border-radius: 12px; background: var(--palette-ai-gradient-fill); color: #fff; font: 13px/18px var(--font-main); cursor: pointer; }
+
+/* ish stoli: akkaunt nomi ostidagi chat qutisi */
+
+/* AI-агенты: «Агент внутри продукта — ДОНО» kartasi */
+.ac-dono-card { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 10px; background: linear-gradient(var(--palette-background-primary), var(--palette-background-primary)) padding-box, var(--palette-ai-gradient-stroke) border-box; border: 1px solid transparent; color: var(--palette-text-primary); }
+.ac-dono-card__main { flex: 1; min-width: 0; }
+.ac-dono-card__cap { font-size: 12px; color: var(--palette-text-secondary-dark); }
+.ac-dono-card__name { font: 700 16px/22px var(--font-main); letter-spacing: .04em; }
+.ac-dono-card__desc { font-size: 13px; color: var(--palette-text-secondary-dark); }
+.ac-dono-card__warn { font-size: 12px; color: #c0392b; }
+.ac-dono-card__stat { text-align: center; min-width: 110px; }
+.ac-dono-card__stat b { display: block; font: 700 22px/28px var(--font-main); }
+.ac-dono-card__stat span { font-size: 12px; color: var(--palette-text-secondary-dark); }
+
+@media (max-width: 600px) {
+  .ac-dono-panel { width: 100vw; }
+  .ac-dono-card { flex-wrap: wrap; }
+}
+
+/* Ish stoli: amoCRM kabi — chapda katta avatar (rangli halqa), o'ngda ko'p qatorli maydon, kamalak ramka, pastda o'ngda yumaloq yuborish */
+.ac-dono-dash { display: flex; align-items: center; gap: 18px; width: 660px; max-width: calc(100% - 32px); margin: 16px auto 0; color: #fff; }
+.ac-dono-dash > .ac-dono-ava { flex: none; padding: 4px; border-radius: 50%; background: conic-gradient(from 200deg, #ffb347, #ff5f9e, #a35bff, #3fbafe, #ffb347); box-shadow: 0 2px 12px rgba(0,0,0,.25); }
+.ac-dono-dash > .ac-dono-ava svg { display: block; border-radius: 50%; }
+.ac-dono-dash .ac-dono-input { flex: 1; position: relative; min-height: 118px; align-items: stretch; padding: 14px 56px 14px 18px; border: 2px solid transparent; border-radius: 22px;
+  background: linear-gradient(rgba(22, 32, 42, .82), rgba(22, 32, 42, .82)) padding-box, linear-gradient(100deg, #ffb347, #ff5f9e 30%, #a35bff 65%, #3fbafe) border-box;
+  box-shadow: 0 0 18px rgba(163, 91, 255, .35); }
+.ac-dono-dash .ac-dono-input textarea { min-height: 86px; font-size: 15px; color: #fff; }
+.ac-dono-dash .ac-dono-input textarea::placeholder { color: rgba(255, 255, 255, .7); }
+.ac-dono-dash .ac-dono-send { position: absolute; right: 12px; bottom: 12px; width: 36px; height: 36px; border-radius: 50%; background: #4c8bf7; }
+.ac-dono-dash .ac-dono-send:disabled { opacity: 1; background: #4c8bf7; }
+@media (max-width: 600px) {
+  .ac-dono-dash > .ac-dono-ava { display: none; }
+  .ac-dono-dash .ac-dono-input { min-height: 80px; }
+  .ac-dono-dash .ac-dono-input textarea { min-height: 50px; }
+}

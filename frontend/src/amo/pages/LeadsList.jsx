@@ -105,7 +105,7 @@ export default function LeadsList() {
   const cols = useLayout('list', LIST_DEFAULT)
   const [colsModal, setColsModal] = useState(false)
   const [list, setList] = useState({ rows: [], next: null, total: 0, totalSum: 0, loading: true, error: '' })
-  // Tanlash: sel — qo'lda belgilanganlar; allMode — filtrga mos HAMMA bitimlar (barcha sahifalar), excluded — undan olib tashlanganlar
+  // Tanlash: sel — qo'lda belgilanganlar; allMode — filtrga mos HDONO bitimlar (barcha sahifalar), excluded — undan olib tashlanganlar
   const [sel, setSel] = useState(new Set())
   const [allMode, setAllMode] = useState(false)
   const [excluded, setExcluded] = useState(new Set())

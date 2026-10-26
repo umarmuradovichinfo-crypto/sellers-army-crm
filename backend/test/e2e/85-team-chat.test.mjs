@@ -19,9 +19,9 @@ describe('Ichki chat (amoCRM «Чат с …»)', () => {
   });
 });
 
-describe('Amma (amoCRM «Агент внутри продукта»)', () => {
+describe('Dono (amoCRM «Агент внутри продукта»)', () => {
   test("ma'lumot: oxirgi 7 kun ishlangan bitimlar, token sarfi va kunlar ro'yxati qaytadi", async () => {
-    const r = await ok('GET', '/crm/amma', undefined, await admin(), 200);
+    const r = await ok('GET', '/crm/dono', undefined, await admin(), 200);
     assert.equal(typeof r.processed7, 'number');
     assert.ok(r.tokens7 && typeof r.tokens7.input === 'number' && typeof r.tokens7.output === 'number', JSON.stringify(r));
     assert.ok(Array.isArray(r.days));

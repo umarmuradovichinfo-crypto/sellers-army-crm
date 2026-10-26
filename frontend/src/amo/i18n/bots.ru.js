@@ -2,14 +2,15 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Donishmand sotuv maslahatchisi': 'Мудрый советник по продажам',
   'bot§Nomi': 'НАЗВАНИЕ',
   'bot§Oxirgi 7 kun': 'За последние 7 дней',
   'Token sarfi': 'Расходование токенов',
   'kirish': 'вход',
   'chiqish': 'выход',
   "so'rov": 'запросов',
-  "Hali so'rovlar bo'lmagan. Amma bilan ishlaganingizda bu yerda kunlik token sarfi ko'rinadi.": 'Запросов пока не было. Когда вы будете работать с Аммой, здесь появится ежедневный расход токенов.',
-  "Bitimlarni tahlil qiladi, vazifa qo'yadi va mijozga javob tayyorlaydi": 'Анализирует сделки, ставит задачи и готовит ответы клиентам',
+  "Hali so'rovlar bo'lmagan. Dono bilan ishlaganingizda bu yerda kunlik token sarfi ko'rinadi.": 'Запросов пока не было. Когда вы будете работать с Доно, здесь появится ежедневный расход токенов.',
+  "Sotuvingiz ustozi: bitimlarni tahlil qiladi, vazifa qo'yadi, mijozga javob tayyorlaydi": 'Наставник по продажам: анализирует сделки, ставит задачи, готовит ответы клиентам',
   'Ishlangan bitimlar': 'Обработано сделок',
   'Javobsiz chatlar': 'Неотвеченные чаты',
   'Mahsulot ichidagi agent': 'Агент внутри продукта',

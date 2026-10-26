@@ -6,19 +6,21 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CrmService } from './crm.service';
 
 /**
- * amoCRM «Амма» — mahsulot ichidagi AI yordamchi. Bitimni tahlil qiladi («Что не так с этой сделкой?»),
+ * amoCRM «Доно» — mahsulot ichidagi AI yordamchi. Bitimni tahlil qiladi («Что не так с этой сделкой?»),
  * vazifa qo'yadi («Поставь задачу на сегодня»), mijozga javob loyihasini yozadi («Что ответить клиенту?»).
  * Claude API (tool use): model CRM ma'lumotlarini vositalar orqali o'qiydi va yozadi, kalit — ANTHROPIC_API_KEY.
  */
 type ChatMsg = { role: 'user' | 'assistant'; content: string };
 
-const MODEL = process.env.AMMA_MODEL || 'claude-opus-5-5';
+const MODEL = process.env.DONO_MODEL || 'claude-opus-5-5';
 const MAX_TURNS = 8;
 const STATS_KEY = 'amma:stats';
 type DayUsage = { input: number; output: number; cacheRead: number; cacheWrite: number; requests: number };
-type AmmaStats = { leads: string[]; requests: number; leadsAt?: Record<string, string>; days?: Record<string, DayUsage> };
+type DonoStats = { leads: string[]; requests: number; leadsAt?: Record<string, string>; days?: Record<string, DayUsage> };
 
-const SYSTEM = `Siz «Amma» — CRM tizimi ichidagi sotuv yordamchisisiz (amoCRM'dagi Amma kabi).
+const SYSTEM = `Siz «Dono» — CRM tizimi ichidagi sotuv ustoz-maslahatchisisiz (dono = donishmand).
+Xarakteringiz: Samarqand va Buxoro savdo an'analari ruhidagi sabrli, kuzatuvchan, mehribon ustoz. «Savdo — avval ishonch» qoidasiga amal qilasiz: mijozni hurmat qilasiz, menejerga dalda berasiz.
+Ohang: «siz»lab, iliq va hurmat bilan; qisqa va aniq; har javobda keyingi qadam bo'lsin. Ba'zan (har javobda emas, ko'pi bilan bitta) o'rinli maqol/hikmat keltiring («Ish ko'rgan — el ko'rgan»). Muvaffaqiyatni birinchi bo'lib tabriklang («Barakalla!»); kamchilikni qoralamang, tuzatish yo'lini ko'rsating. Hazil — mayin. Rus tilida ham shu ohang («Здравствуйте! Я Доно — ваш наставник по продажам»).
 Foydalanuvchi — sotuv menejeri. Bitimlar (lidlar), vazifalar, chat yozishmalari bilan ishlaysiz.
 - Ma'lumotni faqat vositalardan oling; taxmin qilmang. Bitim ID kerak bo'lsa avval search_leads yoki get_lead ishlating.
 - «Bitimda nima muammo?» savolida: bosqichda qancha turgani, ochiq/muddati o'tgan vazifalar, javobsiz xabarlar, byudjet, mas'ul, oxirgi faoliyat — aniq kamchiliklar va keyingi qadamlarni ayting.
@@ -70,8 +72,8 @@ const TOOLS: Anthropic.Tool[] = [
 ];
 
 @Injectable()
-export class AmmaService {
-  private readonly log = new Logger('Amma');
+export class DonoService {
+  private readonly log = new Logger('Dono');
   private client: Anthropic | null = null;
 
   constructor(private readonly prisma: PrismaService, private readonly crm: CrmService) {}
@@ -79,13 +81,13 @@ export class AmmaService {
   configured() { return !!(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN); }
 
   private api() {
-    if (!this.configured()) throw new ServiceUnavailableException({ error: 'AMMA_NOT_CONFIGURED', message: "Amma sozlanmagan: serverda ANTHROPIC_API_KEY o'rnatilmagan" });
+    if (!this.configured()) throw new ServiceUnavailableException({ error: 'DONO_NOT_CONFIGURED', message: "Dono sozlanmagan: serverda ANTHROPIC_API_KEY o'rnatilmagan" });
     return (this.client ??= new Anthropic());
   }
 
   async info() {
     const row = await this.prisma.appSetting.findUnique({ where: { key: STATS_KEY } });
-    let stats: AmmaStats = { leads: [], requests: 0 };
+    let stats: DonoStats = { leads: [], requests: 0 };
     try { stats = row ? { ...stats, ...JSON.parse(row.value) } : stats; } catch { /* bo'sh */ }
     const unanswered = (await this.unanswered()).length;
     // amoCRM «За последние 7 дней»: ishlangan bitimlar va token sarfi (kunlar bo'yicha)
@@ -137,9 +139,9 @@ export class AmmaService {
           fallbacks: 'default',
         } as any) as Anthropic.Beta.BetaMessage;
       } catch (e) {
-        if (e instanceof Anthropic.AuthenticationError) throw new ServiceUnavailableException({ error: 'AMMA_AUTH', message: "Amma: API kaliti noto'g'ri" });
-        if (e instanceof Anthropic.RateLimitError) throw new ServiceUnavailableException({ error: 'AMMA_RATE', message: "Amma band, birozdan keyin urinib ko'ring" });
-        if (e instanceof Anthropic.APIError) { this.log.warn(`API ${e.status}: ${e.message}`); throw new ServiceUnavailableException({ error: 'AMMA_API', message: 'Amma vaqtincha ishlamayapti' }); }
+        if (e instanceof Anthropic.AuthenticationError) throw new ServiceUnavailableException({ error: 'DONO_AUTH', message: "Dono: API kaliti noto'g'ri" });
+        if (e instanceof Anthropic.RateLimitError) throw new ServiceUnavailableException({ error: 'DONO_RATE', message: "Dono band, birozdan keyin urinib ko'ring" });
+        if (e instanceof Anthropic.APIError) { this.log.warn(`API ${e.status}: ${e.message}`); throw new ServiceUnavailableException({ error: 'DONO_API', message: 'Dono vaqtincha ishlamayapti' }); }
         throw e;
       }
       usage.input += res.usage?.input_tokens || 0;
@@ -267,7 +269,7 @@ export class AmmaService {
 
   private async bumpStats(touched: Set<string>, usage?: { input: number; output: number; cacheRead: number; cacheWrite: number }) {
     const row = await this.prisma.appSetting.findUnique({ where: { key: STATS_KEY } });
-    let s: AmmaStats = { leads: [], requests: 0 };
+    let s: DonoStats = { leads: [], requests: 0 };
     try { if (row) s = { leads: [], requests: 0, ...JSON.parse(row.value) }; } catch { /* bo'sh */ }
     s.requests += 1;
     s.leads = [...new Set([...s.leads, ...[...touched].filter(Boolean)])].slice(-5000);

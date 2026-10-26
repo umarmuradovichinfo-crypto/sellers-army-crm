@@ -1,7 +1,7 @@
 // amoCRM "Рабочий стол" — /dashboard. Fon + voronka kartalari + vidjetlar to'ri + voqealar paneli.
 import { useSearchParams } from 'react-router-dom'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { AmmaDashBox } from '../Amma'
+import { DonoDashBox } from '../Dono'
 import { crmService } from '../../services/crm.service'
 import { settingsService } from '../../services/settings.service'
 import { useAuth } from '../../context/AuthContext'
@@ -424,7 +424,7 @@ export default function DashboardPage() {
       )}
 
       <h1 className="ac-dash__title">{accountName}</h1>
-      {!editing && <AmmaDashBox />}
+      {!editing && <DonoDashBox />}
 
       {editing ? (
         <div className="ac-dash-setup-panel">

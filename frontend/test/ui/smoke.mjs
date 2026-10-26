@@ -51,7 +51,7 @@ async function visit(lang, viewport) {
     if (/Failed to load resource.*(40[134]|503)|favicon|ERR_CONNECTION_REFUSED.*:9\//.test(txt)) return
     errors.push(`${tag} ${route} console.error: ${txt.slice(0, 200)}`)
   })
-  page.on('response', (r) => { if (r.url().includes('/api/') && r.status() >= 500 && !(r.status() === 503 && r.url().includes('/crm/amma/'))) errors.push(`${tag} ${route} API ${r.status()}: ${r.url().replace(/^.*\/api\/v1/, '')}`) })
+  page.on('response', (r) => { if (r.url().includes('/api/') && r.status() >= 500 && !(r.status() === 503 && r.url().includes('/crm/dono/'))) errors.push(`${tag} ${route} API ${r.status()}: ${r.url().replace(/^.*\/api\/v1/, '')}`) })
   for (route of ROUTES) {
     await page.goto(UI + route, { waitUntil: 'domcontentloaded' })
     await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {})
@@ -118,13 +118,13 @@ async function flows() {
     step = 'voronka'
     await page.goto(`${UI}/leads/pipeline`, { waitUntil: 'networkidle' })
     if (!(await page.getByText('UI test bitim').count())) errors.push('voronka: yaratilgan bitim ko`rinmaydi')
-    // Amma: panel ochiladi, kalitsiz holatda tushunarli xabar
-    step = 'amma'
+    // Dono: panel ochiladi, kalitsiz holatda tushunarli xabar
+    step = 'dono'
     await page.goto(`${UI}/leads/list`, { waitUntil: 'networkidle' })
-    await page.locator('.ac-amma-fab').click()
-    await page.locator('.ac-amma-panel textarea').fill('Salom')
+    await page.locator('.ac-dono-fab').click()
+    await page.locator('.ac-dono-panel textarea').fill('Salom')
     await page.keyboard.press('Enter')
-    await page.locator('.ac-amma-msg.err').waitFor({ timeout: 5000 })
+    await page.locator('.ac-dono-msg.err').waitFor({ timeout: 5000 })
   } catch (e) {
     errors.push(`amal «${step}» bajarilmadi: ${e.message.split('\n')[0]}`)
     await page.screenshot({ path: `${tmpdir()}/ui-fail-${step}.png` }).catch(() => {})

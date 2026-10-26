@@ -158,7 +158,7 @@ describe('Salesbot', () => {
 
 describe('Analitika va ish stoli', () => {
   test('analitika endpointlari turli davrlarda 200', async () => {
-    for (const p of ['/crm/analytics', '/crm/analytics?period=week', '/crm/analytics?from=2020-01-01&to=2030-01-01', '/crm/analytics/flow', '/crm/analytics/calls', '/crm/analytics/events', '/crm/analytics/timeline', '/crm/analytics/employees', '/crm/chat-stats', '/crm/dashboard', '/crm/amma']) {
+    for (const p of ['/crm/analytics', '/crm/analytics?period=week', '/crm/analytics?from=2020-01-01&to=2030-01-01', '/crm/analytics/flow', '/crm/analytics/calls', '/crm/analytics/events', '/crm/analytics/timeline', '/crm/analytics/employees', '/crm/chat-stats', '/crm/dashboard', '/crm/dono']) {
       const r = await req('GET', p, undefined, T);
       assert.equal(r.status, 200, `${p} → ${r.status} ${JSON.stringify(r.data).slice(0, 150)}`);
     }

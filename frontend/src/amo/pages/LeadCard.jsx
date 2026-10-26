@@ -908,7 +908,7 @@ export default function LeadCard() {
     return () => { clearInterval(iv); clearTimeout(t1); clearTimeout(t2); window.removeEventListener('pbx:outgoing', onCall); document.removeEventListener('visibilitychange', tick) }
   }, [id, isNew]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Amma vazifa/izoh qo'shganda kartochka va lentani yangilash
+  // Dono vazifa/izoh qo'shganda kartochka va lentani yangilash
   useEffect(() => {
     const h = () => { if (!isNew) { loadLead(); loadFeed() } }
     window.addEventListener('amo:lead-changed', h)

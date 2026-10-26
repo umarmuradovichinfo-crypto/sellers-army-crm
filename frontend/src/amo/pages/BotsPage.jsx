@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { useT } from '../i18n'
 import BotBuilder, { TRIGGER_LABEL, emptyBot } from '../BotBuilder'
-import { AmmaAvatar, openAmma } from '../Amma'
+import { DonoAvatar, openDono } from '../Dono'
 import '../i18n/bots.ru.js'
 import '../bots.css'
 
@@ -20,8 +20,8 @@ export default function BotsPage() {
   const [sel, setSel] = useState(new Set())
   const [open, setOpen] = useState(null) // bot obyekti (yangi yoki mavjud)
   const fileRef = useRef(null)
-  const [amma, setAmma] = useState(null)
-  useEffect(() => { api.get('/crm/amma').then(setAmma).catch(() => null) }, [])
+  const [dono, setDono] = useState(null)
+  useEffect(() => { api.get('/crm/dono').then(setDono).catch(() => null) }, [])
   const load = () => api.get('/crm/salesbots').then((r) => setBots(r.bots || [])).catch(() => setBots([]))
   useEffect(() => { load() }, [])
 
@@ -46,39 +46,40 @@ export default function BotsPage() {
     <div className="ac-content ac-bots">
       <div className="ac-top"><div className="ac-top__preset"><span className="ac-top__title">{t('Agentlar va botlar')}</span></div></div>
       <div className="ac-bots__body">
-        {/* amoCRM: «Агент внутри продукта» — katta kartochka: chapda Amma, o'ngda «За последние 7 дней» */}
+        {/* amoCRM: «Агент внутри продукта» — katta kartochka: chapda Dono, o'ngda «За последние 7 дней» */}
         <h2 className="ac-bots__h">{t('Mahsulot ichidagi agent')}</h2>
-        <div className="ac-amma-big">
-          <div className="ac-amma-big__left">
-            <div className="ac-amma-big__name">{t('AMMA')}</div>
-            <div className="ac-amma-big__desc">{t("Bitimlarni tahlil qiladi, vazifa qo'yadi va mijozga javob tayyorlaydi")}</div>
-            <div className="ac-amma-big__ava"><AmmaAvatar size={110} /></div>
+        <div className="ac-dono-big">
+          <div className="ac-dono-big__left">
+            <div className="ac-dono-big__name">{t('DONO')}</div>
+            <div className="ac-dono-big__tag">{t("Donishmand sotuv maslahatchisi")}</div>
+            <div className="ac-dono-big__desc">{t("Sotuvingiz ustozi: bitimlarni tahlil qiladi, vazifa qo'yadi, mijozga javob tayyorlaydi")}</div>
+            <div className="ac-dono-big__ava"><DonoAvatar size={110} /></div>
           </div>
-          <div className="ac-amma-big__right">
-            <div className="ac-amma-big__cap">{t('bot§Oxirgi 7 kun')}</div>
-            <div className="ac-amma-big__row"><span>{t('Ishlangan bitimlar')}</span><b>{amma?.processed7 ?? '—'}</b></div>
-            <div className="ac-amma-big__row"><span>{t('Javobsiz chatlar')}</span><b>{amma?.unanswered ?? '—'}</b></div>
-            {amma && !amma.configured
-              ? <div className="ac-amma-card__warn">{t("Sozlanmagan: serverda ANTHROPIC_API_KEY o'rnatilmagan")}</div>
-              : <button className="ac-btn ac-btn--blue ac-amma-big__btn" onClick={() => openAmma()}>{t('Chatni ochish')}</button>}
+          <div className="ac-dono-big__right">
+            <div className="ac-dono-big__cap">{t('bot§Oxirgi 7 kun')}</div>
+            <div className="ac-dono-big__row"><span>{t('Ishlangan bitimlar')}</span><b>{dono?.processed7 ?? '—'}</b></div>
+            <div className="ac-dono-big__row"><span>{t('Javobsiz chatlar')}</span><b>{dono?.unanswered ?? '—'}</b></div>
+            {dono && !dono.configured
+              ? <div className="ac-dono-card__warn">{t("Sozlanmagan: serverda ANTHROPIC_API_KEY o'rnatilmagan")}</div>
+              : <button className="ac-btn ac-btn--blue ac-dono-big__btn" onClick={() => openDono()}>{t('Chatni ochish')}</button>}
           </div>
         </div>
         {/* amoCRM «Расходование токенов» — bizda haqiqiy hisob: kunlar bo'yicha kirish/chiqish tokenlari */}
-        <div className="ac-bots__card ac-amma-tokens">
-          <div className="ac-amma-tokens__head">
+        <div className="ac-bots__card ac-dono-tokens">
+          <div className="ac-dono-tokens__head">
             <h3>{t('Token sarfi')}</h3>
-            {amma?.tokens7 && <span className="ac-muted">{t('bot§Oxirgi 7 kun')}: {fmtTok(amma.tokens7.input + amma.tokens7.cacheRead + amma.tokens7.cacheWrite)} {t('kirish')} · {fmtTok(amma.tokens7.output)} {t('chiqish')} · {amma.tokens7.requests} {t("so'rov")}</span>}
+            {dono?.tokens7 && <span className="ac-muted">{t('bot§Oxirgi 7 kun')}: {fmtTok(dono.tokens7.input + dono.tokens7.cacheRead + dono.tokens7.cacheWrite)} {t('kirish')} · {fmtTok(dono.tokens7.output)} {t('chiqish')} · {dono.tokens7.requests} {t("so'rov")}</span>}
           </div>
-          {(amma?.days || []).length === 0
-            ? <div className="ac-muted">{t("Hali so'rovlar bo'lmagan. Amma bilan ishlaganingizda bu yerda kunlik token sarfi ko'rinadi.")}</div>
+          {(dono?.days || []).length === 0
+            ? <div className="ac-muted">{t("Hali so'rovlar bo'lmagan. Dono bilan ishlaganingizda bu yerda kunlik token sarfi ko'rinadi.")}</div>
             : (
-              <div className="ac-amma-tokens__bars">
+              <div className="ac-dono-tokens__bars">
                 {(() => {
-                  const ds = amma.days.slice(-14)
+                  const ds = dono.days.slice(-14)
                   const tot = (d) => d.input + d.cacheRead + d.cacheWrite + d.output
                   const max = Math.max(1, ...ds.map(tot))
                   return ds.map((d) => (
-                    <div key={d.day} className="ac-amma-tokens__bar" title={`${d.day}: ${fmtTok(tot(d))} (${d.requests} ${t("so'rov")})`}>
+                    <div key={d.day} className="ac-dono-tokens__bar" title={`${d.day}: ${fmtTok(tot(d))} (${d.requests} ${t("so'rov")})`}>
                       <i style={{ height: `${Math.max(3, (tot(d) / max) * 100)}%` }} />
                       <span>{d.day.slice(8, 10)}.{d.day.slice(5, 7)}</span>
                     </div>
