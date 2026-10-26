@@ -46,6 +46,19 @@ function timeLabel(d, tr) {
 
 const NOTIF_TITLE = { task: 'Vazifa', task_due: 'Vazifa', lead: 'Bitim', mention: 'Eslatma', automation: 'Avtomatlashtirish', info: 'Xabar' }
 
+// amoCRM: sarlavha — voqea turi («Новая заявка», «Просроченная задача»), pastida — bitim/vazifa nomi
+const NOTIF_PREFIX = ['Bugungi vazifa', 'Kechikkan vazifa', 'Yangi vazifa', 'Avtomatik vazifa', 'Dublikat', 'Yangi lid biriktirildi',
+  'Sizga lid biriktirildi', 'Yangi bitim biriktirildi', 'Formadan yangi lid', "Formadan dublikat so'rov", 'Telegram xabar']
+function notifSplit(n, t) {
+  const text = String(n.text || '')
+  const i = text.indexOf(': ')
+  if (i > 0) {
+    const head = text.slice(0, i)
+    if (NOTIF_PREFIX.includes(head) || /'dan (yangi lid|dublikat so'rov)$/.test(head)) return [t(head), text.slice(i + 2)]
+  }
+  return [t(NOTIF_TITLE[n.type] || 'Xabar'), trActivity(text, t)]
+}
+
 function NotificationsPanel({ open, onClose, onCount }) {
   const [items, setItems] = useState([])
   const [shown, setShown] = useState(false)
@@ -100,10 +113,10 @@ function NotificationsPanel({ open, onClose, onCount }) {
               <div className="ac-notif__avatar"><Ico name={n.type === 'task' || n.type === 'task_due' ? 'check' : n.type === 'call' ? 'phone' : 'user'} size={18} /></div>
               <div className="ac-notif__body">
                 <div className="ac-notif__head">
-                  <span className="ac-notif__title">{t(NOTIF_TITLE[n.type] || 'Xabar')}</span>
+                  <span className="ac-notif__title">{notifSplit(n, t)[0]}</span>
                   <span className="ac-notif__time">{timeLabel(n.at || n.createdAt, t)}</span>
                 </div>
-                {n.text && <div className="ac-notif__text">{trActivity(n.text, t)}</div>}
+                {n.text && <div className="ac-notif__text">{notifSplit(n, t)[1]}</div>}
               </div>
             </div>
           ))}

@@ -236,6 +236,10 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
        7 дней»: ishlangan bitimlar, javobsiz chatlar); [x] «Расходование токенов» — amoCRM'da «Скоро», bizda haqiqiy: har Amma
        so'rovining kirish/chiqish/kesh tokenlari kunlar bo'yicha (amma:stats), 14 kunlik ustunli grafik; [x] jadval sarlavhasi
        «НАЗВАНИЕ». «Внешние агенты» (pullik tarif) — qo'yilmadi.
+    h) Market — «Установленные» ulangan integratsiyalarni ko'rsatadi (prod'da tekshirildi); amoCRM do'kon katalogi bizga kerak emas.
+    j) Umumiy — [x] bildirishnomalar markazi: sarlavha — voqea turi («Задача на сегодня», «Просроченная задача», «Новая заявка»),
+       pastida bitim/vazifa nomi; ruscha interfeysda ham to'liq tarjima.
+    i) Sozlamalar — 37-band.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
