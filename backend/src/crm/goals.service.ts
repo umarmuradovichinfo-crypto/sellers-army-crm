@@ -1,15 +1,18 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { RightsService } from '../common/rights/rights.service';
 
 /** Sotuv rejasi / maqsadlar — oylik, hodim yoki jamoa bo'yicha + bajarilish. */
 @Injectable()
 export class GoalsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly rights: RightsService) {}
 
-  async list(period?: string) {
+  async list(period?: string, userId?: string) {
     if (period && !/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) throw new BadRequestException({ error: 'INVALID_PERIOD', message: 'Davr YYYY-MM ko\'rinishida bo\'lishi kerak' });
-    const p = period || new Date().toISOString().slice(0, 7);
+    // hisob vaqt mintaqasi Toshkent (UTC+5): oy chegarasi server (UTC) vaqtiga emas
+    const TZ = 5 * 3_600_000;
+    const p = period || new Date(Date.now() + TZ).toISOString().slice(0, 7);
     const [goals, users, stages] = await Promise.all([
       this.prisma.salesGoal.findMany({ where: { period: p } }),
       this.prisma.user.findMany({ where: { isActive: true }, select: { id: true, name: true } }),
@@ -17,10 +20,13 @@ export class GoalsService {
     ]);
     const wonKeys = stages.map((s) => s.key);
     // shu oyda yutilgan lidlar (wonAt period ichida)
-    const start = new Date(p + '-01T00:00:00');
-    const end = new Date(start); end.setMonth(end.getMonth() + 1);
+    const [yy, mm] = p.split('-').map(Number);
+    const start = new Date(Date.UTC(yy, mm - 1, 1) - TZ);
+    const end = new Date(Date.UTC(yy, mm, 1) - TZ);
+    // amoCRM «Права доступа»: faqat ko'rish huquqi bor bitimlar hisobga olinadi (boshqalarning tushumi ko'rinmasin)
+    const own = await this.rights.ownersById(userId, 'leads', 'view');
     const wonLeads = await this.prisma.lead.findMany({
-      where: { stage: { in: wonKeys.length ? wonKeys : ['__none__'] }, wonAt: { gte: start, lt: end } },
+      where: { stage: { in: wonKeys.length ? wonKeys : ['__none__'] }, wonAt: { gte: start, lt: end }, ...(own ? { assigneeId: { in: own.length ? own : ['__none__'] } } : {}) },
       select: { assigneeId: true, value: true },
     });
     const revByUser = new Map<string, number>();

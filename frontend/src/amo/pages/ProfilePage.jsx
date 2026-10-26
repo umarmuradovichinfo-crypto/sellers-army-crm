@@ -225,7 +225,7 @@ export default function ProfilePage() {
                   {tg.linked ? (
                     <>
                       <span>✅ {t("Telegram ulangan — kerakli turlar uchun «TELEGRAM» ustunini yoqing")}</span>
-                      <button className="ac-prof-out" onClick={() => notifService.tgUnlink().then(loadTg)}>{t('tg§Uzish')}</button>
+                      <button className="ac-prof-out" onClick={() => notifService.tgUnlink().then(loadTg).catch(() => {})}>{t('tg§Uzish')}</button>
                       <label className="ac-set-radio" style={{ width: '100%' }}>
                         <input type="checkbox" checked={digest} onChange={(e) => setDigest(e.target.checked)} />
                         <span>{t("Telegram: kuniga bir marta 18:00 da jamlab yuborish")}</span>

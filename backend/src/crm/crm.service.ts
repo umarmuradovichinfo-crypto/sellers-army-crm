@@ -1286,11 +1286,18 @@ export class CrmService {
     if (status === 'overdue') where.dueDate = { not: null, lt: new Date() };
     if (q?.assigneeId) where.assigneeId = q.assigneeId === 'none' ? null : q.assigneeId;
     if (q?.type) where.type = q.type;
+    // Chegara tartibsiz kesmasin: ochiq vazifalar muddat bo'yicha, bajarilganlar — oxirgi bajarilganlar birinchi; status berilmasa bajarilganlarning
+    // faqat oxirgi 90 kuni olinadi (eski bajarilganlar ro'yxatni to'ldirib, ochiq vazifalarni siqib chiqarmasin)
+    if (!status) {
+      const rights = where.OR as unknown[] | undefined;
+      delete where.OR;
+      where.AND = [...(rights ? [{ OR: rights }] : []), { OR: [{ done: false }, { doneAt: { gte: new Date(Date.now() - 90 * 86_400_000) } }, { doneAt: null }] }];
+    }
     const tasks = await this.prisma.leadTask.findMany({
       where,
-      orderBy: [{ done: 'asc' }, { dueDate: 'asc' }],
+      orderBy: status === 'done' ? [{ doneAt: { sort: 'desc', nulls: 'last' } }, { dueDate: 'desc' }] : [{ done: 'asc' }, { dueDate: 'asc' }],
       include: { lead: { select: { name: true, stage: true, pipelineId: true } } },
-      take: 800,
+      take: 3000,
     });
     const names = await this.userMap(tasks.map((t) => t.assigneeId));
     return {

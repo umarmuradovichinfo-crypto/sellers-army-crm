@@ -45,4 +45,15 @@ describe('Diagnostika', () => {
     const got = await ok('GET', `/crm/leads/${l.id}`, undefined, T, 200);
     assert.equal((got.lead || got).won, true, `bitim yutilgan deb belgilanmadi`);
   });
+
+  test('maqsadlar: joriy oy Toshkent vaqti bo`yicha, vazifalar ro`yxati ochiq vazifalarni yo`qotmaydi', async () => {
+    const g = await ok('GET', '/crm/goals', undefined, T, 200);
+    assert.equal(g.period, new Date(Date.now() + 5 * 3_600_000).toISOString().slice(0, 7));
+    const l = await newLead(T);
+    const t = (await ok('POST', `/crm/leads/${l.id}/tasks`, { title: uniq('ochiq') }, T)).task;
+    const all = await ok('GET', '/crm/tasks', undefined, T, 200);
+    assert.ok((all.tasks || []).some((x) => x.id === t.id), 'ochiq vazifa umumiy ro`yxatda yo`q');
+    const done = await ok('GET', '/crm/tasks?status=done', undefined, T, 200);
+    assert.ok(Array.isArray(done.tasks));
+  });
 });

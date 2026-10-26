@@ -1252,7 +1252,7 @@ export default function LeadCard() {
                 const current = it.no ? it.no === feed.convNo : it.msgs[it.msgs.length - 1].id === feed.messages[feed.messages.length - 1]?.id
                 el = <MsgGroup key={`g${it.msgs[0].id}`} msgs={it.msgs} leadId={lead.id} no={it.no || feed.convNo}
                   collapsed={!current || feed.closed}
-                  conv={current ? { closed: feed.closed, onClose: () => crmService.conversationAction(lead.id, 'close').then(loadFeed) } : null} />
+                  conv={current ? { closed: feed.closed, onClose: () => crmService.conversationAction(lead.id, 'close').then(loadFeed).catch(() => {}) } : null} />
               }
               return <React.Fragment key={i}>{mhead}{sep}{el}</React.Fragment>
             })}

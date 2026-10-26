@@ -4,10 +4,13 @@ import { Ico } from './AmoIcons'
 import { useT } from './i18n'
 
 export function useOutside(ref, onOut, active = true) {
+  // onOut har renderda yangilanadi (eskirgan closure bilan ishlamasin), listener esa faqat active o'zgarganda qayta ulanadi
+  const cb = useRef(onOut)
+  cb.current = onOut
   useEffect(() => {
     if (!active) return
-    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) onOut() }
-    const k = (e) => { if (e.key === 'Escape') onOut() }
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) cb.current() }
+    const k = (e) => { if (e.key === 'Escape') cb.current() }
     document.addEventListener('mousedown', h)
     document.addEventListener('keydown', k)
     return () => { document.removeEventListener('mousedown', h); document.removeEventListener('keydown', k) }

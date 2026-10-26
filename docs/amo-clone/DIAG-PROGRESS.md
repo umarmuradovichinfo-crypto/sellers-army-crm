@@ -15,6 +15,7 @@
 - Automation `send_message` barcha kanallarga (ChatService orqali); TasksFilter sana siljishi; LeadsPipeline localStorage try/catch; ProductsPage ikki marta bosish.
 - Frontend: useApi eskirgan javob, offline navbat (401 refresh, logout'da tozalash, create navbatga tushmaydi), LeadCard (xato holati, id guard, save/tags/delete catch, export), IncomingCall qayta ochilmaydi, Dashboard o'rtacha davomiylik, i18n (Eslatma to'qnashuvi, barcha lug'atlar eager), mobil popup eni.
 - (26.10) Bitimlar: merge tranzaksiyada + AutomationJob/SalesbotRun/ShortLink/ConversationState ko'chiriladi; updateLead kontakt/kompaniya mavjudligi va ko'rish huquqi; `listUnsorted` voronka bo'yicha (frontend `pipelineId`); updateStage kind o'zgarsa oxirgi tur himoyasi + bitimlar sanalari; imBox ro'yxati DISTINCT ON (oxirgi 1000 xabar emas, har bitimning oxirgi xabari).
+- (26.10, 2) Maqsadlar (goals): oy chegarasi Toshkent vaqti + huquq bo'yicha tushum; vazifalar ro'yxati (3000 limit, bajarilganlar oxirgi 90 kun, tartib); useOutside eskirgan closure; catchsiz `.then` (imBox yopish, Telegram uzish).
 
 ## Qoldi (ustuvorlik bo'yicha)
 1. [x] To'liq QA yashil (144/144, UI 35×3 xatosiz) — LeadCard hook-tartib xatosi (o'z o'zgarishim) tuzatildi.
