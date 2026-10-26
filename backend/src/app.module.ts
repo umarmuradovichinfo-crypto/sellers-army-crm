@@ -18,6 +18,8 @@ import { FacebookModule } from './facebook/facebook.module';
 import { OnlinePbxModule } from './onlinepbx/onlinepbx.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SettingsModule } from './settings/settings.module';
+import { BillingModule } from './billing/billing.module';
+import { BillingGuard } from './billing/billing.guard';
 import { RightsModule } from './common/rights/rights.service';
 
 // Frontend dist papkasini turli deploy tuzilmalarida topadi
@@ -49,6 +51,7 @@ function resolveFrontendDist(): string {
     AuthModule,
     CrmModule,
     SettingsModule,
+    BillingModule,
     OnlinePbxModule,
     FacebookModule,
   ],
@@ -58,6 +61,7 @@ function resolveFrontendDist(): string {
     // Barcha endpointlar standart bo'yicha himoyalangan (@Public bilan ochiladi)
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
+    { provide: APP_GUARD, useClass: BillingGuard },
     { provide: APP_GUARD, useClass: IpWhitelistGuard },
   ],
 })

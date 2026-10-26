@@ -18,6 +18,8 @@ unset SEED_ADMIN_EMAIL SEED_ADMIN_PASSWORD SETUP_TOKEN ANTHROPIC_API_KEY ANTHROP
 export TELEGRAM_BOT_TOKEN="e2e-test-token" TELEGRAM_API_BASE="http://127.0.0.1:9"
 # «Сокращать ссылки» qisqa havolalari uchun ommaviy manzil
 export PUBLIC_URL="http://localhost:${PORT}"
+# Obuna litsenziyasi sinovi uchun test sirri (faqat lokal test bazasi)
+export LICENSE_SECRET="e2e-license-secret" BILLING_CARD_NUMBER="8600 0000 0000 0000" BILLING_CARD_HOLDER="TEST HOLDER" BILLING_TELEGRAM="@test_admin"
 
 DBURL_ADMIN="${BASE_URL_DB%/*}/postgres"
 psql "$DBURL_ADMIN" -qc "DROP DATABASE IF EXISTS ${TEST_DB} WITH (FORCE)" >/dev/null

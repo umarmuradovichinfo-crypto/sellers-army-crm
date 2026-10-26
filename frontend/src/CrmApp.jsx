@@ -4,7 +4,7 @@
 //   Ish stoli (Рабочий стол) · Lidlar (Сделки) · Vazifalar (Задачи) ·
 //   Ro'yxatlar (Списки) · Suhbatlar (Почта/Чаты) · Analitika · Sozlamalar
 import React, { Suspense, lazy, useEffect } from 'react'
-import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
+import { Routes, Route, Navigate, Link, useLocation, useParams } from 'react-router-dom'
 import { Loading } from './components/ui'
 import { useAuth } from './context/AuthContext'
 import Login from './pages/Login'
@@ -14,6 +14,10 @@ import AmoShell from './amo/AmoShell'
 import NotFound from './amo/NotFound'
 import { useT } from './amo/i18n'
 import { titleFor } from './amo/pageTitle'
+import { useApi } from './lib/useApi'
+import { billingService } from './services/billing.service'
+import './amo/i18n/billing.ru'
+import './amo/billing.css'
 
 // bo'limlar alohida yuklanadi (birinchi ochilish tezroq; har sahifa o'z fayli bilan)
 const LeadsPipeline = lazy(() => import('./amo/pages/LeadsPipeline'))
@@ -55,6 +59,22 @@ function Redir({ to }) {
   return <Navigate to={path + search + hash} replace />
 }
 
+// Obuna tugagan/tugayotgan (7 kun qolgan) bo'lsa tepada ogohlantirish
+function BillingBanner() {
+  const t = useT()
+  const { can } = useAuth()
+  const { data } = useApi(() => billingService.status().catch(() => null), [], 'billing:status', 600000)
+  if (!data) return null
+  const bad = data.status === 'expired' || data.status === 'grace'
+  if (!bad && !(data.daysLeft <= 7)) return null
+  const text = data.status === 'expired' ? t('bl§Obuna tugagan') : data.status === 'grace' ? t("bl§Muddat tugadi (qo'shimcha kunlar)") : `${t('bl§Obuna tugayapti')}: ${Math.max(0, data.daysLeft)} ${t('bl§kun')}`
+  return (
+    <div className={`ac-bl__banner ${bad ? 'ac-bl__banner--bad' : ''}`}>
+      {text}{can('settings.view') && <> — <Link to="/settings/billing">{t("Hisob va to'lov")}</Link></>}
+    </div>
+  )
+}
+
 // Brauzer sarlavhasini manzilga moslash
 function PageTitle() {
   const t = useT()
@@ -71,6 +91,7 @@ function CrmShell() {
   return (
     <AmoShell>
       <PageTitle />
+      <BillingBanner />
       <div className="amo-content">
         <Suspense fallback={<Loading />}>
         <Routes>
@@ -107,6 +128,7 @@ function CrmShell() {
           <Route path="/settings/users" element={<SettingsPage section="users" />} />
           <Route path="/settings/chats" element={<SettingsPage section="chats" />} />
           <Route path="/settings/security" element={<SettingsPage section="security" />} />
+          <Route path="/settings/billing" element={<SettingsPage section="billing" />} />
           <Route path="/settings/profile" element={<ProfilePage />} />
           <Route path="/settings/pipelines/:pipelineId" element={<PipelineSetupPage />} />
           <Route path="/settings/fields/:entity" element={<FieldsSetupPage />} />

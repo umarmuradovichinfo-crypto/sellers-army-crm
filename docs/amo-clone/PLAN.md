@@ -280,13 +280,18 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     yo'naltiriladi (param/query/hash saqlanadi — bildirishnoma va Facebook qaytish havolasi buzilmaydi). Noma'lum manzil — 404 sahifa;
     kirmagan foydalanuvchi `/login?next=…` ga, kirgach shu joyga qaytadi (faqat ichki yo'l); brauzer `<title>` har bo'limda. UI smoke eski manzillar
     yo'naltirishi va 404 ni tekshiradi. Qoldi (ixtiyoriy): bitim kartochkasi tablari va Integratsiyalar tablarini ham URL (`?tab=`) ga chiqarish, breadcrumb.
-42. [ ] (foydalanuvchi so'rovi 27.10; QAROR 26.10: Payme/Stripe KERAK EMAS — to'lov QO'LDA: karta raqami + chek Telegramdagi adminga, tasdiqni super-admin qo'lda beradi; tariflar/narx foydalanuvchi o'ylab aytadi) Stripe orqali to'lov va obunalar (billing). Muhim: Stripe O'zbekistonda ro'yxatdan o'tgan biznes uchun
+42. [~] AMALGA OSHIRILDI 26.10 (qo'lda to'lov: karta + Telegram chek + litsenziya kodi, `backend/src/billing`, `/settings/billing`, scripts/license.mjs, docs/amo-clone/PRICING.md). QOLDI: tarif bo'yicha funksiyalarni yoqish/o'chirish (feature gating), prod'da BILLING_* o'zgaruvchilarini o'rnatish, cheklovni yoqish. (foydalanuvchi so'rovi 27.10; QAROR 26.10: Payme/Stripe KERAK EMAS — to'lov QO'LDA: karta raqami + chek Telegramdagi adminga, tasdiqni super-admin qo'lda beradi; tariflar/narx foydalanuvchi o'ylab aytadi) Stripe orqali to'lov va obunalar (billing). Muhim: Stripe O'zbekistonda ro'yxatdan o'tgan biznes uchun
     to'g'ridan-to'g'ri qo'llab-quvvatlanmaydi (hisob xorijiy yuridik shaxs — masalan AQSh LLC/Stripe Atlas — orqali ochiladi; mahalliy
     to'lovlar uchun Payme/Click/Uzum alohida). Reja: to'lov provayderi abstraksiyasi + Stripe Checkout/Customer Portal/webhook; tariflar
     (plan), sinov muddati, o'rindiq (foydalanuvchi) bo'yicha yoki tarif bo'yicha narx, limitlar (foydalanuvchi, bitim, kanal), holatlar
     (trial → active → past_due → canceled), cheklov o'rnatish (to'lanmasa faqat o'qish), hisob-fakturalar, «Счет и оплата» sahifasi
     (amoCRM'dagi kabi) — Sozlamalar → Hisob va to'lov. Kalitlar faqat Railway o'zgaruvchilarida (STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET). Tariflar tuzilmasi foydalanuvchi bilan kelishiladi.
+
+43. [ ] (foydalanuvchi so'rovi 26.10) Railway'dan o'z serverimizga (VPS) ko'chish. Reja: Docker Compose (ilova + umumiy Postgres + Caddy HTTPS),
+    har mijoz uchun alohida nusxa (subdomen), `new-customer` skripti, har kecha `pg_dump` zaxira (boshqa joyga), yangilash skripti.
+    Server joyi: O'zbekiston fuqarolari shaxsiy ma'lumoti (telefon, ism) uchun mahalliy server xavfsizroq (Shaxsiy ma'lumotlar qonuni, 2026-03 tahriri).
+    Xarajat hisobi chatda berildi (6–20$/server, 1 serverga ~4–10 mijoz). Qaror kutilmoqda: server provayderi va joyi.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

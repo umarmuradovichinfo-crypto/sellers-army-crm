@@ -6,6 +6,7 @@ import { PERMISSION_KEYS, PERMISSION_LABELS } from '../common/constants/permissi
 import { PrismaService } from '../prisma/prisma.service';
 import { LEVELS, fullRights, normalizeRights } from '../common/rights/rights';
 import { RightsService } from '../common/rights/rights.service';
+import { BillingService } from '../billing/billing.service';
 
 type UserRow = {
   id: string;
@@ -26,7 +27,7 @@ function slugify(name: string): string {
 
 @Injectable()
 export class SettingsService {
-  constructor(private readonly prisma: PrismaService, private readonly rightsSvc: RightsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly rightsSvc: RightsService, private readonly billing: BillingService) {}
 
   // Barcha PERMISSION_KEYS bazada borligini ta'minlaydi + super_admin'ga hammasini beradi.
   // Yangi funksiya qo'shilganda kalit avtomatik shu yerdan paydo bo'ladi.
@@ -146,6 +147,7 @@ export class SettingsService {
     if (name.length > 100) throw new BadRequestException({ error: 'BAD_NAME', message: 'Ism juda uzun (100 belgigacha)' });
     if (!this.validEmail(email)) throw new BadRequestException({ error: 'BAD_EMAIL', message: "Email noto'g'ri" });
     if ((dto.password || '').length < 6) throw new BadRequestException({ error: 'BAD_PASS', message: 'Parol kamida 6 belgi bo`lsin' });
+    await this.billing.assertSeat();
     const exists = await this.prisma.user.findUnique({ where: { email } });
     if (exists) throw new BadRequestException({ error: 'EMAIL_TAKEN', message: 'Bu email allaqachon ishlatilgan' });
     const role = await this.prisma.role.findUnique({ where: { key: dto.roleKey } });
@@ -200,6 +202,7 @@ export class SettingsService {
       this.rightsSvc.clear();
     }
     if (dto.isActive !== undefined) {
+      if (dto.isActive === true && !existing.isActive) await this.billing.assertSeat();
       data.isActive = dto.isActive;
       // o'chirilgan foydalanuvchining sessiyalari ham yopiladi (qayta yoqilsa eski tokenlar tirilmasin)
       if (dto.isActive === false) await this.prisma.refreshToken.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: new Date() } });
