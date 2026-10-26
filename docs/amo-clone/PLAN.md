@@ -247,6 +247,13 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
        [x] Bildirishnoma kanali Telegram: profilda «Telegram'ga ulash» (t.me/<bot>?start=<kod>, bir martalik 15 daqiqalik kod),
        ulangach «TELEGRAM» ustuni paydo bo'ladi (standart o'chiq), yoqilgan turlar bot orqali keladi. Qolgan: «kuniga bir marta».
 
+39. [ ] (foydalanuvchi so'rovi 27.10) Haftalik kuzatuvchi: har hafta amoCRM'da yangi qo'shilgan/o'zgargan narsalarni topib, loyihaga
+    avtomatik shunday qilib klonlash. Ishlash tartibi: rejalashtirilgan vazifa `amo-clone-weekly-watch` (har dushanba) →
+    amoCRM'ni faqat KO'RADI (hech narsani o'zgartirmaydi) → `docs/amo-clone/WATCH.md` dagi oldingi holat bilan solishtiradi
+    (menyular, Sozlamalar chap paneli, har bo'lim «…» menyusi, filtrlar, ustunlar, «Обновление» yangiliklari) → farqlarni shu
+    rejaga yozadi → bir xil qilib amalga oshiradi (37–38-bandlardagi usulda: test, commit, push) → WATCH.md ni yangilaydi.
+    amoCRM'ga kirilmagan bo'lsa — to'xtab, WATCH.md ga eslatma qoldiradi (parol so'ralmaydi).
+
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
   matnlari tarjimasi; Sozlamalar → Umumiy sozlamalarga "Til" maydoni (9-bosqich).
