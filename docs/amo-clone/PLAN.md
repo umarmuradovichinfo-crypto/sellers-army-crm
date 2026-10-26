@@ -240,6 +240,8 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     j) Umumiy — [x] bildirishnomalar markazi: sarlavha — voqea turi («Задача на сегодня», «Просроченная задача», «Новая заявка»),
        pastida bitim/vazifa nomi; ruscha interfeysda ham to'liq tarjima.
     i) Sozlamalar — 37-band.
+    k) Keyinga qoldirilganlardan: [x] «Обращения» — javobsiz suhbatni N soat/kundan keyin avtomatik yopish (Robot, har 10 daqiqa;
+       mijoz qayta yozsa yangi raqamli suhbat).
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

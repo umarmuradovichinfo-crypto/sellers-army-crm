@@ -1,5 +1,6 @@
 import { RightsService } from '../common/rights/rights.service';
-import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
+import { Prisma } from '../generated/prisma/client';
 
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -60,7 +61,7 @@ export function friendlySocialError(e: any, channel: string): { error: string; m
  * (yoki yangi saralanmagan lid yaratiladi), CRM'dan javob yuboriladi.
  */
 @Injectable()
-export class ChatService {
+export class ChatService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ChatService.name);
 
   constructor(
@@ -85,6 +86,30 @@ export class ChatService {
   // ── Sozlamalar → Chatlar va messenjerlar (amoCRM): javob shablonlari va "Беседы" qoidasi ──
   private static readonly SETTINGS_KEY = 'chat_settings';
   static readonly REPLY_LIMITS = [0, 1, 5, 15, 30, 60, 120, 240, 1440];
+  // amoCRM «Обращения»: «Автоматически закрывать беседу, если сообщение не было прочитано и нет ответа» (soat; 0 — «Никогда»)
+  static readonly AUTO_CLOSE = [0, 1, 3, 6, 12, 24, 48, 72, 168];
+  private acTimer: ReturnType<typeof setInterval> | null = null;
+  onModuleInit() {
+    if (process.env.NODE_ENV === 'test') return;
+    this.acTimer = setInterval(() => this.autoCloseTick().catch(() => {}), 10 * 60_000);
+  }
+  onModuleDestroy() { if (this.acTimer) clearInterval(this.acTimer); }
+
+  /** Oxirgi xabari N soatdan eski ochiq suhbatlarni yopadi («Robot»). Yopilganlar soni. */
+  async autoCloseTick(): Promise<number> {
+    const { autoCloseHours } = await this.getChatSettings();
+    if (!autoCloseHours) return 0;
+    const before = new Date(Date.now() - autoCloseHours * 3600_000);
+    const rows = await this.prisma.$queryRaw<{ leadId: string }[]>(Prisma.sql`
+      SELECT m."leadId" FROM crm_messages m LEFT JOIN crm_conversations c ON c."leadId" = m."leadId"
+      WHERE coalesce(c.closed, FALSE) = FALSE
+      GROUP BY m."leadId" HAVING max(m."createdAt") < ${before} LIMIT 200`);
+    for (const r of rows) {
+      await this.prisma.conversationState.upsert({ where: { leadId: r.leadId }, create: { leadId: r.leadId, closed: true, closedAt: new Date() }, update: { closed: true, closedAt: new Date(), closedById: null } });
+      await this.activity.record(r.leadId, 'updated', { actorName: 'Robot', text: 'Suhbat yopildi' });
+    }
+    return rows.length;
+  }
   async getChatSettings() {
     const row = await this.prisma.appSetting.findUnique({ where: { key: ChatService.SETTINGS_KEY } });
     let v: any = {};
@@ -97,6 +122,7 @@ export class ChatService {
       imboxMenu: v.imboxMenu !== false,
       // «Отмечать событие, если превышено время ответа на сообщение» (daqiqa; 0 — o'chiq)
       replyLimitMin: ChatService.REPLY_LIMITS.includes(Number(v.replyLimitMin)) ? Number(v.replyLimitMin) : 0,
+      autoCloseHours: ChatService.AUTO_CLOSE.includes(Number(v.autoCloseHours)) ? Number(v.autoCloseHours) : 0,
     };
   }
   async saveChatSettings(body: any) {
@@ -113,6 +139,7 @@ export class ChatService {
     if (['always', 'no_active', 'no_leads'].includes(body?.conversationRule)) next.conversationRule = body.conversationRule;
     if (typeof body?.imboxMenu === 'boolean') next.imboxMenu = body.imboxMenu;
     if (body?.replyLimitMin !== undefined && ChatService.REPLY_LIMITS.includes(Number(body.replyLimitMin))) next.replyLimitMin = Number(body.replyLimitMin);
+    if (body?.autoCloseHours !== undefined && ChatService.AUTO_CLOSE.includes(Number(body.autoCloseHours))) next.autoCloseHours = Number(body.autoCloseHours);
     const value = JSON.stringify(next);
     await this.prisma.appSetting.upsert({ where: { key: ChatService.SETTINGS_KEY }, update: { value }, create: { key: ChatService.SETTINGS_KEY, value } });
     return next;

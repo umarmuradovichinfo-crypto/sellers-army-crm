@@ -27,3 +27,20 @@ describe('Amma (amoCRM «Агент внутри продукта»)', () => {
     assert.ok(Array.isArray(r.days));
   });
 });
+
+describe('Обращения: suhbatni avtomatik yopish', () => {
+  test("sozlama saqlanadi, noto'g'ri qiymat qabul qilinmaydi, yangi suhbatlar yopilmaydi", async () => {
+    const A = await admin();
+    let c = await ok('PUT', '/crm/chat-settings', { autoCloseHours: 24 }, A, 200);
+    assert.equal(c.autoCloseHours, 24);
+    c = await ok('PUT', '/crm/chat-settings', { autoCloseHours: 5 }, A, 200);
+    assert.equal(c.autoCloseHours, 24, "ruxsat etilmagan qiymat qabul qilindi");
+    const before = (await ok('GET', '/crm/conversations', undefined, A, 200)).conversations.filter((x) => !x.closed).length;
+    const r = await ok('POST', '/crm/chat-settings/auto-close-run', {}, A);
+    assert.equal(typeof r.closed, 'number');
+    const after = (await ok('GET', '/crm/conversations', undefined, A, 200)).conversations.filter((x) => !x.closed).length;
+    assert.equal(after, before - r.closed);
+    await ok('PUT', '/crm/chat-settings', { autoCloseHours: 0 }, A, 200);
+    assert.equal((await ok('POST', '/crm/chat-settings/auto-close-run', {}, A)).closed, 0);
+  });
+});

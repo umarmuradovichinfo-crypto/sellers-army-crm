@@ -2,6 +2,11 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Murojaatlar': 'Обращения',
+  "Mijoz bilan har bir yozishma raqamlangan suhbat («Беседа № …») bo'ladi. Javobsiz va o'qilmagan suhbatlar belgilangan vaqtdan keyin avtomatik yopiladi; mijoz qayta yozsa — yangi raqamli suhbat ochiladi.": 'Каждое обращение клиента — беседа с уникальным номером («Беседа № …»). Беседы без ответа закрываются автоматически через заданное время; если клиент напишет снова — откроется новая беседа.',
+  "Xabar o'qilmagan va javob bo'lmasa, suhbatni avtomatik yopish": 'Автоматически закрывать беседу, если сообщение не было прочитано и нет ответа',
+  'Hech qachon': 'Никогда',
+  'kun': 'дн.',
   'Bildirishnomalar sozlamalari': 'Настройки уведомлений',
   'ASOSIY': 'ОСНОВНЫЕ',
   'MARKAZ': 'ЦЕНТР',

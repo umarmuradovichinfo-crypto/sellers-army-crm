@@ -34,6 +34,8 @@ export class ChatController {
   }
   @Get('chat-settings') chatSettings() { return this.chat.getChatSettings(); }
   @Put('chat-settings') @RequirePermissions('settings.roles.manage') saveChatSettings(@Body() body: any) { return this.chat.saveChatSettings(body); }
+  // «Обращения»: avtomatik yopishni hozir ishga tushirish (administrator)
+  @Post('chat-settings/auto-close-run') @RequirePermissions('settings.roles.manage') autoClose() { return this.chat.autoCloseTick().then((closed) => ({ closed })); }
   @Get('chat-stats') chatStats(@Query('from') from?: string, @Query('to') to?: string) { return this.chat.chatStats({ from, to }); }
   @Get('leads/:id/messages') async messages(@Param('id') id: string, @CurrentUser() user: AuthUser) { await this.rights.assertLead(user, id, 'view'); return this.chat.listMessages(id, user.id); }
   @Post('leads/:id/messages') async send(@Param('id') id: string, @Body() body: { text: string }, @CurrentUser() user: AuthUser) { await this.rights.assertLead(user, id, 'view'); return this.chat.sendMessage(id, body?.text, user); }

@@ -233,6 +233,17 @@ function ChatsSection() {
         </div>
 
         <div className="ac-set-block">
+          <h2 className="ac-set-block__title">{t('Murojaatlar')}</h2>
+          <div className="ac-set-block__desc">{t("Mijoz bilan har bir yozishma raqamlangan suhbat («Беседа № …») bo'ladi. Javobsiz va o'qilmagan suhbatlar belgilangan vaqtdan keyin avtomatik yopiladi; mijoz qayta yozsa — yangi raqamli suhbat ochiladi.")}</div>
+          <div className="ac-set-row">
+            <div className="ac-set-row__label" style={{ width: 'auto', marginRight: 12 }}>{t("Xabar o'qilmagan va javob bo'lmasa, suhbatni avtomatik yopish")}</div>
+            <select className="ac-select" value={form?.autoCloseHours || 0} disabled={!canManage} onChange={(e) => setForm((f) => ({ ...f, autoCloseHours: Number(e.target.value) }))}>
+              {[0, 1, 3, 6, 12, 24, 48, 72, 168].map((h) => <option key={h} value={h}>{h === 0 ? t('Hech qachon') : h < 24 ? `${h} ${t('soat')}` : `${h / 24} ${t('kun')}`}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="ac-set-block">
           <h2 className="ac-set-block__title">{t('Suhbatlar')}</h2>
           <div className="ac-set-block__desc">{t("Mijoz chatga yozganda tizim ochiq suhbatni topib, xabarni unga qo'shadi. Yangi suhbat yaratish qoidasini sozlang:")}</div>
           {RULES.map(([k, l]) => (
