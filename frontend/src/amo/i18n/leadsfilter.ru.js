@@ -2,6 +2,9 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'dup§Nomi': 'Имя',
+  "dup§Mas'ul": 'Отв-ный',
+  'dup§Bosqich': 'Статус',
   // Presetlar va sana
   "E'tibor talab qiladigan": 'Требующие внимания',
   'Saqlangan filtrlar': 'Сохранённые фильтры',

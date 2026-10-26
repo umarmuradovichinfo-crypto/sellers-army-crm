@@ -270,3 +270,15 @@
   .ac-col { width: calc(100vw - var(--left-menu-width) - 24px); scroll-snap-align: start; }
 }
 .ac-card__phone { flex: none; height: 18px; line-height: 16px; padding: 0 4px; border: 1px solid var(--palette-border-primary); border-radius: 3px; font-size: 12px; color: var(--palette-text-secondary-dark); white-space: nowrap; }
+
+/* amoCRM «Найти и объединить дубли»: tugmalar oddiy yozuvda, «Статус» — voronka + bosqich chipi */
+.ac-dupm__btn { text-transform: none; letter-spacing: 0; font-weight: 700; }
+.ac-dupm__stage { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; }
+.ac-dupm__pipe { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; text-transform: uppercase; }
+.ac-dupm__st { padding: 1px 6px; border-radius: 3px; background: #99ccff; color: #2b3e50; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-import-btn { border: 1px solid var(--palette-border-default); height: 32px; padding: 0 12px; font-size: 14px; }
+/* amoCRM: chatdan kelgan saralanmagan — hover'da o'ngda qizil savat */
+.ac-card--unsorted { position: relative; }
+.ac-card__trash { position: absolute; top: 0; right: 0; bottom: 0; width: 36px; display: none; align-items: center; justify-content: center; border: 0; border-left: 1px solid var(--palette-border-default); background: var(--palette-background-primary); color: #f37575; cursor: pointer; border-radius: 0 3px 3px 0; }
+.ac-card--unsorted:hover .ac-card__trash { display: flex; }
+.ac-card__trash:hover { background: rgba(243, 117, 117, .12); }

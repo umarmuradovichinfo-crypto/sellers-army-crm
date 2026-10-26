@@ -1013,8 +1013,13 @@ export class CrmService {
     groups.length = 0; groups.push(...live);
     const rows = await this.rowsByIds(groups.flatMap((g) => g.ids));
     const rowById = new Map(rows.map((r) => [r.id, r]));
-    const stages = await this.prisma.crmStage.findMany({ select: { key: true, name: true } });
+    const [stages, pipes] = await Promise.all([
+      this.prisma.crmStage.findMany({ select: { key: true, name: true, color: true } }),
+      this.prisma.crmPipeline.findMany({ select: { id: true, name: true } }),
+    ]);
     const stName = new Map(stages.map((x) => [x.key, x.name]));
+    const stColor = new Map(stages.map((x) => [x.key, x.color]));
+    const pName = new Map(pipes.map((p) => [p.id, p.name]));
     const names = await this.userMap(rows.map((r) => r.assigneeId));
     return {
       by,
@@ -1025,7 +1030,8 @@ export class CrmService {
         leads: g.ids.map((id) => rowById.get(id)).filter(Boolean).map((l) => ({
           id: l!.id, name: l!.name, phone: l!.phone, email: l!.email, value: l!.value, source: l!.source,
           stage: l!.stage, pipelineId: l!.pipelineId || null, assigneeId: l!.assigneeId || null,
-          stageName: stName.get(l!.stage) || l!.stage, assigneeName: l!.assigneeId ? names.get(l!.assigneeId) || null : null,
+          stageName: stName.get(l!.stage) || l!.stage, stageColor: stColor.get(l!.stage) || null,
+          pipelineName: l!.pipelineId ? pName.get(l!.pipelineId) || null : null, assigneeName: l!.assigneeId ? names.get(l!.assigneeId) || null : null,
           tags: parse<string[]>(l!.tagsJson, []), custom: parse<Record<string, unknown>>(l!.customJson, {}), createdAt: l!.createdAt.toISOString(),
         })),
       })),

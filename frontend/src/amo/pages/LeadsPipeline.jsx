@@ -107,8 +107,13 @@ function LeadCard({ lead, onOpen, onPointerDown, dragging, fields, bulk, selecte
 
 const UTM_RE = /^(utm_|openstat_|_ym_|gclid|yclid|fbclid|gclientid|roistat|referrer|from$)/
 
-function UnsortedCard({ lead, fields = [], onAccept, onReject, onOpen }) {
+// amoCRM: chatdan kelgan saralanmagan — hover'da faqat o'ngda qizil savat (qabul — bosqichga sudrash yoki kartochkadan)
+const CHAT_SRC = /telegram|instagram|messenger|whatsapp|facebook|comment|chat|чат/i
+
+function UnsortedCard({ lead, fields = [], onAccept, onReject, onOpen, onPointerDown, dragging }) {
   const t = useT()
+  const dragProps = { 'data-lead': lead.id, onPointerDown: (e) => onPointerDown?.(e, lead) }
+  const stop = (e) => e.stopPropagation()
   // amoCRM: forma/Lead Ads arizasi — avatar o'rniga forma maydonlari ro'yxati (nom → qiymat)
   const answers = Object.entries(lead.custom || {}).filter(([k, v]) => !UTM_RE.test(k) && !k.startsWith('_') && v !== '' && v != null && typeof v !== 'object')
   if (lead.formName || answers.length) {
@@ -121,36 +126,41 @@ function UnsortedCard({ lead, fields = [], onAccept, onReject, onOpen }) {
       lead.company && [t('Kompaniya nomi'), lead.company],
     ].filter(Boolean)
     return (
-      <div className="ac-card ac-card--unsorted ac-card--form">
+      <div className={`ac-card ac-card--unsorted ac-card--form ${dragging ? 'dragging-src' : ''}`} {...dragProps}>
         <div className="ac-card__body">
           <div className="ac-card__row">
-            <span className="ac-card__formtitle" onClick={() => onOpen(lead)}>{lead.n}</span>
+            <span className="ac-card__formtitle" onPointerDown={stop} onClick={() => onOpen(lead)}>{lead.n}</span>
             <span className="ac-card__date">{cardDate(lead.createdAt, t)}</span>
           </div>
           {rows.map(([k, v], i) => <div key={i} className="ac-card__kv"><span title={k}>{k}</span><b title={v}>{v}</b></div>)}
         </div>
-        <div className="ac-card__accept">
+        <div className="ac-card__accept" onPointerDown={stop}>
           <button className="ac-btn ac-btn--green ac-btn--sm" onClick={() => onAccept(lead)}><Ico name="check" size={12} /> {t('Qabul qilish')}</button>
           <button className="ac-btn ac-btn--sm" onClick={() => onReject(lead)}>{t('Rad etish')}</button>
         </div>
       </div>
     )
   }
+  const chat = CHAT_SRC.test(lead.source || '')
   return (
-    <div className="ac-card ac-card--unsorted">
+    <div className={`ac-card ac-card--unsorted ${dragging ? 'dragging-src' : ''}`} {...dragProps}>
       <Avatar src={lead.source || 'form'} />
       <div className="ac-card__body">
         <div className="ac-card__row">
           <span className="ac-card__from" style={{ flex: 1 }}>{t('dan')}: {lead.source || lead.formName || t('Forma')}</span>
           <span className="ac-card__date">{cardDate(lead.createdAt, t)}</span>
         </div>
-        <div className="ac-card__name" onClick={() => onOpen(lead)}>{lead.n}</div>
+        <div className="ac-card__name" onPointerDown={stop} onClick={() => onOpen(lead)}>{lead.n}</div>
         <span className="ac-card__msg" title={lead.lastMessage || ''}>{lead.lastMessage || (lead.formName ? `${t('Forma')}: ${lead.formName}` : phoneFmt(lead.phone) || t("Yangi so'rov"))}</span>
       </div>
-      <div className="ac-card__accept">
-        <button className="ac-btn ac-btn--green ac-btn--sm" onClick={() => onAccept(lead)}><Ico name="check" size={12} /> {t('Qabul qilish')}</button>
-        <button className="ac-btn ac-btn--sm" onClick={() => onReject(lead)}>{t('Rad etish')}</button>
-      </div>
+      {chat
+        ? <button className="ac-card__trash" title={t('Rad etish')} onPointerDown={stop} onClick={() => onReject(lead)}><Ico name="trash" size={16} /></button>
+        : (
+          <div className="ac-card__accept" onPointerDown={stop}>
+            <button className="ac-btn ac-btn--green ac-btn--sm" onClick={() => onAccept(lead)}><Ico name="check" size={12} /> {t('Qabul qilish')}</button>
+            <button className="ac-btn ac-btn--sm" onClick={() => onReject(lead)}>{t('Rad etish')}</button>
+          </div>
+        )}
     </div>
   )
 }
@@ -379,6 +389,12 @@ export default function LeadsPipeline() {
   }
 
   const onDrop = async (lead, from, over) => {
+    // amoCRM: saralanmaganni bosqichga sudrash — qabul qilish, «O'chirish» zonasiga — rad etish
+    if (from === '__unsorted') {
+      if (over.zone === 'delete') return rejectUnsorted(lead)
+      if (over.stage) return acceptUnsorted(lead, over.stage)
+      return
+    }
     if (over.zone === 'delete') {
       dropLocal(lead)
       await crmService.deleteLead(lead.id).catch(() => reload())
@@ -399,9 +415,9 @@ export default function LeadsPipeline() {
   const { drag, start } = useCardDrag({ onDrop })
   dragRef.current = !!drag
 
-  const acceptUnsorted = async (lead) => {
+  const acceptUnsorted = async (lead, stageKey) => {
     const first = openStages[0]
-    try { await crmService.acceptUnsorted(lead.id, { stageKey: first?.id, pipelineId: pipelineId || null, assigneeId: user?.id }) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')) }
+    try { await crmService.acceptUnsorted(lead.id, { stageKey: stageKey || first?.id, pipelineId: pipelineId || null, assigneeId: user?.id }) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')) }
     reload()
   }
   const rejectUnsorted = async (lead) => { try { await crmService.deleteLead(lead.id) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')) } reload() }
@@ -456,7 +472,7 @@ export default function LeadsPipeline() {
                 <div className="ac-col__line" />
               </div>
               <div className="ac-col__body">
-                {unsorted.map((l) => <UnsortedCard key={l.id} lead={l} fields={meta.fields} onAccept={acceptUnsorted} onReject={rejectUnsorted} onOpen={openLead} />)}
+                {unsorted.map((l) => <UnsortedCard key={l.id} lead={l} fields={meta.fields} onAccept={(x) => acceptUnsorted(x)} onReject={rejectUnsorted} onOpen={openLead} dragging={drag?.lead.id === l.id} onPointerDown={(e, lead) => start(e, lead, '__unsorted')} />)}
               </div>
             </div>
           )}

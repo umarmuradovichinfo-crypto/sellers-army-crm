@@ -27,6 +27,7 @@ const LEAD_FIELDS = [
   { key: 'email', label: 'Kontakt: email', syn: ['email', 'e-mail', 'pochta', 'почта', 'mail'] },
   { key: 'company', label: 'Kompaniya', syn: ['kompaniya', 'company', 'компания', 'tashkilot', 'organization', 'организация'] },
   { key: 'source', label: 'Manba', syn: ['manba', 'source', 'источник'] },
+  { key: 'note', label: 'Izoh', syn: ['izoh', 'note', 'notes', 'примечание', 'комментарий', 'comment', 'izohlar'] },
 ]
 const CONTACT_FIELDS = [
   { key: 'name', label: 'Ism', required: true, syn: ['ism', 'fio', 'фио', 'имя', 'name', 'full name', 'fullname', 'nom', 'nomi', 'kontakt', 'контакт', 'mijoz', 'клиент', 'client'] },
@@ -69,7 +70,7 @@ async function readFile(file) {
     if (text.includes('�')) text = new TextDecoder('windows-1251').decode(buf)
     return parseCsv(text)
   }
-  if (ext === 'xlsx' || ext === 'xls') {
+  if (ext === 'xlsx' || ext === 'xls' || ext === 'ods') {
     const XLSX = await import('xlsx')
     const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' })
     const ws = wb.Sheets[wb.SheetNames[0]]
@@ -144,13 +145,13 @@ export function ImportModal({ entity = 'leads', onClose }) {
               <span className="ac-import-card__ico">XLS</span>
               <div>
                 <div className="ac-import-card__title">{t('Jadvaldan import')}</div>
-                <p>{t("Excel'dan import .xls, .xlsx va .csv fayllarini qo'llab-quvvatlaydi. Import bir yo'la kontaktlar, bitimlar, barcha qo'shimcha maydonlar va teglarni olib kirish imkonini beradi.")}</p>
+                <p>{t("Excel'dan import .xls, .xlsx, .ods va .csv fayllarini qo'llab-quvvatlaydi. Import bir yo'la kompaniyalar, kontaktlar, bitimlar, barcha qo'shimcha maydonlar va izohlarni olib kirish imkonini beradi.")}</p>
                 <p>{t("Agar faylda «Sana» maydoni bo'lsa, Excel faylini «CSV (vergul bilan ajratilgan)» formatiga o'tkazing: «Saqlash…» → «CSV (vergul bilan ajratilgan)» → «Saqlash».")}</p>
                 <div className="ac-import-card__btns">
-                  <button className="ac-btn" onClick={() => inputRef.current?.click()}>{t('Faylni yuklash')}</button>
+                  <button className="ac-btn ac-btn--plain ac-import-btn" onClick={() => inputRef.current?.click()}>{t('Faylni yuklash')}</button>
                   <a onClick={() => downloadSample(entity === 'leads')}>{t('Namunani yuklab olish')}</a>
                 </div>
-                <input ref={inputRef} type="file" hidden accept=".csv,.txt,.xlsx,.xls" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
+                <input ref={inputRef} type="file" hidden accept=".csv,.txt,.xlsx,.xls,.ods" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
               </div>
             </div>
             <div className="ac-import-card ac-import-card--plain">
@@ -160,7 +161,7 @@ export function ImportModal({ entity = 'leads', onClose }) {
                 <p>{t("Bazangiz Google jadvallarida bo'lsa, u bilan darhol ishlashni boshlashingiz mumkin. Jadvalga «Havolaga ega har kim ko'ra oladi» ruxsatini bering va havolani shu yerga qo'ying.")}</p>
                 <div className="ac-import-card__btns">
                   <input className="ac-input ac-import-card__url" placeholder="https://docs.google.com/spreadsheets/d/…" value={sheet} onChange={(e) => setSheet(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && loadSheet()} />
-                  <button className="ac-btn" disabled={!sheet.trim() || busy} onClick={loadSheet}>{t(busy ? 'Yuklanmoqda…' : 'Jadvalni tanlash')}</button>
+                  <button className="ac-btn ac-btn--plain ac-import-btn" disabled={!sheet.trim() || busy} onClick={loadSheet}>{t(busy ? 'Yuklanmoqda…' : 'Jadvalni tanlash')}</button>
                 </div>
                 {err && <div className="ac-import-err" style={{ margin: '8px 0 0' }}>{err}</div>}
               </div>
@@ -306,7 +307,7 @@ export default function ImportPage({ entity = 'leads' }) {
               <div className="ac-import-drop__title">{t(busy ? "Fayl o'qilmoqda…" : 'Faylni shu yerga tashlang')}</div>
               <div className="ac-muted">{t('yoki')} <span className="ac-import-drop__link">{t('faylni tanlang')}</span></div>
               <div className="ac-muted" style={{ fontSize: 13 }}>{t("Qo'llab-quvvatlanadi: CSV, XLSX, XLS")}</div>
-              <input ref={inputRef} type="file" hidden accept=".csv,.txt,.xlsx,.xls" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = '' }} />
+              <input ref={inputRef} type="file" hidden accept=".csv,.txt,.xlsx,.xls,.ods" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = '' }} />
             </div>
             {err && <div className="ac-import-err">{err}</div>}
             <button className="ac-import-sample" onClick={sampleFile}><Ico name="download" size={14} />{t('Namuna faylni yuklab olish')}</button>

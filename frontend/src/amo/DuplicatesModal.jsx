@@ -12,14 +12,25 @@ import './leads.css'
 
 const BY = ['phone', 'email', 'name']
 const ROWS = [
-  { key: 'name', label: 'Nomi', show: (l) => l.name },
-  { key: 'assignee', label: "Mas'ul", show: (l) => l.assigneeName || '—' },
+  { key: 'name', label: 'dup§Nomi', show: (l) => l.name },
+  { key: 'assignee', label: "dup§Mas'ul", show: (l) => l.assigneeName || '—' },
   { key: 'created', label: 'Yaratilgan sana', show: (l) => l.createdAt.slice(0, 19).replace('T', ' ') },
   { key: 'value', label: 'Byudjet', show: (l) => money(l.value || 0) },
-  { key: 'stage', label: 'Bosqich', show: (l) => l.stageName },
+  { key: 'stage', label: 'dup§Bosqich', show: (l) => <StageChip l={l} /> },
 ]
 const empty = (v) => v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length)
 const fmtCustom = (v) => (Array.isArray(v) ? v.join(', ') : typeof v === 'object' ? JSON.stringify(v) : String(v))
+
+// amoCRM: «Статус» — voronka nomi + rangli bosqich chipi
+function StageChip({ l }) {
+  const t = useT()
+  return (
+    <span className="ac-dupm__stage">
+      <span className="ac-dupm__pipe">{l.pipelineName || t('Asosiy voronka')}</span>
+      <span className="ac-dupm__st" style={l.stageColor ? { background: l.stageColor } : undefined}>{l.stageName}</span>
+    </span>
+  )
+}
 
 export default function DuplicatesModal({ onClose, onMerged }) {
   const t = useT()
@@ -91,8 +102,8 @@ export default function DuplicatesModal({ onClose, onMerged }) {
           <h2 className="ac-modal__title">{t('Dublikatlarni topish va birlashtirish')}{groups?.length ? ` · 1 ${t('dup§dan')} ${groups.length}` : ''}</h2>
           <span className="grow" />
           <button className="ac-dupm__cancel" onClick={onClose}>{t('Bekor qilish')}</button>
-          {g && <button className="ac-btn" disabled={busy} onClick={notDup}>{t('Dublikat emas')}</button>}
-          {g && <button className="ac-btn ac-btn--blue" disabled={busy} onClick={merge}>{t('Birlashtirish')}</button>}
+          {g && <button className="ac-btn ac-dupm__btn" disabled={busy} onClick={notDup}>{t('Dublikat emas')}</button>}
+          {g && <button className="ac-btn ac-btn--blue ac-dupm__btn" disabled={busy} onClick={merge}>{t('Birlashtirish')}</button>}
         </div>
         {!groups && <div className="ac-spinner" style={{ margin: 40 }} />}
         {groups && !g && <div className="ac-dupm__empty">{t('Dublikatlar topilmadi')}</div>}
@@ -123,11 +134,11 @@ export default function DuplicatesModal({ onClose, onMerged }) {
               </div>
               <div className="ac-dupm__res">
                 <a className="ac-dupm__links" onClick={reset}>{t('Hammasini bekor qilish')}</a>
-                {resultRow('Nomi', <b>{byId(pick.name)?.name}</b>)}
-                {resultRow("Mas'ul", byId(pick.assignee)?.assigneeName)}
+                {resultRow('dup§Nomi', <b>{byId(pick.name)?.name}</b>)}
+                {resultRow("dup§Mas'ul", byId(pick.assignee)?.assigneeName)}
                 {resultRow('Yaratilgan sana', byId(pick.created) && ROWS[2].show(byId(pick.created)))}
                 {resultRow('Byudjet', byId(pick.value) && money(byId(pick.value).value || 0))}
-                {resultRow('Bosqich', byId(pick.stage)?.stageName)}
+                {resultRow('dup§Bosqich', byId(pick.stage) ? <StageChip l={byId(pick.stage)} /> : null)}
                 {resultRow('Teglar', tags.length ? <div className="ac-dupm__tags">{tags.map((x) => <span key={x} className={`ac-tag ${colors[x] ? 'ac-tag--c' : ''}`} style={tagStyle(colors[x])}>{x}</span>)}</div> : null)}
                 {cfRows.map((f) => <React.Fragment key={f.key}>{resultRow(f.label, (() => { const v = byId(pick[`cf:${f.key}`])?.custom?.[f.key]; return empty(v) ? null : fmtCustom(v) })())}</React.Fragment>)}
               </div>

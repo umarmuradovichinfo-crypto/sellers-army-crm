@@ -219,7 +219,10 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     b) Bitimlar — farqlar (26.10): [x] kartochkada vazifa holati faqat nuqta (matn tooltip'da), kontakt telefoni pastki qatorda
        chip (standart maydonlarda); [x] ochilganda filtr yo'q («Поиск и фильтр», hamma bitimlar) — oldin «Открытые сделки».
        [x] kartochka: bosqichda turgan muddat «(130 дней)» (oldin sana), «Дубль?» pushti chip — shu telefon/email bilan boshqa
-       bitimlar ro'yxati. Keyingisi: saralanmagan, dublikatlar oynasi, import — batafsil solishtirish.
+       bitimlar ro'yxati.
+       [x] «Найти и объединить дубли»: maydonlar «Имя / Отв-ный / Статус», status — voronka + rangli bosqich chipi, tugmalar
+       oddiy yozuvda. [x] Import: .ods, «Примечание» ustuni (bitimga izoh), «Создание» huquqi. [x] Saralanmagan: chatdan
+       kelganda hover'da faqat qizil savat, kartani bosqichga sudrash — qabul, «O'chirish» zonasiga — rad etish. test/e2e/80-import.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

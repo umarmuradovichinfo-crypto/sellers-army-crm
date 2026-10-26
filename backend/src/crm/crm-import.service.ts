@@ -235,6 +235,8 @@ export class CrmImportService {
             tagsJson: JSON.stringify(tags),
             customJson: JSON.stringify(custom),
             createdById: user?.id || null,
+            // amoCRM importi: «Примечание» ustuni bitimga izoh bo'lib tushadi
+            ...(str(r.note, 2000) ? { notesJson: JSON.stringify([{ text: str(r.note, 2000), at: new Date().toISOString(), by: user?.name || 'Import' }]) } : {}),
           },
         });
         idx.push({ id: lead.id, phone, email, tagsJson: lead.tagsJson, customJson: lead.customJson, tail, em: email || '' });
