@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { facebookService } from '../../services/facebook.service'
 import { crmService } from '../../services/crm.service'
+import { useApi } from '../../lib/useApi'
 import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { useT } from '../i18n'
@@ -54,8 +55,8 @@ export default function IntegrationsFacebook({ stages = [], members = [], pipeli
   const [pstat, setPstat] = useState({})
   const [mappings, setMappings] = useState([])
   // Formalar ro'yxatida "→ Voronka / Bosqich" ko'rsatish uchun barcha voronkalar bosqichlari
-  const [allStages, setAllStages] = useState([])
-  useEffect(() => { crmService.listStages().then((r) => setAllStages(r.stages || [])).catch(() => {}) }, [])
+  const { data: stagesRes } = useApi(() => crmService.listStages().catch(() => null), [], 'stages:all')
+  const allStages = stagesRes?.stages || []
   const stageName = (m) => m.stageKey ? (allStages.find((x) => (x.key || x.id) === m.stageKey)?.name || m.stageKey) : ''
   const [msg, setMsg] = useState(null)
   const [wiz, setWiz] = useState(null)

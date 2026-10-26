@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
 import { api } from '../../lib/apiClient'
+import { useApi } from '../../lib/useApi'
 import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
@@ -28,11 +29,9 @@ export { TASK_TYPES }
 function CardFieldsSetup({ onClose, onChanged }) {
   const t = useT()
   const meta = useFilterMeta()
-  const [fields, setFields] = useState(null)
+  const { data: fields, reload: load } = useApi(() => crmService.listFields('lead').then((r) => (r.fields || []).map((f) => ({ ...f, group: f.group || '' }))).catch(() => []), [], 'fields:lead:setup')
   const [group, setGroup] = useState('')
   const [modal, setModal] = useState(null)
-  const load = () => crmService.listFields('lead').then((r) => setFields((r.fields || []).map((f) => ({ ...f, group: f.group || '' })))).catch(() => setFields([]))
-  useEffect(() => { load() }, [])
   const groups = useMemo(() => { const g = ['']; (fields || []).forEach((f) => { if (!g.includes(f.group)) g.push(f.group) }); return g }, [fields])
   const stageOpts = useMemo(() => {
     const pname = (pid) => (pid ? (meta.pipelines || []).find((p) => p.id === pid)?.name || '' : t('Asosiy voronka'))
@@ -530,9 +529,8 @@ export function TemplatePicker({ onPick }) {
 // Bitim kartochkasidan Salesbot'ni qo'lda ishga tushirish (amoCRM: «запускайте вручную – через карточку сделки»)
 function BotPick({ leadId, onClose }) {
   const t = useT()
-  const [bots, setBots] = useState(null)
+  const { data: bots } = useApi(() => api.get('/crm/salesbots').then((r) => (r.bots || []).filter((b) => b.active)).catch(() => []), [], 'bots:active')
   const [err, setErr] = useState('')
-  useEffect(() => { api.get('/crm/salesbots').then((r) => setBots((r.bots || []).filter((b) => b.active))).catch(() => setBots([])) }, [])
   const run = async (id) => {
     try { await api.post(`/crm/salesbots/${id}/run`, { leadId }); onClose(true) } catch (e) { setErr(e?.data?.message || e?.message || t('Xatolik yuz berdi')) }
   }

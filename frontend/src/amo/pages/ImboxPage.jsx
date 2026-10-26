@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
+import { useApi } from '../../lib/useApi'
 import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
 import { feedDate, dmy, hm, relDay, replyOverdue } from '../format'
@@ -356,9 +357,6 @@ export default function ImboxPage() {
   const { leadId } = useParams()
   const navigate = useNavigate()
   const t = useT()
-  const [convs, setConvs] = useState(null)
-  const [status, setStatus] = useState(null)
-  const [pipes, setPipes] = useState([])
   const [q, setQ] = useState('')
   const [searching, setSearching] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
@@ -373,25 +371,22 @@ export default function ImboxPage() {
     setPicked(null); loadList()
   }
 
-  const loadList = useCallback(() => {
-    crmService.conversations({ preset: flt.preset || undefined, period: flt.period || undefined, stages: flt.stages.join(',') || undefined, sort: sort === 'old' ? 'old' : undefined })
-      .then((r) => setConvs(r.conversations || [])).catch(() => setConvs((v) => v || []))
-  }, [flt, sort])
-  useEffect(() => {
-    loadList()
-    crmService.chatStatus().then(setStatus).catch(() => setStatus({ telegram: false, facebook: false, instagram: false }))
-    const h = setInterval(loadList, REFRESH_MS)
-    return () => clearInterval(h)
-  }, [loadList])
-  useEffect(() => {
-    ;(async () => {
-      const main = await crmService.getPipeline().catch(() => null)
-      if (!main) return
-      const list = [{ id: '', name: t('Asosiy voronka'), stages: main.stages || [] }]
-      const others = await Promise.all((main.pipelines || []).map((p) => crmService.getPipeline(p.id).then((r) => ({ id: p.id, name: p.name, stages: r.stages || [] })).catch(() => null)))
-      setPipes([...list, ...others.filter(Boolean)])
-    })()
-  }, []) // eslint-disable-line
+  const convQuery = { preset: flt.preset || undefined, period: flt.period || undefined, stages: flt.stages.join(',') || undefined, sort: sort === 'old' ? 'old' : undefined }
+  const { data: convData, error: convErr, reload: loadList } = useApi(
+    () => crmService.conversations(convQuery).then((r) => r.conversations || []),
+    [flt, sort], `imbox:convs:${JSON.stringify(convQuery)}`, REFRESH_MS,
+  )
+  const convs = convData ?? (convErr ? [] : null)
+  const { data: statusData, error: statusErr } = useApi(() => crmService.chatStatus(), [], 'imbox:chatStatus')
+  const status = statusData ?? (statusErr ? { telegram: false, facebook: false, instagram: false } : null)
+  const { data: pipesData } = useApi(async () => {
+    const main = await crmService.getPipeline().catch(() => null)
+    if (!main) throw new Error('no pipeline')
+    const list = [{ id: '', name: 'Asosiy voronka', stages: main.stages || [] }]
+    const others = await Promise.all((main.pipelines || []).map((p) => crmService.getPipeline(p.id).then((r) => ({ id: p.id, name: p.name, stages: r.stages || [] })).catch(() => null)))
+    return [...list, ...others.filter(Boolean)]
+  }, [], 'imbox:pipes')
+  const pipes = useMemo(() => (pipesData || []).map((p) => (p.id === '' ? { ...p, name: t('Asosiy voronka') } : p)), [pipesData]) // eslint-disable-line
 
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase()

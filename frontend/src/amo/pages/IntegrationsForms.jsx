@@ -1,6 +1,7 @@
 // Saytga lid formalari — ro'yxat + ixcham tahrirlash (mantiq: eski FormsView / FormBuilder).
 import React, { useEffect, useState } from 'react'
 import { crmService } from '../../services/crm.service'
+import { useApi } from '../../lib/useApi'
 import { Ico } from '../AmoIcons'
 import { useT } from '../i18n'
 
@@ -19,12 +20,12 @@ const newField = () => ({ key: 'maydon_' + Date.now().toString(36) + '_' + (seq+
 
 export default function IntegrationsForms({ stages = [], members = [], onStatus }) {
   const t = useT()
-  const [items, setItems] = useState(null)
+  const { data: itemsRaw, setData: setItems, error: formsErr, reload: load } = useApi(() => crmService.listForms().then((r) => r.forms || []), [], 'integrations:forms')
+  const items = itemsRaw ?? (formsErr ? [] : null)
   const [edit, setEdit] = useState(null)
   const [msg, setMsg] = useState(null)
-  const load = () => crmService.listForms().then((r) => { setItems(r.forms || []); onStatus?.((r.forms || []).length > 0) })
-    .catch((e) => { setItems([]); setMsg({ ok: false, m: e.message || t('Xatolik') }) })
-  useEffect(() => { load() }, []) // eslint-disable-line
+  useEffect(() => { if (items) onStatus?.(items.length > 0) }, [items]) // eslint-disable-line
+  useEffect(() => { if (formsErr) setMsg({ ok: false, m: formsErr.message || t('Xatolik') }) }, [formsErr]) // eslint-disable-line
 
   const toggle = async (f) => {
     setItems((xs) => xs.map((x) => (x.id === f.id ? { ...x, active: !x.active } : x)))

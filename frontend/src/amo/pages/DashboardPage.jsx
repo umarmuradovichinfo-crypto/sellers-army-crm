@@ -173,14 +173,13 @@ export default function DashboardPage() {
   useOutside(dateRef, () => setDateOpen(false), dateOpen)
 
   // amoCRM: joylashuv serverda (vidjetlar, mavzu, shrift, fon); «Настроить» — tahrirlash rejimi (draft)
-  const [layout, setLayout] = useState(null)
+  const { data: layout, setData: setLayout } = useApi(() => loadLayout(), [], 'dashboard:layout')
   const [draft, setDraft] = useState(null)
   const [applyAll, setApplyAll] = useState(false)
   const [modal, setModal] = useState(null) // { index, widget }
   const [catalog, setCatalog] = useState(false)
   const [dragId, setDragId] = useState(null)
   const [saving, setSaving] = useState(false)
-  useEffect(() => { loadLayout().then(setLayout) }, [])
   const L = draft || layout || DEFAULT_LAYOUT
   const editing = !!draft
   const patch = (p) => setDraft((d) => ({ ...d, ...p }))

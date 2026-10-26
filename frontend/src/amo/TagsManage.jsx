@@ -19,14 +19,14 @@ export default function TagsManage({ onClose, onChanged }) {
   const { can } = useAuth()
   const canEdit = !can || can('crm.settings')
   const { data, reload } = useApi(() => crmService.listTags(), [])
-  const [locked, setLocked] = useState(false)
+  const { data: lockedData, setData: setLocked } = useApi(() => api.get('/crm/tags-settings').catch(() => null), [], 'tags:settings')
+  const locked = !!lockedData?.locked
   const [q, setQ] = useState('')
   const [editId, setEditId] = useState(null)
   const [editName, setEditName] = useState('')
   const [colorId, setColorId] = useState(null)
   const [del, setDel] = useState(null)
   const [msg, setMsg] = useState('')
-  useEffect(() => { api.get('/crm/tags-settings').then((r) => setLocked(!!r?.locked)).catch(() => {}) }, [])
   useEffect(() => {
     const h = (e) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', h)
@@ -44,8 +44,8 @@ export default function TagsManage({ onClose, onChanged }) {
   }
   const toggleLock = () => {
     const v = !locked
-    setLocked(v)
-    api.put('/crm/tags-settings', { locked: v }).catch(() => setLocked(!v))
+    setLocked({ locked: v })
+    api.put('/crm/tags-settings', { locked: v }).catch(() => setLocked({ locked: !v }))
   }
   const add = () => { if (query && !exact) { setQ(''); run(() => crmService.upsertTag(query)) } }
   const saveEdit = (x) => {

@@ -5,6 +5,7 @@ import DonoWidget from './Dono'
 import IncomingCall from './IncomingCall'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useApi } from '../lib/useApi'
 import { crmService, notifService as notificationsApi } from '../services/crm.service'
 import { NavIcon, Ico } from './AmoIcons'
 import { applyTheme, getTheme } from './theme'
@@ -230,13 +231,17 @@ export default function AmoShell({ children }) {
     const c = (e) => { setImboxMenu(e.detail?.imboxMenu !== false); setChatPrefs(e.detail || {}) }
     window.addEventListener('amo:nav-hidden', h)
     window.addEventListener('amo:chat-settings', c)
-    crmService.chatSettings().then((r) => { setImboxMenu(r?.imboxMenu !== false); setChatPrefs(r || {}) }).catch(() => {})
     return () => { window.removeEventListener('amo:nav-hidden', h); window.removeEventListener('amo:chat-settings', c) }
   }, [])
   useEffect(() => { loadTaskTypes() }, [])
+  // Keshdan darrov, fonda yangilanadi (fon yangilanishi o'chirilgan: amo:* hodisalari bilan kelgan o'zgarishlar ustidan yozilmasin)
+  const { data: chatSet } = useApi(() => crmService.chatSettings().catch(() => null), [], 'shell:chatSettings', 0)
+  useEffect(() => { if (chatSet) { setImboxMenu(chatSet.imboxMenu !== false); setChatPrefs(chatSet) } }, [chatSet])
+  const { data: genSet } = useApi(() => (settingsService.getGeneral ? settingsService.getGeneral().catch(() => null) : Promise.resolve(null)), [], 'shell:general', 0)
   useEffect(() => {
-    settingsService.getGeneral?.().then((r) => { setFormatPrefs(r?.general || {}); setNavHidden(r?.general?.navHidden || {}); setPrefsTick((n) => n + 1) }).catch(() => {})
-  }, [])
+    if (!genSet) return
+    setFormatPrefs(genSet.general || {}); setNavHidden(genSet.general?.navHidden || {}); setPrefsTick((n) => n + 1)
+  }, [genSet])
   useEffect(() => {
     document.body.classList.add('ac-body')
     applyTheme(getTheme())

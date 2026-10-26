@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../lib/apiClient'
 import { crmService } from '../services/crm.service'
+import { useApi } from '../lib/useApi'
 import { money } from './format'
 import { useT } from './i18n'
 import { tagStyle, useTagColors } from './tagColors'
@@ -36,7 +37,8 @@ export default function DuplicatesModal({ onClose, onMerged }) {
   const t = useT()
   const colors = useTagColors()
   const [groups, setGroups] = useState(null)
-  const [fields, setFields] = useState([])
+  const { data: fieldsRes } = useApi(() => crmService.listFields('lead').catch(() => null), [], 'fields:lead')
+  const fields = useMemo(() => (fieldsRes?.fields || []).filter((f) => f.active !== false), [fieldsRes])
   const [pick, setPick] = useState({})
   const [tags, setTags] = useState([])
   const [busy, setBusy] = useState(false)
@@ -55,7 +57,6 @@ export default function DuplicatesModal({ onClose, onMerged }) {
   }
   useEffect(() => {
     load()
-    crmService.listFields('lead').then((r) => setFields((r.fields || []).filter((f) => f.active !== false))).catch(() => {})
     const h = (e) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', h)
     return () => document.removeEventListener('keydown', h)

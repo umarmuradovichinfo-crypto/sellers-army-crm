@@ -3,6 +3,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../lib/apiClient'
+import { useApi } from '../lib/useApi'
 import { Ico } from './AmoIcons'
 import { useT } from './i18n'
 import { useFilterMeta } from './filterState'
@@ -391,11 +392,11 @@ export default function BotBuilder({ bot, canEdit, onClose }) {
   const [preview, setPreview] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
-  const [bots, setBots] = useState([])
+  const { data: botsRes } = useApi(() => api.get('/crm/salesbots').catch(() => null), [], 'bots:list')
+  const bots = useMemo(() => (botsRes?.bots || []).filter((b) => b.id !== bot.id), [botsRes, bot.id])
   const canvasRef = useRef(null)
   const layerRef = useRef(null)
   const dirty = useRef(false)
-  useEffect(() => { api.get('/crm/salesbots').then((r) => setBots((r.bots || []).filter((b) => b.id !== bot.id))).catch(() => {}) }, [bot.id])
   useEffect(() => { const h = (e) => e.key === 'Escape' && (setMenu(null), setNodeMenu(null), setLinking(null)); window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h) }, [])
 
   const meta = useMemo(() => {

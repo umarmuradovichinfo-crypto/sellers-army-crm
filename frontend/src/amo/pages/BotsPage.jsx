@@ -1,7 +1,8 @@
 // amoCRM «AI-агенты и боты» (/bots): «Ваши боты — Список ботов» (nom, triggerlar, konversiya, ishga tushishlar)
 // va Salesbot konstruktori (BotBuilder).
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { api } from '../../lib/apiClient'
+import { useApi } from '../../lib/useApi'
 import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { useT } from '../i18n'
@@ -16,14 +17,11 @@ export default function BotsPage() {
   const t = useT()
   const { can } = useAuth()
   const canEdit = !can || can('crm.settings')
-  const [bots, setBots] = useState(null)
+  const { data: bots, reload: load } = useApi(() => api.get('/crm/salesbots').then((r) => r.bots || []).catch(() => []), [], 'bots:list2')
   const [sel, setSel] = useState(new Set())
   const [open, setOpen] = useState(null) // bot obyekti (yangi yoki mavjud)
   const fileRef = useRef(null)
-  const [dono, setDono] = useState(null)
-  useEffect(() => { api.get('/crm/dono').then(setDono).catch(() => null) }, [])
-  const load = () => api.get('/crm/salesbots').then((r) => setBots(r.bots || [])).catch(() => setBots([]))
-  useEffect(() => { load() }, [])
+  const { data: dono } = useApi(() => api.get('/crm/dono').catch(() => null), [], 'dono:stats')
 
   const openBot = async (id) => { const r = await api.get(`/crm/salesbots/${id}`); setOpen(r.bot) }
   const importBot = (file) => {

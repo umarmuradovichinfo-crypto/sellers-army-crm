@@ -5,12 +5,13 @@ import { useOutside } from '../TopBar'
 import { useT } from '../i18n'
 import { ACTIONS, DELAYS, FIELD_TARGETS, TASK_TYPES, UNSORTED_TRIGGERS, WHEN_GROUPS, actionMeta, delayLabel, whenText } from './PipelineSetupApi'
 import { api } from '../../lib/apiClient'
+import { useApi } from '../../lib/useApi'
 
 
 // «Salesbot» amali: qaysi bot ishga tushadi (AI-агенты и боты ro'yxatidan)
 function BotSelect({ value, onChange, t }) {
-  const [bots, setBots] = React.useState([])
-  React.useEffect(() => { api.get('/crm/salesbots').then((r) => setBots(r.bots || [])).catch(() => {}) }, [])
+  const { data: botsRes } = useApi(() => api.get('/crm/salesbots').catch(() => null), [], 'bots:list')
+  const bots = botsRes?.bots || []
   return (
     <>
       <select className="ac-select" value={value || ''} onChange={(e) => onChange(e.target.value, bots.find((b) => b.id === e.target.value)?.name || '')}>

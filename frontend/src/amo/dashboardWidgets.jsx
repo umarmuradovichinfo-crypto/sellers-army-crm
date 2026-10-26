@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/apiClient'
 import { crmService } from '../services/crm.service'
+import { useApi } from '../lib/useApi'
 import { Ico } from './AmoIcons'
 import { money } from './format'
 import { useT, usePlural } from './i18n'
@@ -53,8 +54,8 @@ export async function addFilterWidget(widget) {
 
 /** «Сравнение с показателем» variantlari: bosqich, mas'ul, yo'qotish sababi + ro'yxatli qo'shimcha maydonlar. */
 function useCompareOptions() {
-  const [fields, setFields] = useState([])
-  useEffect(() => { crmService.listFields('lead').then((r) => setFields((r.fields || []).filter((f) => f.active !== false && ['select', 'multiselect', 'text'].includes(f.type)))).catch(() => {}) }, [])
+  const { data: fr } = useApi(() => crmService.listFields('lead').catch(() => null), [], 'fields:lead')
+  const fields = (fr?.fields || []).filter((f) => f.active !== false && ['select', 'multiselect', 'text'].includes(f.type))
   return [
     ['stage', 'Bitim bosqichi'], ['assignee', "Mas'ul menejer"], ['lostReason', "Yo'qotish sababi"],
     ...fields.map((f) => [`cf:${f.key}`, f.label]),

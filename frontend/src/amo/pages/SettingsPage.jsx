@@ -166,8 +166,7 @@ function ChatsSection() {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
   const [edit, setEdit] = useState(null) // shablon tahrirlash: { id?, name, text, active }
-  const [npsSt, setNpsSt] = useState(null)
-  useEffect(() => { crmService.nps().then(setNpsSt).catch(() => {}) }, [])
+  const { data: npsSt } = useApi(() => crmService.nps().catch(() => null), [], 'settings:nps')
   const setNps = (patch) => setForm((f) => ({ ...f, nps: { ...(f.nps || {}), ...patch } }))
   const [wc, setWc] = useState(null) // «Онлайн чаты»: { id?, name, greeting, color }
   const [copied, setCopied] = useState('')
@@ -185,8 +184,8 @@ function ChatsSection() {
     setWc(null)
   }
   const [intent, setIntent] = useState(null) // «Типовые вопросы» mavzusi: { id?, name, keywords, action, templateId, botId }
-  const [bots, setBots] = useState([])
-  useEffect(() => { api.get('/crm/salesbots').then((r) => setBots(r.bots || [])).catch(() => {}) }, [])
+  const { data: botsRes } = useApi(() => api.get('/crm/salesbots').catch(() => null), [], 'bots:list')
+  const bots = botsRes?.bots || []
   const putIntent = () => {
     if (!intent?.name?.trim() || !String(intent.keywords || '').trim()) return
     setForm((f) => {

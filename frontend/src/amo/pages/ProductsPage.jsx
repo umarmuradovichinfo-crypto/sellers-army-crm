@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
+import { useApi } from '../../lib/useApi'
 import { useAuth } from '../../context/AuthContext'
 import TopBar from '../TopBar'
 import { Ico } from '../AmoIcons'
@@ -40,11 +41,9 @@ export default function ProductsPage() {
   const navigate = useNavigate()
   const { can } = useAuth()
   const canEdit = !can || can('crm.settings')
-  const [items, setItems] = useState(null)
+  const { data: items, reload: load } = useApi(() => crmService.listProducts().then((r) => r.products || []).catch(() => []), [], 'products:list')
   const [q, setQ] = useState('')
   const [np, setNp] = useState({ name: '', sku: '', price: '' })
-  const load = () => crmService.listProducts().then((r) => setItems(r.products || [])).catch(() => setItems([]))
-  useEffect(() => { load() }, [])
   const addBusy = useRef(false) // ikki marta bosish dublikat mahsulot yaratmasin
   const add = async () => {
     if (!np.name.trim() || addBusy.current) return

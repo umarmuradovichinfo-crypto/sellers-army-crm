@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
+import { useApi } from '../../lib/useApi'
 import { facebookService } from '../../services/facebook.service'
 import { Ico } from '../AmoIcons'
 import { useOutside } from '../TopBar'
@@ -150,12 +151,11 @@ function Cells({ items, ctx, onOpen, onNew }) {
 function Reasons() {
   const t = useT()
   const [open, setOpen] = useState(false)
-  const [list, setList] = useState([])
+  const { data: listData, setData: setList, reload: load } = useApi(() => crmService.listLostReasons().then((r) => r.reasons || []).catch(() => null), [], 'lostReasons:list')
+  const list = listData || []
   const [dragId, setDragId] = useState(null)
   const [overId, setOverId] = useState(null)
   const [adding, setAdding] = useState(false)
-  const load = () => crmService.listLostReasons().then((r) => setList(r.reasons || [])).catch(() => {})
-  useEffect(() => { load() }, [])
   const fail = (e) => { window.alert(e?.message || t('Xatolik')); load() }
   const add = async (name) => {
     const v = name.trim(); setAdding(false)
