@@ -782,6 +782,19 @@ export class CrmService {
     return { notes };
   }
 
+  /** amoCRM «Чат с <hamkasb>»: bitim ichida xodimlar orasidagi xabar — lentada ko'rinadi, oluvchiga bildirishnoma */
+  async teamChat(id: string, dto: { toUserId?: string; text?: string }, user: AuthUser) {
+    const lead = await this.prisma.lead.findUnique({ where: { id }, select: { id: true, name: true } });
+    if (!lead) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
+    const text = String(dto.text || '').trim().slice(0, 2000);
+    if (!text) throw new BadRequestException({ error: 'EMPTY', message: "Xabar bo'sh" });
+    const to = dto.toUserId ? await this.prisma.user.findFirst({ where: { id: dto.toUserId, isActive: true }, select: { id: true, name: true } }) : null;
+    if (!to) throw new BadRequestException({ error: 'BAD_USER', message: 'Oluvchi topilmadi' });
+    await this.activity.record(id, 'team_chat', { actorId: user.id, actorName: user.name, text, data: { toId: to.id, toName: to.name } });
+    if (to.id !== user.id) await this.notif.notify(to.id, `${user.name}: ${text.slice(0, 200)}`, { type: 'mention', link: `/leads/detail/${id}` });
+    return { ok: true };
+  }
+
   // ── Ommaviy amallar (mass actions) ──
   async bulk(dto: { ids?: string[]; action: string; value?: any; all?: boolean; filter?: LeadFilter; excludeIds?: string[] }, user?: AuthUser) {
     let ids = Array.isArray(dto.ids) ? dto.ids : [];

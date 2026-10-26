@@ -19,6 +19,7 @@ const EV = {
   updated: ['Bitim', 'Bitim yangilandi'],
   stage: ['Bitim', "Bosqich o'zgardi"],
   won: ['Bitim', 'Muvaffaqiyatli yopildi'],
+  team_chat: ['Bitim', 'Ichki chat xabari'],
   lost: ['Bitim', "Yopilgan va yo'qotilgan"],
   field: ['Bitim', "Maydon o'zgardi"],
   assignee: ['Bitim', "Mas'ul o'zgardi"],

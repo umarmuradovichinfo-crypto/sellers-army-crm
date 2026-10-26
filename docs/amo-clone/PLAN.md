@@ -223,6 +223,9 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
        [x] «Найти и объединить дубли»: maydonlar «Имя / Отв-ный / Статус», status — voronka + rangli bosqich chipi, tugmalar
        oddiy yozuvda. [x] Import: .ods, «Примечание» ustuni (bitimga izoh), «Создание» huquqi. [x] Saralanmagan: chatdan
        kelganda hover'da faqat qizil savat, kartani bosqichga sudrash — qabul, «O'chirish» zonasiga — rad etish. test/e2e/80-import.
+    c) imBox / kartochka lentasi — farqlar (26.10): [x] bitim yopilganda lentada katta blok («Сделка закрыта и не реализована
+       26.10.2026, Admin; sabab»); [x] mijoz chati bo'lsa yozish maydoni «Чат» rejimida ochiladi; [x] ichki chat «Чат с <hamkasb>»
+       (standart — mas'ul), lentada «Admin → Akmal» pufakcha, oluvchiga bildirishnoma, voqealar ro'yxatida. test/e2e/85-team-chat.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

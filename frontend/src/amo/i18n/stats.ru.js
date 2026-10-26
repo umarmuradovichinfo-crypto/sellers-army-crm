@@ -2,6 +2,7 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Ichki chat xabari': 'Сообщение во внутреннем чате',
   ' kun': 'д.',
   'Analitika': 'Аналитика',
   'Sotuv tahlili': 'Анализ продаж',

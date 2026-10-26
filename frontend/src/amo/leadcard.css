@@ -300,3 +300,15 @@ a.ac-field__link:hover { color: var(--palette-link-primary); }
 .ac-cf__dup { height: 22px; padding: 0 7px; border: 0; border-radius: 3px; background: #f24f8e; color: #fff; font: 400 13px var(--font-main); cursor: pointer; }
 .ac-cf__dupmenu { position: absolute; top: 26px; left: 0; z-index: 40; min-width: 240px; }
 .ac-cf__duphead { padding: 6px 12px; font-size: 11px; color: var(--palette-text-secondary-dark); }
+/* amoCRM: bitim yopilgani — lentada katta markazlangan blok */
+.ac-feed__closed { margin: 10px 0; padding: 22px 30px; border: 1px solid var(--palette-border-default); border-radius: 4px; background: var(--palette-background-primary); text-align: center; font-size: 17px; line-height: 1.5; color: var(--palette-text-primary); }
+.ac-feed__closed-ico { margin-right: 10px; color: var(--palette-text-secondary-dark); }
+.ac-feed__closed.won .ac-feed__closed-ico { color: #8dc63f; }
+/* amoCRM «Чат с …»: oluvchi tanlash va lentadagi ichki xabar */
+.ac-compose__to { position: relative; }
+.ac-compose__tomenu { position: absolute; bottom: 22px; left: 0; z-index: 50; min-width: 220px; max-height: 260px; overflow: auto; }
+.ac-compose__tomenu small { color: var(--palette-text-secondary-dark); font-size: 11px; }
+.ac-feed__team { max-width: 70%; margin: 8px 0; padding: 8px 12px; border-radius: 10px; background: var(--palette-background-primary); border: 1px solid var(--palette-border-default); }
+.ac-feed__team.mine { margin-left: auto; background: rgba(76, 139, 247, .18); }
+.ac-feed__team-head { font-size: 12px; color: var(--palette-text-secondary-dark); margin-bottom: 3px; }
+.ac-feed__team-text { white-space: pre-wrap; word-break: break-word; }

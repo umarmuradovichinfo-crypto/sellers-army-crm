@@ -45,6 +45,8 @@ export const crmService = {
   // bulk(ids, action, value) yoki bulk(null, action, value, { all: true, filter, excludeIds }) — "barchasini belgilash"
   bulk: (ids, action, value, extra) => api.post('/crm/leads/bulk', { ids: ids || undefined, action, value, ...extra }),
   // GET /crm/leads-check?phone&email&excludeId -> { duplicates:[{id,name,phone,email,stage}] } (kartochkadagi «Дубль?»)
+  // amoCRM «Чат с <hamkasb>»: bitim ichida ichki xabar
+  teamChat: (leadId, toUserId, text) => api.post(`/crm/leads/${leadId}/team-chat`, { toUserId, text }),
   checkDuplicates: (phone, email, excludeId) => api.get(`/crm/leads-check${qs({ phone, email, excludeId })}`),
   mergeLeads: (keepId, mergeIds, pick) => api.post('/crm/leads/merge', { keepId, mergeIds, pick }),
   exportUrl: (params) => `/crm/leads-export${qs(params)}`,

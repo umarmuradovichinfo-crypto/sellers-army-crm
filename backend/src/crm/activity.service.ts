@@ -8,6 +8,7 @@ export type ActivityType =
   | 'updated'
   | 'stage'
   | 'note'
+  | 'team_chat'
   | 'task_created'
   | 'task_done'
   | 'call'
@@ -110,6 +111,7 @@ export class ActivityService {
     return rows.map((a) => ({
       id: a.id,
       type: a.type,
+      actorId: a.actorId,
       actorName: a.actorName,
       text: a.text,
       data: safeParse(a.dataJson),

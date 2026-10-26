@@ -704,6 +704,15 @@ function Composer({ lead, canChat, members, onSent, modeReq }) {
   const { user } = useAuth()
   const [mode, setMode] = useState(canChat ? 'chat' : 'note')
   const [modesOpen, setModesOpen] = useState(false)
+  // «Чат с …»: mijoz ('client') yoki hamkasb (foydalanuvchi id) — amoCRM'da ichki chat ham shu maydondan
+  const [to, setTo] = useState(canChat ? 'client' : '')
+  const [toOpen, setToOpen] = useState(false)
+  const team = members.filter((m) => m.id !== user?.id)
+  const toUser = members.find((m) => m.id === to)
+  useEffect(() => { if (canChat && !touched.current) setTo('client') }, [canChat, lead?.id]) // eslint-disable-line
+  // amoCRM: mijoz bilan chat bo'lsa yozish maydoni «Чат» rejimida ochiladi (lenta yuklangach ham)
+  const touched = useRef(false)
+  useEffect(() => { if (canChat && !touched.current) setMode('chat') }, [canChat, lead?.id])
   const [text, setText] = useState('')
   const [focus, setFocus] = useState(false)
   const [due, setDue] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(12, 0, 0, 0); return toLocalInput(d) })
@@ -722,7 +731,8 @@ function Composer({ lead, canChat, members, onSent, modeReq }) {
     if (mode === 'task' && (!due || isNaN(new Date(due).getTime()))) { window.alert(t("Sanani to'g'ri kiriting")); return }
     setBusy(true)
     try {
-      if (mode === 'chat') await crmService.sendMessage(lead.id, text.trim())
+      if (mode === 'chat' && to && to !== 'client') await crmService.teamChat(lead.id, to, text.trim())
+      else if (mode === 'chat') await crmService.sendMessage(lead.id, text.trim())
       else if (mode === 'note') await crmService.addNote(lead.id, text.trim())
       else await crmService.createTask(lead.id, { title: text.trim() || t(TASK_TYPES.find((x) => x.key === type).label), type, dueDate: new Date(due).toISOString(), assigneeId: assignee || undefined })
       setText(''); setFocus(false); onSent()
@@ -735,14 +745,23 @@ function Composer({ lead, canChat, members, onSent, modeReq }) {
         <span className="ac-compose__mode">
           {modesOpen && (
             <div className="ac-menu ac-compose__modes">
-              {['chat', 'note', 'task'].filter((m) => m !== 'chat' || canChat).map((m) => (
-                <button key={m} className={`ac-menu__item ${mode === m ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); setMode(m); setModesOpen(false) }}>
+              {['chat', 'note', 'task'].filter((m) => m !== 'chat' || canChat || team.length).map((m) => (
+                <button key={m} className={`ac-menu__item ${mode === m ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); touched.current = true; setMode(m); setModesOpen(false); if (m === 'chat' && !to) setTo(canChat ? 'client' : (members.find((x) => x.id === lead.assigneeId && x.id !== user?.id) || team[0])?.id || '') }}>
                   <span className="grow">{t(labels[m])}</span>{mode === m && <Ico name="check" size={12} />}
                 </button>
               ))}
             </div>
           )}
-          {mode === 'chat' && <><a onClick={(e) => { e.stopPropagation(); setModesOpen((v) => !v) }}>{t('Chat')}</a> {t('bilan')} <a>{lead.contact?.name || lead.n}</a>:</>}
+          {mode === 'chat' && <><a onClick={(e) => { e.stopPropagation(); setModesOpen((v) => !v) }}>{t('Chat')}</a> {t('bilan')}{' '}
+            <span className="ac-compose__to">
+              <a onClick={(e) => { e.stopPropagation(); setToOpen((v) => !v) }}>{to === 'client' || !to ? (lead.contact?.name || lead.n) : toUser?.name}</a>
+              {toOpen && (
+                <div className="ac-menu ac-compose__tomenu" onClick={(e) => e.stopPropagation()}>
+                  {canChat && <button className={`ac-menu__item ${to === 'client' ? 'on' : ''}`} onClick={() => { setTo('client'); setToOpen(false) }}><span className="grow">{lead.contact?.name || lead.n}</span><small>{t('mijoz')}</small></button>}
+                  {team.map((m) => <button key={m.id} className={`ac-menu__item ${to === m.id ? 'on' : ''}`} onClick={() => { touched.current = true; setTo(m.id); setToOpen(false) }}><span className="grow">{m.name}</span></button>)}
+                </div>
+              )}
+            </span>:</>}
           {mode === 'note' && <><a onClick={(e) => { e.stopPropagation(); setModesOpen((v) => !v) }}>{t('Eslatma')}</a>:</>}
           {mode === 'task' && <><a onClick={(e) => { e.stopPropagation(); setModesOpen((v) => !v) }}>{t('Vazifa')}</a></>}
           {mode !== 'task' && <span className="ac-compose__caret" onClick={(e) => { e.stopPropagation(); setModesOpen((v) => !v) }}><Ico name="chevronDown" size={10} /></span>}
@@ -771,7 +790,7 @@ function Composer({ lead, canChat, members, onSent, modeReq }) {
         <div className="ac-compose__foot" onClick={(e) => e.stopPropagation()}>
           <button className="ac-btn ac-btn--blue ac-btn--plain" style={{ height: 34, lineHeight: '32px', padding: '0 14px' }} disabled={busy} onClick={send}>{t(mode === 'task' ? "Qo'yish" : mode === 'chat' ? 'Yuborish' : 'Yuborish')}</button>
           <button className="ac-btn ac-btn--plain" style={{ height: 34, border: 0, background: 'transparent' }} onClick={() => { setText(''); setFocus(false) }}>{t('Bekor qilish')}</button>
-          {mode === 'chat' && <TemplatePicker onPick={(x) => { setText(x); ref.current?.focus() }} />}
+          {mode === 'chat' && to === 'client' && <TemplatePicker onPick={(x) => { setText(x); ref.current?.focus() }} />}
         </div>
       )}
     </div>
@@ -1028,6 +1047,9 @@ export default function LeadCard() {
   const groups = []
   for (const it of shown) {
     const g = groups[groups.length - 1]
+    // amoCRM: bitim yopilishi — lentada alohida katta blok («Сделка закрыта и не реализована 26.07.2026, …; sabab»)
+    if (it.kind === 'sys' && (it.a.type === 'won' || it.a.type === 'lost')) { groups.push({ kind: 'closed', at: it.at, a: it.a }); continue }
+    if (it.kind === 'sys' && it.a.type === 'team_chat') { groups.push({ kind: 'team', at: it.at, a: it.a }); continue }
     if (it.kind === 'sys' && g?.kind === 'grp' && g.type === it.a.type && dayOf(g.items[0].at) === dayOf(it.at)) g.items.push(it)
     else if (it.kind === 'sys') groups.push({ kind: 'grp', type: it.a.type, at: it.at, items: [it] })
     else if (it.kind === 'msg' && g?.kind === 'chat' && (it.m.convNo ? g.no === it.m.convNo : g.channel === it.m.channel && !g.no && dayOf(g.at) === dayOf(it.at))) g.msgs.push(it.m)
@@ -1173,6 +1195,24 @@ export default function LeadCard() {
                 el = it.items.length < 3 || expanded[gk] ? rows : (
                   <div className="ac-feed__sys">
                     <span className="grow">{t(relDay(it.at) || '') || dmy(it.at)} {t(ACT_GROUP[it.type] || ACT_TEXT[it.type] || ACT_TEXT.updated)}: {it.items.length} {t(plEvents(it.items.length)).replace(/^voqea_.*/, 'voqea')} <a onClick={() => setExpanded((x) => ({ ...x, [gk]: true }))}>{t('Yoyish')}</a></span>
+                  </div>
+                )
+              } else if (it.kind === 'team') {
+                // amoCRM ichki chat: «Чат с …» — muallif → oluvchi, xabar pufakchada
+                const mine = it.a.actorId === user?.id
+                el = (
+                  <div key={`tc${i}`} className={`ac-feed__team ${mine ? 'mine' : ''}`}>
+                    <div className="ac-feed__team-head">{feedDateFull(it.at, t)} <b>{it.a.actorName}</b> → {it.a.data?.toName || '—'}</div>
+                    <div className="ac-feed__team-text">{it.a.text}</div>
+                  </div>
+                )
+              } else if (it.kind === 'closed') {
+                const lost = it.a.type === 'lost'
+                const reason = lost ? (String(it.a.text || '').split(' — ')[1] || '') : ''
+                el = (
+                  <div key={`cl${i}`} className={`ac-feed__closed ${lost ? 'lost' : 'won'}`}>
+                    <span className="ac-feed__closed-ico">{lost ? '⊘' : '✓'}</span>
+                    {t(lost ? 'Bitim yopildi va amalga oshmadi' : 'Bitim muvaffaqiyatli yakunlandi')} {dmy(it.at)}{it.a.actorName ? `, ${it.a.actorName}` : ''}{reason ? `; ${reason}` : ''}
                   </div>
                 )
               } else if (it.kind === 'note') el = it.ct

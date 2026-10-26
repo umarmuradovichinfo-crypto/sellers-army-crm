@@ -2,6 +2,8 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'mijoz': 'клиент',
+  'Bitim muvaffaqiyatli yakunlandi': 'Сделка успешно реализована',
   'Dubl?': 'Дубль?',
   "Ehtimoliy dublikatlar (telefon yoki email bir xil)": 'Возможные дубли (совпадает телефон или email)',
   "Sanani to'g'ri kiriting": 'Введите корректную дату',

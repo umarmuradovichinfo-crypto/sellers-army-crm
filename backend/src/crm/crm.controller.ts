@@ -162,6 +162,12 @@ export class CrmController {
     return this.crm.addNote(id, dto, user);
   }
 
+  @Post('leads/:id/team-chat')
+  async teamChat(@Param('id') id: string, @Body() dto: { toUserId?: string; text?: string }, @CurrentUser() user: AuthUser) {
+    await this.rights.assertLead(user, id, 'view');
+    return this.crm.teamChat(id, dto, user);
+  }
+
   // ── Vazifalar (zadacha) ──
   @Get('tasks')
   allTasks(@CurrentUser('id') userId: string, @Query('status') status?: string, @Query('assigneeId') assigneeId?: string, @Query('type') type?: string, @Query('filter') filter?: string) {
