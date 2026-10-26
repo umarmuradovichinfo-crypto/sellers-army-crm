@@ -38,6 +38,7 @@ const ProfilePage = lazy(() => import('./amo/pages/ProfilePage'))
 const IntegrationsPage = lazy(() => import('./amo/pages/IntegrationsPage'))
 const BotsPage = lazy(() => import('./amo/pages/BotsPage'))
 const ProductsPage = lazy(() => import('./amo/pages/ProductsPage'))
+const CallsPage = lazy(() => import('./amo/pages/CallsPage'))
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
@@ -116,6 +117,7 @@ function CrmShell() {
           <Route path="/companies/new" element={<CompanyCard />} />
           <Route path="/companies/:id" element={<CompanyCard />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/calls" element={<CallsPage />} />
           <Route path="/stats" element={<StatsLast />} />
           <Route path="/stats/pipeline" element={<StatsPage section="pipeline" />} />
           <Route path="/stats/consolidated" element={<StatsPage section="consolidated" />} />

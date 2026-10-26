@@ -186,7 +186,10 @@ model CallLog {
   phone       String // mijoz raqami
   direction   String   @default("out") // in | out
   status      String   @default("ringing") // ringing | answered | completed | missed | failed
-  durationSec Int      @default(0)
+  durationSec Int      @default(0) // umumiy davomiylik (jiringlash + suhbat)
+  talkSec     Int      @default(0) // suhbat (gaplashish) davomiyligi
+  hangup      String? // uzilish sababi (provayderdan)
+  rating      Int? // mijoz bahosi 1..5 («Оценка качества»)
   recordUrl   String? // audio yozuv havolasi
   externalId  String? // OnlinePBX call uuid
   handled     Boolean  @default(false) // kiruvchi oyna ko'rsatildimi
@@ -195,6 +198,7 @@ model CallLog {
   @@index([leadId])
   @@index([direction, status])
   @@index([startedAt])
+  @@index([phone])
   @@map("call_logs")
 }
 

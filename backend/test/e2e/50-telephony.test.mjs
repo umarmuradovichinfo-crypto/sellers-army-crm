@@ -177,4 +177,42 @@ describe('Telefoniya (OnlinePBX + MicroSIP)', () => {
     const back = await ok('PUT', '/crm/pbx/config', { provider: 'onlinepbx' }, T, 200);
     assert.equal(back.provider, 'onlinepbx');
   });
+
+  test("qo'ng'iroqlar jurnali (/crm/calls/report): plitalar, «qayta qo'ng'iroq qilinmagan», suhbat davomiyligi, jami, «Разговоры» tabi", async () => {
+    const n = rnd9();
+    const phone = `998${n}`;
+    // 1) chiquvchi gaplashilgan (50 s umumiy, 42 s suhbat)
+    await hook({ accountcode: 'outbound', caller: '101', callee: phone, uuid: uniq('j1'), dialog_duration: 42, call_duration: 50, download_url: 'https://e2e.onpbx.ru/rec/j1.mp3' });
+    // 2) kiruvchi o'tkazib yuborilgan
+    await hook({ accountcode: 'inbound', caller: phone, callee: '100', uuid: uniq('j2'), dialog_duration: 0, call_duration: 12, hangup_cause: 'NO_ANSWER' });
+    const rep = async (extra = '') => ok('GET', `/crm/calls/report?phone=${n}${extra}`, undefined, T, 200);
+    let r = await rep();
+    assert.equal(r.tiles.all, 2);
+    assert.equal(r.tiles.out, 1);
+    assert.equal(r.tiles.in, 1);
+    assert.equal(r.tiles.missed, 1);
+    assert.equal(r.tiles.notcalledback, 1, "o'tkazib yuborilgan kiruvchidan keyin chiquvchi bo'lmagan — «qayta qo'ng'iroq qilinmagan»");
+    assert.equal(r.totals.count, 2);
+    assert.equal(r.totals.talkSec, 42);
+    assert.equal(r.totals.roundedMinutes, 1);
+    const outRow = r.calls.find((c) => c.kind === 'out');
+    assert.equal(outRow.talkSec, 42);
+    assert.equal(outRow.ringSec, 8);
+    assert.ok(outRow.hasRecording);
+    // «Разговоры» tabi faqat suhbat bo'lganlar
+    r = await rep('&tab=talks');
+    assert.equal(r.calls.length, 1);
+    // plita bo'yicha filtr
+    r = await rep('&kind=missed');
+    assert.deepEqual(r.calls.map((c) => c.kind), ['in']);
+    assert.equal(r.calls[0].result, 'Javob berilmadi');
+    // davomiylik filtri
+    r = await rep('&talkMin=30');
+    assert.equal(r.totals.count, 1);
+    // keyin shu raqamga qayta qo'ng'iroq → «qayta qo'ng'iroq qilinmagan» kamayadi
+    await hook({ accountcode: 'outbound', caller: '101', callee: phone, uuid: uniq('j3'), dialog_duration: 10, call_duration: 15 });
+    r = await rep();
+    assert.equal(r.tiles.notcalledback, 0, 'qayta qo`ng`iroq qilingan raqam hali ham «qilinmagan» hisoblanadi');
+    assert.equal((await req('GET', '/crm/calls/report?from=2000-01-01', undefined, S.token)).status, 200);
+  });
 });

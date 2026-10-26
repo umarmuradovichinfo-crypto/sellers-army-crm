@@ -35,6 +35,11 @@ export class CallsController {
   }
 
   // Barcha qo'ng'iroqlar ro'yxati (CRM "Qo'ng'iroqlar" bo'limi)
+  @Get('calls/report')
+  callsReport(@Query() q: Record<string, string>, @CurrentUser('id') userId: string) {
+    return this.calls.callsReport(q, userId);
+  }
+
   @Get('calls')
   listCalls(@CurrentUser('id') userId: string, @Query('filter') filter?: string, @Query('limit') limit?: string) {
     return this.calls.listCalls({ filter, limit: limit ? Number(limit) : undefined }, userId);

@@ -340,7 +340,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
         const relink = existing.leadId || lead0?.id || (recent ? (await this.ensureCallerLead(direction, phone, null))?.id : null) || null;
         await this.prisma.callLog.update({
           where: { id: existing.id },
-          data: { status, durationSec: durationSec || existing.durationSec, recordUrl: recordUrl || existing.recordUrl, leadId: relink, handled: true },
+          data: { status, durationSec: durationSec || existing.durationSec, talkSec: talk || existing.talkSec, hangup: hangup || existing.hangup, recordUrl: recordUrl || existing.recordUrl, leadId: relink, handled: true },
         });
         if (relink && direction === 'in' && status === 'missed' && existing.status !== 'missed' && recent) await this.missedCallTask(relink, phone);
         if (relink) linked++;
@@ -348,7 +348,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       }
       const lead = recent ? await this.ensureCallerLead(direction, phone, lead0) : lead0;
       await this.prisma.callLog.create({
-        data: { externalId: uuid, phone, direction, status, durationSec, recordUrl, leadId: lead?.id || null, handled: true, startedAt },
+        data: { externalId: uuid, phone, direction, status, durationSec, talkSec: talk, hangup: hangup || null, recordUrl, leadId: lead?.id || null, handled: true, startedAt },
       });
       synced++;
       if (lead) linked++;
@@ -383,6 +383,78 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
         hasRecording: !!(c.externalId || c.recordUrl),
       })),
       missedCount,
+    };
+  }
+
+  /**
+   * «Звонки» jurnali (OnlinePBX uslubida): davr/xodim/telefon/davomiylik filtrlari, plitalar (Hammasi, Kiruvchi, Chiquvchi, Ichki, O'tkazib yuborilgan,
+   * Qayta qo'ng'iroq qilinmagan, Dodozvon bo'lmagan, Baholi) va jami. Kunlar akkaunt vaqti (Toshkent, UTC+5) bo'yicha.
+   */
+  async callsReport(q: Record<string, string | undefined>, userId?: string) {
+    const TZ = 5 * 3_600_000;
+    const day = (s?: string) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? Date.parse(s + 'T00:00:00Z') - TZ : null);
+    const fromMs = day(q.from) ?? day(new Date(Date.now() + TZ).toISOString().slice(0, 10))!;
+    const toMs = (day(q.to) ?? fromMs) + 86_400_000;
+    const n = (v?: string) => (v !== undefined && v !== '' && Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : undefined);
+    const where: Record<string, any> = { startedAt: { gte: new Date(fromMs), lt: new Date(toMs) } };
+    const ph = String(q.phone || '').replace(/\D/g, '');
+    if (ph.length >= 3) where.phone = { contains: ph };
+    if (q.ext) {
+      const u = await this.prisma.user.findFirst({ where: { extension: String(q.ext) }, select: { id: true } });
+      where.userId = u?.id ?? '__none__';
+    }
+    const dMin = n(q.durMin), dMax = n(q.durMax), tMin = n(q.talkMin), tMax = n(q.talkMax);
+    if (dMin !== undefined || dMax !== undefined) where.durationSec = { ...(dMin !== undefined ? { gte: dMin } : {}), ...(dMax !== undefined ? { lte: dMax } : {}) };
+    if (tMin !== undefined || tMax !== undefined) where.talkSec = { ...(tMin !== undefined ? { gte: tMin } : {}), ...(tMax !== undefined ? { lte: tMax } : {}) };
+    if (q.rating && Number(q.rating) >= 1 && Number(q.rating) <= 5) where.rating = Number(q.rating);
+
+    let rows = await this.prisma.callLog.findMany({ where, orderBy: { startedAt: 'desc' }, take: 2000 });
+    const vis = await this.rights.visibleLeadIds(userId, [...new Set(rows.map((r) => r.leadId).filter(Boolean) as string[])]);
+    if (vis) rows = rows.filter((r) => r.userId === userId || (r.leadId && vis.has(r.leadId)));
+
+    const isInternal = (r: { phone: string }) => r.phone.replace(/\D/g, '').length <= 4;
+    // «Qayta qo'ng'iroq qilinmagan»: o'tkazib yuborilgan kiruvchidan keyin shu raqamga chiquvchi qo'ng'iroq bo'lmagan
+    const missedIn = rows.filter((r) => r.direction === 'in' && r.status === 'missed');
+    const phones = [...new Set(missedIn.map((r) => r.phone))];
+    const outs = phones.length ? await this.prisma.callLog.findMany({ where: { direction: 'out', phone: { in: phones }, startedAt: { gte: new Date(fromMs) } }, select: { phone: true, startedAt: true } }) : [];
+    const calledBack = (r: { phone: string; startedAt: Date }) => outs.some((o) => o.phone === r.phone && o.startedAt > r.startedAt);
+    const kindOf = (r: (typeof rows)[number]): string[] => {
+      const k = ['all'];
+      if (isInternal(r)) k.push('internal'); else k.push(r.direction === 'in' ? 'in' : 'out');
+      if (r.direction === 'in' && r.status === 'missed') { k.push('missed'); if (!calledBack(r)) k.push('notcalledback'); }
+      if (r.direction === 'out' && r.talkSec === 0 && r.status !== 'ringing') k.push('notanswered');
+      if (r.rating) k.push('rated');
+      return k;
+    };
+    const tiles: Record<string, number> = { all: 0, in: 0, out: 0, internal: 0, missed: 0, notcalledback: 0, notanswered: 0, rated: 0 };
+    const tagged = rows.map((r) => ({ r, kinds: kindOf(r) }));
+    for (const t of tagged) for (const k of t.kinds) tiles[k]++;
+    const kind = q.kind && q.kind in tiles ? q.kind : 'all';
+    let list = tagged.filter((t) => t.kinds.includes(kind)).map((t) => t.r);
+    if (q.tab === 'talks') list = list.filter((r) => r.talkSec > 0);
+
+    const users = await this.prisma.user.findMany({ where: { id: { in: [...new Set(list.map((r) => r.userId).filter(Boolean) as string[])] } }, select: { id: true, name: true, extension: true } });
+    const uMap = new Map(users.map((u) => [u.id, u]));
+    const leadIds = [...new Set(list.map((r) => r.leadId).filter(Boolean) as string[])];
+    const leads = leadIds.length ? await this.prisma.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true } }) : [];
+    const lMap = new Map(leads.map((l) => [l.id, l.name]));
+    const talk = list.reduce((a, r) => a + r.talkSec, 0);
+    const roundedMin = list.reduce((a, r) => a + (r.talkSec > 0 ? Math.ceil(r.talkSec / 60) : 0), 0);
+    const total = list.reduce((a, r) => a + r.durationSec, 0);
+    const RESULT: [RegExp, string][] = [[/busy|занят/, 'Band'], [/reject|отклон/, 'Rad etildi'], [/fail|congestion/, 'Xato'], [/cancel|no.?answer|не отвеч/, 'Javob berilmadi']];
+    return {
+      range: { from: new Date(fromMs + TZ).toISOString().slice(0, 10), to: new Date(toMs - 86_400_000 + TZ).toISOString().slice(0, 10) },
+      tiles,
+      calls: list.slice(0, Math.min(Number(q.limit) || 200, 500)).map((r) => {
+        const u = r.userId ? uMap.get(r.userId) : undefined;
+        return {
+          id: r.id, kind: isInternal(r) ? 'internal' : r.direction, status: r.status, at: r.startedAt.toISOString(), phone: r.phone,
+          userName: u?.name || null, ext: u?.extension || null, leadId: r.leadId, leadName: r.leadId ? lMap.get(r.leadId) || null : null,
+          ringSec: Math.max(0, r.durationSec - r.talkSec), talkSec: r.talkSec, rating: r.rating,
+          result: r.hangup ? (RESULT.find(([re]) => re.test(r.hangup!))?.[1] || null) : null, hasRecording: !!(r.externalId || r.recordUrl),
+        };
+      }),
+      totals: { count: list.length, talkSec: talk, roundedMinutes: roundedMin, totalSec: total },
     };
   }
 
@@ -551,8 +623,8 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     }
 
     // bir xil uuid bo'yicha parallel webhook/sync bir-birini kutadi (ikki CallLog / ikki lid yaratilmasin)
-    if (externalId) return this.withLock(`call:${externalId}`, () => this.applyCall({ phone, other, direction, status, durationSec, recordUrl, externalId, final }));
-    return this.applyCall({ phone, other, direction, status, durationSec, recordUrl, externalId, final });
+    if (externalId) return this.withLock(`call:${externalId}`, () => this.applyCall({ phone, other, direction, status, durationSec, talkSec: talk, hangup, recordUrl, externalId, final }));
+    return this.applyCall({ phone, other, direction, status, durationSec, talkSec: talk, hangup, recordUrl, externalId, final });
   }
 
   private locks = new Map<string, Promise<unknown>>();
@@ -563,8 +635,8 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     try { return await run; } finally { if (this.locks.get(key) === run) this.locks.delete(key); }
   }
 
-  private async applyCall(a: { phone: string; other: string; direction: string; status: string; durationSec: number; recordUrl: string | null; externalId: string | null; final: boolean }) {
-    const { phone, other, direction, status, durationSec, recordUrl, externalId, final } = a;
+  private async applyCall(a: { phone: string; other: string; direction: string; status: string; durationSec: number; talkSec: number; hangup: string; recordUrl: string | null; externalId: string | null; final: boolean }) {
+    const { phone, other, direction, status, durationSec, talkSec, hangup, recordUrl, externalId, final } = a;
     const lead0 = await this.resolveLead(phone, other, direction);
 
     // externalId bo'lsa — yangilaymiz (ringing -> answered -> completed); bo'lmasa yangi yozuv.
@@ -581,6 +653,8 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
           data: {
             status: nextStatus,
             durationSec: durationSec || existing.durationSec,
+            talkSec: talkSec || existing.talkSec,
+            hangup: hangup || existing.hangup,
             recordUrl: recordUrl || existing.recordUrl,
             leadId: relink,
             ...(final ? { handled: true } : {}), // yakunlangach kiruvchi oyna yopiladi
@@ -594,7 +668,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     // yangi raqamdan kiruvchi — kontakt + bitim (jiringlayotgan paytdayoq, oynada mijoz kartochkasi bo'lsin)
     const lead = await this.ensureCallerLead(direction, phone, lead0);
     const call = await this.prisma.callLog.create({
-      data: { leadId: lead?.id || null, phone, direction, status, durationSec, recordUrl, externalId, handled: direction === 'out' || final },
+      data: { leadId: lead?.id || null, phone, direction, status, durationSec, talkSec, hangup: hangup || null, recordUrl, externalId, handled: direction === 'out' || final },
     });
     if (lead && direction === 'in' && status === 'missed') await this.missedCallTask(lead.id, phone);
     if (lead && direction === 'in') await this.automation.fire('call_in', lead.id, { actorName: 'OnlinePBX' });
