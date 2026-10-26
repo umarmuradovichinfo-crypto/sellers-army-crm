@@ -601,13 +601,16 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   async getWebrtcConfig(user: AuthUser) {
     const cfg = await this.cfg.get();
     const u = await this.prisma.user.findUnique({ where: { id: user.id }, select: { extension: true, sipPassword: true } });
-    const domain = cfg.domain || '';
+    // o'z stansiyamiz (Asterisk) tanlangan bo'lsa — brauzer telefoni shu serverning WSS (PJSIP WebSocket) manziliga ulanadi
+    const own = cfg.provider === 'own';
+    const ownHost = (process.env.PBX_SIP_HOST || (() => { try { return new URL(process.env.PUBLIC_URL || '').hostname; } catch { return ''; } })()).trim();
+    const domain = own ? ownHost : cfg.domain || '';
     const ext = (u?.extension || cfg.defaultExt || '').trim();
     const enabled = !!domain && !!ext && !!u?.sipPassword;
     return {
       enabled,
       domain,
-      wss: domain ? `wss://${domain}:7443` : '',
+      wss: domain ? (own ? `wss://${domain}:${Number(process.env.PBX_WSS_PORT) || 8089}/ws` : `wss://${domain}:7443`) : '',
       uri: domain && ext ? `sip:${ext}@${domain}` : '',
       extension: ext,
       password: u?.sipPassword || '',

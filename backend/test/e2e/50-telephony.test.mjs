@@ -231,4 +231,15 @@ describe('Telefoniya (OnlinePBX + MicroSIP)', () => {
     assert.ok(Array.isArray(cur.employees));
     assert.equal((await req('GET', '/crm/calls/stats?from=2000-01-01&to=2026-12-31', undefined, T)).status, 400, 'juda uzun davr rad etilishi kerak');
   });
+
+  test("brauzer telefoni: «own» provayderda WSS manzili o'z stansiyamizga ko'rsatadi", async () => {
+    await ok('PUT', '/crm/pbx/config', { provider: 'own' }, T, 200);
+    const me = await ok('GET', '/crm/my-extension', undefined, T, 200);
+    const w = await ok('GET', '/crm/webrtc/config', undefined, T, 200);
+    assert.match(w.wss, /^wss:\/\/localhost:8089\/ws$/, JSON.stringify({ w, me }));
+    assert.equal(w.domain, 'localhost');
+    await ok('PUT', '/crm/pbx/config', { provider: 'onlinepbx' }, T, 200);
+    const w2 = await ok('GET', '/crm/webrtc/config', undefined, T, 200);
+    assert.match(w2.wss, /e2e\.onpbx\.ru:7443/);
+  });
 });

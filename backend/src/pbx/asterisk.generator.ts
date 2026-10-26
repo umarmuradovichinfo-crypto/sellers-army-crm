@@ -75,14 +75,14 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
     switch (m.type) {
       case 'user': {
         const f = (c.forward || [])[0] || { afterSec: 15, to: '' };
-        lines.push(`exten => s,1,Dial(PJSIP/${m.number},${f.afterSec || 15})`, ` same => n,GotoIf($["\${DIALSTATUS}" = "ANSWER"]?done)`, ` same => n,${go(f.to)}`, ' same => n(done),Hangup()');
+        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${m.number},Uuid: \${UNIQUEID})`, ` same => n,Dial(PJSIP/${m.number},${f.afterSec || 15})`, ` same => n,GotoIf($["\${DIALSTATUS}" = "ANSWER"]?done)`, ` same => n,${go(f.to)}`, ' same => n(done),Hangup()');
         break;
       }
       case 'group':
-        lines.push(`exten => s,1,Dial(${(c.members as string[]).map((x) => `PJSIP/${x}`).join('&') || 'Local/0@nowhere'},${c.afterSec || 20})`, ` same => n,GotoIf($["\${DIALSTATUS}" = "ANSWER"]?done)`, ` same => n,${go(c.forwardTo)}`, ' same => n(done),Hangup()');
+        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${(c.members as string[])[0] || m.number},Uuid: \${UNIQUEID})`, ` same => n,Dial(${(c.members as string[]).map((x) => `PJSIP/${x}`).join('&') || 'Local/0@nowhere'},${c.afterSec || 20})`, ` same => n,GotoIf($["\${DIALSTATUS}" = "ANSWER"]?done)`, ` same => n,${go(c.forwardTo)}`, ' same => n(done),Hangup()');
         break;
       case 'queue':
-        lines.push(`exten => s,1,Queue(q${ctx(m.number)},t,,,${c.queueSec || 180})`, ` same => n,${go(c.forwardTo)}`);
+        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${(c.members as { ext: string }[])[0]?.ext || m.number},Uuid: \${UNIQUEID})`, ` same => n,Queue(q${ctx(m.number)},t,,,${c.queueSec || 180})`, ` same => n,${go(c.forwardTo)}`);
         break;
       case 'timerule': {
         const tz = tzName(c.timezone);

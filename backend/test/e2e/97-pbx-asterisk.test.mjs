@@ -34,9 +34,9 @@ describe('Asterisk generatori', () => {
     assert.match(r.extensions, /\[m5100\][\s\S]*GotoIfTime\(09:00-18:00,mon,\*,\*,Etc\/GMT-5\?work\)/);
     assert.ok(!/GotoIfTime\([^)]*,sun,/.test(r.extensions), 'o`chirilgan kun uchun vaqt sharti bo`lmasligi kerak');
     assert.match(r.extensions, /2026-01-01"\]\?holiday/);
-    assert.match(r.extensions, /\[m10\]\nexten => s,1,Dial\(PJSIP\/100&PJSIP\/101,20\)[\s\S]*Goto\(m5200,s,1\)/);
+    assert.match(r.extensions, /\[m10\]\nexten => s,1,UserEvent\(CrmRing[^\n]*\n same => n,Dial\(PJSIP\/100&PJSIP\/101,20\)[\s\S]*Goto\(m5200,s,1\)/);
     assert.match(r.extensions, /\[m5000\][\s\S]*exten => 1,1,Goto\(m10,s,1\)[\s\S]*exten => 100,1,Goto\(m100,s,1\)/);
-    assert.match(r.extensions, /\[m101\]\nexten => s,1,Dial\(PJSIP\/101,20\)[\s\S]*Goto\(m5120,s,1\)/);
+    assert.match(r.extensions, /\[m101\]\nexten => s,1,UserEvent\(CrmRing,Caller: \$\{CALLERID\(num\)\},Called: 101,Uuid: \$\{UNIQUEID\}\)\n same => n,Dial\(PJSIP\/101,20\)[\s\S]*Goto\(m5120,s,1\)/);
     assert.match(r.extensions, /exten => _X\.,1,Set\(CALLERID\(num\)=0552233\)\n same => n,Dial\(PJSIP\/\$\{EXTEN\}@trunk-0552233,60\)/);
   });
 

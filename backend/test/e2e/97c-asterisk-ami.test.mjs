@@ -3,7 +3,7 @@ import { describe, test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import net from 'node:net';
 import { AmiClient, parseAmiBlock } from '../../dist/onlinepbx/asterisk-ami.js';
-import { OwnPbxProvider, cdrToCallBody } from '../../dist/onlinepbx/own-pbx.provider.js';
+import { OwnPbxProvider, cdrToCallBody, ringToCallBody } from '../../dist/onlinepbx/own-pbx.provider.js';
 
 let server, port;
 const seen = [];
@@ -76,6 +76,16 @@ describe('O`z stansiya provayderi', () => {
     assert.equal(out.hangup_cause, 'no_answer');
     assert.equal(cdrToCallBody({ UniqueID: 'u3', Source: '100', Destination: '101', Disposition: 'BUSY' }).accountcode, 'local');
     assert.equal(cdrToCallBody({ Source: '1' }), null);
+  });
+
+  test('ringToCallBody: jiringlash hodisasi (tugamagan) — kiruvchi/ichki yo`nalish', () => {
+    const r = ringToCallBody({ Event: 'UserEvent', UserEvent: 'CrmRing', Caller: '998901234567', Called: '100', Uuid: 'u9' });
+    assert.equal(r.accountcode, 'inbound');
+    assert.equal(r.event, 'call_start');
+    assert.equal(r.uuid, 'u9');
+    assert.equal(ringToCallBody({ Event: 'UserEvent', UserEvent: 'CrmRing', Caller: '101', Called: '100', Uuid: 'u8' }).accountcode, 'local');
+    assert.equal(ringToCallBody({ Event: 'Cdr', UniqueID: 'x' }), null);
+    assert.equal(ringToCallBody({ Event: 'UserEvent', UserEvent: 'Boshqa', Caller: '1' }), null);
   });
 
   test('sozlanmagan bo`lsa o`chiq; sozlansa call() Originate yuboradi va CDR hodisasini tinglovchiga beradi', async () => {

@@ -28,6 +28,15 @@ export function cdrToCallBody(e: AmiMsg): Record<string, unknown> | null {
   };
 }
 
+/** Dialplan'dagi `UserEvent(CrmRing,…)` → jiringlayotgan (tugamagan) qo'ng'iroq hodisasi: CRM kiruvchi oynani darrov ko'rsatadi. */
+export function ringToCallBody(e: AmiMsg): Record<string, unknown> | null {
+  if (e.Event !== 'UserEvent' || e.UserEvent !== 'CrmRing') return null;
+  const uuid = e.Uuid || e.UniqueID;
+  if (!uuid || !e.Caller) return null;
+  const isInt = (x: string) => /^\d{2,5}$/.test(x);
+  return { uuid, accountcode: isInt(e.Caller) ? (isInt(e.Called || '') ? 'local' : 'outbound') : 'inbound', caller: e.Caller, callee: e.Called || '', event: 'call_start' };
+}
+
 /**
  * O'z stansiyamiz (Asterisk) provayderi: AMI orqali qo'ng'iroq boshlash va CDR hodisalarini olish; yozuvlar umumiy papkadan.
  * Sozlama (env): ASTERISK_AMI_HOST, ASTERISK_AMI_PORT (5038), ASTERISK_AMI_USER, ASTERISK_AMI_SECRET, ASTERISK_RECORDINGS_DIR.
@@ -63,8 +72,7 @@ export class OwnPbxProvider implements PbxProvider, OnModuleInit, OnModuleDestro
     const ami = new AmiClient({ host: c.host, port: c.port, user: c.user, secret: c.secret });
     ami.on('error', () => undefined);
     ami.on('event', (e: AmiMsg) => {
-      if (e.Event !== 'Cdr') return;
-      const body = cdrToCallBody(e);
+      const body = e.Event === 'Cdr' ? cdrToCallBody(e) : ringToCallBody(e);
       if (body) for (const l of this.listeners) { try { l(body); } catch (err) { this.logger.warn('CDR: ' + (err as Error).message); } }
     });
     ami.on('close', () => {
