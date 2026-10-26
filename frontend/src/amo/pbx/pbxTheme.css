@@ -503,3 +503,26 @@
 .pbxx .pbxl__side a { display: block; margin-bottom: 8px; font-size: 12px; color: #0088ca; }
 .pbxx .pbxl__side p, .pbxx .pbxl__empty { font-size: 12px; color: var(--pb-mute); line-height: 17px; }
 @media (max-width: 900px) { .pbxx .pbxl { grid-template-columns: 1fr; } .pbxx .pbxl__row { grid-template-columns: 1fr; padding: 10px 14px; } .pbxx .pbxl__row em { text-align: left; } }
+
+/* ---- Chiquvchi qoidalar (OnlinePBX /ats/outgoing) ---- */
+.pbxx .pbxo { position: relative; min-height: calc(100vh - 50px); padding: 25px 30px 0 25px; display: flex; flex-direction: column; }
+.pbxx .pbxo__bar { margin-top: auto !important; }
+.pbxx .pbxo__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
+.pbxx .pbxo__head h3 { margin: 0; font-size: 16px; line-height: 19px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--pb-text); }
+.pbxx .pbxo__head h3 a { margin-left: 17px; font-size: 14px; font-weight: 400; letter-spacing: 0; text-transform: none; color: #0088ca; }
+.pbxx .pbxo__head > a { font-size: 14px; color: #0088ca; }
+.pbxx .pbxo__row { display: grid; grid-template-columns: 49px 308px 297px 74px 308px minmax(0, 1fr); align-items: center; min-height: 35px; border-bottom: 1px solid var(--pb-hair); font-size: 14px; color: var(--pb-text); }
+.pbxx .pbxo__row--h { min-height: 24px; border-bottom: 0; color: #b4b3bb; }
+.pbxx .pbxo__row--h + .pbxo__row { border-top: 1px solid var(--pb-hair); }
+.pbxx .pbxo__n { padding-left: 16px; color: #bfbec5; }
+.pbxx .pbxo__row input, .pbxx .pbxo__row select { border: 0; background: transparent; font: inherit; color: inherit; height: 34px; padding: 0; width: calc(100% - 12px); outline: 0; }
+.pbxx .pbxo__row input::placeholder { color: #b4b3bb; }
+.pbxx .pbxo__out { color: var(--pb-text); }
+.pbxx .pbxo__u { display: flex; align-items: center; }
+.pbxx .pbxo__u button { background: none; border: 0; color: #b4b3bb; cursor: pointer; font-size: 18px; padding: 0 10px; }
+.pbxx .pbxo__add { align-self: flex-start; background: none; border: 0; padding: 0; margin-top: 15px; font: inherit; font-size: 14px; color: #0088ca; cursor: pointer; }
+.pbxx .pbxo__bar { position: sticky; bottom: 0; margin: 40px -30px 0 -25px; display: flex; align-items: center; gap: 25px; height: 64px; padding-left: 37px; background: #fff; border-top: 1px solid var(--pb-hair); }
+.pbxx .pbxo__save { height: 32px; padding: 0 13px; border: 0; border-radius: 4px; background: #0d71d7; color: #fff; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.pbxx .pbxo__save:disabled { background: #80c3e4; cursor: default; }
+.pbxx .pbxo__cancel { background: none; border: 0; font: inherit; font-size: 14px; color: #0088ca; cursor: pointer; }
+@media (max-width: 900px) { .pbxx .pbxo { padding: 16px 12px 0; } .pbxx .pbxo__row { grid-template-columns: 1fr 1fr; gap: 0 8px; padding: 6px 0; } .pbxx .pbxo__row--h { display: none; } .pbxx .pbxo__bar { padding-left: 12px; } }

@@ -278,30 +278,34 @@ export function Outgoing() {
     try { await pbxService.saveOutgoing(rules.map((r) => ({ ...r, users: String(r.users || '').split(/[;,\s]+/).filter(Boolean) }))); setMsg({ ok: true, text: t('pbx§Saqlandi') }) }
     catch (e) { setMsg({ ok: false, text: e?.message || t('pbx§Saqlab bo\'lmadi') }) }
   }
+  const dirty = JSON.stringify(rules) !== JSON.stringify((data?.rules || []).map((r) => ({ ...r, users: (r.users || []).join(';') })))
+  const reset = () => setRules((data?.rules || []).map((r) => ({ ...r, users: (r.users || []).join(';') })))
   return (
-    <div className="ac-pbx__page">
-      <h3>{t('pbx§CHIQUVCHI QOIDALAR')}</h3>
-      <table className="ac-pbx__table">
-        <thead><tr><th>№</th><th>{t('pbx§Nomi')}</th><th>{t('pbx§Maska')}</th><th>{t('pbx§Chiqish raqami')}</th><th>{t('pbx§Foydalanuvchilar')}</th><th /></tr></thead>
-        <tbody>{rules.map((r, i) => (
-          <tr key={i}>
-            <td>{i + 1}</td>
-            <td><input className="ac-input" value={r.name} onChange={(e) => set(i, { name: e.target.value })} /></td>
-            <td><input className="ac-input" value={r.mask} placeholder={t('pbx§Istalgan')} onChange={(e) => set(i, { mask: e.target.value })} /></td>
-            <td><select className="ac-select" value={r.trunk} onChange={(e) => set(i, { trunk: e.target.value, externalNumber: e.target.value })}>
-              <option value="">—</option>
-              {(trunks.data?.modules || []).map((m) => <option key={m.id} value={m.number}>{m.number}</option>)}
-            </select></td>
-            <td><input className="ac-input" value={r.users} placeholder="100;101" onChange={(e) => set(i, { users: e.target.value })} /></td>
-            <td><button type="button" className="ac-btn" onClick={() => setRules(rules.filter((_, j) => j !== i))}>×</button></td>
-          </tr>
-        ))}</tbody>
-      </table>
-      <div className="ac-pbx__actions">
-        <button type="button" className="ac-btn" onClick={() => setRules([...rules, { name: '', mask: '', trunk: '', externalNumber: '', users: '' }])}>+ {t("pbx§Qoida qo'shish")}</button>
-        <button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button>
+    <div className="pbxo">
+      <div className="pbxo__head">
+        <h3>{t('pbx§CHIQUVCHI QOIDALAR')}<Link to="/pbx/ats/incoming">{t('pbx§Raqam ulash')}</Link></h3>
+        <Link to="/pbx/home">{t('pbx§Qanday sozlanadi?')}</Link>
       </div>
+      <div className="pbxo__row pbxo__row--h"><span>№</span><span>{t('pbx§Nomi')}</span><span>{t('pbx§Maska')}</span><span>{t('pbx§Chiqish')}</span><span>{t('pbx§Tashqi raqam')}</span><span>{t('pbx§Kimlar uchun')}</span></div>
+      {rules.map((r, i) => (
+        <div key={i} className="pbxo__row">
+          <span className="pbxo__n">{i + 1}</span>
+          <input value={r.name} placeholder={t('pbx§Hammaga')} onChange={(e) => set(i, { name: e.target.value })} />
+          <input value={r.mask} placeholder="(+)" onChange={(e) => set(i, { mask: e.target.value })} />
+          <span className="pbxo__out">$</span>
+          <select value={r.trunk} onChange={(e) => set(i, { trunk: e.target.value, externalNumber: e.target.value })}>
+            <option value="">—</option>
+            {(trunks.data?.modules || []).map((m) => <option key={m.id} value={m.number}>{m.number}</option>)}
+          </select>
+          <span className="pbxo__u"><input value={r.users} placeholder={t('pbx§Istalgan')} onChange={(e) => set(i, { users: e.target.value })} /><button type="button" title={t('pbx§O\'chirish')} onClick={() => setRules(rules.filter((_, j) => j !== i))}>×</button></span>
+        </div>
+      ))}
+      <button type="button" className="pbxo__add" onClick={() => setRules([...rules, { name: '', mask: '', trunk: '', externalNumber: '', users: '' }])}>+ {t("pbx§Qoida qo'shish")}</button>
       {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
+      <div className="pbxo__bar">
+        <button type="button" className="pbxo__save" disabled={!dirty} onClick={save}>{t('pbx§Saqlash')}</button>
+        <button type="button" className="pbxo__cancel" onClick={reset}>{t('pbx§Bekor qilish')}</button>
+      </div>
     </div>
   )
 }

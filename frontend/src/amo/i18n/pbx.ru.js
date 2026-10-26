@@ -304,6 +304,11 @@ addRu({
   "pbx§Qanday to'lash mumkin": "Как оплатить",
   "pbx§Kontaktlar": "Контакты",
   "pbx§To'lov masalalari bo'yicha": "По вопросам оплаты",
+  "pbx§Qanday sozlanadi?": "Как настроить?",
+  "pbx§Chiqish": "Вывод",
+  "pbx§Tashqi raqam": "Внешний номер",
+  "pbx§Kimlar uchun": "Для пользователей",
+  "pbx§Hammaga": "Для всех",
   "Telefoniya": "Телефония",
   "Telefoniya (ATS)": "Телефония (АТС)",
 })
