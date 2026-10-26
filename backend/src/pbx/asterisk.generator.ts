@@ -8,6 +8,8 @@ export interface GenResult { pjsip: string; extensions: string; queues: string }
 
 const ctx = (n: string) => `m${n.replace(/[^0-9A-Za-z_]/g, '_')}`;
 const tzName = (tz: string) => { const m = /^UTC([+-])(\d{1,2})$/.exec(tz || ''); return m ? `Etc/GMT${m[1] === '+' ? '-' : '+'}${Number(m[2])}` : 'UTC'; }; // POSIX belgisi teskari
+/** Audio kutubxona fayli Asterisk'da `custom/<id>` nomi bilan turadi; berilmasa — standart ovoz. */
+const snd = (id: unknown, def: string) => (id && /^[A-Za-z0-9_-]+$/.test(String(id)) ? `custom/${id}` : def);
 const esc = (s: string) => String(s).replace(/[,)\\$]/g, (c) => `\\${c}`);
 const rx = (mask: string) => '^' + mask.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/X/g, '[0-9]');
 const DAY_AST: Record<string, string> = { mon: 'mon', tue: 'tue', wed: 'wed', thu: 'thu', fri: 'fri', sat: 'sat', sun: 'sun' };
@@ -94,14 +96,14 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
         break;
       }
       case 'greeting': {
-        lines.push('exten => s,1,Answer()', ` same => n,Background(${c.audioId || 'silence/1'})`, ` same => n,WaitExten(${c.delaySec || 5})`);
+        lines.push('exten => s,1,Answer()', ` same => n,Background(${snd(c.audioId, 'silence/1')})`, ` same => n,WaitExten(${c.delaySec || 5})`);
         for (const k of c.menu as { key: string; to: string }[]) if (exists.has(k.to)) lines.push(`exten => ${k.key},1,Goto(${ctx(k.to)},s,1)`);
         if (c.allowExt) for (const u of users) lines.push(`exten => ${u.number},1,Goto(${ctx(u.number)},s,1)`);
         lines.push(`exten => t,1,${go(c.forwardTo)}`, 'exten => i,1,Goto(s,1)');
         break;
       }
       case 'voicemail':
-        lines.push('exten => s,1,Answer()', ` same => n,Playback(${c.audioBefore || 'vm-intro'})`, ` same => n,Record(/var/spool/asterisk/voicemail/${m.number}/\${UNIQUEID}.wav,${c.silenceSec || 5},${c.recordSec || 15},k)`, ` same => n,Playback(${c.audioAfter || 'vm-goodbye'})`, ` same => n,${go(c.forwardTo)}`);
+        lines.push('exten => s,1,Answer()', ` same => n,Playback(${snd(c.audioBefore, 'vm-intro')})`, ` same => n,Record(/var/spool/asterisk/voicemail/${m.number}/\${UNIQUEID}.wav,${c.silenceSec || 5},${c.recordSec || 15},k)`, ` same => n,Playback(${snd(c.audioAfter, 'vm-goodbye')})`, ` same => n,${go(c.forwardTo)}`);
         break;
       case 'http':
         lines.push(`exten => s,1,Set(CURLOPT(conntimeout)=${c.timeoutSec || 5})`, ` same => n,Set(CURLOPT(httptimeout)=${c.timeoutSec || 5})`, ` same => n,Set(RESP=\${CURL(${esc(c.url || '')}?caller=\${CALLERID(num)}&called=\${EXTEN}&uuid=\${UNIQUEID})})`, ` same => n,${go(c.forwardTo)}`);

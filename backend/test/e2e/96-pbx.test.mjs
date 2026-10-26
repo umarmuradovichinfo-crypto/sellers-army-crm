@@ -92,4 +92,25 @@ describe('PBX modullari (Настройка АТС)', () => {
     assert.equal((await ok('GET', '/pbx/outgoing', undefined, T, 200)).rules[0].users.length, 2);
     await ok('PUT', '/pbx/outgoing', { rules: [] }, T, 200);
   });
+
+  test('audio kutubxona: yuklash, ro`yxat, fayl berish, ishlatilayotganini o`chirib bo`lmaydi, noto`g`ri tur/hajm rad etiladi', async () => {
+    const wav = Buffer.concat([Buffer.from('RIFF....WAVEfmt '), Buffer.alloc(300, 1)]).toString('base64');
+    const f = await ok('POST', '/pbx/audio', { name: uniq('salom') + '.wav', mime: 'audio/wav', data: wav }, T, 201);
+    assert.ok(f.id && f.size > 100);
+    assert.ok((await ok('GET', '/pbx/audio', undefined, T, 200)).files.some((x) => x.id === f.id));
+    const res = await fetch(`${process.env.E2E_BASE}/pbx/audio/${f.id}/file`, { headers: { Authorization: `Bearer ${T}` } });
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('content-type'), 'audio/wav');
+    assert.equal((await res.arrayBuffer()).byteLength, f.size);
+    assert.equal((await req('POST', '/pbx/audio', { name: 'x', mime: 'text/html', data: wav }, T)).status, 400);
+    assert.equal((await req('POST', '/pbx/audio', { name: 'x', mime: 'audio/wav', data: Buffer.alloc(6 * 1024 * 1024, 1).toString('base64') }, T)).status, 400);
+    const S = await userWithRole('sotuvchi');
+    assert.equal((await req('GET', '/pbx/audio', undefined, S.token)).status, 403);
+    // modulda ishlatilsa o'chirib bo'lmaydi
+    const g = await mk('greeting', { name: 'Audioli', config: { audioId: f.id } });
+    assert.equal((await req('DELETE', `/pbx/audio/${f.id}`, undefined, T)).status, 409);
+    await ok('DELETE', `/pbx/modules/${g.id}`, undefined, T, 200);
+    await ok('DELETE', `/pbx/audio/${f.id}`, undefined, T, 200);
+    assert.equal((await req('GET', `/pbx/audio/${f.id}/file`, undefined, T)).status, 404);
+  });
 });

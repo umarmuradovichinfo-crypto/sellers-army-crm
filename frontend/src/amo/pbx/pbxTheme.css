@@ -174,3 +174,8 @@
 .pbxx .ac-pbx__page h3 { font-size: 16px; font-weight: 500; letter-spacing: .2px; color: var(--pb-text); margin-bottom: 18px; }
 .pbxx .ac-pbx__ro { color: var(--pb-text); font-size: 14px; }
 .pbxx .ac-pbx__page .ac-pbx__actions { position: sticky; bottom: 0; background: #fff; padding: 14px 0; margin-top: 24px; border-top: 1px solid var(--pb-hair); }
+
+.pbxx .ac-pbx__audio { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
+.pbxx .ac-pbx__audio .ac-select { flex: 1; min-width: 0; }
+.pbxx .ac-pbx__audio audio { width: 100%; height: 32px; }
+.pbxx .ac-pbx__play { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--pb-line); background: #fff; color: var(--pb-text); cursor: pointer; }

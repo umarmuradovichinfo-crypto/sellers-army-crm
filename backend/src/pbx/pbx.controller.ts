@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Res } from '@nestjs/common';
+import type { Response } from 'express';
 
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { AutoRecallService } from './autorecall.service';
@@ -20,6 +21,18 @@ export class PbxController {
   @Get('flow/validate') validate() { return this.s.validateFlow(); }
 
   @Get('asterisk/preview') asterisk() { return this.s.asteriskPreview(); }
+
+  @Get('audio') audioList() { return this.s.audioList(); }
+  @Post('audio') audioAdd(@Body() dto: any) { return this.s.audioAdd(dto); }
+  @Get('audio/:id/file')
+  async audioFile(@Param('id') id: string, @Res() res: Response) {
+    const f = await this.s.audioFile(id);
+    res.setHeader('Content-Type', f.mime);
+    res.setHeader('Content-Length', String(f.buffer.length));
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.end(f.buffer);
+  }
+  @Delete('audio/:id') audioRemove(@Param('id') id: string) { return this.s.audioRemove(id); }
 
   @Get('autorecall') autorecall() { return this.recall.config(); }
   @Put('autorecall') autorecallSave(@Body() dto: any) { return this.recall.save(dto); }

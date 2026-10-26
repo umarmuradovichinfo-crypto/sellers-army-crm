@@ -167,6 +167,41 @@ export class PbxService {
     return generateAsterisk(mods, { blacklist: bl, outgoing: await this.outgoing() });
   }
 
+  // ── Audio kutubxona ──
+  private static readonly AUDIO_MIME = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/ogg'];
+  async audioList() {
+    const rows = await this.prisma.pbxAudio.findMany({ select: { id: true, name: true, mime: true, size: true, createdAt: true }, orderBy: { createdAt: 'desc' } });
+    return { files: rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })) };
+  }
+  async audioAdd(dto: { name?: string; mime?: string; data?: string }) {
+    const mime = String(dto.mime || '').toLowerCase();
+    if (!PbxService.AUDIO_MIME.includes(mime)) throw new BadRequestException({ error: 'BAD_AUDIO', message: 'Faqat MP3, WAV yoki OGG fayl yuklanadi' });
+    const b64 = String(dto.data || '').replace(/^data:[^,]*,/, '');
+    if (!/^[A-Za-z0-9+/=\s]+$/.test(b64) || !b64) throw new BadRequestException({ error: 'BAD_AUDIO', message: "Fayl ma'lumoti noto'g'ri" });
+    const buf = Buffer.from(b64, 'base64');
+    if (buf.length < 100) throw new BadRequestException({ error: 'BAD_AUDIO', message: 'Fayl juda kichik' });
+    if (buf.length > 5 * 1024 * 1024) throw new BadRequestException({ error: 'TOO_BIG', message: "Fayl 5 MB dan oshmasin" });
+    if ((await this.prisma.pbxAudio.count()) >= 100) throw new BadRequestException({ error: 'LIMIT', message: 'Kutubxonada 100 tadan ortiq fayl bo\'lmaydi' });
+    const name = String(dto.name || '').replace(/[<>\\/]/g, '').trim().slice(0, 100) || 'audio';
+    const r = await this.prisma.pbxAudio.create({ data: { name, mime, size: buf.length, data: buf } });
+    return { id: r.id, name: r.name, mime: r.mime, size: r.size, createdAt: r.createdAt.toISOString() };
+  }
+  async audioFile(id: string) {
+    const r = await this.prisma.pbxAudio.findUnique({ where: { id } });
+    if (!r) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Audio topilmadi' });
+    return { buffer: Buffer.from(r.data), mime: r.mime, name: r.name };
+  }
+  async audioRemove(id: string) {
+    const mods = await this.prisma.pbxModule.findMany({ select: { number: true, configJson: true } });
+    const used = mods.filter((m) => m.configJson.includes(`"${id}"`)).map((m) => m.number);
+    const music = await this.music();
+    if (music.ringback === id || music.hold === id) used.push('musiqa');
+    if (used.length) throw new ConflictException({ error: 'IN_USE', message: `O'chirib bo'lmaydi: ishlatilmoqda (${used.join(', ')})` });
+    const r = await this.prisma.pbxAudio.deleteMany({ where: { id } });
+    if (!r.count) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Audio topilmadi' });
+    return { ok: true };
+  }
+
   // ── Qora ro'yxat ──
   async blacklist() { return { numbers: (await this.prisma.pbxBlacklist.findMany({ orderBy: { createdAt: 'desc' } })).map((b) => ({ id: b.id, number: b.number, note: b.note })) }; }
   async blacklistAdd(dto: { number?: string; note?: string }) {

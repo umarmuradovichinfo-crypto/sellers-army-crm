@@ -16,6 +16,7 @@ export function Field({ label, children, hint }) {
 export function Incoming() {
   const t = useT()
   const { data, reload } = useApi(() => pbxService.modules(), [], 'pbx:modules')
+  const audio = useApi(() => pbxService.audioList().catch(() => ({ files: [] })), [], 'pbx:audio')
   const users = useApi(() => settingsService.listUsers().catch(() => ({ users: [] })), [], 'pbx:crm-users')
   const [sel, setSel] = useState(null) // { id? , type, number, name, enabled, config }
   const [err, setErr] = useState('')
@@ -84,7 +85,7 @@ export function Incoming() {
             {sel.type === 'user' && <UserForm sel={sel} setCfg={setCfg} crmUsers={users.data?.users || []} targetOptions={targetOptions} />}
             {(FIELDS[sel.type] || []).map((f) => (
               <Field key={f.key} label={t(f.label)}>
-                <Control f={f} value={sel.config[f.key]} onChange={(v) => setCfg(f.key, v)} targetOptions={targetOptions.filter((o) => o.number !== sel.number)} passwordSet={sel.passwordSet} />
+                <Control f={f} value={sel.config[f.key]} onChange={(v) => setCfg(f.key, v)} targetOptions={targetOptions.filter((o) => o.number !== sel.number)} passwordSet={sel.passwordSet} audio={audio.data?.files || []} />
               </Field>
             ))}
             <Field label={t('pbx§Yoqilgan')}><input type="checkbox" checked={sel.enabled !== false} onChange={(e) => setSel({ ...sel, enabled: e.target.checked })} /></Field>
@@ -101,7 +102,7 @@ export function Incoming() {
   )
 }
 
-function Control({ f, value, onChange, targetOptions, passwordSet }) {
+function Control({ f, value, onChange, targetOptions, passwordSet, audio = [] }) {
   const t = useT()
   switch (f.kind) {
     case 'bool': return <input type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} />
@@ -115,9 +116,26 @@ function Control({ f, value, onChange, targetOptions, passwordSet }) {
         {targetOptions.map((o) => <option key={o.number} value={o.number}>{o.label}</option>)}
       </select>
     )
+    case 'audio': return <AudioSelect value={value} onChange={onChange} files={audio} />
     case 'schedule': return <Schedule value={value || {}} onChange={onChange} />
     default: return <input className="ac-input" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
   }
+}
+
+export function AudioSelect({ value, onChange, files }) {
+  const t = useT()
+  const [url, setUrl] = useState(null)
+  const play = async () => { try { const b = await pbxService.audioBlob(value); setUrl(URL.createObjectURL(b)) } catch { setUrl(null) } }
+  return (
+    <span className="ac-pbx__audio">
+      <select className="ac-select" value={value || ''} onChange={(e) => { setUrl(null); onChange(e.target.value) }}>
+        <option value="">{t('pbx§Standart')}</option>
+        {files.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+      </select>
+      {value && <button type="button" className="ac-pbx__play" title={t('pbx§Tinglash')} onClick={play}>▶</button>}
+      {url && <audio controls autoPlay src={url} />}
+    </span>
+  )
 }
 
 function Schedule({ value, onChange }) {
@@ -257,6 +275,7 @@ export function Blacklist() {
 export function Music() {
   const t = useT()
   const { data } = useApi(() => pbxService.music(), [], 'pbx:music')
+  const audio = useApi(() => pbxService.audioList().catch(() => ({ files: [] })), [], 'pbx:audio')
   const [m, setM] = useState(null)
   const [msg, setMsg] = useState(null)
   useEffect(() => { if (data && !m) setM(data) }, [data]) // eslint-disable-line
@@ -265,8 +284,8 @@ export function Music() {
   return (
     <div className="ac-pbx__page">
       <h3>{t('pbx§MUSIQA')}</h3>
-      <Field label={t('pbx§Qo\'ng\'iroq paytida (gudok o\'rniga)')}><input className="ac-input" value={m.ringback} onChange={(e) => setM({ ...m, ringback: e.target.value })} /></Field>
-      <Field label={t('pbx§Kutish (hold)')}><input className="ac-input" value={m.hold} onChange={(e) => setM({ ...m, hold: e.target.value })} /></Field>
+      <Field label={t('pbx§Qo\'ng\'iroq paytida (gudok o\'rniga)')}><AudioSelect value={m.ringback === 'default' ? '' : m.ringback} files={audio.data?.files || []} onChange={(v) => setM({ ...m, ringback: v || 'default' })} /></Field>
+      <Field label={t('pbx§Kutish (hold)')}><AudioSelect value={m.hold === 'default' ? '' : m.hold} files={audio.data?.files || []} onChange={(v) => setM({ ...m, hold: v || 'default' })} /></Field>
       <div className="ac-pbx__actions"><button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button></div>
       {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
     </div>
@@ -368,6 +387,48 @@ export function AutoRecallSettings() {
       {num('withinHours', "pbx§Necha soat ichidagi o'tkazib yuborilganlar")}
       <div className="ac-pbx__actions"><button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button></div>
       {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
+    </div>
+  )
+}
+
+export function AudioLibrary() {
+  const t = useT()
+  const { data, reload } = useApi(() => pbxService.audioList(), [], 'pbx:audio')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [play, setPlay] = useState({})
+  const upload = async (e) => {
+    const file = e.target.files?.[0]; e.target.value = ''
+    if (!file) return
+    setErr(''); setBusy(true)
+    try {
+      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = rej; r.readAsDataURL(file) })
+      await pbxService.audioAdd({ name: file.name, mime: file.type || 'audio/mpeg', data: b64 })
+      await reload()
+    } catch (er) { setErr(er?.message || t("pbx§Yuklab bo'lmadi")) } finally { setBusy(false) }
+  }
+  const listen = async (id) => { try { const b = await pbxService.audioBlob(id); setPlay((p) => ({ ...p, [id]: URL.createObjectURL(b) })) } catch { setErr(t("pbx§Yuklab bo'lmadi")) } }
+  const del = async (f) => {
+    if (!(await dialog.confirm(t("pbx§Audio o'chirilsinmi?")))) return
+    try { await pbxService.audioRemove(f.id); await reload() } catch (er) { setErr(er?.message || '') }
+  }
+  const kb = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`)
+  return (
+    <div className="ac-pbx__page">
+      <h3>{t('pbx§AUDIO FAYLLAR')}</h3>
+      <p className="ac-pbx__muted">{t("pbx§Salomlashish, navbat, ovozli pochta va musiqa uchun MP3/WAV/OGG fayllar (har biri 5 MB gacha).")}</p>
+      <label className="ac-btn ac-btn--blue" style={{ display: 'inline-flex', alignItems: 'center' }}>{busy ? t('Yuklanmoqda…') : `+ ${t('pbx§Fayl yuklash')}`}<input type="file" accept="audio/mpeg,audio/wav,audio/ogg,.mp3,.wav,.ogg" hidden onChange={upload} disabled={busy} /></label>
+      {err && <div className="ac-pbx__err">{err}</div>}
+      {(data?.files || []).length === 0 ? <div className="ac-pbx__empty">{t("pbx§Hali audio fayl yo'q.")}</div> : (
+        <table className="ac-pbx__table"><tbody>{data.files.map((f) => (
+          <React.Fragment key={f.id}>
+            <tr><td>{f.name}</td><td>{kb(f.size)}</td><td>{new Date(f.createdAt).toLocaleDateString('ru-RU')}</td>
+              <td><button type="button" className="ac-pbx__play" onClick={() => listen(f.id)}>▶</button></td>
+              <td><button type="button" className="ac-btn" onClick={() => del(f)}>×</button></td></tr>
+            {play[f.id] && <tr><td colSpan={5}><audio controls autoPlay src={play[f.id]} style={{ width: '100%' }} /></td></tr>}
+          </React.Fragment>
+        ))}</tbody></table>
+      )}
     </div>
   )
 }

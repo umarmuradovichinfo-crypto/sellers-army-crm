@@ -39,6 +39,12 @@ describe('Asterisk generatori', () => {
     assert.match(r.extensions, /exten => _X\.,1,Set\(CALLERID\(num\)=0552233\)\n same => n,Dial\(PJSIP\/\$\{EXTEN\}@trunk-0552233,60\)/);
   });
 
+  test('audio kutubxona fayli custom/<id> sifatida ishlatiladi', () => {
+    const x = generateAsterisk([mod('greeting', '5000', { audioId: 'abc123', delaySec: 5 })]);
+    assert.match(x.extensions, /Background\(custom\/abc123\)/);
+    assert.match(generateAsterisk([mod('greeting', '5001', {})]).extensions, /Background\(silence\/1\)/);
+  });
+
   test('mavjud bo`lmagan yoki o`chirilgan marshrutga o`tish — Hangup (osilib qolmaydi)', () => {
     const x = generateAsterisk([mod('voicemail', '5120', { forwardTo: '7777' })]);
     assert.match(x.extensions, /\[m5120\][\s\S]*same => n,Hangup\(\)/);

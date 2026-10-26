@@ -624,3 +624,15 @@ model PbxBlacklist {
 
   @@map("pbx_blacklist")
 }
+
+// O'z telefon stansiyamiz: audio kutubxona (yuklangan fayllar; kichik hajmli, bazada saqlanadi)
+model PbxAudio {
+  id        String   @id @default(cuid())
+  name      String
+  mime      String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  @@map("pbx_audio")
+}

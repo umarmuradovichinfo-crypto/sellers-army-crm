@@ -1,7 +1,7 @@
 import React from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import PbxShell, { AtsLayout } from './PbxShell'
-import { Blacklist, CallbackSettings, AutoRecallSettings, Diagnostic, Incoming, Music, Outgoing } from '../pages/PbxPage'
+import { AudioLibrary, Blacklist, CallbackSettings, AutoRecallSettings, Diagnostic, Incoming, Music, Outgoing } from '../pages/PbxPage'
 import CallsPage from '../pages/CallsPage'
 import CallReportsPage from '../pages/CallReportsPage'
 import { PbxChats, PbxConfigurator, PbxHome, PbxIntegration, PbxLicense, PbxStatistic, ServiceInfo } from './PbxPlaceholders'
@@ -31,7 +31,7 @@ export default function PbxRoutes() {
       <Route path="/services/record" element={<S><ServiceInfo title="pbx§Suhbatlarni yozib olish" text="pbx§Barcha suhbatlar yozib olinadi va qo'ng'iroqlar jurnalidan tinglash mumkin; stereo yozuv nutq tahlili uchun." /></S>} />
       <Route path="/services/quality" element={<S><ServiceInfo title="pbx§Sifat bahosi" text="pbx§Suhbatdan keyin mijozdan 1–5 baho so'raladi; past baholar haqida xabar beriladi, natijalar hisobotda ko'rinadi." items={['pbx§Qo\'ng\'iroqdan keyin ovozli so\'rov', 'pbx§Past baholar haqida xabarnoma', 'pbx§Qo\'ng\'iroqlar jurnalida baho bo\'yicha filtr']} /></S>} />
       <Route path="/services/informer" element={<S><ServiceInfo title="pbx§Avtoinformator" text="pbx§Ovozli xabarni raqamlar ro'yxatiga avtomatik qo'ng'iroq qilib yetkazadi: balans, to'lov eslatmasi, aksiya, tabrik." /></S>} />
-      <Route path="/services/tts" element={<S><ServiceInfo title="pbx§Ovoz sintezi va audio fayllar" text="pbx§Matndan ovozli fayl yaratish va audio kutubxonani boshqarish: salomlashish, menyu, avtoinformator uchun." /></S>} />
+      <Route path="/services/tts" element={<S><AudioLibrary /></S>} />
       <Route path="/integration" element={<S><PbxIntegration /></S>} />
       <Route path="/license" element={<S><PbxLicense /></S>} />
       <Route path="*" element={<Navigate to="/pbx/calls" replace />} />
