@@ -10,6 +10,8 @@ import { AmmaAvatar, openAmma } from '../Amma'
 import '../i18n/bots.ru.js'
 import '../bots.css'
 
+const fmtTok = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : String(n || 0))
+
 export default function BotsPage() {
   const t = useT()
   const { can } = useAuth()
@@ -44,17 +46,46 @@ export default function BotsPage() {
     <div className="ac-content ac-bots">
       <div className="ac-top"><div className="ac-top__preset"><span className="ac-top__title">{t('Agentlar va botlar')}</span></div></div>
       <div className="ac-bots__body">
-        <div className="ac-amma-card">
-          <AmmaAvatar size={48} />
-          <div className="ac-amma-card__main">
-            <div className="ac-amma-card__cap">{t('Mahsulot ichidagi agent')}</div>
-            <div className="ac-amma-card__name">{t('AMMA')}</div>
-            <div className="ac-amma-card__desc">{t("Amma bitimlarni tahlil qiladi, vazifa qo'yadi va mijozga javob tayyorlaydi")}</div>
-            {amma && !amma.configured && <div className="ac-amma-card__warn">{t("Sozlanmagan: serverda ANTHROPIC_API_KEY o'rnatilmagan")}</div>}
+        {/* amoCRM: «Агент внутри продукта» — katta kartochka: chapda Amma, o'ngda «За последние 7 дней» */}
+        <h2 className="ac-bots__h">{t('Mahsulot ichidagi agent')}</h2>
+        <div className="ac-amma-big">
+          <div className="ac-amma-big__left">
+            <div className="ac-amma-big__name">{t('AMMA')}</div>
+            <div className="ac-amma-big__desc">{t("Bitimlarni tahlil qiladi, vazifa qo'yadi va mijozga javob tayyorlaydi")}</div>
+            <div className="ac-amma-big__ava"><AmmaAvatar size={110} /></div>
           </div>
-          <div className="ac-amma-card__stat"><b>{amma?.processedLeads ?? '—'}</b><span>{t('Ishlangan bitimlar')}</span></div>
-          <div className="ac-amma-card__stat"><b>{amma?.unanswered ?? '—'}</b><span>{t('Javobsiz chatlar')}</span></div>
-          <button className="ac-btn ac-btn--blue" onClick={() => openAmma()}>{t('Chatni ochish')}</button>
+          <div className="ac-amma-big__right">
+            <div className="ac-amma-big__cap">{t('bot§Oxirgi 7 kun')}</div>
+            <div className="ac-amma-big__row"><span>{t('Ishlangan bitimlar')}</span><b>{amma?.processed7 ?? '—'}</b></div>
+            <div className="ac-amma-big__row"><span>{t('Javobsiz chatlar')}</span><b>{amma?.unanswered ?? '—'}</b></div>
+            {amma && !amma.configured
+              ? <div className="ac-amma-card__warn">{t("Sozlanmagan: serverda ANTHROPIC_API_KEY o'rnatilmagan")}</div>
+              : <button className="ac-btn ac-btn--blue ac-amma-big__btn" onClick={() => openAmma()}>{t('Chatni ochish')}</button>}
+          </div>
+        </div>
+        {/* amoCRM «Расходование токенов» — bizda haqiqiy hisob: kunlar bo'yicha kirish/chiqish tokenlari */}
+        <div className="ac-bots__card ac-amma-tokens">
+          <div className="ac-amma-tokens__head">
+            <h3>{t('Token sarfi')}</h3>
+            {amma?.tokens7 && <span className="ac-muted">{t('bot§Oxirgi 7 kun')}: {fmtTok(amma.tokens7.input + amma.tokens7.cacheRead + amma.tokens7.cacheWrite)} {t('kirish')} · {fmtTok(amma.tokens7.output)} {t('chiqish')} · {amma.tokens7.requests} {t("so'rov")}</span>}
+          </div>
+          {(amma?.days || []).length === 0
+            ? <div className="ac-muted">{t("Hali so'rovlar bo'lmagan. Amma bilan ishlaganingizda bu yerda kunlik token sarfi ko'rinadi.")}</div>
+            : (
+              <div className="ac-amma-tokens__bars">
+                {(() => {
+                  const ds = amma.days.slice(-14)
+                  const tot = (d) => d.input + d.cacheRead + d.cacheWrite + d.output
+                  const max = Math.max(1, ...ds.map(tot))
+                  return ds.map((d) => (
+                    <div key={d.day} className="ac-amma-tokens__bar" title={`${d.day}: ${fmtTok(tot(d))} (${d.requests} ${t("so'rov")})`}>
+                      <i style={{ height: `${Math.max(3, (tot(d) / max) * 100)}%` }} />
+                      <span>{d.day.slice(8, 10)}.{d.day.slice(5, 7)}</span>
+                    </div>
+                  ))
+                })()}
+              </div>
+            )}
         </div>
         <h2 className="ac-bots__h">{t('Sizning botlaringiz')}</h2>
         <div className="ac-bots__card">
@@ -67,7 +98,7 @@ export default function BotsPage() {
             <thead>
               <tr>
                 <th className="ac-chk"><input type="checkbox" className="ac-check" checked={!!bots?.length && sel.size === bots.length} onChange={(e) => setSel(new Set(e.target.checked ? bots.map((b) => b.id) : []))} /></th>
-                <th>{t('Nomi')}</th><th>{t('Triggerlar')}</th><th className="num">{t('Konversiya')}</th><th className="num">{t('Jami ishga tushishlar')}</th><th className="num">{t('Hozir ishlamoqda')}</th><th />
+                <th>{t('bot§Nomi')}</th><th>{t('Triggerlar')}</th><th className="num">{t('Konversiya')}</th><th className="num">{t('Jami ishga tushishlar')}</th><th className="num">{t('Hozir ishlamoqda')}</th><th />
               </tr>
             </thead>
             <tbody>

@@ -18,3 +18,12 @@ describe('Ichki chat (amoCRM «Чат с …»)', () => {
     assert.equal((await req('POST', `/crm/leads/${l.id}/team-chat`, { toUserId: S.id, text: '  ' }, A)).status, 400);
   });
 });
+
+describe('Amma (amoCRM «Агент внутри продукта»)', () => {
+  test("ma'lumot: oxirgi 7 kun ishlangan bitimlar, token sarfi va kunlar ro'yxati qaytadi", async () => {
+    const r = await ok('GET', '/crm/amma', undefined, await admin(), 200);
+    assert.equal(typeof r.processed7, 'number');
+    assert.ok(r.tokens7 && typeof r.tokens7.input === 'number' && typeof r.tokens7.output === 'number', JSON.stringify(r));
+    assert.ok(Array.isArray(r.days));
+  });
+});

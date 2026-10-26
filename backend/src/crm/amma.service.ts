@@ -15,6 +15,8 @@ type ChatMsg = { role: 'user' | 'assistant'; content: string };
 const MODEL = process.env.AMMA_MODEL || 'claude-opus-5-5';
 const MAX_TURNS = 8;
 const STATS_KEY = 'amma:stats';
+type DayUsage = { input: number; output: number; cacheRead: number; cacheWrite: number; requests: number };
+type AmmaStats = { leads: string[]; requests: number; leadsAt?: Record<string, string>; days?: Record<string, DayUsage> };
 
 const SYSTEM = `Siz «Amma» — CRM tizimi ichidagi sotuv yordamchisisiz (amoCRM'dagi Amma kabi).
 Foydalanuvchi — sotuv menejeri. Bitimlar (lidlar), vazifalar, chat yozishmalari bilan ishlaysiz.
@@ -83,10 +85,21 @@ export class AmmaService {
 
   async info() {
     const row = await this.prisma.appSetting.findUnique({ where: { key: STATS_KEY } });
-    let stats: { leads?: string[]; requests?: number } = {};
-    try { stats = row ? JSON.parse(row.value) : {}; } catch { /* bo'sh */ }
+    let stats: AmmaStats = { leads: [], requests: 0 };
+    try { stats = row ? { ...stats, ...JSON.parse(row.value) } : stats; } catch { /* bo'sh */ }
     const unanswered = (await this.unanswered()).length;
-    return { configured: this.configured(), processedLeads: stats.leads?.length || 0, requests: stats.requests || 0, unanswered };
+    // amoCRM «За последние 7 дней»: ishlangan bitimlar va token sarfi (kunlar bo'yicha)
+    const since = Date.now() - 7 * 86400_000;
+    const processed7 = Object.values(stats.leadsAt || {}).filter((iso) => Date.parse(iso) >= since).length;
+    const days = Object.entries(stats.days || {}).sort(([a], [b]) => a.localeCompare(b)).slice(-30)
+      .map(([day, d]) => ({ day, ...d }));
+    const week = days.filter((d) => Date.parse(d.day) >= since - 86400_000);
+    const sum = (k: keyof DayUsage) => week.reduce((a, d) => a + (Number(d[k]) || 0), 0);
+    return {
+      configured: this.configured(), processedLeads: stats.leads?.length || 0, requests: stats.requests || 0, unanswered,
+      processed7, tokens7: { input: sum('input'), output: sum('output'), cacheRead: sum('cacheRead'), cacheWrite: sum('cacheWrite'), requests: sum('requests') },
+      days,
+    };
   }
 
   async chat(dto: { messages?: ChatMsg[]; leadId?: string }, user: AuthUser) {
@@ -109,6 +122,7 @@ export class AmmaService {
     const touched = new Set<string>();
     if (dto.leadId) touched.add(dto.leadId);
     let reply = '';
+    const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
     for (let turn = 0; turn < MAX_TURNS; turn++) {
       let res: Anthropic.Beta.BetaMessage;
       try {
@@ -128,6 +142,10 @@ export class AmmaService {
         if (e instanceof Anthropic.APIError) { this.log.warn(`API ${e.status}: ${e.message}`); throw new ServiceUnavailableException({ error: 'AMMA_API', message: 'Amma vaqtincha ishlamayapti' }); }
         throw e;
       }
+      usage.input += res.usage?.input_tokens || 0;
+      usage.output += res.usage?.output_tokens || 0;
+      usage.cacheRead += res.usage?.cache_read_input_tokens || 0;
+      usage.cacheWrite += res.usage?.cache_creation_input_tokens || 0;
       messages.push({ role: 'assistant', content: res.content });
       reply = res.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join('\n').trim();
       if (res.stop_reason === 'refusal') { reply = reply || "Kechirasiz, bu so'rovga javob bera olmayman."; break; }
@@ -144,7 +162,7 @@ export class AmmaService {
       }
       messages.push({ role: 'user', content: results });
     }
-    await this.bumpStats(touched).catch(() => null);
+    await this.bumpStats(touched, usage).catch(() => null);
     return { reply, actions };
   }
 
@@ -247,12 +265,22 @@ export class AmmaService {
     return open.filter((m) => nm.has(m.leadId)).map((m) => ({ leadId: m.leadId, lead: nm.get(m.leadId), since: m.createdAt.toISOString(), text: m.text.slice(0, 200) }));
   }
 
-  private async bumpStats(touched: Set<string>) {
+  private async bumpStats(touched: Set<string>, usage?: { input: number; output: number; cacheRead: number; cacheWrite: number }) {
     const row = await this.prisma.appSetting.findUnique({ where: { key: STATS_KEY } });
-    let s: { leads: string[]; requests: number } = { leads: [], requests: 0 };
+    let s: AmmaStats = { leads: [], requests: 0 };
     try { if (row) s = { leads: [], requests: 0, ...JSON.parse(row.value) }; } catch { /* bo'sh */ }
     s.requests += 1;
     s.leads = [...new Set([...s.leads, ...[...touched].filter(Boolean)])].slice(-5000);
+    const nowIso = new Date().toISOString();
+    s.leadsAt = { ...(s.leadsAt || {}) };
+    for (const id of touched) if (id) s.leadsAt[id] = nowIso;
+    const keepLeads = Object.entries(s.leadsAt).sort(([, a], [, b]) => b.localeCompare(a)).slice(0, 5000);
+    s.leadsAt = Object.fromEntries(keepLeads);
+    const day = nowIso.slice(0, 10);
+    const d: DayUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, requests: 0, ...(s.days?.[day] || {}) };
+    d.requests += 1;
+    if (usage) { d.input += usage.input; d.output += usage.output; d.cacheRead += usage.cacheRead; d.cacheWrite += usage.cacheWrite; }
+    s.days = Object.fromEntries(Object.entries({ ...(s.days || {}), [day]: d }).sort(([a], [b]) => a.localeCompare(b)).slice(-60));
     const value = JSON.stringify(s);
     await this.prisma.appSetting.upsert({ where: { key: STATS_KEY }, create: { key: STATS_KEY, value }, update: { value } });
   }

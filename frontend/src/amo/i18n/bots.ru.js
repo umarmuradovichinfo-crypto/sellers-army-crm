@@ -2,6 +2,17 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'bot§Nomi': 'НАЗВАНИЕ',
+  'bot§Oxirgi 7 kun': 'За последние 7 дней',
+  'Token sarfi': 'Расходование токенов',
+  'kirish': 'вход',
+  'chiqish': 'выход',
+  "so'rov": 'запросов',
+  "Hali so'rovlar bo'lmagan. Amma bilan ishlaganingizda bu yerda kunlik token sarfi ko'rinadi.": 'Запросов пока не было. Когда вы будете работать с Аммой, здесь появится ежедневный расход токенов.',
+  "Bitimlarni tahlil qiladi, vazifa qo'yadi va mijozga javob tayyorlaydi": 'Анализирует сделки, ставит задачи и готовит ответы клиентам',
+  'Ishlangan bitimlar': 'Обработано сделок',
+  'Javobsiz chatlar': 'Неотвеченные чаты',
+  'Mahsulot ichidagi agent': 'Агент внутри продукта',
   'Agentlar va botlar': 'Агенты и боты',
   'Sizning botlaringiz': 'Ваши боты',
   "Botlar ro'yxati": 'Список ботов',

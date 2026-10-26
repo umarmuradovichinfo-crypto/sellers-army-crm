@@ -232,6 +232,10 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     f) Analitika — [x] «Аналитика» oxirgi ochilgan bo'limda ochiladi («Список событий» ham); [x] voqealar ro'yxatida sana doim
        vaqt bilan, ichki chat qatori «→ oluvchi: matn», «Новая сделка» qiymatsiz. Hisobotlar (Анализ продаж, Сводный, По
        сотрудникам, Звонки, Цели) avval moslangan.
+    g) AI-agentlar va botlar — [x] «Агент внутри продукта»: katta Amma kartochkasi (chapda tavsif + avatar, o'ngda «За последние
+       7 дней»: ishlangan bitimlar, javobsiz chatlar); [x] «Расходование токенов» — amoCRM'da «Скоро», bizda haqiqiy: har Amma
+       so'rovining kirish/chiqish/kesh tokenlari kunlar bo'yicha (amma:stats), 14 kunlik ustunli grafik; [x] jadval sarlavhasi
+       «НАЗВАНИЕ». «Внешние агенты» (pullik tarif) — qo'yilmadi.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
