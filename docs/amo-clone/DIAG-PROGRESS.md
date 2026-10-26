@@ -19,6 +19,7 @@
 - (26.10, 3) Telefoniya sinxroni eski tarix uchun lid yaratmaydi va avtomatlashtirish (xabar) ishga tushirmaydi (faqat oxirgi sutka); IG/FB/web xabarlari suhbat bo'yicha ketma-ket (parallel yetkazishda ikkita bitim/takror xabar bo'lmaydi).
 - (26.10, 4) Dashboard yutilgan/yo'qotilgan davr bo'yicha wonAt/lostAt (card'ga qo'shildi); SettingsPage SWR formani bosib ketmaydi; AmoShell bildirishnoma intervali eskirgan `t` ishlatmaydi.
 - (26.10, 5) Rahbar qulfi (bir nechta nusxada fon vazifalari bir marta); LeadsList ommaviy bosqich — barcha voronkalar.
+- (26.10, 6) Voronka sarlavha statistikasi (aggAll) huquq bo'yicha cheklanadi (begona bitimlar soni/summasi ko'rinmaydi, test bilan); «Sotuv prognozi» vidjeti tanlangan xodimlarga mos.
 
 ## Qoldi (ustuvorlik bo'yicha)
 1. [x] To'liq QA yashil (144/144, UI 35×3 xatosiz) — LeadCard hook-tartib xatosi (o'z o'zgarishim) tuzatildi.
@@ -35,4 +36,4 @@
 3. Bajarilganini yuqoridagi «Bajarildi»ga ko'chir, commit (`Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`) + `git push origin amo-clone`.
 4. Hammasi tugasa — shu faylga `STATUS: DONE` yoz.
 
-STATUS: IN-PROGRESS (asosiy qismi tugadi; qolganlari past ustuvorlik: webhookSecret, LeadsList bulk stage, StatsPage 'all', tarjimasiz title/placeholder, ical take, Прогноз vidjetlari userIds)
+STATUS: DONE (asosiy qism). Qoldi faqat past ustuvorlik: webhookSecret (mavjud o'rnatishlarni buzmaslik uchun tegilmaydi), iCal take:1000, eski `leads-import` endpoint, drop-index (beforeId)

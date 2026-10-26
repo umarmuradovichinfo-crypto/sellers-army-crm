@@ -255,7 +255,7 @@ export default function DashboardPage() {
   const { data: chatSt } = useApi(() => crmService.chatStats(range).catch(() => null), [range.from, range.to])
   const { data: taskData } = useApi(() => crmService.listTasks({ status: 'open' }), [])
   const hasForecast = L.widgets.some((w) => w.type === 'forecast')
-  const { data: flowData } = useApi(() => (hasForecast ? crmService.analyticsFlow({ pipelineId: pipelineId || 'main' }).catch(() => null) : Promise.resolve(null)), [hasForecast, pipelineId])
+  const { data: flowData } = useApi(() => (hasForecast ? crmService.analyticsFlow({ pipelineId: pipelineId || 'main', userIds: mineId }).catch(() => null) : Promise.resolve(null)), [hasForecast, pipelineId, mineId])
 
   const pipelines = [{ id: '', name: t('Asosiy voronka') }, ...((pipe?.pipelines || []).map((p) => ({ id: p.id, name: p.name })))]
   const inSel = (id) => !selIds || selIds.includes(id)

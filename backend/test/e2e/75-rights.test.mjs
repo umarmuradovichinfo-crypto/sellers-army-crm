@@ -48,6 +48,10 @@ describe("Huquqlar matritsasi (amoCRM «Права доступа»)", () => {
     assert.equal(bulk.status, 403);
     const pipe = await ok('GET', '/crm/pipeline', undefined, U1.token, 200);
     assert.ok(!JSON.stringify(pipe).includes(l2.id), "voronkada boshqaning bitimi bor");
+    // sarlavha statistikasi (Faol lidlar soni) ham faqat ko'rinadigan bitimlardan: administratorniki ko'proq
+    const adminPipe = await ok('GET', '/crm/pipeline', undefined, A, 200);
+    const openCount = (p) => Number(String((p.stats || []).find((x) => x.lab === 'Faol lidlar')?.v || '0').replace(/\D/g, ''));
+    assert.ok(openCount(adminPipe) > openCount(pipe), `statistika begona bitimlarni ham sanadi: admin=${openCount(adminPipe)} xodim=${openCount(pipe)}`);
     // administrator hamma narsani ko'radi
     await ok('GET', `/crm/leads/${l2.id}`, undefined, A, 200);
   });

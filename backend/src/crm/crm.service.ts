@@ -248,7 +248,9 @@ export class CrmService {
       );
       return new Map(rows.map((r) => [r.stage, { c: Number(r.c), s: Number(r.s) }]));
     };
-    const [aggAll, aggF] = await Promise.all([aggOf([]), hasFilter ? aggOf(fconds) : Promise.resolve(null)]);
+    // «hammasi» ham foydalanuvchi ko'ra oladigan bitimlar bilan cheklanadi (huquq sharti) — aks holda sarlavha statistikasi begona bitimlar sonini/summasini ochib qo'yadi
+    const rightsConds = ctx.ownerIds ? [ctx.ownerIds.length ? Prisma.sql`l."assigneeId" IN (${Prisma.join(ctx.ownerIds)})` : Prisma.sql`FALSE`] : [];
+    const [aggAll, aggF] = await Promise.all([aggOf(rightsConds), hasFilter ? aggOf(fconds) : Promise.resolve(null)]);
     const agg = aggF || aggAll;
 
     const pageOf = async (stageKey: string) => {
