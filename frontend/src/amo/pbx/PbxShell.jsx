@@ -94,3 +94,18 @@ export function AtsLayout({ children, extra }) {
     </div>
   )
 }
+
+const SVC_LINKS = [['/pbx/services/ai', 'pbx§AI-menejer'], ['/pbx/services/record', 'pbx§Suhbatlarni yozib olish'], ['/pbx/services/quality', 'pbx§Sifat bahosi'], ['/pbx/services/autorecall', 'pbx§Avto-qayta qo\'ng\'iroq'], ['/pbx/services/informer', 'pbx§Avtoinformator'], ['/pbx/services/callback', 'Callback'], ['/pbx/integration', 'pbx§Integratsiya'], ['/pbx/services/tts', 'pbx§Ovoz sintezi va audio fayllar']]
+
+/** «Servislar» sahifalari: chap menyu + ustun (OnlinePBX /services/*). */
+export function ServicesLayout({ children }) {
+  const t = useT()
+  return (
+    <div className="pbxs">
+      <aside className="pbxs__aside">
+        {SVC_LINKS.map(([to, l]) => <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'on' : '')}>{l === 'Callback' ? l : t(l)}</NavLink>)}
+      </aside>
+      <div className="pbxs__main">{children}</div>
+    </div>
+  )
+}

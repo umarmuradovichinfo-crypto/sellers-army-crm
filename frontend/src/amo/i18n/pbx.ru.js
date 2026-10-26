@@ -274,6 +274,8 @@ addRu({
   "pbx§ATS qanday sozlanadi": "Как настроить АТС",
   "pbx§Xizmat to'lovi": "Оплата сервиса",
   "pbx§Yana…": "Еще...",
+  "pbx§Sozlamalar": "Настройки",
+  "pbx§Tavsif": "Описание",
   "Telefoniya": "Телефония",
   "Telefoniya (ATS)": "Телефония (АТС)",
 })

@@ -447,3 +447,21 @@
 .pbxh__side { display: flex; flex-direction: column; gap: 6px; } .pbxh__side .pbxh__card { flex: 1; }
 .pbxh__side a { font-size: 13px; line-height: 20px; color: var(--pb-link); }
 @media (max-width: 1100px) { .pbxh__top { grid-template-columns: 1fr 1fr; } .pbxh__grid { grid-template-columns: 1fr; } }
+
+/* ---- Servislar (OnlinePBX /services/*) ---- */
+.pbxx .pbxs { display: grid; grid-template-columns: 154px minmax(0, 1fr); min-height: calc(100vh - 50px); background: var(--pb-page); }
+.pbxx .pbxs__aside { background: #fff; border-right: 1px solid var(--pb-hair); padding: 26px 0 0 20px; display: flex; flex-direction: column; gap: 14px; }
+.pbxx .pbxs__aside a { font-size: 12px; line-height: 14px; color: #0088ca; padding-right: 10px; }
+.pbxx .pbxs__aside a.on { color: var(--pb-text); font-weight: 500; }
+.pbxx .pbxs__main { background: transparent; display: grid; grid-template-columns: minmax(0, 490px) minmax(0, 1fr); }
+.pbxx .pbxs__main > * { background: #fff; border-right: 1px solid var(--pb-hair); }
+.pbxx .pbxs__page { padding: 26px 20px 30px 20px; min-width: 0; }
+.pbxx .pbxs__title { margin: 0 0 20px; font-size: 14px; line-height: 17px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--pb-text); }
+.pbxx .pbxs__tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--pb-hair); margin: 0 -20px 20px; padding: 0 20px; }
+.pbxx .pbxs__tabs button { background: none; border: 0; padding: 0 0 8px; font: inherit; font-size: 12px; font-weight: 500; color: #0088ca; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.pbxx .pbxs__tabs button.on { color: var(--pb-text); border-bottom-color: var(--pb-text); }
+.pbxx .pbxs__body { font-size: 12px; line-height: 17px; color: var(--pb-text); }
+.pbxx .pbxs__body p { margin: 0 0 14px; }
+.pbxx .pbxs__body ul { margin: 0 0 14px; padding-left: 28px; }
+.pbxx .pbxs__soon { color: var(--pb-mute); }
+@media (max-width: 760px) { .pbxx .pbxs { grid-template-columns: 1fr; } .pbxx .pbxs__aside { flex-direction: row; flex-wrap: wrap; gap: 6px 16px; padding: 10px 12px; border-right: 0; } .pbxx .pbxs__main { grid-template-columns: 1fr; } }

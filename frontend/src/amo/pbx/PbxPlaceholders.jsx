@@ -15,12 +15,21 @@ function Page({ title, children, narrow = true }) {
 /** Stansiya serveri talab qiladigan servis: tavsif va holat (hozircha ulanmagan). */
 export function ServiceInfo({ title, text, items = [] }) {
   const t = useT()
+  const [tab, setTab] = useState('desc')
   return (
-    <Page title={t(title)}>
-      <p className="pbxx__text">{t(text)}</p>
-      {items.length > 0 && <ul className="pbxx__list">{items.map((i) => <li key={i}>{t(i)}</li>)}</ul>}
-      <div className="pbxx__note">{t("pbx§Bu imkoniyat stansiya serveri (Asterisk) ulangach ishga tushadi. Sozlamalar tayyorlanmoqda.")}</div>
-    </Page>
+    <div className="pbxs__page">
+      <h3 className="pbxs__title">{t(title)}</h3>
+      <div className="pbxs__tabs">
+        {[['set', 'pbx§Sozlamalar'], ['desc', 'pbx§Tavsif'], ['rep', 'pbx§Hisobotlar']].map(([k, l]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t(l)}</button>)}
+      </div>
+      {tab === 'desc' ? (
+        <div className="pbxs__body">
+          <p>{t(text)}</p>
+          {items.length > 0 && <ul>{items.map((i) => <li key={i}>{t(i)}</li>)}</ul>}
+          <p className="pbxs__soon">{t("pbx§Bu imkoniyat stansiya serveri (Asterisk) ulangach ishga tushadi. Sozlamalar tayyorlanmoqda.")}</p>
+        </div>
+      ) : <div className="pbxs__body"><p className="pbxs__soon">{t("pbx§Bu imkoniyat stansiya serveri (Asterisk) ulangach ishga tushadi. Sozlamalar tayyorlanmoqda.")}</p></div>}
+    </div>
   )
 }
 
