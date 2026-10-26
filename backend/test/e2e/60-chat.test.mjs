@@ -197,3 +197,30 @@ describe('Onlayn chat vidjeti (amoCRM «Онлайн чаты»)', () => {
     await ok('PUT', '/crm/chat-settings', { webChats: cs.webChats || [] }, T, 200);
   });
 });
+
+describe('NPS («Обращения и NPS»)', () => {
+  test("suhbat yopilganda baho so'raladi; mijoz 1–10 yozsa baho yoziladi, suhbat qayta ochilmaydi; boshqa matn — oddiy xabar", async () => {
+    const base = process.env.E2E_BASE;
+    const cs = await ok('GET', '/crm/chat-settings', undefined, T, 200);
+    const w = (await ok('PUT', '/crm/chat-settings', { webChats: [{ id: 'wnps', name: 'NPS sayt' }], nps: { on: true } }, T, 200)).webChats.find((x) => x.id === 'wnps');
+    const vid = 'nps' + Math.random().toString(36).slice(2, 12);
+    const send = (text) => fetch(`${base}/webchat/${w.key}/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visitorId: vid, name: 'NpsMijoz', text }) });
+    const find = async (re) => (await ok('GET', '/crm/conversations', undefined, T, 200)).conversations.find((c) => re.test(c.last || ''));
+    await send('Yordam kerak edi');
+    const conv = await find(/Yordam kerak edi/);
+    await ok('POST', `/crm/conversations/${conv.leadId}/close`, undefined, T);
+    const msgs = async () => (await (await fetch(`${base}/webchat/${w.key}/messages?visitorId=${vid}`)).json()).messages;
+    assert.ok((await msgs()).some((m) => m.from === 'agent' && /baholang/.test(m.text)), "baho so'rovi yuborilmadi");
+    await send('9');
+    const after = await ok('GET', `/crm/leads/${conv.leadId}/messages`, undefined, T, 200);
+    assert.equal(after.closed, true, 'baho javobi suhbatni qayta ochdi');
+    assert.ok((await msgs()).some((m) => m.from === 'agent' && /rahmat/i.test(m.text)), 'rahmat xabari yo\'q');
+    const st = await ok('GET', '/crm/nps', undefined, T, 200);
+    assert.ok(st.total >= 1 && st.dist[8] >= 1, JSON.stringify(st));
+    // kutilmayotgan raqam oddiy xabar sifatida o'tadi (baho yozilmaydi)
+    const before = st.total;
+    await send('7');
+    assert.equal((await ok('GET', '/crm/nps', undefined, T, 200)).total, before);
+    await ok('PUT', '/crm/chat-settings', { webChats: cs.webChats || [], nps: { on: false } }, T, 200);
+  });
+});

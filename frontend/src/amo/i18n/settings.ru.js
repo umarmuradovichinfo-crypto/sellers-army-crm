@@ -2,6 +2,12 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'NPS — mijoz bahosi': 'NPS — оценка клиента',
+  "Suhbat yopilganda mijozga xabar yuboriladi va u xizmatni 1 dan 10 gacha baholaydi. Baho bitim lentasida va quyidagi hisobotda ko'rinadi.": 'При закрытии беседы клиенту отправляется сообщение с просьбой оценить сервис по десятибалльной шкале. Оценка видна в ленте сделки и в отчёте ниже.',
+  "So'rov matni": 'Текст запроса',
+  'Rahmat matni': 'Текст благодарности',
+  "O'rtacha baho": 'Средняя оценка',
+  'Baholar soni': 'Количество оценок',
   'Onlayn chatlar': 'Онлайн чаты',
   "Saytingizga chat vidjetini o'rnating: tashrif buyuruvchi yozsa, yangi bitim va suhbat yaratiladi, javobingiz esa vidjetda ko'rinadi. Quyidagi kodni saytingiz </body> oldiga qo'ying. Yangi chat avval «Saqlash» bilan saqlanadi — shundan keyin kod paydo bo'ladi.": 'Установите чат-виджет на сайт: когда посетитель напишет, создадутся сделка и беседа, а ваш ответ отобразится в виджете. Вставьте код перед </body> вашего сайта. Новый чат сначала сохраняется кнопкой «Сохранить» — после этого появится код.',
   'Joylash kodi': 'Код для вставки',

@@ -21,6 +21,7 @@ const EV = {
   won: ['Bitim', 'Muvaffaqiyatli yopildi'],
   team_chat: ['Bitim', 'Ichki chat xabari'],
   link: ['Bitim', 'Mijoz havolani ochdi'],
+  nps: ['Bitim', 'Mijoz bahosi (NPS)'],
   lost: ['Bitim', "Yopilgan va yo'qotilgan"],
   field: ['Bitim', "Maydon o'zgardi"],
   assignee: ['Bitim', "Mas'ul o'zgardi"],

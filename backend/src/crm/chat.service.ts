@@ -96,6 +96,50 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   }
   onModuleDestroy() { if (this.acTimer) clearInterval(this.acTimer); }
 
+  static readonly NPS_ASK = "Xizmatimizni 1 dan 10 gacha baholang (10 — a'lo). Faqat raqam yuboring, rahmat!";
+  static readonly NPS_THANKS = 'Bahoyingiz uchun rahmat! 🙏';
+
+  /** Suhbat yopildi: NPS yoqilgan bo'lsa mijozdan baho so'raladi va javob kutiladi */
+  private async npsAsk(leadId: string) {
+    const { nps } = await this.getChatSettings();
+    if (!nps.on) return;
+    const sent = await this.sendMessage(leadId, nps.ask, undefined).then(() => true).catch(() => false);
+    if (sent) {
+      const key = `nps_wait:${leadId}`;
+      await this.prisma.appSetting.upsert({ where: { key }, create: { key, value: String(Date.now()) }, update: { value: String(Date.now()) } });
+    }
+  }
+  /** Mijozning 1–10 raqamli javobi kutilayotgan NPS bahosi bo'lsa — yozib oladi (suhbat qayta ochilmaydi). true — ishlandi */
+  private async npsIntercept(leadId: string, text: string): Promise<boolean> {
+    const key = `nps_wait:${leadId}`;
+    const wait = await this.prisma.appSetting.findUnique({ where: { key } });
+    if (!wait) return false;
+    if (Date.now() - Number(wait.value) > 7 * 86400_000) { await this.prisma.appSetting.deleteMany({ where: { key } }); return false; }
+    const m = /^\s*(10|[1-9])\s*[.!]?\s*$/.exec(String(text));
+    if (!m) { await this.prisma.appSetting.deleteMany({ where: { key } }); return false; } // boshqa narsa yozdi — oddiy suhbat davom etadi
+    await this.prisma.appSetting.deleteMany({ where: { key } });
+    const score = Number(m[1]);
+    const lead = await this.prisma.lead.findUnique({ where: { id: leadId }, select: { assigneeId: true, name: true } });
+    await this.activity.record(leadId, 'nps', { actorName: 'Mijoz', text: `Baho: ${score}/10`, data: { score, assigneeId: lead?.assigneeId || null } });
+    if (lead?.assigneeId) await this.notif.notify(lead.assigneeId, `Mijoz bahosi ${score}/10: ${lead.name}`, { type: 'mention', link: `/leads/detail/${leadId}` });
+    const { nps } = await this.getChatSettings();
+    await this.sendMessage(leadId, nps.thanks, undefined).catch(() => undefined);
+    return true;
+  }
+  /** NPS hisoboti: o'rtacha, taqsimot, so'nggi baholar */
+  async npsStats() {
+    const rows = await this.prisma.activity.findMany({ where: { type: 'nps' }, orderBy: { createdAt: 'desc' }, take: 500, select: { leadId: true, dataJson: true, createdAt: true } });
+    const scores = rows.map((r) => { try { return { leadId: r.leadId, score: Number(JSON.parse(r.dataJson || '{}').score), at: r.createdAt.toISOString() }; } catch { return null; } }).filter((x): x is { leadId: string | null; score: number; at: string } => !!x && x.score >= 1 && x.score <= 10);
+    const total = scores.length;
+    const promoters = scores.filter((s) => s.score >= 9).length, detractors = scores.filter((s) => s.score <= 6).length;
+    return {
+      total, avg: total ? Math.round((scores.reduce((a, s) => a + s.score, 0) / total) * 10) / 10 : 0,
+      nps: total ? Math.round(((promoters - detractors) / total) * 100) : 0,
+      dist: Array.from({ length: 10 }, (_, i) => scores.filter((s) => s.score === i + 1).length),
+      last: scores.slice(0, 10),
+    };
+  }
+
   static cleanWebChats(raw: unknown): any[] {
     if (!Array.isArray(raw)) return [];
     return raw.slice(0, 20).map((w: any, n: number) => ({
@@ -229,6 +273,8 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       autoCloseHours: ChatService.AUTO_CLOSE.includes(Number(v.autoCloseHours)) ? Number(v.autoCloseHours) : 0,
       // amoCRM «Сокращать ссылки»
       shortLinks: v.shortLinks === true,
+      // amoCRM «Обращения и NPS»: suhbat yopilganda baho (1–10) so'rash
+      nps: { on: v.nps?.on === true, ask: String(v.nps?.ask || '').slice(0, 500) || ChatService.NPS_ASK, thanks: String(v.nps?.thanks || '').slice(0, 500) || ChatService.NPS_THANKS },
       // amoCRM «Онлайн чаты»: saytga qo'yiladigan chat vidjetlari
       webChats: ChatService.cleanWebChats(v.webChats),
       // amoCRM «Типовые вопросы»: mavzu — kalit so'zlar → shablon bilan javob yoki Salesbot
@@ -251,6 +297,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (typeof body?.imboxMenu === 'boolean') next.imboxMenu = body.imboxMenu;
     if (body?.replyLimitMin !== undefined && ChatService.REPLY_LIMITS.includes(Number(body.replyLimitMin))) next.replyLimitMin = Number(body.replyLimitMin);
     if (typeof body?.shortLinks === 'boolean') next.shortLinks = body.shortLinks;
+    if (body?.nps && typeof body.nps === 'object') next.nps = { on: body.nps.on === true, ask: String(body.nps.ask || '').slice(0, 500) || ChatService.NPS_ASK, thanks: String(body.nps.thanks || '').slice(0, 500) || ChatService.NPS_THANKS };
     if (Array.isArray(body?.webChats)) {
       const old = new Map((cur.webChats as any[]).map((w) => [w.id, w]));
       // kalit (key) faqat serverda yaratiladi va o'zgarmaydi
@@ -332,11 +379,12 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     const prevAny = await this.prisma.message.count({ where: { leadId: lead.id } });
     const prevIn = await this.prisma.message.count({ where: { leadId: lead.id, direction: 'in' } });
 
-    const convNo = await this.convFor(lead.id, true);
+    const npsReply = await this.npsIntercept(lead.id, String(text)).catch(() => false);
+    const convNo = await this.convFor(lead.id, !npsReply);
     await this.prisma.message.create({
       data: { leadId: lead.id, channel: 'telegram', direction: 'in', text: String(text).slice(0, 4000), senderName: name, externalId: String(msg.message_id ?? ''), convNo },
     });
-    const consumed = await this.automation.salesbot?.onReply(lead.id, String(text)).catch(() => false);
+    const consumed = npsReply || (await this.automation.salesbot?.onReply(lead.id, String(text)).catch(() => false));
     if (!consumed) await this.applyIntents(lead.id, String(text)).catch(() => false);
     await this.activity.record(lead.id, 'email', { actorName: name, text: `📨 Telegram: ${String(text).slice(0, 120)}` });
     await this.prisma.lead.update({ where: { id: lead.id }, data: { lastActivityAt: new Date() } }).catch(() => {});
@@ -491,14 +539,15 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     const { lead, isNew } = await this.findOrCreateSocialLead(a.channel, a.threadId, a.name, a.source);
     const prevAny = await this.prisma.message.count({ where: { leadId: lead.id } });
     const prevIn = await this.prisma.message.count({ where: { leadId: lead.id, direction: 'in' } });
-    const convNo = await this.convFor(lead.id, true);
+    const npsReply = await this.npsIntercept(lead.id, a.text).catch(() => false);
+    const convNo = await this.convFor(lead.id, !npsReply);
     await this.prisma.message.create({
       data: {
         leadId: lead.id, channel: a.channel, direction: 'in', text: a.text.slice(0, 4000), senderName: a.name, externalId: a.externalId || null,
         threadId: a.threadId, pageId: a.pageId, kind: a.kind, ...(a.createdAt ? { createdAt: a.createdAt } : {}), convNo,
       },
     });
-    const consumed = await this.automation.salesbot?.onReply(lead.id, a.text).catch(() => false);
+    const consumed = npsReply || (await this.automation.salesbot?.onReply(lead.id, a.text).catch(() => false));
     if (!consumed && a.kind !== 'comment') await this.applyIntents(lead.id, a.text).catch(() => false);
     const label = a.kind === 'comment' ? `${CH_LABEL[a.channel]} izoh` : CH_LABEL[a.channel];
     await this.activity.record(lead.id, 'email', { actorName: a.name, text: `📨 ${label}: ${a.text.slice(0, 120)}` });
@@ -634,7 +683,10 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       data.favJson = JSON.stringify(favs.includes(user.id) ? favs.filter((x) => x !== user.id) : [...favs, user.id]);
     }
     const row = await this.prisma.conversationState.upsert({ where: { leadId }, create: { leadId, ...data }, update: data });
-    if (action === 'close') await this.activity.record(leadId, 'updated', { actorId: user?.id, actorName: user?.name, text: 'Suhbat yopildi' });
+    if (action === 'close') {
+      await this.activity.record(leadId, 'updated', { actorId: user?.id, actorName: user?.name, text: 'Suhbat yopildi' });
+      if (!st?.closed) await this.npsAsk(leadId).catch(() => undefined);
+    }
     return { closed: row.closed, fav: !!user?.id && safeList(row.favJson).includes(user.id) };
   }
 

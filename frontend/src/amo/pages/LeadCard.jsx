@@ -670,6 +670,7 @@ const ACT_TEXT = {
   tag: "Teglar o'zgartirildi",
   task_created: 'Yangi vazifa',
   link: 'Mijoz havolani ochdi',
+  nps: 'Mijoz bahosi (NPS)',
   task_done: 'Vazifa bajarildi',
   automation: 'Avtomatlashtirish',
   updated: "O'zgartirildi",

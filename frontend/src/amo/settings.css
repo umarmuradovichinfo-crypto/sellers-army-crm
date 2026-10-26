@@ -215,3 +215,10 @@
 .ac-prof-notif td:not(:first-child), .ac-prof-notif th:not(:first-child) { text-align: center; width: 110px; }
 .ac-prof-tg { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; font-size: 14px; }
 .ac-set-code { display: inline-block; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; padding: 2px 6px; border-radius: 3px; background: rgba(255,255,255,.07); font-size: 12px; }
+.ac-set-nps { display: flex; align-items: flex-end; gap: 24px; margin-top: 12px; flex-wrap: wrap; }
+.ac-set-nps > div:not(.ac-set-nps__bars) b { display: block; font: 700 24px var(--font-main); }
+.ac-set-nps > div:not(.ac-set-nps__bars) span { font-size: 12px; color: var(--palette-text-secondary-dark); }
+.ac-set-nps__bars { display: flex; align-items: flex-end; gap: 4px; height: 64px; }
+.ac-set-nps__bars i { position: relative; width: 16px; background: linear-gradient(#4c8bf7, #8dc63f); border-radius: 3px 3px 0 0; }
+.ac-set-nps__bars em { position: absolute; bottom: -16px; left: 0; right: 0; text-align: center; font: normal 10px var(--font-main); color: var(--palette-text-secondary-dark); }
+.ac-set-nps__bars { padding-bottom: 16px; }

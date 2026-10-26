@@ -2,6 +2,7 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Mijoz bahosi (NPS)': 'Оценка клиента (NPS)',
   'Mijoz havolani ochdi': 'Клиент перешёл по ссылке',
   'Ichki chat xabari': 'Сообщение во внутреннем чате',
   ' kun': 'д.',

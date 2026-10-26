@@ -156,6 +156,7 @@ export const crmService = {
   chatStatus: () => api.get('/crm/chat-status'),
   // Ish stoli chat vidjetlari: o'rtacha javob vaqti, uzoq javob kutayotganlar
   // Chat sozlamalari: { templates:[{id,name,active,text}], conversationRule }
+  nps: () => api.get('/crm/nps'),
   chatSettings: () => api.get('/crm/chat-settings'),
   saveChatSettings: (payload) => api.put('/crm/chat-settings', payload),
   chatStats: (params) => api.get(`/crm/chat-stats${qs(params)}`),

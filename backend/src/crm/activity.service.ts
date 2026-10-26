@@ -10,6 +10,7 @@ export type ActivityType =
   | 'note'
   | 'team_chat'
   | 'link'
+  | 'nps'
   | 'task_created'
   | 'task_done'
   | 'call'

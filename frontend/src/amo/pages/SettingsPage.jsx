@@ -160,6 +160,9 @@ function ChatsSection() {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
   const [edit, setEdit] = useState(null) // shablon tahrirlash: { id?, name, text, active }
+  const [npsSt, setNpsSt] = useState(null)
+  useEffect(() => { crmService.nps().then(setNpsSt).catch(() => {}) }, [])
+  const setNps = (patch) => setForm((f) => ({ ...f, nps: { ...(f.nps || {}), ...patch } }))
   const [wc, setWc] = useState(null) // «Онлайн чаты»: { id?, name, greeting, color }
   const [copied, setCopied] = useState('')
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -269,6 +272,28 @@ function ChatsSection() {
             <h2 className="ac-set-block__title" style={{ margin: 0 }}>{t('Havolalarni qisqartirish')}</h2>
           </label>
           <div className="ac-set-block__desc">{t("Yoqilsa, mijozga yuborilgan har bir havola almashtiriladi. Shu tufayli mijoz havolani ochganini kuzatishingiz mumkin: u bosganda bitim lentasida «Havola ochildi» yozuvi paydo bo'ladi va mas'ulga bildirishnoma boradi.")}</div>
+        </div>
+
+        <div className="ac-set-block">
+          <label className="ac-set-toggle">
+            <span className={`ac-switch ${form?.nps?.on ? 'on' : ''}`} onClick={(e) => { e.preventDefault(); if (canManage) setNps({ on: !form?.nps?.on }) }} />
+            <h2 className="ac-set-block__title" style={{ margin: 0 }}>{t('NPS — mijoz bahosi')}</h2>
+          </label>
+          <div className="ac-set-block__desc">{t("Suhbat yopilganda mijozga xabar yuboriladi va u xizmatni 1 dan 10 gacha baholaydi. Baho bitim lentasida va quyidagi hisobotda ko'rinadi.")}</div>
+          {form?.nps?.on && (
+            <>
+              <div className="ac-set-row"><div className="ac-set-row__label" style={{ width: 150 }}>{t("So'rov matni")}</div><input className="ac-input" style={{ width: 420 }} disabled={!canManage} value={form.nps.ask || ''} onChange={(e) => setNps({ ask: e.target.value })} /></div>
+              <div className="ac-set-row"><div className="ac-set-row__label" style={{ width: 150 }}>{t('Rahmat matni')}</div><input className="ac-input" style={{ width: 420 }} disabled={!canManage} value={form.nps.thanks || ''} onChange={(e) => setNps({ thanks: e.target.value })} /></div>
+            </>
+          )}
+          {npsSt && npsSt.total > 0 && (
+            <div className="ac-set-nps">
+              <div><b>{npsSt.avg}</b><span>{t("O'rtacha baho")}</span></div>
+              <div><b>{npsSt.nps}</b><span>NPS</span></div>
+              <div><b>{npsSt.total}</b><span>{t('Baholar soni')}</span></div>
+              <div className="ac-set-nps__bars">{npsSt.dist.map((n, i) => <i key={i} title={`${i + 1}: ${n}`} style={{ height: `${Math.max(4, (n / Math.max(1, ...npsSt.dist)) * 44)}px` }}><em>{i + 1}</em></i>)}</div>
+            </div>
+          )}
         </div>
 
         <div className="ac-set-block">
