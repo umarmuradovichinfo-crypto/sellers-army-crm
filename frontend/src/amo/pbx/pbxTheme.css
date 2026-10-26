@@ -465,3 +465,16 @@
 .pbxx .pbxs__body ul { margin: 0 0 14px; padding-left: 28px; }
 .pbxx .pbxs__soon { color: var(--pb-mute); }
 @media (max-width: 760px) { .pbxx .pbxs { grid-template-columns: 1fr; } .pbxx .pbxs__aside { flex-direction: row; flex-wrap: wrap; gap: 6px 16px; padding: 10px 12px; border-right: 0; } .pbxx .pbxs__main { grid-template-columns: 1fr; } }
+
+/* ---- Integratsiya (OnlinePBX /integration) ---- */
+.pbxx .pbxg { background: #fff; min-height: calc(100vh - 50px); padding: 25px 30px 40px; }
+.pbxx .pbxg__title { margin: 0 0 30px; font-size: 14px; line-height: 17px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--pb-text); }
+.pbxx .pbxg h5 { margin: 0 0 18px; font-size: 14px; line-height: 16px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--pb-text); }
+.pbxx .pbxg section { margin-bottom: 40px; }
+.pbxx .pbxg__grid { display: grid; grid-template-columns: repeat(auto-fill, 340px); gap: 0 0; }
+.pbxx .pbxg__card { width: 318px; height: 110px; margin: 0 22px 20px 0; background: var(--pb-page); border-radius: 4px; display: flex; gap: 14px; padding: 22px 18px; box-sizing: border-box; overflow: hidden; }
+.pbxx .pbxg__card i { flex: none; width: 26px; height: 26px; border-radius: 50%; color: #fff; font: 600 13px/26px Roboto, sans-serif; text-align: center; font-style: normal; }
+.pbxx .pbxg__card b { display: block; font-size: 12px; line-height: 14px; font-weight: 500; color: var(--pb-text); margin-bottom: 8px; }
+.pbxx .pbxg__card span { display: block; font-size: 12px; line-height: 15px; color: var(--pb-mute); word-break: break-word; }
+.pbxx .pbxg__card em { display: block; margin-top: 6px; font-size: 11px; font-style: normal; color: var(--pb-label); }
+@media (max-width: 760px) { .pbxx .pbxg { padding: 16px; } .pbxx .pbxg__grid { grid-template-columns: 1fr; } .pbxx .pbxg__card { width: auto; margin-right: 0; } }

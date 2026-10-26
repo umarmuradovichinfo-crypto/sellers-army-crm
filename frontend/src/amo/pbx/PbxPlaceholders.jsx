@@ -119,15 +119,28 @@ export function PbxChats() {
 export function PbxIntegration() {
   const t = useT()
   const { data } = useApi(() => crmService.getPbxConfig().catch(() => null), [], 'pbx-config')
-  const rows = [
-    ['pbx§CRM', 'pbx§Telefoniya shu CRM bilan to\'liq bog\'langan: qo\'ng\'iroq jurnali, mijoz kartochkasi, bosib qo\'ng\'iroq qilish, kiruvchi oyna.', 'pbx§Faol'],
-    ['pbx§Webhooks', data?.webhookUrl ? `${t('pbx§Hodisalar manzili')}: ${data.webhookUrl.replace(/secret=.*/, 'secret=•••')}` : t('pbx§Hodisalarni boshqa tizimlarga yuborish'), data?.enabled ? 'pbx§Faol' : 'pbx§Sozlanmagan'],
-    ['pbx§API', "pbx§Telefoniya ma'lumotlarini boshqa tizimlarga berish uchun API", 'pbx§Tayyorlanmoqda'],
+  const groups = [
+    ['pbx§CRM', [['CRM', '#4d7cff', "pbx§Shu CRM bilan to'liq bog'langan: qo'ng'iroq jurnali, mijoz kartochkasi, kiruvchi oyna", 'pbx§Faol'], ['amoCRM', '#33a8ff', "pbx§Qo'ng'iroqlar amoCRM'dan: bosib qo'ng'iroq qilish", 'pbx§Tayyorlanmoqda'], ['Kommo', '#1c1c2b', "pbx§Xalqaro loyihalar uchun amoCRM analogi", 'pbx§Tayyorlanmoqda'], ['Bitrix24', '#4ec3e0', "pbx§Bitrix24 kabinetidan bosib qo'ng'iroq qilish", 'pbx§Tayyorlanmoqda'], ['YClients', '#f7b500', "pbx§YClients kabinetidan bosib qo'ng'iroq qilish", 'pbx§Tayyorlanmoqda']]],
+    ['pbx§Nutq tahlili', [['TQM', '#7a5cc7', "pbx§Biznes muloqotini yaxshiroq tahlil qilish vositalari", 'pbx§Tayyorlanmoqda'], ['pbx§Qo\'ng\'iroq transkripsiyasi', '#f2b24c', "pbx§Qo'ng'iroqni avtomatik matnga aylantirish", 'pbx§Tayyorlanmoqda']]],
+    ['pbx§Dasturchilar uchun', [['Webhooks', '#8b6dbb', data?.webhookUrl ? `${t('pbx§Hodisalar manzili')}: ${data.webhookUrl.replace(/secret=.*/, 'secret=•••')}` : 'pbx§Hodisalarni boshqa tizimlarga yuborish', data?.enabled ? 'pbx§Faol' : 'pbx§Sozlanmagan'], ['API', '#17b890', "pbx§Telefoniya ma'lumotlarini boshqa tizimlarga berish uchun API", 'pbx§Tayyorlanmoqda']]],
   ]
   return (
-    <Page title={t('pbx§Integratsiya')}>
-      {rows.map(([n, d, s]) => <div key={n} className="pbxx__int"><b>{t(n)}</b><span>{t(d)}</span><em>{t(s)}</em></div>)}
-    </Page>
+    <div className="pbxg">
+      <h3 className="pbxg__title">{t('pbx§Integratsiya')}</h3>
+      {groups.map(([g, items]) => (
+        <section key={g}>
+          <h5>{t(g)}</h5>
+          <div className="pbxg__grid">
+            {items.map(([n, c, d, st]) => (
+              <div key={n} className="pbxg__card">
+                <i style={{ background: c }}>{n.replace(/^pbx§/, '')[0]}</i>
+                <div><b>{n.startsWith('pbx§') ? t(n) : n}</b><span>{d.startsWith('pbx§') ? t(d) : d}</span><em>{t(st)}</em></div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
   )
 }
 
