@@ -104,11 +104,12 @@ function CrmShell() {
 }
 
 // amoCRM: /stats oxirgi ochilgan hisobotga olib boradi
-const STATS_SECTIONS = ['pipeline', 'consolidated', 'by_activities', 'calls', 'goals']
+const STATS_SECTIONS = ['pipeline', 'consolidated', 'by_activities', 'calls', 'goals', 'events']
 function StatsLast() {
   let last = 'pipeline'
   try { const v = localStorage.getItem('amo_stats_last'); if (STATS_SECTIONS.includes(v)) last = v } catch { /* */ }
-  return <Navigate to={`/stats/${last}`} replace />
+  // «Список событий» amoCRM'da alohida manzilda (/events/list)
+  return <Navigate to={last === 'events' ? '/events/list' : `/stats/${last}`} replace />
 }
 
 export default function CrmApp() {

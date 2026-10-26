@@ -499,6 +499,9 @@ export class CrmAnalyticsService {
         ...(() => {
           try {
             const d = JSON.parse(r.dataJson || '{}');
+            // ichki chat: «Значение после» — xabar matni, oluvchi nomi «Название» yonida emas, matn oldida
+            if (r.type === 'team_chat') return { text: `→ ${d.toName || '—'}: ${r.text || ''}` };
+            if (r.type === 'created') return { text: '' }; // amoCRM: «Новая сделка» — qiymat ustunlari bo'sh
             if (d.fromName !== undefined || d.toName !== undefined) return { from: d.fromName || '', to: d.toName || '', fieldLabel: 'Bosqich' };
             if (d.label) return { from: d.from ?? '', to: d.to ?? '', fieldLabel: d.label };
           } catch { /* */ }

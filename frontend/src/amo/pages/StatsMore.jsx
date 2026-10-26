@@ -7,7 +7,7 @@ import TopBar from '../TopBar'
 import MultiSelect from '../MultiSelect'
 import { DATE_PRESETS } from '../filterState'
 import { Ico } from '../AmoIcons'
-import { cardDate, money } from '../format'
+import { cardDate, money, feedDate } from '../format'
 import { useT, usePlural } from '../i18n'
 import { Seg, Spin, SERIES, byUsers, num, hms } from './StatsCommon'
 import { trActivity } from '../activityText'
@@ -144,7 +144,7 @@ export function StatsEvents({ members }) {
                 const [obj, label] = EV[e.type] || ['Bitim', e.type]
                 return (
                   <tr key={e.id}>
-                    <td>{cardDate(e.createdAt, t)}</td>
+                    <td>{feedDate(e.createdAt, t)}</td>
                     <td>{e.actorName || '—'}</td>
                     <td className="obj">{t(obj)}</td>
                     <td>{e.leadId ? <a className="ac-stats-ev__lead" onClick={() => navigate(`/leads/detail/${e.leadId}`)}>{e.leadName || '—'}</a> : '—'}</td>

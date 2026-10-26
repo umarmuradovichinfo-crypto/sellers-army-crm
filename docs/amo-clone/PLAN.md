@@ -229,6 +229,9 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     d) Vazifalar — [x] filtrda sana oralig'i faqat «Период» tanlanganda; [x] oy kalendarida oy nomi faqat oyning 1-kunida.
        Lenta, «День/Неделя/Месяц», filtr presetlari avval moslangan.
     e) Ro'yxatlar — kontaktlar/kompaniyalar jadvali bir xil (telefon yonidagi qo'ng'iroq tugmasi — MicroSIP uchun ataylab qoldirildi).
+    f) Analitika — [x] «Аналитика» oxirgi ochilgan bo'limda ochiladi («Список событий» ham); [x] voqealar ro'yxatida sana doim
+       vaqt bilan, ichki chat qatori «→ oluvchi: matn», «Новая сделка» qiymatsiz. Hisobotlar (Анализ продаж, Сводный, По
+       сотрудникам, Звонки, Цели) avval moslangan.
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
