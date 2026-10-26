@@ -13,7 +13,7 @@ Mijoz manzili: `https://<nom>.<DOMEN>`. ~15–20 mijozgacha bitta server yetadi.
    (Docker, devor, fail2ban, avto-yangilanish). Parol bilan SSH'ni SSH kalit ishlashini tekshirgach o'zingiz o'chiring.
 4. `git clone <repo> /opt/crm && cd /opt/crm && git checkout amo-clone`
 5. `cp deploy/.env.example deploy/.env` va to'ldiring (DOMAIN, ACME_EMAIL, POSTGRES_PASSWORD, LICENSE_SECRET, karta, Telegram, AGE_PUBLIC_KEY, RCLONE_REMOTE).
-   Sirlarni `openssl rand -hex 32` bilan yarating, **chatga yozmang**, repoga qo'shmang (`deploy/.gitignore` himoya qiladi).
+   `LICENSE_SECRET` macOS Keychain'da («crm-license-secret», `security find-generic-password -s crm-license-secret -w`) — serverga SSH orqali stdin bilan uzatiladi, faylga/chatga ochiq yozilmaydi. Qolgan sirlarni `openssl rand -hex 32` bilan yarating, **chatga yozmang**, repoga qo'shmang (`deploy/.gitignore` himoya qiladi).
 6. `docker build -t crm:latest .` (repo ildizida), keyin `cd deploy && docker compose --env-file .env up -d`.
 
 ## 2. Yangi mijoz
