@@ -301,7 +301,7 @@ export default function LeadsPipeline() {
   const layout = useLayout('card', CARD_DEFAULT)
   const [lostAsk, setLostAsk] = useState(null)
   const [cardModal, setCardModal] = useState(false)
-  const [autoRefresh, setAutoRefresh] = useState(() => localStorage.getItem('amo_autorefresh') !== '0')
+  const [autoRefresh, setAutoRefresh] = useState(() => { try { return localStorage.getItem('amo_autorefresh') !== '0' } catch { return true } })
   const [bulk, setBulk] = useState(false)
   const [sel, setSel] = useState(new Set())
 
@@ -455,7 +455,7 @@ export default function LeadsPipeline() {
           { label: t('Dublikatlarni qidirish'), icon: 'search', onClick: () => setDupOpen(true) },
           { label: t('Ommaviy amallar'), icon: 'check', switch: bulk, onClick: () => { setBulk((v) => !v); setSel(new Set()) } },
           sortMenuItem(t, sort, Q.setSort),
-          { label: t('Avto-yangilash'), switch: autoRefresh, onClick: () => setAutoRefresh((v) => { localStorage.setItem('amo_autorefresh', v ? '0' : '1'); return !v }) },
+          { label: t('Avto-yangilash'), switch: autoRefresh, onClick: () => setAutoRefresh((v) => { try { localStorage.setItem('amo_autorefresh', v ? '0' : '1') } catch { /* */ } return !v }) },
         ]}
         actions={<>
           <button className="ac-btn" onClick={() => navigate(`/settings/pipeline/leads/${pipelineId || 'main'}`)}>{t('Sozlash')}</button>

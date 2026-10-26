@@ -1,6 +1,6 @@
 // amoCRM «Списки → Товары»: mahsulotlar katalogi (nom, artikul, narx). Bitim kartochkasida pozitsiya sifatida
 // qo'shiladi va byudjet avtomatik hisoblanadi. Tahrirlash — faqat sozlamalar huquqi bor foydalanuvchiga.
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
 import { useAuth } from '../../context/AuthContext'
@@ -45,10 +45,13 @@ export default function ProductsPage() {
   const [np, setNp] = useState({ name: '', sku: '', price: '' })
   const load = () => crmService.listProducts().then((r) => setItems(r.products || [])).catch(() => setItems([]))
   useEffect(() => { load() }, [])
+  const addBusy = useRef(false) // ikki marta bosish dublikat mahsulot yaratmasin
   const add = async () => {
-    if (!np.name.trim()) return
+    if (!np.name.trim() || addBusy.current) return
+    addBusy.current = true
     try { await crmService.createProduct({ name: np.name.trim(), sku: np.sku.trim(), price: Number(np.price) || 0 }); setNp({ name: '', sku: '', price: '' }); load() }
     catch (e) { window.alert(e?.message || t('Xatolik')) }
+    finally { addBusy.current = false }
   }
   const remove = async (p) => {
     if (!window.confirm(`${t("O'chirilsinmi?")} «${p.name}»`)) return

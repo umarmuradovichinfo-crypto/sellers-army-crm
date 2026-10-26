@@ -49,6 +49,8 @@ type Ctx = { a: any; actorName?: string; depth: number };
 @Injectable()
 export class AutomationService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AutomationService.name);
+  /** ChatService ro'yxatdan o'tkazadi (aylana bog'liqlikdan qochish): kanalga qarab xabar yuboradi */
+  chatSend?: (leadId: string, text: string) => Promise<unknown>;
   private timer: ReturnType<typeof setInterval> | null = null;
   private ticking = false;
 
@@ -470,6 +472,14 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
       case 'send_message': {
         const text = this.tpl(act.text, lead).trim();
         if (!text) throw new Error('Xabar matni bo\'sh');
+        // barcha kanallar (Telegram, Instagram, Messenger, Onlayn chat) uchun — ChatService orqali (suhbat raqami, qisqa havola, holat bilan)
+        if (this.chatSend) {
+          try { await this.chatSend(leadId, text.slice(0, 4000)); return `Xabar yuborildi: ${text.slice(0, 60)}`; } catch (e: any) {
+            const code = e?.response?.error;
+            if (code === 'NO_CHAT') return "xabar yuborilmadi — bitimda chat kanali yo'q (o'tkazib yuborildi)";
+            throw new Error(String(e?.response?.message || e?.message || 'yuborilmadi'));
+          }
+        }
         if (!lead.telegramChatId || !this.tg.enabled()) return "xabar yuborilmadi — bitimda chat kanali yo'q (o'tkazib yuborildi)";
         const res = await this.tg.sendMessage(lead.telegramChatId, text.slice(0, 4000));
         if (!res.ok) throw new Error('Telegram: ' + (res.error || 'yuborilmadi'));

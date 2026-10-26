@@ -12,6 +12,7 @@
 - Analitika: userIds kesishmasi, vazifa doneAt qayta yozilmaydi, iCal `;`, call kun kaliti Toshkent, parseFrom/parseTo Toshkent.
 - Telefoniya (2): recordUrl SSRF (faqat https + onlinepbx/onpbx/ulangan domen, redirect yo'q, 50MB), ensureCallerLead per-raqam qulf + qayta qidirish, missed-vazifa dedupe (format-mustaqil).
 - Auth (2): backup oqimi uzilsa osilmaydi/yarim fayl, iCal va Telegram jamlanma/hisobot faol bo'lmagan foydalanuvchiga ishlamaydi.
+- Automation `send_message` barcha kanallarga (ChatService orqali); TasksFilter sana siljishi; LeadsPipeline localStorage try/catch; ProductsPage ikki marta bosish.
 - Frontend: useApi eskirgan javob, offline navbat (401 refresh, logout'da tozalash, create navbatga tushmaydi), LeadCard (xato holati, id guard, save/tags/delete catch, export), IncomingCall qayta ochilmaydi, Dashboard o'rtacha davomiylik, i18n (Eslatma to'qnashuvi, barcha lug'atlar eager), mobil popup eni.
 
 ## Qoldi (ustuvorlik bo'yicha)

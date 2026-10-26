@@ -94,6 +94,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   static readonly AUTO_CLOSE = [0, 1, 3, 6, 12, 24, 48, 72, 168];
   private acTimer: ReturnType<typeof setInterval> | null = null;
   onModuleInit() {
+    this.automation.chatSend = (leadId, text) => this.sendMessage(leadId, text, undefined);
     if (process.env.NODE_ENV === 'test') return;
     this.acTimer = setInterval(() => this.autoCloseTick().catch(() => {}), 10 * 60_000);
   }

@@ -6,6 +6,9 @@ import { useT } from './i18n'
 import { DATE_PRESETS, stageToken } from './filterState'
 import { TASK_TYPES } from './pages/TasksModals'
 
+// «YYYY-MM-DD» — foydalanuvchi (akkaunt) kuni boshi; JS new Date('2026-10-26') UTC deb o'qiydi va 5 soatga siljitadi
+const localDay = (ymd, plusDays) => { const [y, m, d] = String(ymd).split('-').map(Number); return new Date(y, m - 1, d + plusDays) }
+
 export const TASK_PRESETS = [
   { key: 'mine', label: 'Faqat mening vazifalarim' },
   { key: 'overdue', label: "Muddati o'tgan vazifalar" },
@@ -51,7 +54,7 @@ export function matchTask(x, f) {
   if (f.assignees.length && !f.assignees.includes(x.assigneeId || 'none')) return false
   if (f.authors.length && !f.authors.includes(x.createdById || '')) return false
   if (f.stages.length && !f.stages.includes(`${x.pipelineId || 'main'}:${x.stage}`)) return false
-  const r = f.datePreset ? presetRange(f.datePreset) : (f.from || f.to) ? [f.from ? new Date(f.from) : null, f.to ? new Date(new Date(f.to).getTime() + 86400000) : null] : null
+  const r = f.datePreset ? presetRange(f.datePreset) : (f.from || f.to) ? [f.from ? localDay(f.from, 0) : null, f.to ? localDay(f.to, 1) : null] : null
   if (r) {
     if (!x.dueDate) return false
     const t = new Date(x.dueDate).getTime()
