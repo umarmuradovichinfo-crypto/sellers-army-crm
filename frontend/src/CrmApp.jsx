@@ -128,6 +128,8 @@ function CrmShell() {
           <Route path="/settings/users" element={<SettingsPage section="users" />} />
           <Route path="/settings/chats" element={<SettingsPage section="chats" />} />
           <Route path="/settings/security" element={<SettingsPage section="security" />} />
+          <Route path="/settings/pbx" element={<Navigate to="/settings/pbx/incoming" replace />} />
+          <Route path="/settings/pbx/:tab" element={<SettingsPage section="pbx" />} />
           <Route path="/settings/billing" element={<SettingsPage section="billing" />} />
           <Route path="/settings/profile" element={<ProfilePage />} />
           <Route path="/settings/pipelines/:pipelineId" element={<PipelineSetupPage />} />

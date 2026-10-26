@@ -1,0 +1,301 @@
+// «Настройка АТС» (o'z stansiyamiz, PLAN 45): modulli qo'ng'iroq oqimi — chapda «Modul qo'shish», o'rtada ro'yxat, o'ngda forma.
+// Tablar: Kiruvchi · Chiquvchi · Qora ro'yxat · Musiqa · Diagnostika. OnlinePBX paneli bilan 1:1 (docs/amo-clone/PBX-CLONE.md).
+import React, { useEffect, useMemo, useState } from 'react'
+import { NavLink, useParams } from 'react-router-dom'
+import { useT } from '../i18n'
+import { useApi } from '../../lib/useApi'
+import { dialog } from '../../components/Dialog'
+import { pbxService } from '../../services/pbx.service'
+import { settingsService } from '../../services/settings.service'
+import { ACCESS, DAYS, FIELDS, NOTIFS, SECTION_LABEL, TYPE_LABEL, TYPE_ORDER, fromForm, toForm } from '../pbxFields'
+import '../i18n/pbx.ru'
+import '../pbx.css'
+
+const TABS = [['incoming', 'pbx§Kiruvchi'], ['outgoing', 'pbx§Chiquvchi'], ['blacklist', "pbx§Qora ro'yxat"], ['music', 'pbx§Musiqa'], ['diagnostic', 'pbx§Diagnostika']]
+
+export default function PbxPage() {
+  const t = useT()
+  const { tab = 'incoming' } = useParams()
+  return (
+    <div className="ac-pbx">
+      <div className="ac-pbx__tabs">
+        {TABS.map(([k, l]) => <NavLink key={k} to={`/settings/pbx/${k}`} className={({ isActive }) => (isActive ? 'on' : '')}>{t(l)}</NavLink>)}
+      </div>
+      {tab === 'incoming' && <Incoming />}
+      {tab === 'outgoing' && <Outgoing />}
+      {tab === 'blacklist' && <Blacklist />}
+      {tab === 'music' && <Music />}
+      {tab === 'diagnostic' && <Diagnostic />}
+    </div>
+  )
+}
+
+function Field({ label, children, hint }) {
+  return <label className="ac-pbx__row"><span className="ac-pbx__lab">{label}</span><span className="ac-pbx__val">{children}</span>{hint && <small className="ac-pbx__hint">{hint}</small>}</label>
+}
+
+function Incoming() {
+  const t = useT()
+  const { data, reload } = useApi(() => pbxService.modules(), [], 'pbx:modules')
+  const users = useApi(() => settingsService.listUsers().catch(() => ({ users: [] })), [], 'pbx:crm-users')
+  const [sel, setSel] = useState(null) // { id? , type, number, name, enabled, config }
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const mods = data?.modules || []
+  const grouped = useMemo(() => Object.fromEntries(TYPE_ORDER.map((ty) => [ty, mods.filter((m) => m.type === ty)])), [mods])
+  const targetOptions = useMemo(() => mods.map((m) => ({ number: m.number, label: `${m.number}${m.name ? ` — ${m.name}` : ''} (${t(TYPE_LABEL[m.type] || m.type)})` })), [mods, t])
+
+  const startNew = async (type) => {
+    setErr('')
+    const { number } = await pbxService.nextNumber(type)
+    setSel({ type, number, name: '', enabled: true, config: toForm(type, {}), isNew: true })
+  }
+  const open = (m) => { setErr(''); setSel({ ...m, config: toForm(m.type, m.config), isNew: false }) }
+  const setCfg = (k, v) => setSel((s) => ({ ...s, config: { ...s.config, [k]: v } }))
+
+  const save = async () => {
+    setBusy(true); setErr('')
+    try {
+      const body = { number: sel.number, name: sel.name, enabled: sel.enabled, config: fromForm(sel.type, sel.config) }
+      const r = sel.isNew ? await pbxService.create({ type: sel.type, ...body }) : await pbxService.update(sel.id, body)
+      await reload()
+      setSel({ ...r.module, config: toForm(r.module.type, r.module.config), isNew: false })
+    } catch (e) { setErr(e?.message || t('pbx§Saqlab bo\'lmadi')) } finally { setBusy(false) }
+  }
+  const remove = async () => {
+    if (!(await dialog.confirm(t("pbx§Modul o'chirilsinmi?")))) return
+    setBusy(true); setErr('')
+    try { await pbxService.remove(sel.id); setSel(null); await reload() } catch (e) { setErr(e?.message || t('pbx§O\'chirib bo\'lmadi')) } finally { setBusy(false) }
+  }
+
+  return (
+    <div className="ac-pbx__grid">
+      <aside className="ac-pbx__add">
+        <b>{t('pbx§Modul qo\'shish')}</b>
+        {TYPE_ORDER.map((ty) => <button key={ty} type="button" onClick={() => startNew(ty)}>{t(TYPE_LABEL[ty])}</button>)}
+      </aside>
+      <section className="ac-pbx__list">
+        {TYPE_ORDER.map((ty) => (grouped[ty].length > 0 || ty === 'trunk') && (
+          <div key={ty}>
+            <h4>{t(SECTION_LABEL[ty])}</h4>
+            {grouped[ty].length === 0 && <div className="ac-pbx__empty">{t('pbx§Hali yo\'q')}</div>}
+            {grouped[ty].map((m) => (
+              <button key={m.id} type="button" className={`ac-pbx__item ${sel?.id === m.id ? 'on' : ''} ${m.enabled ? '' : 'off'}`} onClick={() => open(m)}>
+                <span className="n">{m.number}</span><span className="nm">{m.name || ''}</span>
+                {(m.config.forwardTo || m.config.workTo) && <span className="to">{m.config.forwardTo || m.config.workTo}</span>}
+              </button>
+            ))}
+          </div>
+        ))}
+        {mods.length === 0 && <div className="ac-pbx__empty">{t('pbx§Chapdan modul qo\'shing: avval raqam (trunk), keyin vaqt qoidasi, guruh va foydalanuvchilar.')}</div>}
+      </section>
+      <section className="ac-pbx__form">
+        {!sel && <div className="ac-pbx__empty">{t('pbx§Modulni tanlang yoki yangisini qo\'shing')}</div>}
+        {sel && (
+          <>
+            <h3>{t(TYPE_LABEL[sel.type])}{sel.isNew ? ` — ${t('pbx§yangi')}` : ''}</h3>
+            <Field label={t('pbx§Raqam')}><input className="ac-input" value={sel.number} onChange={(e) => setSel({ ...sel, number: e.target.value })} /></Field>
+            <Field label={t('pbx§Nomi')}><input className="ac-input" value={sel.name || ''} onChange={(e) => setSel({ ...sel, name: e.target.value })} /></Field>
+            {sel.type === 'user' && <UserForm sel={sel} setCfg={setCfg} crmUsers={users.data?.users || []} targetOptions={targetOptions} />}
+            {(FIELDS[sel.type] || []).map((f) => (
+              <Field key={f.key} label={t(f.label)}>
+                <Control f={f} value={sel.config[f.key]} onChange={(v) => setCfg(f.key, v)} targetOptions={targetOptions.filter((o) => o.number !== sel.number)} passwordSet={sel.passwordSet} />
+              </Field>
+            ))}
+            <Field label={t('pbx§Yoqilgan')}><input type="checkbox" checked={sel.enabled !== false} onChange={(e) => setSel({ ...sel, enabled: e.target.checked })} /></Field>
+            {err && <div className="ac-pbx__err">{err}</div>}
+            <div className="ac-pbx__actions">
+              <button type="button" className="ac-btn ac-btn--blue" disabled={busy} onClick={save}>{sel.isNew ? t("pbx§Qo'shish") : t('pbx§Saqlash')}</button>
+              <button type="button" className="ac-btn" onClick={() => { setSel(null); setErr('') }}>{t('pbx§Bekor qilish')}</button>
+              {!sel.isNew && <button type="button" className="ac-btn ac-pbx__del" disabled={busy} onClick={remove}>{t("pbx§O'chirish")}</button>}
+            </div>
+          </>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function Control({ f, value, onChange, targetOptions, passwordSet }) {
+  const t = useT()
+  switch (f.kind) {
+    case 'bool': return <input type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} />
+    case 'int': return <input className="ac-input" type="number" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
+    case 'password': return <input className="ac-input" type="password" autoComplete="new-password" value={value || ''} placeholder={passwordSet ? '••••••••' : ''} onChange={(e) => onChange(e.target.value)} />
+    case 'textarea': return <textarea className="ac-input" rows={2} value={value || ''} onChange={(e) => onChange(e.target.value)} />
+    case 'select': return <select className="ac-select" value={value ?? f.options[0][0]} onChange={(e) => onChange(e.target.value)}>{f.options.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}</select>
+    case 'target': return (
+      <select className="ac-select" value={value || ''} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{t("pbx§Qo'ng'iroq tugaydi")}</option>
+        {targetOptions.map((o) => <option key={o.number} value={o.number}>{o.label}</option>)}
+      </select>
+    )
+    case 'schedule': return <Schedule value={value || {}} onChange={onChange} />
+    default: return <input className="ac-input" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
+  }
+}
+
+function Schedule({ value, onChange }) {
+  const t = useT()
+  const set = (d, patch) => onChange({ ...value, [d]: { on: true, from: '09:00', to: '18:00', ...(value[d] || {}), ...patch } })
+  return (
+    <div className="ac-pbx__sched">
+      {DAYS.map(([d, l]) => {
+        const x = { on: true, from: '09:00', to: '18:00', ...(value[d] || {}) }
+        return (
+          <div key={d}>
+            <input type="checkbox" checked={x.on} onChange={(e) => set(d, { on: e.target.checked })} />
+            <span>{t(l)}</span>
+            <input className="ac-input" type="time" value={x.from} onChange={(e) => set(d, { from: e.target.value })} />–
+            <input className="ac-input" type="time" value={x.to} onChange={(e) => set(d, { to: e.target.value })} />
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function UserForm({ sel, setCfg, crmUsers, targetOptions }) {
+  const t = useT()
+  const c = sel.config
+  const fwd = c.forward || [{}, {}, {}]
+  const setFwd = (i, patch) => setCfg('forward', fwd.map((f, j) => (j === i ? { ...f, ...patch } : f)))
+  const acc = c.access || {}
+  const notify = c.notify || {}
+  const setNotify = (k, ch, v) => setCfg('notify', { ...notify, [k]: { ...(notify[k] || {}), [ch]: v } })
+  return (
+    <>
+      <Field label={t('pbx§CRM foydalanuvchisi')}>
+        <select className="ac-select" value={c.crmUserId || ''} onChange={(e) => setCfg('crmUserId', e.target.value)}>
+          <option value="">—</option>
+          {crmUsers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+        </select>
+      </Field>
+      <Field label="E-mail"><input className="ac-input" value={c.email || ''} onChange={(e) => setCfg('email', e.target.value)} /></Field>
+      <Field label={t("pbx§SIP orqali qo'ng'iroq qabul qilish")}><input type="checkbox" checked={c.acceptSip !== false} onChange={(e) => setCfg('acceptSip', e.target.checked)} /></Field>
+      <h4>{t("pbx§Qayta yo'naltirish")}</h4>
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="ac-pbx__fwd">
+          <span>{i + 1}</span>
+          <input className="ac-input" type="number" value={fwd[i]?.afterSec ?? 15} onChange={(e) => setFwd(i, { afterSec: e.target.value })} />
+          <select className="ac-select" value={fwd[i]?.to || ''} onChange={(e) => setFwd(i, { to: e.target.value })}>
+            <option value="">{t("pbx§Qo'ng'iroq tugaydi")}</option>
+            {targetOptions.filter((o) => o.number !== sel.number).map((o) => <option key={o.number} value={o.number}>{o.label}</option>)}
+          </select>
+        </div>
+      ))}
+      <h4>{t('pbx§Ruxsatlar')}</h4>
+      <div className="ac-pbx__checks">
+        {ACCESS.map(([k, l]) => <label key={k}><input type="checkbox" checked={acc[k] ?? (k === 'clients')} onChange={(e) => setCfg('access', { ...acc, [k]: e.target.checked })} />{t(l)}</label>)}
+      </div>
+      <h4>{t('pbx§Bildirishnomalar')}</h4>
+      <table className="ac-pbx__notify"><thead><tr><th /><th>E-mail</th><th>Push</th></tr></thead>
+        <tbody>{NOTIFS.map(([k, l]) => (
+          <tr key={k}><td>{t(l)}</td>
+            <td><input type="checkbox" checked={!!notify[k]?.email} onChange={(e) => setNotify(k, 'email', e.target.checked)} /></td>
+            <td><input type="checkbox" checked={!!notify[k]?.push} onChange={(e) => setNotify(k, 'push', e.target.checked)} /></td></tr>
+        ))}</tbody></table>
+    </>
+  )
+}
+
+function Outgoing() {
+  const t = useT()
+  const { data } = useApi(() => pbxService.outgoing(), [], 'pbx:outgoing')
+  const trunks = useApi(() => pbxService.modules('trunk'), [], 'pbx:trunks')
+  const [rules, setRules] = useState(null)
+  const [msg, setMsg] = useState(null)
+  useEffect(() => { if (data && rules === null) setRules((data.rules || []).map((r) => ({ ...r, users: (r.users || []).join(';') }))) }, [data]) // eslint-disable-line
+  if (rules === null) return <div className="ac-pbx__empty">{t('Yuklanmoqda…')}</div>
+  const set = (i, p) => setRules(rules.map((r, j) => (j === i ? { ...r, ...p } : r)))
+  const save = async () => {
+    setMsg(null)
+    try { await pbxService.saveOutgoing(rules.map((r) => ({ ...r, users: String(r.users || '').split(/[;,\s]+/).filter(Boolean) }))); setMsg({ ok: true, text: t('pbx§Saqlandi') }) }
+    catch (e) { setMsg({ ok: false, text: e?.message || t('pbx§Saqlab bo\'lmadi') }) }
+  }
+  return (
+    <div className="ac-pbx__page">
+      <h3>{t('pbx§CHIQUVCHI QOIDALAR')}</h3>
+      <table className="ac-pbx__table">
+        <thead><tr><th>№</th><th>{t('pbx§Nomi')}</th><th>{t('pbx§Maska')}</th><th>{t('pbx§Chiqish raqami')}</th><th>{t('pbx§Foydalanuvchilar')}</th><th /></tr></thead>
+        <tbody>{rules.map((r, i) => (
+          <tr key={i}>
+            <td>{i + 1}</td>
+            <td><input className="ac-input" value={r.name} onChange={(e) => set(i, { name: e.target.value })} /></td>
+            <td><input className="ac-input" value={r.mask} placeholder={t('pbx§Istalgan')} onChange={(e) => set(i, { mask: e.target.value })} /></td>
+            <td><select className="ac-select" value={r.trunk} onChange={(e) => set(i, { trunk: e.target.value, externalNumber: e.target.value })}>
+              <option value="">—</option>
+              {(trunks.data?.modules || []).map((m) => <option key={m.id} value={m.number}>{m.number}</option>)}
+            </select></td>
+            <td><input className="ac-input" value={r.users} placeholder="100;101" onChange={(e) => set(i, { users: e.target.value })} /></td>
+            <td><button type="button" className="ac-btn" onClick={() => setRules(rules.filter((_, j) => j !== i))}>×</button></td>
+          </tr>
+        ))}</tbody>
+      </table>
+      <div className="ac-pbx__actions">
+        <button type="button" className="ac-btn" onClick={() => setRules([...rules, { name: '', mask: '', trunk: '', externalNumber: '', users: '' }])}>+ {t("pbx§Qoida qo'shish")}</button>
+        <button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button>
+      </div>
+      {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
+    </div>
+  )
+}
+
+function Blacklist() {
+  const t = useT()
+  const { data, reload } = useApi(() => pbxService.blacklist(), [], 'pbx:blacklist')
+  const [num, setNum] = useState('')
+  const [err, setErr] = useState('')
+  const add = async () => { setErr(''); try { await pbxService.blacklistAdd(num.trim()); setNum(''); reload() } catch (e) { setErr(e?.message || '') } }
+  return (
+    <div className="ac-pbx__page">
+      <h3>{t("pbx§QORA RO'YXAT")}</h3>
+      <p className="ac-pbx__muted">{t("pbx§Ro'yxatdagi raqamlardan kelgan qo'ng'iroqlar avtomatik rad etiladi. Blokirovka faqat ko'rsatilgan formatdagi raqamga ishlaydi (+998… va 998… alohida qo'shiladi). Bloklangan qo'ng'iroqlar hisobotlarda ko'rinmaydi va CRM'ga yuklanmaydi.")}</p>
+      <div className="ac-pbx__actions">
+        <input className="ac-input" value={num} placeholder="+998901234567" onChange={(e) => setNum(e.target.value)} />
+        <button type="button" className="ac-btn ac-btn--blue" disabled={!num.trim()} onClick={add}>+ {t("pbx§Raqam qo'shish")}</button>
+      </div>
+      {err && <div className="ac-pbx__err">{err}</div>}
+      {(data?.numbers || []).length === 0 ? <div className="ac-pbx__empty">{t("pbx§Ro'yxatda raqam yo'q.")}</div> : (
+        <table className="ac-pbx__table"><tbody>{data.numbers.map((b) => (
+          <tr key={b.id}><td>{b.number}</td><td>{b.note || ''}</td><td><button type="button" className="ac-btn" onClick={async () => { await pbxService.blacklistRemove(b.id); reload() }}>×</button></td></tr>
+        ))}</tbody></table>
+      )}
+    </div>
+  )
+}
+
+function Music() {
+  const t = useT()
+  const { data } = useApi(() => pbxService.music(), [], 'pbx:music')
+  const [m, setM] = useState(null)
+  const [msg, setMsg] = useState(null)
+  useEffect(() => { if (data && !m) setM(data) }, [data]) // eslint-disable-line
+  if (!m) return <div className="ac-pbx__empty">{t('Yuklanmoqda…')}</div>
+  const save = async () => { try { await pbxService.saveMusic(m); setMsg({ ok: true, text: t('pbx§Saqlandi') }) } catch (e) { setMsg({ ok: false, text: e?.message || '' }) } }
+  return (
+    <div className="ac-pbx__page">
+      <h3>{t('pbx§MUSIQA')}</h3>
+      <Field label={t('pbx§Qo\'ng\'iroq paytida (gudok o\'rniga)')}><input className="ac-input" value={m.ringback} onChange={(e) => setM({ ...m, ringback: e.target.value })} /></Field>
+      <Field label={t('pbx§Kutish (hold)')}><input className="ac-input" value={m.hold} onChange={(e) => setM({ ...m, hold: e.target.value })} /></Field>
+      <div className="ac-pbx__actions"><button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button></div>
+      {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
+    </div>
+  )
+}
+
+function Diagnostic() {
+  const t = useT()
+  const { data, reload } = useApi(() => pbxService.validate(), [], 'pbx:validate')
+  return (
+    <div className="ac-pbx__page">
+      <h3>{t('pbx§MARSHRUT DIAGNOSTIKASI')}</h3>
+      <button type="button" className="ac-btn" onClick={reload}>{t('pbx§Qayta tekshirish')}</button>
+      {data && data.issues.length === 0 && <div className="ac-pbx__ok">{t('pbx§Marshrutda muammo topilmadi')}</div>}
+      {data && data.issues.length > 0 && (
+        <ul className="ac-pbx__issues">{data.issues.map((i, k) => <li key={k} className={i.level}><b>{i.number}</b> — {i.message}</li>)}</ul>
+      )}
+      <p className="ac-pbx__muted">{t("pbx§SIP-ro'yxatdan o'tish holati (raqam va foydalanuvchilar) stansiya serverga ulangach shu yerda ko'rinadi.")}</p>
+    </div>
+  )
+}

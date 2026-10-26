@@ -10,6 +10,7 @@ import { settingsService } from '../../services/settings.service'
 import { api } from '../../lib/apiClient'
 import SettingsUsers from './SettingsUsers'
 import SettingsBilling from './SettingsBilling'
+import PbxPage from './PbxPage'
 import '../i18n/settings.ru'
 import '../settings.css'
 import { setFormatPrefs } from '../format'
@@ -19,6 +20,7 @@ const ITEMS = [
   { to: '/settings/users', label: 'Foydalanuvchilar' },
   { to: '/settings/chats', label: 'Chatlar va messenjerlar' },
   { to: '/settings/security', label: 'Xavfsizlik' },
+  { to: '/settings/pbx/incoming', label: 'Telefoniya (ATS)' },
   { to: '/settings/billing', label: "Hisob va to'lov" },
 ]
 
@@ -31,7 +33,8 @@ export default function SettingsPage({ section = 'general' }) {
         {section === 'chats' && <ChatsSection />}
         {section === 'security' && <SecuritySection />}
         {section === 'billing' && <SettingsBilling />}
-        {!['users', 'chats', 'security', 'billing'].includes(section) && <GeneralSection />}
+        {section === 'pbx' && <PbxPage />}
+        {!['users', 'chats', 'security', 'billing', 'pbx'].includes(section) && <GeneralSection />}
       </div>
     </>
   )
