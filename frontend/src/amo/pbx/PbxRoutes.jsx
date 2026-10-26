@@ -1,6 +1,6 @@
 import React from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import PbxShell from './PbxShell'
+import PbxShell, { AtsLayout } from './PbxShell'
 import { Blacklist, CallbackSettings, AutoRecallSettings, Diagnostic, Incoming, Music, Outgoing } from '../pages/PbxPage'
 import CallsPage from '../pages/CallsPage'
 import CallReportsPage from '../pages/CallReportsPage'
@@ -15,11 +15,11 @@ export default function PbxRoutes() {
       <Route path="/home" element={<S><PbxHome /></S>} />
       <Route path="/ats" element={<Navigate to="/pbx/ats/incoming" replace />} />
       <Route path="/ats/incoming" element={<S tone="ats"><Incoming /></S>} />
-      <Route path="/ats/outgoing" element={<S tone="ats"><Outgoing /></S>} />
-      <Route path="/ats/diagnostic" element={<S><Diagnostic /></S>} />
-      <Route path="/ats/configurator" element={<S><PbxConfigurator /></S>} />
-      <Route path="/ats/blacklist" element={<S><Blacklist /></S>} />
-      <Route path="/ats/music" element={<S><Music /></S>} />
+      <Route path="/ats/outgoing" element={<S><AtsLayout><Outgoing /></AtsLayout></S>} />
+      <Route path="/ats/diagnostic" element={<S><AtsLayout><Diagnostic /></AtsLayout></S>} />
+      <Route path="/ats/configurator" element={<S><AtsLayout><PbxConfigurator /></AtsLayout></S>} />
+      <Route path="/ats/blacklist" element={<S><AtsLayout><Blacklist /></AtsLayout></S>} />
+      <Route path="/ats/music" element={<S><AtsLayout><Music /></AtsLayout></S>} />
       <Route path="/calls" element={<S><CallsPage /></S>} />
       <Route path="/chats" element={<S><PbxChats /></S>} />
       <Route path="/statistic" element={<S><PbxStatistic /></S>} />

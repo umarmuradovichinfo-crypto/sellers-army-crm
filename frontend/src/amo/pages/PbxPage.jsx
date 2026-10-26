@@ -161,6 +161,7 @@ function UserForm({ sel, setCfg, crmUsers, targetOptions }) {
           {crmUsers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
         </select>
       </Field>
+      <Field label="SIP-id"><span className="ac-pbx__ro">{sel.number}@{window.location.hostname}</span></Field>
       <Field label="E-mail"><input className="ac-input" value={c.email || ''} onChange={(e) => setCfg('email', e.target.value)} /></Field>
       <Field label={t("pbx§SIP orqali qo'ng'iroq qabul qilish")}><input type="checkbox" checked={c.acceptSip !== false} onChange={(e) => setCfg('acceptSip', e.target.checked)} /></Field>
       </>}

@@ -75,3 +75,17 @@ export default function PbxShell({ children, tone = 'white' }) {
     </div>
   )
 }
+
+// «ATS sozlamalari» sahifalari uchun chap ro'yxat (OnlinePBX: Исходящие, Диагностика, Конфигуратор, Чёрный список, Музыка)
+export function AtsLayout({ children }) {
+  const t = useT()
+  const links = [['/pbx/ats/outgoing', 'pbx§Chiquvchi'], ['/pbx/ats/diagnostic', 'pbx§Diagnostika'], ['/pbx/ats/configurator', 'pbx§Konfigurator'], ['/pbx/ats/blacklist', "pbx§Qora ro'yxat"], ['/pbx/ats/music', 'pbx§Musiqa']]
+  return (
+    <div className="pbxx__ats">
+      <aside className="pbxx__aside">
+        {links.map(([to, l]) => <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'on' : '')}>{t(l)}</NavLink>)}
+      </aside>
+      <div className="pbxx__atsmain">{children}</div>
+    </div>
+  )
+}
