@@ -83,3 +83,24 @@ describe('Bildirishnoma kanali: Telegram', () => {
     assert.equal((await ok('GET', '/notifications/telegram', undefined, T, 200)).linked, false);
   });
 });
+
+describe('Telegram jamlanmasi («Один раз в день»)', () => {
+  test("jamlanma sozlamasi saqlanadi; yoqilgan turlar bo'yicha so'nggi 24 soat xabarlari jamlanadi", async () => {
+    const A = await admin();
+    const st = await ok('GET', '/notifications/telegram', undefined, A, 200);
+    if (!st.linked) { await tg(Math.floor(Math.random() * 1e9), `/start ${st.code}`); }
+    const r = await ok('PUT', '/notifications/prefs', { prefs: { lead: { telegram: true } }, digest: true }, A, 200);
+    assert.equal(r.digest, true);
+    assert.equal((await ok('GET', '/notifications/prefs', undefined, A, 200)).digest, true);
+    const l = (await ok('POST', '/crm/leads', { name: 'QA jamlanma' }, A)).lead;
+    const u = (await ok('GET', '/crm/members', undefined, A, 200)).members.find((m) => m.name !== 'Admin');
+    await ok('PUT', `/crm/leads/${l.id}`, { assigneeId: u.id }, A, 200);
+    const mine = (await ok('GET', '/crm/leads', undefined, A, 200));
+    assert.ok(mine);
+    const d = await ok('POST', '/notifications/digest-run', {}, A);
+    assert.equal(typeof d.sent, 'number');
+    const off = await ok('PUT', '/notifications/prefs', { prefs: {}, digest: false }, A, 200);
+    assert.equal(off.digest, false);
+    await ok('DELETE', '/notifications/telegram', undefined, A, 200);
+  });
+});

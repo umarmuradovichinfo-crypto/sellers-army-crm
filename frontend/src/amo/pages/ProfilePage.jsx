@@ -67,8 +67,10 @@ export default function ProfilePage() {
   // «Настройки уведомлений»: tur × kanal
   const [nBase, setNBase] = useState(null)
   const [nPrefs, setNPrefs] = useState(null)
+  const [digest, setDigest] = useState(false)
+  const [digestBase, setDigestBase] = useState(false)
   const [perm, setPerm] = useState(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
-  useEffect(() => { notifService.prefs().then((r) => { setNBase(r.prefs); setNPrefs(r.prefs) }).catch(() => {}) }, [])
+  useEffect(() => { notifService.prefs().then((r) => { setNBase(r.prefs); setNPrefs(r.prefs); setDigest(!!r.digest); setDigestBase(!!r.digest) }).catch(() => {}) }, [])
   const [tg, setTg] = useState(null) // { enabled, linked, code, bot, url }
   const loadTg = () => notifService.tgStatus().then(setTg).catch(() => setTg({ enabled: false }))
   useEffect(() => { loadTg() }, [])
@@ -95,7 +97,7 @@ export default function ProfilePage() {
 
   const pwWant = pwOpen && (pw.cur || pw.a || pw.b)
   const pwBad = pwWant && (!pw.cur || pw.a.length < 6 || pw.a !== pw.b)
-  const nDirty = nPrefs && JSON.stringify(nPrefs) !== JSON.stringify(nBase)
+  const nDirty = nPrefs && (JSON.stringify(nPrefs) !== JSON.stringify(nBase) || digest !== digestBase)
   const dirty = ['name', 'email', 'phone', 'note', 'avatar'].some((k) => form[k] !== base[k]) || uiLang !== lang || pwWant || nDirty
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
@@ -111,7 +113,7 @@ export default function ProfilePage() {
         setPw({ cur: '', a: '', b: '' }); setPwOpen(false)
         settingsService.getProfile().then(load).catch(() => {})
       }
-      if (nDirty) { const r = await notifService.savePrefs(nPrefs); setNBase(r.prefs); setNPrefs(r.prefs) }
+      if (nDirty) { const r = await notifService.savePrefs(nPrefs, digest); setNBase(r.prefs); setNPrefs(r.prefs); setDigest(!!r.digest); setDigestBase(!!r.digest) }
       if (uiLang !== lang) setLang(uiLang)
       setMsg({ ok: true, m: t('Saqlandi') })
       setTimeout(() => setMsg(null), 2500)
@@ -214,6 +216,10 @@ export default function ProfilePage() {
                     <>
                       <span>✅ {t("Telegram ulangan — kerakli turlar uchun «TELEGRAM» ustunini yoqing")}</span>
                       <button className="ac-prof-out" onClick={() => notifService.tgUnlink().then(loadTg)}>{t('tg§Uzish')}</button>
+                      <label className="ac-set-radio" style={{ width: '100%' }}>
+                        <input type="checkbox" checked={digest} onChange={(e) => setDigest(e.target.checked)} />
+                        <span>{t("Telegram: kuniga bir marta 18:00 da jamlab yuborish")}</span>
+                      </label>
                     </>
                   ) : (
                     <>

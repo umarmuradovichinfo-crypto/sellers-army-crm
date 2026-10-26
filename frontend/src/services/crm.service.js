@@ -212,7 +212,8 @@ export const notifService = {
   tgStatus: () => api.get('/notifications/telegram'),
   tgUnlink: () => api.del('/notifications/telegram'),
   prefs: () => api.get('/notifications/prefs'),
-  savePrefs: (prefs) => api.put('/notifications/prefs', { prefs }),
+  savePrefs: (prefs, digest) => api.put('/notifications/prefs', { prefs, digest }),
+  digestRun: () => api.post('/notifications/digest-run', {}),
 }
 
 function qs(params) {

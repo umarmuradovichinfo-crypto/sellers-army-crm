@@ -12,8 +12,9 @@ export class NotificationController {
   // amoCRM «Настройки уведомлений» (profil)
   @Get('telegram') tgStatus(@CurrentUser('id') userId: string) { return this.s.tgStatus(userId); }
   @Delete('telegram') tgUnlink(@CurrentUser('id') userId: string) { return this.s.tgUnlink(userId); }
-  @Get('prefs') prefs(@CurrentUser('id') userId: string) { return this.s.prefs(userId).then((prefs) => ({ prefs })); }
-  @Put('prefs') savePrefs(@CurrentUser('id') userId: string, @Body() body: any) { return this.s.savePrefs(userId, body?.prefs || body); }
+  @Get('prefs') async prefs(@CurrentUser('id') userId: string) { return { prefs: await this.s.prefs(userId), digest: await this.s.digestOn(userId) }; }
+  @Put('prefs') savePrefs(@CurrentUser('id') userId: string, @Body() body: any) { return this.s.savePrefs(userId, body?.prefs || {}, typeof body?.digest === 'boolean' ? body.digest : undefined); }
+  @Post('digest-run') digestRun(@CurrentUser('id') userId: string) { return this.s.sendDigest(userId).then((sent) => ({ sent })); }
   @Post(':id/read') read(@Param('id') id: string, @CurrentUser('id') userId: string) { return this.s.markRead(userId, id); }
   @Post('read-all') readAll(@CurrentUser('id') userId: string) { return this.s.markAllRead(userId); }
 }

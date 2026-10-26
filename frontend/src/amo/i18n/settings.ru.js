@@ -2,6 +2,7 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Telegram: kuniga bir marta 18:00 da jamlab yuborish': 'Telegram: один раз в день в 18:00',
   'Telegram ulangan — kerakli turlar uchun «TELEGRAM» ustunini yoqing': 'Telegram подключён — включите колонку «TELEGRAM» для нужных типов',
   'tg§Uzish': 'Отключить',
   "Bildirishnomalarni Telegram'da olish:": 'Получать уведомления в Telegram:',

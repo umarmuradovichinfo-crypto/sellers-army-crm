@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,7 +9,7 @@ import { TelegramClient } from './telegram.client';
  * ishlaganda foydalanuvchiga xabar yuboriladi. Topbar qo'ng'iroq belgisida ko'rinadi.
  */
 @Injectable()
-export class NotificationService {
+export class NotificationService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly prisma: PrismaService, private readonly tg: TelegramClient) {}
 
   // amoCRM «Настройки уведомлений»: tur × kanal (main — bildirishnomalar markazi, browser — brauzer oynasi)
@@ -29,9 +29,55 @@ export class NotificationService {
     return p;
   }
 
-  async savePrefs(userId: string, body: any) {
+  // Telegram «Один раз в день 18:00»: kun davomidagi xabarlar bitta jamlanma bo'lib keladi (Toshkent vaqti)
+  async digestOn(userId: string): Promise<boolean> {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: `notify_prefs:${userId}` } });
+    try { return JSON.parse(row?.value || '{}')._digest === true; } catch { return false; }
+  }
+  private timer: ReturnType<typeof setInterval> | null = null;
+  onModuleInit() {
+    if (process.env.NODE_ENV === 'test') return;
+    this.timer = setInterval(() => this.digestTick().catch(() => {}), 10 * 60_000);
+  }
+  onModuleDestroy() { if (this.timer) clearInterval(this.timer); }
+
+  /** Toshkent (UTC+5) 18:00 dan keyin, kuniga bir marta: jamlanmani yoqqan va Telegram ulangan xodimlarga */
+  async digestTick() {
+    const tash = new Date(Date.now() + 5 * 3600_000);
+    if (tash.getUTCHours() < 18) return 0;
+    const day = tash.toISOString().slice(0, 10);
+    const rows = await this.prisma.appSetting.findMany({ where: { key: { startsWith: 'notify_tg:' } } });
+    let sent = 0;
+    for (const r of rows) {
+      const userId = r.key.slice('notify_tg:'.length);
+      if (!(await this.digestOn(userId))) continue;
+      const lk = `notify_digest_last:${userId}`;
+      const last = await this.prisma.appSetting.findUnique({ where: { key: lk } });
+      if (last?.value === day) continue;
+      await this.prisma.appSetting.upsert({ where: { key: lk }, create: { key: lk, value: day }, update: { value: day } });
+      if ((await this.sendDigest(userId)) > 0) sent++;
+    }
+    return sent;
+  }
+
+  /** So'nggi 24 soatdagi (Telegram yoqilgan turlar bo'yicha) bildirishnomalarni bitta xabar qilib yuboradi; soni qaytadi */
+  async sendDigest(userId: string): Promise<number> {
+    const chatId = await this.tgChatId(userId);
+    if (!chatId) return 0;
+    const pr = await this.prefs(userId);
+    const items = (await this.prisma.notification.findMany({ where: { userId, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } }, orderBy: { createdAt: 'asc' }, take: 100 }))
+      .filter((n) => pr[n.type]?.telegram);
+    if (!items.length) return 0;
+    const lines = items.slice(0, 30).map((n) => `• ${n.text.slice(0, 160)}`);
+    const more = items.length > 30 ? `\n… +${items.length - 30}` : '';
+    await this.tg.sendMessage(chatId, `📋 Kunlik jamlanma (${items.length}):\n${lines.join('\n')}${more}`);
+    return items.length;
+  }
+
+  async savePrefs(userId: string, body: any, digest?: boolean) {
     const cur = await this.prefs(userId);
-    const next = { ...cur };
+    const next: Record<string, any> = { ...cur };
+    next._digest = typeof digest === 'boolean' ? digest : await this.digestOn(userId);
     for (const k of NotificationService.CATS) {
       const v = body?.[k];
       if (v && typeof v === 'object') next[k] = { main: typeof v.main === 'boolean' ? v.main : cur[k].main, browser: typeof v.browser === 'boolean' ? v.browser : cur[k].browser, telegram: typeof v.telegram === 'boolean' ? v.telegram : cur[k].telegram };
@@ -40,7 +86,7 @@ export class NotificationService {
     const key = `notify_prefs:${userId}`;
     await this.prisma.appSetting.upsert({ where: { key }, update: { value }, create: { key, value } });
     this.prefCache.delete(userId);
-    return { prefs: next };
+    return { prefs: Object.fromEntries(NotificationService.CATS.map((k) => [k, next[k]])), digest: next._digest === true };
   }
 
   // ── Telegram kanali: profilda kod olinadi, botga «/start <kod>» yuboriladi ──
@@ -83,7 +129,7 @@ export class NotificationService {
     if (!userId) return;
     try {
       const pr = (await this.prefs(userId))[opts.type || 'info'];
-      const chatId = pr?.telegram ? await this.tgChatId(userId) : null;
+      const chatId = pr?.telegram && !(await this.digestOn(userId)) ? await this.tgChatId(userId) : null;
       if (chatId) this.tg.sendMessage(chatId, text.slice(0, 1000)).catch(() => undefined);
       if (pr && !pr.main && !pr.browser) return; // markaz va brauzer o'chirilgan — yozilmaydi
       await this.prisma.notification.create({
