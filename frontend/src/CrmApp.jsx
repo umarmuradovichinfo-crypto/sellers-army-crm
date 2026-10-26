@@ -64,7 +64,7 @@ function BillingBanner() {
   const t = useT()
   const { can } = useAuth()
   const { data } = useApi(() => billingService.status().catch(() => null), [], 'billing:status', 600000)
-  if (!data) return null
+  if (!data || !data.enforced) return null // cheklov yoqilmagan serverda (hozirgi Railway) banner chiqmaydi
   const bad = data.status === 'expired' || data.status === 'grace'
   if (!bad && !(data.daysLeft <= 7)) return null
   const text = data.status === 'expired' ? t('bl§Obuna tugagan') : data.status === 'grace' ? t("bl§Muddat tugadi (qo'shimcha kunlar)") : `${t('bl§Obuna tugayapti')}: ${Math.max(0, data.daysLeft)} ${t('bl§kun')}`
