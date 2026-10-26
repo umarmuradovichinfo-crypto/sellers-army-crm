@@ -1,10 +1,13 @@
 // Tariflar va davrlar. Narx = amoCRM «Счет и оплата» narxining 50% i (docs/amo-clone/PRICING.md), so'm / foydalanuvchi / oy.
-export type PlanKey = 'basic' | 'advanced' | 'pro';
+export type PlanKey = 'basic' | 'advanced' | 'pro' | 'cost';
 
-export const PLANS: Record<PlanKey, { name: string; price: number }> = {
+export const PLANS: Record<PlanKey, { name: string; price: number; hidden?: boolean }> = {
   basic: { name: 'Bazoviy', price: 39_500 },
   advanced: { name: 'Kengaytirilgan', price: 89_500 },
   pro: { name: 'Professional', price: 129_500 },
+  // Eksklyuziv mijozlar uchun «xarajat» tarifi: tarif menyusida ko'rinmaydi, narx har mijozga alohida (faqat haqiqiy xarajat) —
+  // kod faqat bizda (scripts/license.mjs --plan cost). Muddat/cheklov qoidalari boshqa tariflar bilan bir xil.
+  cost: { name: 'Maxsus tarif', price: 0, hidden: true },
 };
 
 /** Obuna davri (oy) → to'lanadigan oy soni. Eng kam davr — 3 oy; uzoq davrga sovg'a oylar (amoCRM kabi). */

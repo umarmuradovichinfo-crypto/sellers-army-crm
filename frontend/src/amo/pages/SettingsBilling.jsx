@@ -133,7 +133,7 @@ export default function SettingsBilling() {
           <table className="ac-bl__hist">
             <tbody>
               {data.history.map((h) => (
-                <tr key={h.id}><td>{dateStr(h.at)}</td><td>{(data.plans.find((x) => x.key === h.plan) || {}).name || h.plan}</td><td>{h.users} {t('bl§foydalanuvchi')}</td><td>{periodLabel(h.months)}</td></tr>
+                <tr key={h.id}><td>{dateStr(h.at)}</td><td>{h.planName || h.plan}</td><td>{h.users} {t('bl§foydalanuvchi')}</td><td>{periodLabel(h.months)}</td></tr>
               ))}
             </tbody>
           </table>

@@ -22,3 +22,8 @@ Sinov: 14 kun (5 foydalanuvchi). Muddat tugagach 3 kun qo'shimcha, keyin faqat o
 Xarajat (1-daraja, bitta VPS): server ~$10 + backup ~$3 + domen ~$1 = ~$14/oy, ~15 mijozgacha; 16–30 mijoz uchun 2-server (~$28).
 Aralash mijoz: 50% Bazoviy, 35% Kengaytirilgan, 15% Professional, o'rtacha 5 foydalanuvchi → ~$28/mijoz/oy.
 Soliq (taxminiy 4% aylanma) va ish vaqti (qo'llab-quvvatlash) hisobga olinmagan — buxgalter bilan aniqlash kerak.
+
+## «Xarajat» tarifi (yashirin, eksklyuziv mijozlar)
+Narx = haqiqiy xarajat, foyda yo'q: server ulushi ($14 / shu serverdagi mijozlar soni) + backup + domen; Dono mijozning o'z kaliti bilan.
+Kod: `LICENSE_SECRET=… node scripts/license.mjs --plan cost --users 5 --months 3 --customer "Nom"` — faqat to'lov kelgach. Tarif menyuda ko'rinmaydi.
+3 oyga oldindan to'laydi; muddat tugasa boshqa tariflar kabi cheklanadi. Har chorakda xarajatni qayta hisoblab, keyingi davr summasini belgilang.

@@ -293,6 +293,12 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     Server joyi: O'zbekiston fuqarolari shaxsiy ma'lumoti (telefon, ism) uchun mahalliy server xavfsizroq (Shaxsiy ma'lumotlar qonuni, 2026-03 tahriri).
     Xarajat hisobi chatda berildi (6–20$/server, 1 serverga ~4–10 mijoz). Qaror kutilmoqda: server provayderi va joyi.
 
+44. [~] (foydalanuvchi so'rovi 26.10) «Xarajat» tarifi — eksklyuziv mijozlar faqat haqiqiy xarajatni to'laydi (server ulushi + zaxira + domen; Dono — mijozning
+    o'z kaliti). Tarif menyusida KO'RINMAYDI, faqat bizda (back-office): `scripts/license.mjs --plan cost --users N --months 3|6|12 --customer "Nom"` bilan kod
+    beramiz — to'lovni olgach. Hisob boshqa mijozlardek ishlaydi; eng kam 3 oy oldindan to'lov, tugasa amoCRM kabi cheklanadi (3 kun qo'shimcha, so'ng faqat
+    o'qish; BILLING_ENFORCE=1). Xavf: xarajatim mijoz hisobiga o'tmasligi uchun — faqat oldindan to'lov, har chorakda xarajat qayta hisoblanadi, Dono/SMS
+    kabi o'zgaruvchan xarajat mijoz kaliti orqali. Qoldi: back-office jadvali (har mijoz bazasi hajmi/trafigi — haqiqiy xarajatni o'lchash).
+
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
   matnlari tarjimasi; Sozlamalar → Umumiy sozlamalarga "Til" maydoni (9-bosqich).

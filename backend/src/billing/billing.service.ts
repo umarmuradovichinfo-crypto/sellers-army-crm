@@ -79,7 +79,7 @@ export class BillingService {
   async overview() {
     const c = await this.current();
     const active = await this.prisma.user.count({ where: { isActive: true } });
-    const plans = Object.entries(PLANS).map(([key, p]) => ({
+    const plans = Object.entries(PLANS).filter(([, p]) => !p.hidden).map(([key, p]) => ({
       key, name: p.name, price: p.price,
       quotes: Object.keys(PERIODS).map((m) => quote(key as 'basic', 1, Number(m))),
     }));
@@ -92,7 +92,7 @@ export class BillingService {
         holder: process.env.BILLING_CARD_HOLDER || '',
         telegram: (process.env.BILLING_TELEGRAM || '').replace(/^@/, ''),
       },
-      history: (c.state.history || []).slice(-20).reverse(),
+      history: (c.state.history || []).slice(-20).reverse().map((h) => ({ ...h, planName: isPlan(h.plan) ? PLANS[h.plan].name : h.plan })),
     };
   }
 

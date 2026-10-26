@@ -77,4 +77,17 @@ describe('Obuna va to\'lov', () => {
     assert.equal(r2.history[0].id, 'e2e-2');
     assert.equal((await ok('GET', '/billing/status', undefined, A, 200)).status, 'active');
   });
+
+  test("yashirin «xarajat» tarifi: menyuda yo'q, kod bilan ishlaydi, boshqalar kabi muddat bilan", async () => {
+    const A = await admin();
+    const ov = await ok('GET', '/billing', undefined, A, 200);
+    assert.ok(!ov.plans.some((p) => p.key === 'cost'), "xarajat tarifi menyuda ko'rindi");
+    const r = await ok('POST', '/billing/activate', { code: code({ i: 'e2e-cost', p: 'cost', u: 3, m: 3, c: 'Eksklyuziv' }) }, A, [200, 201]);
+    assert.equal(r.plan, 'cost');
+    assert.equal(r.planName, 'Maxsus tarif');
+    assert.equal(r.users, 3);
+    assert.equal(r.status, 'active');
+    assert.equal(r.history[0].planName, 'Maxsus tarif');
+    assert.ok(!r.plans.some((p) => p.key === 'cost'));
+  });
 });
