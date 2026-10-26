@@ -18,6 +18,9 @@ unset SEED_ADMIN_EMAIL SEED_ADMIN_PASSWORD SETUP_TOKEN ANTHROPIC_API_KEY ANTHROP
 export TELEGRAM_BOT_TOKEN="e2e-test-token" TELEGRAM_API_BASE="http://127.0.0.1:9"
 # «Сокращать ссылки» qisqa havolalari uchun ommaviy manzil
 export PUBLIC_URL="http://localhost:${PORT}"
+# Asterisk sozlamasini qo'llash sinovi uchun vaqtinchalik papkalar (AMI yo'q — qayta yuklash o'tkazib yuboriladi)
+rm -rf /tmp/crm-e2e-asterisk
+export ASTERISK_CONF_DIR="/tmp/crm-e2e-asterisk/conf" ASTERISK_SOUNDS_DIR="/tmp/crm-e2e-asterisk/sounds"
 # Obuna litsenziyasi sinovi uchun test sirri (faqat lokal test bazasi)
 export LICENSE_SECRET="e2e-license-secret" BILLING_CARD_NUMBER="8600 0000 0000 0000" BILLING_CARD_HOLDER="TEST HOLDER" BILLING_TELEGRAM="@test_admin"
 

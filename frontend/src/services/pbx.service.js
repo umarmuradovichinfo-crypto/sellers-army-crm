@@ -8,6 +8,7 @@ export const pbxService = {
   update: (id, body) => api.put(`/pbx/modules/${id}`, body),
   remove: (id) => api.delete(`/pbx/modules/${id}`),
   validate: () => api.get('/pbx/flow/validate'),
+  asteriskApply: () => api.post('/pbx/asterisk/apply', {}),
   asterisk: () => api.get('/pbx/asterisk/preview'),
   deviceConfig: (body) => api.post('/pbx/configurator', body),
   audioList: () => api.get('/pbx/audio'),

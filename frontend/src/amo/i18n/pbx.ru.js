@@ -230,6 +230,11 @@ addRu({
   "pbx§Tayyorlab bo'lmadi": "Не удалось подготовить",
   "pbx§Stol telefonini avtomatik sozlash: qurilma turini va MAC-adresini kiriting, har liniyaga foydalanuvchini tanlang — tayyor konfiguratsiya fayli yuklab olinadi.": "Автонастройка настольного телефона: укажите тип устройства и MAC-адрес, выберите пользователя для каждой линии — будет скачан готовый файл конфигурации.",
   "pbx§Fayl qurilma ishlab chiqaruvchisi hujjatlari bo'yicha hosil qilinadi; haqiqiy telefonda hali sinalmagan. Faylda SIP paroli bor — uni begonalarga bermang.": "Файл формируется по документации производителя; на реальном телефоне ещё не проверялся. В файле есть SIP-пароль — не передавайте его посторонним.",
+  "pbx§Qo'llandi": "Применено",
+  "pbx§fayl": "файл.",
+  "pbx§Asterisk qayta yuklanmadi (AMI ulanmagan)": "Asterisk не перезагружен (AMI не подключён)",
+  "pbx§Qo'llab bo'lmadi": "Не удалось применить",
+  "pbx§Stansiyaga qo'llash": "Применить к станции",
   "Telefoniya": "Телефония",
   "Telefoniya (ATS)": "Телефония (АТС)",
 })

@@ -313,10 +313,20 @@ function AsteriskPreview() {
   const t = useT()
   const [cfg, setCfg] = useState(null)
   const [tab, setTab] = useState('extensions')
+  const [res, setRes] = useState(null)
   const load = async () => { try { setCfg(await pbxService.asterisk()) } catch { setCfg({ extensions: '', pjsip: '', queues: '' }) } }
+  const apply = async () => {
+    setRes(null)
+    try { const r = await pbxService.asteriskApply(); setRes({ ok: true, text: `${t('pbx§Qo\'llandi')}: ${r.written.length} ${t('pbx§fayl')}${r.audio ? `, ${r.audio} audio` : ''}${r.reloaded ? '' : ` · ${t('pbx§Asterisk qayta yuklanmadi (AMI ulanmagan)')}`}` }) }
+    catch (e) { setRes({ ok: false, text: e?.message || t("pbx§Qo'llab bo'lmadi") }) }
+  }
   return (
     <div style={{ marginTop: 18 }}>
-      <button type="button" className="ac-btn" onClick={load}>{t("pbx§Stansiya sozlamasini ko'rish (Asterisk)")}</button>
+      <div className="ac-pbx__actions" style={{ marginTop: 0 }}>
+        <button type="button" className="ac-btn" onClick={load}>{t("pbx§Stansiya sozlamasini ko'rish (Asterisk)")}</button>
+        <button type="button" className="ac-btn ac-btn--blue" onClick={apply}>{t("pbx§Stansiyaga qo'llash")}</button>
+      </div>
+      {res && <div className={res.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{res.text}</div>}
       {cfg && (
         <>
           <div className="ac-pbx__tabs" style={{ marginTop: 10 }}>

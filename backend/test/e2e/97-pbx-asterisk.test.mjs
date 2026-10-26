@@ -2,7 +2,8 @@
 import { describe, test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateAsterisk } from '../../dist/pbx/asterisk.generator.js';
-import { req, ok, admin, uniq } from './lib.mjs';
+import { readFileSync, existsSync } from 'node:fs';
+import { req, ok, admin, uniq, userWithRole } from './lib.mjs';
 
 const mod = (type, number, config = {}, name = null, enabled = true) => ({ type, number, name, enabled, config });
 const MODS = [
@@ -64,5 +65,37 @@ describe('Asterisk generatori', () => {
     assert.ok(!JSON.stringify(pv).includes('maxfiy-parol-123'), 'oldindan ko`rishda parol chiqib ketdi');
     await ok('DELETE', `/pbx/modules/${t.module.id}`, undefined, T, 200);
     void req;
+  });
+
+  test('qo`llash: fayllar yoziladi (haqiqiy parollar bilan), audio ko`chiriladi; CRM foydalanuvchisiz xodim bo`lsa 400', async () => {
+    const T = await admin();
+    const u = await userWithRole('sotuvchi');
+    const wav = Buffer.concat([Buffer.from('RIFF....WAVEfmt '), Buffer.alloc(300, 1)]).toString('base64');
+    const au = await ok('POST', '/pbx/audio', { name: 'salom.wav', mime: 'audio/wav', data: wav }, T, 201);
+    const m1 = (await ok('POST', '/pbx/modules', { type: 'user', number: '9401', name: 'Apply Ali', config: { crmUserId: u.id } }, T, 201)).module;
+    const m2 = (await ok('POST', '/pbx/modules', { type: 'user', number: '9402', name: 'Parolsiz' }, T, 201)).module;
+    const g = (await ok('POST', '/pbx/modules', { type: 'greeting', number: '9450', config: { audioId: au.id } }, T, 201)).module;
+    const tr = (await ok('POST', '/pbx/modules', { type: 'trunk', number: '0559900', config: { login: 'lg', server: '9.9.9.9', password: 'trunk-maxfiy-1', forwardTo: '9450' } }, T, 201)).module;
+    // 9402 uchun SIP paroli yo'q → rad
+    const bad = await req('POST', '/pbx/asterisk/apply', undefined, T);
+    assert.equal(bad.status, 400);
+    assert.match(bad.data.message, /9402/);
+    await ok('DELETE', `/pbx/modules/${m2.id}`, undefined, T, 200);
+    const r = await ok('POST', '/pbx/asterisk/apply', undefined, T, [200, 201]);
+    assert.deepEqual(r.written.sort(), ['extensions_crm.conf', 'pjsip_crm.conf', 'queues_crm.conf']);
+    assert.equal(r.reloaded, false, 'AMI yo`q — qayta yuklash o`tkazib yuboriladi');
+    const dir = '/tmp/crm-e2e-asterisk/conf';
+    const pj = readFileSync(`${dir}/pjsip_crm.conf`, 'utf8');
+    assert.match(pj, /\[9401\]\ntype=endpoint/);
+    assert.ok(!pj.includes('CHANGE_ME'), 'SIP paroli joyiga o`rin to`ldiruvchi yozilib qoldi');
+    assert.match(pj, /password=trunk-maxfiy-1/, 'trunk paroli haqiqiy faylda bo`lishi kerak');
+    assert.match(readFileSync(`${dir}/extensions_crm.conf`, 'utf8'), /Background\(custom\/[A-Za-z0-9]+\)/);
+    assert.ok(existsSync(`/tmp/crm-e2e-asterisk/sounds/custom/${au.id}.wav`), 'audio fayl ko`chirilmadi');
+    // oldindan ko'rishda parol yo'q
+    const pv = await ok('GET', '/pbx/asterisk/preview', undefined, T, 200);
+    assert.ok(!JSON.stringify(pv).includes('trunk-maxfiy-1'));
+    assert.equal((await req('POST', '/pbx/asterisk/apply', undefined, (await userWithRole('sotuvchi')).token)).status, 403);
+    for (const m of [tr, g, m1]) await ok('DELETE', `/pbx/modules/${m.id}`, undefined, T, 200);
+    await ok('DELETE', `/pbx/audio/${au.id}`, undefined, T, 200);
   });
 });

@@ -16,6 +16,7 @@ import { PipelineSettingsService } from '../crm/pipeline-settings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LeaderService } from '../common/leader.service';
 import { PbxGateway } from './pbx.gateway';
+import { OwnPbxProvider } from './own-pbx.provider';
 import type { PbxCall } from './pbx-provider';
 import { OnlinePbxConfigService, PbxConfig } from './onlinepbx-config.service';
 import { createHash, timingSafeEqual } from 'crypto';
@@ -39,6 +40,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     private readonly leader: LeaderService,
     private readonly prisma: PrismaService,
     private readonly pbx: PbxGateway,
+    private readonly own: OwnPbxProvider,
     private readonly cfg: OnlinePbxConfigService,
     private readonly automation: AutomationService,
     private readonly pset: PipelineSettingsService,
@@ -49,6 +51,8 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   // Fon rejimida OnlinePBX tarixini muntazam tortib turadi — operator gaplashib
   // bo'lishi bilan qo'ng'iroq/yozuv ~15-20s ichida platformada avtomatik ko'rinadi.
   onModuleInit() {
+    // o'z stansiyamiz (Asterisk) CDR hodisalari xuddi webhook kabi qayta ishlanadi (faqat «own» provayder faol bo'lsa)
+    this.own.onCall((body) => { this.cfg.get().then((c) => (c.provider === 'own' ? this.processCallEvent(body) : undefined)).catch((e) => this.logger.warn('CDR: ' + (e as Error).message)); });
     this.syncTimer = setInterval(() => {
       this.leader.guard(() => this.syncHistory({ force: true, minutes: 30 })).catch(() => {});
     }, 10_000);
@@ -636,6 +640,11 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn('OnlinePBX webhook: secret mos emas — rad etildi');
       return { ok: false, error: 'BAD_SECRET' };
     }
+    return this.processCallEvent(body);
+  }
+
+  /** Qo'ng'iroq hodisasini qayta ishlash (OnlinePBX webhook yoki o'z stansiyamiz CDR'si). Autentifikatsiya chaqiruvchi tomonda. */
+  async processCallEvent(body: any) {
     // OnlinePBX turli formatda yuborishi mumkin — bir nechta kalitni tekshiramiz.
     const get = (...keys: string[]) => {
       for (const k of keys) {

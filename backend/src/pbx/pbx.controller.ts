@@ -22,6 +22,7 @@ export class PbxController {
 
   @Get('asterisk/preview') asterisk() { return this.s.asteriskPreview(); }
 
+  @Post('asterisk/apply') asteriskApply() { return this.s.applyAsterisk(); }
   @Post('configurator') deviceConfig(@Body() dto: any) { return this.s.deviceConfig(dto); }
 
   @Get('audio') audioList() { return this.s.audioList(); }
