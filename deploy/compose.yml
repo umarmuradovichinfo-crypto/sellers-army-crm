@@ -1,0 +1,46 @@
+# Umumiy qism: bitta Postgres + Caddy (avtomatik HTTPS). Har mijoz alohida konteyner (customers/<nom>/compose.yml).
+# Ishga tushirish: cd deploy && docker compose --env-file .env up -d
+name: crm-core
+services:
+  postgres:
+    image: postgres:16
+    container_name: crm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD kerak}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [crm-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # internetga CHIQARILMAYDI (ports yo'q) — faqat crm-net ichida
+    shm_size: 256mb
+
+  caddy:
+    image: caddy:2
+    container_name: crm-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL kerak}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/sites:/etc/caddy/sites:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [crm-net]
+
+networks:
+  crm-net:
+    name: crm-net
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

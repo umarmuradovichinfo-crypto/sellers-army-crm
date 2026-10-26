@@ -1,0 +1,6 @@
+{
+	email {$ACME_EMAIL}
+}
+
+# Har mijoz uchun sites/<nom>.caddy (new-customer.sh yaratadi)
+import /etc/caddy/sites/*.caddy
