@@ -13,7 +13,7 @@ const AMO = { basic: 79000, advanced: 179000, pro: 259000 }
 const FEATURES = {
   basic: ['bl§Bitimlar, voronka, vazifalar', 'bl§imBox va kontaktlar', "bl§Ruxsatlar matritsasi"],
   advanced: ['bl§Bazoviy imkoniyatlari', 'bl§Avtomatlashtirish va Salesbot', 'bl§KPI va sotuv rejalari', 'bl§Kataloglar (mahsulotlar)'],
-  pro: ['bl§Kengaytirilgan imkoniyatlari', 'bl§Zaxira nusxa (backup)', 'bl§Faollik monitoringi', 'bl§Mijoz savollariga avto-javob'],
+  pro: ['bl§Kengaytirilgan imkoniyatlari', 'bl§Zaxira nusxa (backup)', 'bl§Mijoz savollariga avto-javob'],
 }
 const fmt = (n) => Math.round(n).toLocaleString('ru-RU').replace(/ /g, ' ')
 const dateStr = (iso) => { try { return new Date(iso).toLocaleDateString('ru-RU') } catch { return '' } }

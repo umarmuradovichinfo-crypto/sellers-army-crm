@@ -5,9 +5,11 @@ import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { RightsService } from '../common/rights/rights.service';
 import { SalesbotService } from './salesbot.service';
+import { RequireFeature } from '../billing/require-feature.decorator';
 
 // amoCRM «AI-агенты и боты» → «Список ботов» va Salesbot konstruktori
 @Controller('crm')
+@RequireFeature('automation')
 @RequirePermissions('crm.view')
 export class SalesbotController {
   constructor(private readonly s: SalesbotService, private readonly r: RightsService) {}

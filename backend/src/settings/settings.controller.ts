@@ -14,6 +14,7 @@ import {
   UpdateUserDto,
 } from './dto/settings.dto';
 import { SettingsService } from './settings.service';
+import { RequireFeature } from '../billing/require-feature.decorator';
 
 @Controller('settings')
 export class SettingsController {
@@ -131,6 +132,7 @@ export class SettingsController {
 
   // amoCRM «Резервное копирование»: butun akkaunt JSON fayl bo'lib yuklanadi (oqim — xotirani to'ldirmaydi)
   @Get('backup')
+  @RequireFeature('backup', { all: true })
   @RequirePermissions('settings.roles.manage')
   async backup(@Res() res: Response) {
     const day = new Date().toISOString().slice(0, 10);

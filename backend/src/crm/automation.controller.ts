@@ -3,8 +3,10 @@ import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common'
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { AutomationService } from './automation.service';
+import { RequireFeature } from '../billing/require-feature.decorator';
 
 @Controller('crm/automations')
+@RequireFeature('automation')
 @RequirePermissions('crm.automation')
 export class AutomationController {
   constructor(private readonly s: AutomationService) {}

@@ -3,8 +3,10 @@ import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/commo
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { GoalsService } from './goals.service';
+import { RequireFeature } from '../billing/require-feature.decorator';
 
 @Controller('crm/goals')
+@RequireFeature('goals')
 @RequirePermissions('crm.view')
 export class GoalsController {
   constructor(private readonly s: GoalsService) {}

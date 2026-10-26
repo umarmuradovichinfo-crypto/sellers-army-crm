@@ -2,7 +2,7 @@ import { BadRequestException, HttpException, Injectable, ServiceUnavailableExcep
 
 import { PrismaService } from '../prisma/prisma.service';
 import { verifyLicense } from './license';
-import { MIN_MONTHS, PERIODS, PLANS, addMonths, isPlan, quote } from './plans';
+import { FEATURE_LABEL, FEATURE_MIN, MIN_MONTHS, PERIODS, PLANS, addMonths, isPlan, planAllows, quote, type Feature } from './plans';
 
 const KEY = 'billing_state';
 const DAY = 86_400_000;
@@ -92,6 +92,7 @@ export class BillingService {
         holder: process.env.BILLING_CARD_HOLDER || '',
         telegram: (process.env.BILLING_TELEGRAM || '').replace(/^@/, ''),
       },
+      features: Object.fromEntries((Object.keys(FEATURE_MIN) as Feature[]).map((f) => [f, { min: FEATURE_MIN[f], label: FEATURE_LABEL[f] }])),
       history: (c.state.history || []).slice(-20).reverse().map((h) => ({ ...h, planName: isPlan(h.plan) ? PLANS[h.plan].name : h.plan })),
     };
   }
@@ -115,6 +116,24 @@ export class BillingService {
     };
     await this.save(next);
     return this.overview();
+  }
+
+  /**
+   * Tarif imkoniyati yoqilganmi. Cheklov o'chiq (BILLING_ENFORCE yo'q) — hammasi ochiq; sinov davri — barcha imkoniyatlar.
+   * Zaxira nusxa (backup): obuna tugagan/tugayotgan bo'lsa ham mijoz o'z ma'lumotini yuklab olishi mumkin.
+   */
+  async allows(feature: Feature): Promise<boolean> {
+    if (!this.enforced()) return true;
+    const c = await this.current();
+    if (c.status === 'trial') return true;
+    if (c.status === 'expired') return feature === 'backup';
+    return planAllows(c.plan, feature);
+  }
+
+  async assertFeature(feature: Feature) {
+    if (await this.allows(feature)) return;
+    const min = PLANS[FEATURE_MIN[feature]].name;
+    throw new HttpException({ error: 'PLAN_FEATURE', message: `«${FEATURE_LABEL[feature]}» ${min} tarifidan boshlanadi. «Hisob va to'lov» bo'limida tarifni oshiring` }, 402);
   }
 
   /** Foydalanuvchi qo'shish/yoqishdan oldin: to'langan o'rindiq soni oshib ketmasin (faqat BILLING_ENFORCE=1). */

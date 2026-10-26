@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto';
 
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
+import { BillingService } from '../billing/billing.service';
 import { ActivityService } from './activity.service';
 import { AutomationService } from './automation.service';
 import { NotificationService } from './notification.service';
@@ -76,6 +77,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     private readonly notif: NotificationService,
     private readonly automation: AutomationService,
     private readonly pset: PipelineSettingsService,
+    private readonly billing: BillingService,
   ) {}
 
   private social: SocialProvider | null = null;
@@ -200,6 +202,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   async applyIntents(leadId: string, text: string): Promise<boolean> {
     const s = await this.getChatSettings();
     if (!s.intents.length) return false;
+    if (!(await this.billing.allows('intents'))) return false; // tarifda yo'q — avto-javob ishlamaydi
     const low = String(text || '').toLowerCase();
     if (!low.trim() || s.ignorePhrases.some((p: string) => low.includes(p))) return false;
     const hit = s.intents.find((i: any) => i.keywords.some((k: string) => low.includes(k)));
@@ -322,6 +325,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       next.webChats = ChatService.cleanWebChats(body.webChats).map((w: any) => ({ ...w, key: old.get(w.id)?.key || randomBytes(9).toString('base64url') }));
     }
     if (Array.isArray(body?.intents)) {
+      if (body.intents.length) await this.billing.assertFeature('intents');
       // hisoblagichlar (count) faqat serverda yuritiladi: eski qiymat saqlanadi
       const old = new Map(cur.intents.map((i: any) => [i.id, i.count]));
       next.intents = ChatService.cleanIntents(body.intents).map((i: any) => ({ ...i, count: old.get(i.id) ?? 0 }));

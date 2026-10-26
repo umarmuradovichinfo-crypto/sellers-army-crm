@@ -35,3 +35,21 @@ export function addMonths(d: Date, n: number): Date {
   r.setUTCDate(Math.min(day, last));
   return r;
 }
+
+/** Imkoniyat → eng past tarif (amoCRM'dagi kabi: yuqori tariflar ko'proq imkoniyat beradi). */
+export type Feature = 'automation' | 'goals' | 'catalogs' | 'backup' | 'intents';
+export const FEATURE_MIN: Record<Feature, PlanKey> = {
+  automation: 'advanced', // avtomatlashtirish, Salesbot, botlar
+  goals: 'advanced', // KPI va sotuv rejalari
+  catalogs: 'advanced', // mahsulot kataloglari
+  backup: 'pro', // butun akkaunt zaxira nusxasi
+  intents: 'pro', // mijoz savollariga avto-javob
+};
+export const FEATURE_LABEL: Record<Feature, string> = {
+  automation: 'Avtomatlashtirish va Salesbot', goals: 'KPI va sotuv rejalari', catalogs: 'Kataloglar (mahsulotlar)', backup: 'Zaxira nusxa', intents: 'Mijoz savollariga avto-javob',
+};
+const RANK: Record<PlanKey, number> = { basic: 1, advanced: 2, pro: 3, cost: 3 };
+export function planAllows(plan: string | null | undefined, feature: Feature): boolean {
+  if (!isPlan(plan)) return false;
+  return RANK[plan] >= RANK[FEATURE_MIN[feature]];
+}

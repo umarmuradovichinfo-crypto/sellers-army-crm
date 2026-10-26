@@ -4,9 +4,11 @@ import { CurrentUser, type AuthUser } from '../common/decorators/current-user.de
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { RightsService } from '../common/rights/rights.service';
 import { ProductsService } from './products.service';
+import { RequireFeature } from '../billing/require-feature.decorator';
 
 // amoCRM «Права доступа» → «Товары»: Запрещено / Внутри сделки / Разрешено (katalog sozlamasi — crm.settings ham kerak)
 @Controller('crm/products')
+@RequireFeature('catalogs')
 @RequirePermissions('crm.view')
 export class ProductsController {
   constructor(private readonly s: ProductsService, private readonly r: RightsService) {}

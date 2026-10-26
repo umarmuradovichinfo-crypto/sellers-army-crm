@@ -30,7 +30,6 @@ addRu({
   'bl§Kataloglar (mahsulotlar)': 'Каталоги (товары)',
   'bl§Kengaytirilgan imkoniyatlari': 'Всё из Расширенного',
   'bl§Zaxira nusxa (backup)': 'Резервное копирование',
-  'bl§Faollik monitoringi': 'Мониторинг активности',
   'bl§Mijoz savollariga avto-javob': 'Автоответ на типовые вопросы клиентов',
   'bl§Foydalanuvchilar soni': 'Количество пользователей',
   "bl§oy sovg'a": 'мес. в подарок',

@@ -3,6 +3,8 @@ import { Reflector } from '@nestjs/core';
 
 import { IS_PUBLIC_KEY } from '../common/decorators/public.decorator';
 import { BillingService } from './billing.service';
+import { FEATURE_KEY } from './require-feature.decorator';
+import type { Feature } from './plans';
 
 /** BILLING_ENFORCE=1 bo'lsa va obuna tugagan bo'lsa — o'zgartiruvchi so'rovlar 402 bilan to'xtaydi (o'qish, kirish va to'lov ishlayveradi). */
 @Injectable()
@@ -13,7 +15,10 @@ export class BillingGuard implements CanActivate {
     if (!this.billing.enforced()) return true;
     if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [ctx.getHandler(), ctx.getClass()])) return true;
     const req = ctx.switchToHttp().getRequest<{ method: string; originalUrl?: string; url: string }>();
-    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return true;
+    const gate = this.reflector.getAllAndOverride<{ feature: Feature; all: boolean } | undefined>(FEATURE_KEY, [ctx.getHandler(), ctx.getClass()]);
+    const readOnly = ['GET', 'HEAD', 'OPTIONS'].includes(req.method);
+    if (gate && (gate.all || !readOnly)) await this.billing.assertFeature(gate.feature);
+    if (readOnly) return true;
     const path = String(req.originalUrl || req.url).split('?')[0];
     if (/^\/api\/v1\/(auth|billing)(\/|$)/.test(path)) return true;
     const c = await this.billing.current();
