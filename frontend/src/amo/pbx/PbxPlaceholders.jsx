@@ -89,6 +89,7 @@ export function PbxStatistic() {
   const series = data?.series || []
   const max = Math.max(1, ...series.map((d) => d.in + d.out + d.internal))
   return (
+    <TopTabs first="pbx§Statistika" desc={["pbx§Statistika — qo'ng'iroqlarni mustaqil tahlil qilish uchun qulay vosita.", "pbx§Bu bo'limda noyob qo'ng'iroqlar sonini xodim, raqam, davomiylik va boshqa parametrlar bo'yicha ko'rish mumkin."]}>
     <Page title={t("pbx§Qo'ng'iroqlar soni (tur bo'yicha)")} narrow={false}>
       {!data && <div className="pbxx__text">{t('Yuklanmoqda…')}</div>}
       <div className="ac-cr__bars">
@@ -103,16 +104,44 @@ export function PbxStatistic() {
       </div>
       <div className="ac-cr__legend">{[['#01c716', 'pbx§Kiruvchi'], ['#0d71d7', 'pbx§Chiquvchi'], ['#adaabc', 'pbx§Ichki'], ['#fb6a6e', "pbx§O'tkazib yuborilgan"]].map(([c, l]) => <span key={l}><i style={{ background: c }} />{t(l)}</span>)}</div>
     </Page>
+    </TopTabs>
+  )
+}
+
+/** Yuqori tablar (OnlinePBX /statistic, /reports): birinchi tab — ishchi ko'rinish, ikkinchisi — tavsif. */
+export function TopTabs({ first, desc, children }) {
+  const t = useT()
+  const [tab, setTab] = useState('main')
+  return (
+    <div className="pbxt">
+      <div className="pbxt__tabs">
+        <button type="button" className={tab === 'main' ? 'on' : ''} onClick={() => setTab('main')}>{t(first)}</button>
+        <button type="button" className={tab === 'desc' ? 'on' : ''} onClick={() => setTab('desc')}>{t('pbx§Tavsif')}</button>
+      </div>
+      {tab === 'main' ? children : <div className="pbxt__desc">{desc.map((p) => <p key={p}>{t(p)}</p>)}</div>}
+    </div>
   )
 }
 
 export function PbxChats() {
   const t = useT()
+  const [tab, setTab] = useState('desc')
   return (
-    <Page title={t('pbx§Chatlar')}>
-      <p className="pbxx__text">{t("pbx§Telegram va boshqa chatlar CRM ichidagi imBox bo'limida ishlaydi: mijozlar bilan yozishma, bot, tezkor javoblar shu yerda.")}</p>
-      <Link className="pbxx__btn" to="/inbox">{t("pbx§imBox'ga o'tish")}</Link>
-    </Page>
+    <div className="pbxs pbxs--chats">
+      <aside className="pbxs__aside"><a className="on">Telegram</a><a>WhatsApp</a></aside>
+      <div className="pbxs__main">
+        <div className="pbxs__page">
+          <h3 className="pbxs__title">{t('pbx§Chatlar')}</h3>
+          <div className="pbxs__tabs">
+            {[['desc', 'pbx§Tavsif'], ['set', 'pbx§Sozlamalar']].map(([k, l]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t(l)}</button>)}
+          </div>
+          <div className="pbxs__body">
+            <p>{t("pbx§Telegram va boshqa chatlar CRM ichidagi imBox bo'limida ishlaydi: mijozlar bilan yozishma, bot, tezkor javoblar shu yerda.")}</p>
+            <Link className="pbxx__btn" to="/inbox">{t("pbx§imBox'ga o'tish")}</Link>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

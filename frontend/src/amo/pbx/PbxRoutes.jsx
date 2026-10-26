@@ -4,9 +4,11 @@ import PbxShell, { AtsLayout, ServicesLayout } from './PbxShell'
 import { AudioLibrary, Blacklist, CallbackSettings, AutoRecallSettings, Diagnostic, Incoming, Music, Outgoing } from '../pages/PbxPage'
 import CallsPage from '../pages/CallsPage'
 import CallReportsPage from '../pages/CallReportsPage'
-import { PbxChats, PbxConfigurator, PbxHome, PbxIntegration, PbxLicense, PbxStatistic, ServiceInfo } from './PbxPlaceholders'
+import { PbxChats, PbxConfigurator, PbxHome, PbxIntegration, PbxLicense, PbxStatistic, ServiceInfo, TopTabs } from './PbxPlaceholders'
 
 const S = (props) => <PbxShell {...props} />
+
+const REP_DESC = ["pbx§Hisobotlar to'plami xodimlar ishini nazorat qilish va tahlil qilish uchun asosiy KPI'larni o'z ichiga oladi: o'rtacha kutish vaqti, liniyadagi mijozlar soni, turli yo'nalishdagi qo'ng'iroqlar umumiy soni, xodimlar yuklamasi, yuklama dinamikasi.", "pbx§Filtrlar tanlangan tashqi raqamlar, xodimlar guruhlari va xodimlar bo'yicha hisobot olish imkonini beradi."]
 
 export default function PbxRoutes() {
   return (
@@ -23,8 +25,8 @@ export default function PbxRoutes() {
       <Route path="/calls" element={<S><CallsPage /></S>} />
       <Route path="/chats" element={<S><PbxChats /></S>} />
       <Route path="/statistic" element={<S><PbxStatistic /></S>} />
-      <Route path="/reports" element={<S><CallReportsPage /></S>} />
-      <Route path="/reports/:kind" element={<S><CallReportsPage /></S>} />
+      <Route path="/reports" element={<S><TopTabs first="pbx§Hisobotlar" desc={REP_DESC}><CallReportsPage /></TopTabs></S>} />
+      <Route path="/reports/:kind" element={<S><TopTabs first="pbx§Hisobotlar" desc={REP_DESC}><CallReportsPage /></TopTabs></S>} />
       <Route path="/services/autorecall" element={<S><ServicesLayout><AutoRecallSettings /></ServicesLayout></S>} />
       <Route path="/services/callback" element={<S><ServicesLayout><CallbackSettings /></ServicesLayout></S>} />
       <Route path="/services/ai" element={<S><ServicesLayout><ServiceInfo title="pbx§AI-menejer" text="pbx§Sun'iy intellekt qo'ng'iroqlarni tahlil qiladi, suhbat mazmunini yozib oladi va mijoz kartochkasiga xulosa qo'shadi." /></ServicesLayout></S>} />

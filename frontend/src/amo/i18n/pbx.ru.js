@@ -286,6 +286,10 @@ addRu({
   "pbx§Qo'ng'iroqni avtomatik matnga aylantirish": "Автоматический перевод звонка в текст",
   "pbx§Nutq tahlili": "Речевая аналитика",
   "pbx§Dasturchilar uchun": "Разработчикам",
+  "pbx§Statistika — qo'ng'iroqlarni mustaqil tahlil qilish uchun qulay vosita.": "Статистика — удобный инструмент для самостоятельного анализа звонков.",
+  "pbx§Bu bo'limda noyob qo'ng'iroqlar sonini xodim, raqam, davomiylik va boshqa parametrlar bo'yicha ko'rish mumkin.": "В этом разделе можно узнать количество уникальных звонков в различных срезах: по сотруднику, по номеру, по длительности и другим параметрам.",
+  "pbx§Hisobotlar to'plami xodimlar ishini nazorat qilish va tahlil qilish uchun asosiy KPI'larni o'z ichiga oladi: o'rtacha kutish vaqti, liniyadagi mijozlar soni, turli yo'nalishdagi qo'ng'iroqlar umumiy soni, xodimlar yuklamasi, yuklama dinamikasi.": "Набор отчетов содержит основные KPI для контроля и анализа работы сотрудников: среднее время ожидания, среднее количество клиентов на линии, общее число звонков в различных направлениях, нагрузку на сотрудниках, динамику нагрузки.",
+  "pbx§Filtrlar tanlangan tashqi raqamlar, xodimlar guruhlari va xodimlar bo'yicha hisobot olish imkonini beradi.": "Фильтры позволяют отчитать отчеты по выбранным внешним номерам, группам сотрудников, сотрудникам.",
   "Telefoniya": "Телефония",
   "Telefoniya (ATS)": "Телефония (АТС)",
 })
