@@ -224,6 +224,12 @@ addRu({
   "pbx§Salomlashish, navbat, ovozli pochta va musiqa uchun MP3/WAV/OGG fayllar (har biri 5 MB gacha).": "Файлы MP3/WAV/OGG для приветствий, очередей, голосовой почты и музыки (до 5 МБ каждый).",
   "pbx§Fayl yuklash": "Загрузить файл",
   "pbx§Hali audio fayl yo'q.": "Аудиофайлов пока нет.",
+  "pbx§MAC-adres": "MAC-адрес",
+  "pbx§Liniya": "Линия",
+  "pbx§Konfiguratsiyani tayyorlash": "Подготовить конфигурацию",
+  "pbx§Tayyorlab bo'lmadi": "Не удалось подготовить",
+  "pbx§Stol telefonini avtomatik sozlash: qurilma turini va MAC-adresini kiriting, har liniyaga foydalanuvchini tanlang — tayyor konfiguratsiya fayli yuklab olinadi.": "Автонастройка настольного телефона: укажите тип устройства и MAC-адрес, выберите пользователя для каждой линии — будет скачан готовый файл конфигурации.",
+  "pbx§Fayl qurilma ishlab chiqaruvchisi hujjatlari bo'yicha hosil qilinadi; haqiqiy telefonda hali sinalmagan. Faylda SIP paroli bor — uni begonalarga bermang.": "Файл формируется по документации производителя; на реальном телефоне ещё не проверялся. В файле есть SIP-пароль — не передавайте его посторонним.",
   "Telefoniya": "Телефония",
   "Telefoniya (ATS)": "Телефония (АТС)",
 })

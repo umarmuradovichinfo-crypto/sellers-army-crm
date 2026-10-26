@@ -1,9 +1,10 @@
 // OnlinePBX bo'limlari: stansiya serveri (Asterisk) ulangach to'liq ishlaydiganlari va oddiy ma'lumot sahifalari.
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useT } from '../i18n'
 import { useApi } from '../../lib/useApi'
 import { crmService } from '../../services/crm.service'
+import { pbxService } from '../../services/pbx.service'
 
 function Page({ title, children, narrow = true }) {
   return <div className="pbxx__page" style={narrow ? { maxWidth: 760 } : undefined}><h2 className="pbxx__title">{title}</h2>{children}</div>
@@ -106,12 +107,38 @@ export function PbxLicense() {
 
 export function PbxConfigurator() {
   const t = useT()
-  const devices = ['Yealink SIP-Txx/W52P', 'Panasonic KX-TGP500', 'Panasonic KX-TGP600', 'Cisco/Linksys/Sipura', 'PhonerLite']
+  const DEVICES = [['yealink', 'Yealink SIP-Txx/W52P'], ['panasonic600', 'Panasonic KX-TGP600'], ['panasonic500', 'Panasonic KX-TGP500'], ['cisco', 'Cisco/Linksys/Sipura'], ['phonerlite', 'PhonerLite']]
+  const { data } = useApi(() => pbxService.modules('user'), [], 'pbx:cfg-users')
+  const [device, setDevice] = useState('yealink')
+  const [mac, setMac] = useState('')
+  const [lines, setLines] = useState(['', '', '', '', ''])
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const users = data?.modules || []
+  const count = device === 'phonerlite' ? 1 : 5
+  const go = async () => {
+    setErr(''); setBusy(true)
+    try {
+      const f = await pbxService.deviceConfig({ device, mac, lines: lines.slice(0, count).filter(Boolean).map((ext) => ({ ext })) })
+      const url = URL.createObjectURL(new Blob([f.content], { type: f.mime || 'text/plain' }))
+      const a = document.createElement('a'); a.href = url; a.download = f.filename; a.click(); URL.revokeObjectURL(url)
+    } catch (e) { setErr(e?.message || t('pbx§Tayyorlab bo\'lmadi')) } finally { setBusy(false) }
+  }
   return (
     <Page title={t('pbx§Qurilma konfiguratori')}>
-      <p className="pbxx__text">{t("pbx§Stol telefonlarini avtomatik sozlash: qurilma MAC-adresi foydalanuvchi bilan bog'lanadi va tayyor konfiguratsiya fayli beriladi.")}</p>
-      <ul className="pbxx__list">{devices.map((d) => <li key={d}>{d}</li>)}</ul>
-      <div className="pbxx__note">{t("pbx§Bu imkoniyat stansiya serveri ulangach ishga tushadi. Sozlamalar tayyorlanmoqda.")}</div>
+      <p className="pbxx__text">{t("pbx§Stol telefonini avtomatik sozlash: qurilma turini va MAC-adresini kiriting, har liniyaga foydalanuvchini tanlang — tayyor konfiguratsiya fayli yuklab olinadi.")}</p>
+      <div className="pbxx__devs">{DEVICES.map(([k, l]) => <button key={k} type="button" className={device === k ? 'on' : ''} onClick={() => setDevice(k)}>{l}</button>)}</div>
+      {device !== 'phonerlite' && <div className="pbxx__frow"><span>{t('pbx§MAC-adres')}</span><input className="ac-input" value={mac} placeholder="00:15:65:AA:BB:CC" onChange={(e) => setMac(e.target.value)} /></div>}
+      {lines.slice(0, count).map((v, i) => (
+        <div key={i} className="pbxx__frow"><span>{t('pbx§Liniya')} {i + 1}</span>
+          <select className="ac-select" value={v} onChange={(e) => setLines(lines.map((x, j) => (j === i ? e.target.value : x)))}>
+            <option value="">—</option>
+            {users.map((u) => <option key={u.id} value={u.number}>{u.number}{u.name ? ` — ${u.name}` : ''}</option>)}
+          </select></div>
+      ))}
+      {err && <div className="ac-pbx__err">{err}</div>}
+      <button type="button" className="pbxx__btn" disabled={busy} onClick={go}>{t('pbx§Konfiguratsiyani tayyorlash')}</button>
+      <div className="pbxx__note">{t("pbx§Fayl qurilma ishlab chiqaruvchisi hujjatlari bo'yicha hosil qilinadi; haqiqiy telefonda hali sinalmagan. Faylda SIP paroli bor — uni begonalarga bermang.")}</div>
     </Page>
   )
 }

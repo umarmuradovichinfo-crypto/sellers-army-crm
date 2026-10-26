@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { generateAsterisk, type GenModule } from './asterisk.generator';
+import { DEVICES, MAC_RE, generateDeviceConfig, type CfgLine, type Device } from './configurator';
 import { MODULE_TYPES, NUMBER_BASE, NUMBER_RE, SchemaError, normalizeConfig, type ModuleType } from './pbx-schema';
 
 const isType = (t: unknown): t is ModuleType => (MODULE_TYPES as readonly string[]).includes(String(t));
@@ -165,6 +166,27 @@ export class PbxService {
     const mods: GenModule[] = rows.map((r) => ({ type: r.type, number: r.number, name: r.name, enabled: r.enabled, config: { ...parse<Record<string, unknown>>(r.configJson, {}), password: undefined } }));
     const bl = (await this.prisma.pbxBlacklist.findMany({ select: { number: true } })).map((b) => b.number);
     return generateAsterisk(mods, { blacklist: bl, outgoing: await this.outgoing() });
+  }
+
+  /** Stol telefoni uchun konfiguratsiya fayli: har liniya — «foydalanuvchi» moduli (CRM foydalanuvchisiga bog'langan bo'lsa SIP paroli bor). */
+  async deviceConfig(dto: { device?: string; mac?: string; lines?: { ext?: string }[] }) {
+    const device = String(dto.device || '') as Device;
+    if (!DEVICES.includes(device)) throw new BadRequestException({ error: 'BAD_DEVICE', message: "Qurilma turi noto'g'ri" });
+    if (device !== 'phonerlite' && !MAC_RE.test(String(dto.mac || '').trim())) throw new BadRequestException({ error: 'BAD_MAC', message: "MAC-adres noto'g'ri (masalan 00:15:65:AA:BB:CC)" });
+    const host = (process.env.PBX_SIP_HOST || (() => { try { return new URL(process.env.PUBLIC_URL || '').hostname; } catch { return ''; } })()).trim();
+    if (!host) throw new BadRequestException({ error: 'NO_HOST', message: "SIP-server manzili sozlanmagan (serverda PBX_SIP_HOST yoki PUBLIC_URL)" });
+    const exts = (Array.isArray(dto.lines) ? dto.lines : []).map((l) => String(l?.ext || '').trim()).filter(Boolean).slice(0, 5);
+    if (!exts.length) throw new BadRequestException({ error: 'NO_LINES', message: 'Kamida bitta liniya tanlang' });
+    const lines: CfgLine[] = [];
+    for (const ext of exts) {
+      const m = (await this.prisma.pbxModule.findUnique({ where: { number: ext } })) as Row | null;
+      if (!m || m.type !== 'user') throw new BadRequestException({ error: 'NOT_USER', message: `Ichki raqam topilmadi: ${ext}` });
+      const crmUserId = parse<Record<string, any>>(m.configJson, {}).crmUserId;
+      const u = crmUserId ? await this.prisma.user.findUnique({ where: { id: crmUserId }, select: { sipPassword: true } }) : null;
+      if (!u?.sipPassword) throw new BadRequestException({ error: 'NO_SIP_PASSWORD', message: `${ext}: CRM foydalanuvchisi biriktirilmagan yoki SIP paroli yo'q` });
+      lines.push({ ext, name: m.name || ext, password: u.sipPassword });
+    }
+    return generateDeviceConfig(device, String(dto.mac || ''), lines, host);
   }
 
   // ── Audio kutubxona ──
