@@ -30,7 +30,7 @@ const ROUTES = [
   '/contacts', `/contacts/${contact.id}`, '/companies', `/companies/${company.id}`, '/contacts/import',
   '/inbox', `/inbox/${lead.id}`, '/tasks', '/tasks/calendar', '/events', '/stats', '/stats/consolidated', '/stats/activities',
   '/stats/calls', '/stats/goals', '/stats/pipeline', '/analitika', '/bots', '/integrations',
-  '/settings/profile', '/products', '/settings/general', '/settings/users', '/settings/security', '/settings/billing', '/calls', '/calls/reports', '/calls/reports/group', '/calls/reports/missed', '/settings/pbx/incoming', '/settings/pbx/outgoing', '/settings/pbx/blacklist', '/settings/pbx/music', '/settings/pbx/diagnostic', '/settings/chats', '/settings/tags', '/settings/fields/lead', '/settings/pipelines/main',
+  '/settings/profile', '/products', '/settings/general', '/settings/users', '/settings/security', '/settings/billing', '/calls', '/calls/reports', '/calls/reports/group', '/calls/reports/missed', '/settings/pbx/incoming', '/settings/pbx/outgoing', '/settings/pbx/blacklist', '/settings/pbx/music', '/settings/pbx/callback', '/settings/pbx/diagnostic', '/settings/chats', '/settings/tags', '/settings/fields/lead', '/settings/pipelines/main',
 ]
 
 // RU rejimida ko'rinib qolgan o'zbekcha so'zlar (foydalanuvchi ma'lumotlari emas — interfeys matnlari uchun evristika)

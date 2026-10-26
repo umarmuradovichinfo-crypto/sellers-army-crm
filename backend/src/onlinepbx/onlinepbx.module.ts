@@ -13,5 +13,6 @@ import { WebhookController } from './webhook.controller';
   imports: [CrmModule],
   controllers: [CallsController, WebhookController],
   providers: [CallsService, OnlinePbxClient, OnlinePbxConfigService, OwnPbxProvider, PbxGateway],
+  exports: [PbxGateway],
 })
 export class OnlinePbxModule {}

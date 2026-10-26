@@ -1,13 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { CallbackService } from './callback.service';
 import { PbxService } from './pbx.service';
 
 // «Настройка АТС» (o'z stansiyamiz): faqat telefoniya sozlamasi huquqi bilan
 @Controller('pbx')
 @RequirePermissions('crm.settings')
 export class PbxController {
-  constructor(private readonly s: PbxService) {}
+  constructor(private readonly s: PbxService, private readonly cb: CallbackService) {}
 
   @Get('modules') list(@Query('type') type?: string) { return this.s.list(type); }
   @Get('modules/next-number') next(@Query('type') type: string) { return this.s.nextNumber(type); }
@@ -18,6 +19,9 @@ export class PbxController {
   @Get('flow/validate') validate() { return this.s.validateFlow(); }
 
   @Get('asterisk/preview') asterisk() { return this.s.asteriskPreview(); }
+
+  @Get('callback') callbackCfg() { return this.cb.config(); }
+  @Put('callback') callbackSave(@Body() dto: any) { return this.cb.save(dto); }
 
   @Get('blacklist') blacklist() { return this.s.blacklist(); }
   @Post('blacklist') blacklistAdd(@Body() dto: any) { return this.s.blacklistAdd(dto); }

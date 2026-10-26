@@ -11,7 +11,7 @@ import { ACCESS, DAYS, FIELDS, NOTIFS, SECTION_LABEL, TYPE_LABEL, TYPE_ORDER, fr
 import '../i18n/pbx.ru'
 import '../pbx.css'
 
-const TABS = [['incoming', 'pbx§Kiruvchi'], ['outgoing', 'pbx§Chiquvchi'], ['blacklist', "pbx§Qora ro'yxat"], ['music', 'pbx§Musiqa'], ['diagnostic', 'pbx§Diagnostika']]
+const TABS = [['incoming', 'pbx§Kiruvchi'], ['outgoing', 'pbx§Chiquvchi'], ['blacklist', "pbx§Qora ro'yxat"], ['music', 'pbx§Musiqa'], ['callback', 'pbx§Callback vidjeti'], ['diagnostic', 'pbx§Diagnostika']]
 
 export default function PbxPage() {
   const t = useT()
@@ -25,6 +25,7 @@ export default function PbxPage() {
       {tab === 'outgoing' && <Outgoing />}
       {tab === 'blacklist' && <Blacklist />}
       {tab === 'music' && <Music />}
+      {tab === 'callback' && <CallbackSettings />}
       {tab === 'diagnostic' && <Diagnostic />}
     </div>
   )
@@ -318,6 +319,35 @@ function AsteriskPreview() {
           <p className="ac-pbx__muted">{t("pbx§Parollar yashirilgan. Bu sozlama stansiya serveri ulangach avtomatik qo'llanadi.")}</p>
         </>
       )}
+    </div>
+  )
+}
+
+function CallbackSettings() {
+  const t = useT()
+  const { data } = useApi(() => pbxService.callback(), [], 'pbx:callback')
+  const [c, setC] = useState(null)
+  const [msg, setMsg] = useState(null)
+  useEffect(() => { if (data && !c) setC(data) }, [data]) // eslint-disable-line
+  if (!c) return <div className="ac-pbx__empty">{t('Yuklanmoqda…')}</div>
+  const set = (k, v) => setC({ ...c, [k]: v })
+  const save = async () => {
+    try { const r = await pbxService.saveCallback(c); setC(r); setMsg({ ok: true, text: t('pbx§Saqlandi') }) } catch (e) { setMsg({ ok: false, text: e?.message || t("pbx§Saqlab bo'lmadi") }) }
+  }
+  const snippet = c.key ? `<script src="${window.location.origin}/api/v1/callback/${c.key}/widget.js" async></script>` : ''
+  return (
+    <div className="ac-pbx__page" style={{ maxWidth: 640 }}>
+      <h3>{t('pbx§CALLBACK VIDJETI')}</h3>
+      <p className="ac-pbx__muted">{t("pbx§Saytda tugma paydo bo'ladi: mehmon raqamini qoldiradi — CRM'da bitim va qayta qo'ng'iroq vazifasi yaratiladi. Ichki raqam ko'rsatilsa va stansiya ulangan bo'lsa, xodim telefoni avtomatik jiringlaydi.")}</p>
+      <Field label={t('pbx§Yoqilgan')}><input type="checkbox" checked={!!c.enabled} onChange={(e) => set('enabled', e.target.checked)} /></Field>
+      <Field label={t('pbx§Sarlavha')}><input className="ac-input" value={c.title} onChange={(e) => set('title', e.target.value)} /></Field>
+      <Field label={t('pbx§Matn')}><input className="ac-input" value={c.text} onChange={(e) => set('text', e.target.value)} /></Field>
+      <Field label={t('pbx§Rang')}><input type="color" value={c.color} onChange={(e) => set('color', e.target.value)} /></Field>
+      <Field label={t('pbx§Qo\'ng\'iroq qiladigan ichki raqam')}><input className="ac-input" value={c.ext} placeholder="100" onChange={(e) => set('ext', e.target.value)} /></Field>
+      <Field label={t("pbx§Qayta qo'ng'iroq vazifasini yaratish")}><input type="checkbox" checked={!!c.createTask} onChange={(e) => set('createTask', e.target.checked)} /></Field>
+      <div className="ac-pbx__actions"><button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button></div>
+      {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
+      {snippet && (<><h4 style={{ marginTop: 18 }}>{t('pbx§Saytga qo\'yiladigan kod')}</h4><pre className="ac-pbx__pre">{snippet}</pre></>)}
     </div>
   )
 }
