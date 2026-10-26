@@ -8,6 +8,7 @@ export const pbxService = {
   update: (id, body) => api.put(`/pbx/modules/${id}`, body),
   remove: (id) => api.delete(`/pbx/modules/${id}`),
   validate: () => api.get('/pbx/flow/validate'),
+  asterisk: () => api.get('/pbx/asterisk/preview'),
   blacklist: () => api.get('/pbx/blacklist'),
   blacklistAdd: (number, note) => api.post('/pbx/blacklist', { number, note }),
   blacklistRemove: (id) => api.delete(`/pbx/blacklist/${id}`),

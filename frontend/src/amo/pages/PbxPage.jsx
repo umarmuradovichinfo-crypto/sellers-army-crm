@@ -295,7 +295,29 @@ function Diagnostic() {
       {data && data.issues.length > 0 && (
         <ul className="ac-pbx__issues">{data.issues.map((i, k) => <li key={k} className={i.level}><b>{i.number}</b> — {i.message}</li>)}</ul>
       )}
+      <AsteriskPreview />
       <p className="ac-pbx__muted">{t("pbx§SIP-ro'yxatdan o'tish holati (raqam va foydalanuvchilar) stansiya serverga ulangach shu yerda ko'rinadi.")}</p>
+    </div>
+  )
+}
+
+function AsteriskPreview() {
+  const t = useT()
+  const [cfg, setCfg] = useState(null)
+  const [tab, setTab] = useState('extensions')
+  const load = async () => { try { setCfg(await pbxService.asterisk()) } catch { setCfg({ extensions: '', pjsip: '', queues: '' }) } }
+  return (
+    <div style={{ marginTop: 18 }}>
+      <button type="button" className="ac-btn" onClick={load}>{t("pbx§Stansiya sozlamasini ko'rish (Asterisk)")}</button>
+      {cfg && (
+        <>
+          <div className="ac-pbx__tabs" style={{ marginTop: 10 }}>
+            {['extensions', 'pjsip', 'queues'].map((k) => <a key={k} href="#" className={tab === k ? 'on' : ''} onClick={(e) => { e.preventDefault(); setTab(k) }}>{k}.conf</a>)}
+          </div>
+          <pre className="ac-pbx__pre">{cfg[tab] || ''}</pre>
+          <p className="ac-pbx__muted">{t("pbx§Parollar yashirilgan. Bu sozlama stansiya serveri ulangach avtomatik qo'llanadi.")}</p>
+        </>
+      )}
     </div>
   )
 }

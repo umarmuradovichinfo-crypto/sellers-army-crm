@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { randomBytes } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { generateAsterisk, type GenModule } from './asterisk.generator';
 import { MODULE_TYPES, NUMBER_BASE, NUMBER_RE, SchemaError, normalizeConfig, type ModuleType } from './pbx-schema';
 
 const isType = (t: unknown): t is ModuleType => (MODULE_TYPES as readonly string[]).includes(String(t));
@@ -156,6 +157,14 @@ export class PbxService {
     }
     for (const r of rows) if (!['trunk', 'user'].includes(r.type) && !referenced.has(r.number)) issues.push({ level: 'warn', number: r.number, message: "Hech qaysi modul bunga yo'naltirmagan" });
     return { ok: !issues.some((i) => i.level === 'error'), issues };
+  }
+
+  /** Asterisk sozlamasini ko'rish (parollar yashiriladi). Haqiqiy faylni stansiya serveri (keyingi bosqich) ichki funksiyadan oladi. */
+  async asteriskPreview() {
+    const rows = (await this.prisma.pbxModule.findMany({ orderBy: { number: 'asc' } })) as Row[];
+    const mods: GenModule[] = rows.map((r) => ({ type: r.type, number: r.number, name: r.name, enabled: r.enabled, config: { ...parse<Record<string, unknown>>(r.configJson, {}), password: undefined } }));
+    const bl = (await this.prisma.pbxBlacklist.findMany({ select: { number: true } })).map((b) => b.number);
+    return generateAsterisk(mods, { blacklist: bl, outgoing: await this.outgoing() });
   }
 
   // ── Qora ro'yxat ──

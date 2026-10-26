@@ -40,3 +40,5 @@
 .ac-pbx__issues .warn { color: #b8860b; }
 @media (max-width: 600px) { .ac-pbx { padding: 12px; } .ac-pbx__tabs { gap: 2px 14px; } .ac-pbx__tabs a { font-size: 12px; } }
 @media (max-width: 980px) { .ac-pbx__grid { grid-template-columns: 1fr; } .ac-pbx__add { flex-direction: row; flex-wrap: wrap; } .ac-pbx__form { position: static; } .ac-pbx__row { grid-template-columns: 1fr; } }
+
+.ac-pbx__pre { background: rgba(0,0,0,.04); padding: 12px; border-radius: 3px; max-height: 420px; overflow: auto; font-size: 12px; white-space: pre; }

@@ -17,6 +17,8 @@ export class PbxController {
   @Delete('modules/:id') remove(@Param('id') id: string) { return this.s.remove(id); }
   @Get('flow/validate') validate() { return this.s.validateFlow(); }
 
+  @Get('asterisk/preview') asterisk() { return this.s.asteriskPreview(); }
+
   @Get('blacklist') blacklist() { return this.s.blacklist(); }
   @Post('blacklist') blacklistAdd(@Body() dto: any) { return this.s.blacklistAdd(dto); }
   @Delete('blacklist/:id') blacklistRemove(@Param('id') id: string) { return this.s.blacklistRemove(id); }

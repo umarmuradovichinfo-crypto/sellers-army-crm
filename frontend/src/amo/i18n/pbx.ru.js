@@ -140,5 +140,7 @@ addRu({
   "pbx§Yozishdan keyingi audio": "Аудио после записи",
   "pbx§Yozishdan oldingi audio": "Аудио до записи",
   "pbx§yangi": "новый",
+  "pbx§Stansiya sozlamasini ko'rish (Asterisk)": "Показать конфигурацию станции (Asterisk)",
+  "pbx§Parollar yashirilgan. Bu sozlama stansiya serveri ulangach avtomatik qo'llanadi.": "Пароли скрыты. Эта конфигурация применится автоматически после подключения сервера станции.",
   "Telefoniya (ATS)": "Телефония (АТС)",
 })
