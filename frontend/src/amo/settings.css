@@ -213,3 +213,4 @@
 .ac-rm-dots i.on.lv-M, .ac-rm-dots i.on.lv-G, .ac-rm-dots i.on.lv-L { background: #f5c242; border-color: #f5c242; }
 .ac-rm-dots i.on.lv-A { background: #8dc63f; border-color: #8dc63f; }
 .ac-prof-notif td:not(:first-child), .ac-prof-notif th:not(:first-child) { text-align: center; width: 110px; }
+.ac-prof-tg { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; font-size: 14px; }

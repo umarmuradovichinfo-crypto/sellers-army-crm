@@ -72,6 +72,18 @@ export class TelegramClient implements OnApplicationBootstrap {
     }
   }
 
+  private meCache: string | null = null;
+  /** Bot foydalanuvchi nomi (t.me/<nom> havolasi uchun); noma'lum bo'lsa bo'sh */
+  async botUsername(): Promise<string> {
+    if (this.meCache !== null) return this.meCache;
+    if (!this.enabled()) return '';
+    try {
+      const r: any = await fetch(`${this.base()}/getMe`).then((x) => x.json());
+      this.meCache = String(r?.result?.username || '');
+    } catch { return ''; }
+    return this.meCache;
+  }
+
   // Webhook'ni o'rnatish (admin tugmasi uchun)
   async setWebhook(url: string): Promise<{ ok: boolean; error?: string }> {
     if (!this.enabled()) return { ok: false, error: 'TELEGRAM_DISABLED' };

@@ -2,6 +2,11 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Telegram ulangan — kerakli turlar uchun «TELEGRAM» ustunini yoqing': 'Telegram подключён — включите колонку «TELEGRAM» для нужных типов',
+  'tg§Uzish': 'Отключить',
+  "Bildirishnomalarni Telegram'da olish:": 'Получать уведомления в Telegram:',
+  "Telegram'ga ulash": 'Подключить Telegram',
+  'botga yuboring': 'отправьте боту',
   'Havolalarni qisqartirish': 'Сокращать ссылки',
   "Yoqilsa, mijozga yuborilgan har bir havola almashtiriladi. Shu tufayli mijoz havolani ochganini kuzatishingiz mumkin: u bosganda bitim lentasida «Havola ochildi» yozuvi paydo bo'ladi va mas'ulga bildirishnoma boradi.": 'Если включено, каждая ссылка, отправленная клиенту, будет подменяться. Благодаря этому вы сможете отследить переход по ссылке: в ленте сделки появится запись о переходе, ответственному придёт уведомление.',
   'Murojaatlar': 'Обращения',

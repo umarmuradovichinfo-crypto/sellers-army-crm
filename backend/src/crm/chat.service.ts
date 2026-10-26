@@ -205,6 +205,9 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     const chat = msg?.chat;
     if (!chat?.id || !text) return { ok: true, skipped: true };
     const chatId = String(chat.id);
+    // «/start <kod>» — xodim Telegram'ni CRM bildirishnomalariga ulayapti (mijoz xabari emas)
+    const startM = /^\/start(?:@\w+)?\s+([a-f0-9]{10})\s*$/.exec(text.trim());
+    if (startM && (await this.notif.tgConsume(startM[1], chatId))) return { ok: true, linked: true };
     const from = msg.from || {};
     const name = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || chat.title || 'Telegram foydalanuvchi';
 

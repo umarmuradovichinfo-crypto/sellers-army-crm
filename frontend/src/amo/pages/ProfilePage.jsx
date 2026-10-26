@@ -69,6 +69,15 @@ export default function ProfilePage() {
   const [nPrefs, setNPrefs] = useState(null)
   const [perm, setPerm] = useState(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
   useEffect(() => { notifService.prefs().then((r) => { setNBase(r.prefs); setNPrefs(r.prefs) }).catch(() => {}) }, [])
+  const [tg, setTg] = useState(null) // { enabled, linked, code, bot, url }
+  const loadTg = () => notifService.tgStatus().then(setTg).catch(() => setTg({ enabled: false }))
+  useEffect(() => { loadTg() }, [])
+  // bot'ga «/start» yuborilguncha ulanish holatini tekshirib turamiz
+  useEffect(() => {
+    if (!tg?.enabled || tg.linked) return undefined
+    const id = setInterval(() => { notifService.tgStatus().then((s) => { if (s.linked) setTg(s) }).catch(() => {}) }, 4000)
+    return () => clearInterval(id)
+  }, [tg?.enabled, tg?.linked])
   const toggleN = async (cat, ch) => {
     if (ch === 'browser' && !nPrefs[cat].browser && perm === 'default') {
       try { setPerm(await Notification.requestPermission()) } catch { /* */ }
@@ -187,18 +196,35 @@ export default function ProfilePage() {
             <h2 className="ac-prof-h2">{t('Bildirishnomalar sozlamalari')}</h2>
             <div className="ac-set-block">
               <table className="ac-prof-sess ac-prof-notif">
-                <thead><tr><th>{t('ASOSIY')}</th><th>{t('MARKAZ')}</th><th>{t('BRAUZER')}</th></tr></thead>
+                <thead><tr><th>{t('ASOSIY')}</th><th>{t('MARKAZ')}</th><th>{t('BRAUZER')}</th>{tg?.linked && <th>TELEGRAM</th>}</tr></thead>
                 <tbody>
                   {NOTIF_ROWS.map(([k, l]) => (
                     <tr key={k}>
                       <td>{t(l)}</td>
-                      {['main', 'browser'].map((ch) => (
+                      {['main', 'browser', ...(tg?.linked ? ['telegram'] : [])].map((ch) => (
                         <td key={ch}><span className={`ac-switch ${nPrefs[k]?.[ch] ? 'on' : ''}`} onClick={() => toggleN(k, ch)} /></td>
                       ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {tg?.enabled && (
+                <div className="ac-prof-tg">
+                  {tg.linked ? (
+                    <>
+                      <span>✅ {t("Telegram ulangan — kerakli turlar uchun «TELEGRAM» ustunini yoqing")}</span>
+                      <button className="ac-prof-out" onClick={() => notifService.tgUnlink().then(loadTg)}>{t('tg§Uzish')}</button>
+                    </>
+                  ) : (
+                    <>
+                      <span>{t("Bildirishnomalarni Telegram'da olish:")}</span>
+                      {tg.url
+                        ? <a className="ac-btn ac-btn--plain ac-import-btn" href={tg.url} target="_blank" rel="noreferrer">{t("Telegram'ga ulash")}</a>
+                        : <span className="ac-muted">{t("botga yuboring")}: <b>/start {tg.code}</b></span>}
+                    </>
+                  )}
+                </div>
+              )}
               {perm === 'denied' && <div className="ac-set-err" style={{ marginTop: 8 }}>{t("Brauzer bildirishnomalari brauzer sozlamalarida bloklangan")}</div>}
             </div>
           </>

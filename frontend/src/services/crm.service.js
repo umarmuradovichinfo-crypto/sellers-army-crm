@@ -209,6 +209,8 @@ export const notifService = {
   read: (id) => api.post(`/notifications/${id}/read`, {}),
   readAll: () => api.post('/notifications/read-all', {}),
   // amoCRM «Настройки уведомлений»: { prefs: { task|task_due|lead|mention|automation: { main, browser } } }
+  tgStatus: () => api.get('/notifications/telegram'),
+  tgUnlink: () => api.del('/notifications/telegram'),
   prefs: () => api.get('/notifications/prefs'),
   savePrefs: (prefs) => api.put('/notifications/prefs', { prefs }),
 }

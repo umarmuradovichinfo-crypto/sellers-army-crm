@@ -62,3 +62,24 @@ describe('Chat tarixi (amoCRM suhbatlari)', () => {
     await ok('PUT', '/crm/chat-settings', { shortLinks: false }, T, 200);
   });
 });
+
+describe('Bildirishnoma kanali: Telegram', () => {
+  test("profil kodi bilan botga «/start» yuborilsa chat xodimga ulanadi; kod bir martalik", async () => {
+    const st = await ok('GET', '/notifications/telegram', undefined, T, 200);
+    assert.equal(st.enabled, true);
+    assert.ok(st.code && /^[a-f0-9]{10}$/.test(st.code), JSON.stringify(st));
+    const chatId = Math.floor(Math.random() * 1e9);
+    await tg(chatId, `/start ${st.code}`);
+    const after = await ok('GET', '/notifications/telegram', undefined, T, 200);
+    assert.equal(after.linked, true, 'ulanmadi');
+    const leadsBefore = (await ok('GET', '/crm/conversations', undefined, T, 200)).conversations.length;
+    await tg(chatId + 1, `/start ${st.code}`); // ishlatilgan kod — oddiy mijoz xabari sifatida o'tadi
+    const prefs = (await ok('GET', '/notifications/prefs', undefined, T, 200)).prefs;
+    assert.equal(prefs.task.telegram, false, 'Telegram standart bo\'yicha o\'chiq bo\'lishi kerak');
+    const saved = (await ok('PUT', '/notifications/prefs', { prefs: { task: { telegram: true } } }, T, 200)).prefs;
+    assert.equal(saved.task.telegram, true);
+    assert.ok((await ok('GET', '/crm/conversations', undefined, T, 200)).conversations.length >= leadsBefore);
+    await ok('DELETE', '/notifications/telegram', undefined, T, 200);
+    assert.equal((await ok('GET', '/notifications/telegram', undefined, T, 200)).linked, false);
+  });
+});

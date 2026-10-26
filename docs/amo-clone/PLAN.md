@@ -244,6 +244,8 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
        mijoz qayta yozsa yangi raqamli suhbat).
        [x] «Сокращать ссылки» — mijozga yuborilgan havolalar /api/v1/l/:code qisqa havolasiga almashadi; mijoz bosganda 302, bitim
        lentasida «Клиент перешёл по ссылке», mas'ulga bildirishnoma (PUBLIC_URL kerak). test/e2e/60-chat.
+       [x] Bildirishnoma kanali Telegram: profilda «Telegram'ga ulash» (t.me/<bot>?start=<kod>, bir martalik 15 daqiqalik kod),
+       ulangach «TELEGRAM» ustuni paydo bo'ladi (standart o'chiq), yoqilgan turlar bot orqali keladi. Qolgan: «kuniga bir marta».
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
