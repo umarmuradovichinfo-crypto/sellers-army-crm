@@ -175,11 +175,36 @@ export function PbxIntegration() {
 
 export function PbxLicense() {
   const t = useT()
+  const [tab, setTab] = useState('lic')
+  const { data: b } = useApi(() => billingService.status().catch(() => null), [], 'billing:status', 600000)
+  const fmt = (d) => (d ? new Date(d).toLocaleDateString('ru-RU') : '—')
+  const left = b?.daysLeft != null ? Math.max(0, b.daysLeft) : null
+  const rows = b ? [[t('pbx§Platformaga kirish'), `${b.planName || t('pbx§Sinov davri')}`], [t('pbx§Foydalanuvchilar'), `${b.activeUsers ?? 0} / ${b.users ?? '—'}`]] : []
   return (
-    <Page title={t("pbx§Litsenziya va to'lov")}>
-      <p className="pbxx__text">{t("pbx§Telefoniya obunasi CRM obunasiga kiradi. Tarif, foydalanuvchilar soni va to'lov «Hisob va to'lov» bo'limida boshqariladi.")}</p>
-      <Link className="pbxx__btn" to="/settings/billing">{t("pbx§Hisob va to'lov")}</Link>
-    </Page>
+    <div className="pbxl">
+      <div className="pbxl__main">
+        <div className="pbxl__tabs">
+          {[['pay', "pbx§To'lov"], ['lic', 'pbx§Litsenziyalar'], ['hist', "pbx§To'lovlar tarixi"], ['help', 'pbx§Yordam']].map(([k, l]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t(l)}</button>)}
+        </div>
+        {tab === 'lic' && (
+          <>
+            <h6>{t('pbx§Faol')}</h6>
+            {b && rows.map(([n, v]) => (
+              <div key={n} className="pbxl__row"><b>{n}</b><span>{v}</span><em>{b.endsAt ? `${t('pbx§gacha')} ${fmt(b.endsAt)}${left != null ? ` (${left} ${t('pbx§kun')})` : ''}` : ''}</em></div>
+            ))}
+            <Link className="pbxl__btn" to="/settings/billing">{t("pbx§Tanlangan litsenziyalarni uzaytirish")}</Link>
+          </>
+        )}
+        {tab === 'hist' && (b?.history?.length ? b.history.map((h, i) => <div key={i} className="pbxl__row"><b>{h.planName}</b><span>{h.users} · {h.months} {t('pbx§oy')}</span><em>{fmt(h.at || h.date)}</em></div>) : <p className="pbxl__empty">{t("pbx§To'lovlar tarixi bo'sh")}</p>)}
+        {(tab === 'pay' || tab === 'help') && <p className="pbxl__empty">{t("pbx§Tarif, foydalanuvchilar soni va to'lov «Hisob va to'lov» bo'limida boshqariladi.")} <Link to="/settings/billing">{t("pbx§Hisob va to'lov")}</Link></p>}
+      </div>
+      <aside className="pbxl__side">
+        <h5>{t('pbx§Ma\'lumotnoma')}</h5>
+        <Link to="/settings/billing">{t("pbx§Qanday to'lash mumkin")}</Link>
+        <h5>{t('pbx§Kontaktlar')}</h5>
+        <p>{t("pbx§To'lov masalalari bo'yicha")}: Telegram @UmarMuradovich</p>
+      </aside>
+    </div>
   )
 }
 
