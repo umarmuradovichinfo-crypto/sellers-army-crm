@@ -27,8 +27,8 @@ export class ShortLinkController {
 
   @Public()
   @Get(':code')
-  async open(@Param('code') code: string, @Res() res: Response) {
-    const url = /^[\w-]{4,20}$/.test(code) ? await this.chat.openShortLink(code) : null;
+  async open(@Param('code') code: string, @Res() res: Response, @Headers('user-agent') ua?: string) {
+    const url = /^[\w-]{4,20}$/.test(code) ? await this.chat.openShortLink(code, ua) : null;
     if (!url) return res.status(404).send('Havola topilmadi');
     return res.redirect(302, url);
   }
@@ -43,7 +43,7 @@ export class ChatController {
   @Get('chat-status') status() { return this.chat.enabled(); }
   @Get('conversations') conversations(@Query() q: Record<string, string>, @CurrentUser('id') userId?: string) { return this.chat.listConversations(q, userId); }
   @Post('conversations/:leadId/:action') async conversation(@Param('leadId') leadId: string, @Param('action') action: string, @CurrentUser() user: AuthUser) {
-    await this.rights.assertLead(user, leadId, 'view');
+    await this.rights.assertLead(user, leadId, action === 'fav' ? 'view' : 'edit');
     if (!['close', 'reopen', 'fav'].includes(action)) throw new BadRequestException({ error: 'BAD_ACTION', message: 'Noto`g`ri amal' });
     return this.chat.setConversation(leadId, action as 'close' | 'reopen' | 'fav', user);
   }
@@ -54,6 +54,6 @@ export class ChatController {
   @Get('nps') nps() { return this.chat.npsStats(); }
   @Get('chat-stats') chatStats(@Query('from') from?: string, @Query('to') to?: string) { return this.chat.chatStats({ from, to }); }
   @Get('leads/:id/messages') async messages(@Param('id') id: string, @CurrentUser() user: AuthUser) { await this.rights.assertLead(user, id, 'view'); return this.chat.listMessages(id, user.id); }
-  @Post('leads/:id/messages') async send(@Param('id') id: string, @Body() body: { text: string }, @CurrentUser() user: AuthUser) { await this.rights.assertLead(user, id, 'view'); return this.chat.sendMessage(id, body?.text, user); }
+  @Post('leads/:id/messages') async send(@Param('id') id: string, @Body() body: { text: string }, @CurrentUser() user: AuthUser) { await this.rights.assertLead(user, id, 'edit'); return this.chat.sendMessage(id, body?.text, user); }
   @Post('telegram-webhook-setup') @RequirePermissions('crm.settings') setup(@Body() body: { url: string }) { return this.chat.setupWebhook(body?.url); }
 }

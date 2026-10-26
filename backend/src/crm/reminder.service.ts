@@ -23,8 +23,9 @@ export class ReminderService implements OnModuleInit {
   }
 
   async tick() {
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const endOfToday = new Date(todayStr + 'T23:59:59');
+    // «Bugun» — Toshkent (UTC+5) kuni; server UTC'da ishlaydi
+    const loc = Date.now() + 5 * 3600_000;
+    const endOfToday = new Date(loc - (loc % 86400000) + 86400000 - 1000 - 5 * 3600_000);
     const now = new Date();
 
     const tasks = await this.prisma.leadTask.findMany({

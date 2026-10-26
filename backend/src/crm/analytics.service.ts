@@ -494,7 +494,7 @@ export class CrmAnalyticsService {
 
     const items: any[] = [
       ...acts.map((r) => ({
-        id: r.id, type: r.type === 'updated' && r.text === 'Suhbat yopildi' ? 'conv_closed' : r.type, entity: isTaskType(r.type) ? 'task' : 'lead', text: r.text || '', actorName: r.actorName || '',
+        id: r.id, type: r.type === 'updated' && r.text === 'Suhbat yopildi' ? 'conv_closed' : r.type, entity: isTaskType(r.type) ? 'task' : 'lead', text: r.text || '', actorName: r.actorName || '', actorId: r.actorId,
         leadId: r.leadId, createdAt: r.createdAt,
         ...(() => {
           try {
@@ -524,7 +524,12 @@ export class CrmAnalyticsService {
       })),
     ];
     const has = (v: unknown, q?: string) => !q || String(v ?? '').toLowerCase().includes(q.toLowerCase());
+    // amoCRM «Права доступа»: cheklangan foydalanuvchi faqat ko'ra oladigan bitimlar voqealarini (yoki o'z amallarini) ko'radi
+    const vis = await this.rights.visibleLeadIds(params.me, leadIds);
+    const seen = (x: any) => !vis || (x.leadId ? vis.has(x.leadId) : x.actorId === params.me);
+    const restricted = !!vis;
     const filtered = items
+      .filter(seen)
       .filter((x) => has(x.from, params.before) && has(x.to ?? x.text, params.after))
       .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
       .slice(0, limit)
@@ -535,7 +540,7 @@ export class CrmAnalyticsService {
       ...(callCount ? [{ type: 'calls', count: callCount }] : []),
       ...(msgCount ? [{ type: 'messages', count: msgCount }] : []),
     ].sort((a, b) => b.count - a.count);
-    return { items: filtered, total: actCount + callCount + msgCount, byType };
+    return { items: filtered, total: restricted ? filtered.length : actCount + callCount + msgCount, byType: restricted ? [] : byType };
   }
 
   // ── Sotuv dinamikasi (vaqt qatori) ──

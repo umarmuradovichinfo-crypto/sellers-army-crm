@@ -93,4 +93,33 @@ describe("Huquqlar matritsasi (amoCRM «Права доступа»)", () => {
     }
     await setRights({});
   });
+
+  test("ikkilamchi yo'llar ham cheklanadi: dublikatlar, o'chirilgan vazifalar, Salesbot, voqealar ro'yxati", async () => {
+    await setRights({ leads: { view: 'M', edit: 'M' }, tasks: { edit: 'M', delete: 'M' } });
+    const phone = `+99890${Math.floor(1e6 + Math.random() * 8e6)}`;
+    const nm = uniq('SEC');
+    const a = await newLead(A, { name: nm + '-a', phone });
+    const b = await newLead(A, { name: nm + '-b', phone });
+    // dublikat guruhlari va tekshiruv: boshqaning bitimlari ko'rinmaydi
+    const g = await ok('GET', '/crm/leads-duplicates?by=phone', undefined, U1.token, 200);
+    assert.ok(!JSON.stringify(g).includes(nm), "dublikatlar ro'yxatida boshqaning bitimi");
+    const gAdmin = await ok('GET', '/crm/leads-duplicates?by=phone', undefined, A, 200);
+    assert.ok(JSON.stringify(gAdmin).includes(nm), 'administrator dublikatni ko\'rmadi');
+    const chk = await ok('GET', `/crm/leads-check?phone=${encodeURIComponent(phone)}`, undefined, U1.token, 200);
+    assert.equal(chk.duplicates.length, 0, 'leads-check boshqaning bitimini qaytardi');
+    // o'chirilgan vazifalar
+    const t = (await ok('POST', `/crm/leads/${a.id}/tasks`, { title: nm + '-task', assigneeId: U2.id, dueDate: new Date(Date.now() + 3600e3).toISOString() }, A)).task;
+    await ok('DELETE', `/crm/tasks/${t.id}`, undefined, A, 200);
+    assert.ok(!JSON.stringify(await ok('GET', '/crm/tasks-deleted', undefined, U1.token, 200)).includes(nm), "o'chirilgan vazifalar ro'yxatida boshqaning vazifasi");
+    assert.equal((await req('POST', `/crm/tasks-deleted/${t.id}/restore`, {}, U1.token)).status, 403);
+    // Salesbot
+    assert.equal((await req('GET', `/crm/leads/${a.id}/salesbot-runs`, undefined, U1.token)).status, 403);
+    assert.equal((await req('POST', `/crm/leads/${a.id}/salesbot-stop`, {}, U1.token)).status, 403);
+    assert.equal((await req('POST', `/crm/salesbots/x/run`, { leadId: a.id }, U1.token)).status, 403);
+    // voqealar ro'yxati
+    const ev = await ok('GET', '/crm/analytics/events?limit=300', undefined, U1.token, 200);
+    assert.ok(!JSON.stringify(ev).includes(nm), "voqealar ro'yxatida boshqaning bitimi");
+    assert.ok(JSON.stringify(await ok('GET', '/crm/analytics/events?limit=300', undefined, A, 200)).includes(nm), "administrator voqealarni ko'rmadi");
+    await setRights({});
+  });
 });

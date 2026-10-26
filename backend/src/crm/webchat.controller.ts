@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Header, Param, Post, Query, Res } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, Post, Query, Req, Res } from '@nestjs/common';
 import type { Response } from 'express';
 
 import { Public } from '../common/decorators/public.decorator';
 import { rateLimit } from '../common/rate-limit';
+import { clientIp } from '../common/guards/ip-whitelist.guard';
 import { ChatService } from './chat.service';
 
 /** Vidjet skripti: saytga `<script src=".../api/v1/webchat/<kalit>/widget.js" async>` bilan qo'yiladi. */
@@ -49,7 +50,11 @@ export class WebChatController {
 
   @Public()
   @Post(':key/send')
-  async send(@Param('key') key: string, @Body() b: { visitorId?: string; name?: string; text?: string }) {
+  async send(@Param('key') key: string, @Body() b: { visitorId?: string; name?: string; text?: string }, @Req() req: any) {
+    // mehmon id'sini hujumchi o'zi tanlaydi — shuning uchun IP va umumiy kalit bo'yicha ham cheklanadi
+    const ip = clientIp(req);
+    rateLimit(`wc-ip:${ip}`, 30, 60_000, "Juda tez yozyapsiz, biroz kuting");
+    rateLimit(`wc-key:${key}`, 300, 60_000, "Chat vaqtincha band, birozdan keyin urinib ko'ring");
     rateLimit(`wc:${key}:${b?.visitorId || '-'}`, 20, 60_000, "Juda tez yozyapsiz, biroz kuting");
     await this.chat.webIngest(key, String(b?.visitorId || ''), String(b?.name || ''), String(b?.text || ''));
     return { ok: true };

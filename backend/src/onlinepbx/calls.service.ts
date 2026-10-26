@@ -1,3 +1,4 @@
+import { RightsService } from '../common/rights/rights.service';
 import {
   BadRequestException,
   Injectable,
@@ -49,6 +50,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     private readonly automation: AutomationService,
     private readonly pset: PipelineSettingsService,
     private readonly activity: ActivityService,
+    private readonly rights: RightsService,
   ) {}
 
   // Fon rejimida OnlinePBX tarixini muntazam tortib turadi — operator gaplashib
@@ -348,12 +350,15 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   }
 
   // ── Barcha qo'ng'iroqlar ro'yxati (CRM "Qo'ng'iroqlar" bo'limi) ──
-  async listCalls(opts?: { filter?: string; limit?: number }) {
+  async listCalls(opts?: { filter?: string; limit?: number }, userId?: string) {
     await this.syncHistory({ minutes: 60 }).catch(() => {}); // yangi qo'ng'iroqlarni tortamiz (throttle)
     const where = opts?.filter === 'missed' ? { status: 'missed' } : {};
-    const rows = await this.prisma.callLog.findMany({
+    let rows = await this.prisma.callLog.findMany({
       where, orderBy: { startedAt: 'desc' }, take: Math.min(opts?.limit || 200, 500),
     });
+    // amoCRM «Права доступа»: cheklangan foydalanuvchi faqat ko'rinadigan bitimlar yoki o'z qo'ng'iroqlarini ko'radi
+    const vis = await this.rights.visibleLeadIds(userId, [...new Set(rows.map((r) => r.leadId).filter(Boolean) as string[])]);
+    if (vis) rows = rows.filter((r) => r.userId === userId || (r.leadId && vis.has(r.leadId)));
     const leadIds = [...new Set(rows.map((r) => r.leadId).filter(Boolean) as string[])];
     const leads = leadIds.length
       ? await this.prisma.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true } })

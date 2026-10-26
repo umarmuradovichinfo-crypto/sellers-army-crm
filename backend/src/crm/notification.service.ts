@@ -157,10 +157,14 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     return row?.value || null;
   }
   async tgStatus(userId: string) {
-    const code = randomBytes(5).toString('hex');
     const linked = await this.tgChatId(userId);
     const enabled = this.tg.enabled();
     if (!enabled || linked) return { enabled, linked: !!linked };
+    // foydalanuvchiga bitta faol kod (har so'rovda yangi qator yig'ilib ketmasin)
+    const old = await this.prisma.appSetting.findUnique({ where: { key: `notify_tgcode_user:${userId}` } });
+    if (old) await this.prisma.appSetting.deleteMany({ where: { key: `notify_tgcode:${old.value}` } });
+    const code = randomBytes(5).toString('hex');
+    await this.prisma.appSetting.upsert({ where: { key: `notify_tgcode_user:${userId}` }, create: { key: `notify_tgcode_user:${userId}`, value: code }, update: { value: code } });
     const key = `notify_tgcode:${code}`;
     await this.prisma.appSetting.upsert({ where: { key }, create: { key, value: JSON.stringify({ userId, exp: Date.now() + 15 * 60_000 }) }, update: {} });
     const bot = await this.tg.botUsername();
@@ -176,7 +180,8 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     const key = `notify_tgcode:${code}`;
     const row = await this.prisma.appSetting.findUnique({ where: { key } });
     if (!row) return false;
-    await this.prisma.appSetting.deleteMany({ where: { key } });
+    // atomik: kodni faqat bitta so'rov «yeb» ketadi
+    if ((await this.prisma.appSetting.deleteMany({ where: { key } })).count !== 1) return false;
     let v: { userId?: string; exp?: number } = {};
     try { v = JSON.parse(row.value); } catch { /* */ }
     if (!v.userId || (v.exp || 0) < Date.now()) { this.tg.sendMessage(chatId, "Kod eskirgan. CRM'da profilni qayta oching.").catch(() => undefined); return true; }
@@ -193,7 +198,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       const pr = (await this.prefs(userId))[opts.type || 'info'];
       const chatId = pr?.telegram && !(await this.digestOn(userId)) ? await this.tgChatId(userId) : null;
       if (chatId) this.tg.sendMessage(chatId, text.slice(0, 1000)).catch(() => undefined);
-      if (pr && !pr.main && !pr.browser) return; // markaz va brauzer o'chirilgan — yozilmaydi
+      if (pr && !pr.main && !pr.browser && !pr.telegram) return; // hech bir kanal yoqilmagan — yozilmaydi (Telegram-faqat holatda ham qator saqlanadi: eslatma takrorlanmasin, jamlanma o'qiy olsin)
       await this.prisma.notification.create({
         data: { userId, text, type: opts.type || 'info', link: opts.link || null },
       });

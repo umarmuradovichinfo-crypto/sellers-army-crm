@@ -82,8 +82,8 @@ export class CrmController {
     return this.crm.importLeads(body?.rows || [], user);
   }
   @Get('leads-check')
-  checkDup(@Query('phone') phone?: string, @Query('email') email?: string, @Query('excludeId') excludeId?: string) {
-    return this.crm.findDuplicates(phone, email, excludeId);
+  checkDup(@CurrentUser('id') userId: string, @Query('phone') phone?: string, @Query('email') email?: string, @Query('excludeId') excludeId?: string) {
+    return this.crm.findDuplicates(phone, email, excludeId, userId);
   }
   @Post('leads/bulk')
   bulk(@Body() dto: BulkDto, @CurrentUser() user: AuthUser) {
@@ -96,7 +96,8 @@ export class CrmController {
     return this.crm.mergeLeads(dto.keepId, dto.mergeIds || [], user, dto.pick);
   }
   @Post('leads-duplicates/ignore')
-  ignoreDuplicates(@Body() dto: { ids?: string[] }) {
+  async ignoreDuplicates(@Body() dto: { ids?: string[] }, @CurrentUser() user: AuthUser) {
+    for (const id of dto?.ids || []) await this.rights.assertLead(user, id, 'edit');
     return this.crm.ignoreDuplicates(dto?.ids || []);
   }
   @Get('unsorted')
@@ -108,8 +109,8 @@ export class CrmController {
     return this.crm.listSources();
   }
   @Get('leads-duplicates')
-  duplicateGroups(@Query('by') by: string | undefined) {
-    return this.crm.duplicateGroups(by || 'phone');
+  duplicateGroups(@CurrentUser('id') userId: string, @Query('by') by: string | undefined) {
+    return this.crm.duplicateGroups(by || 'phone', userId);
   }
   @Post('unsorted/:id/accept')
   async acceptUnsorted(@Param('id') id: string, @Body() dto: { assigneeId?: string; stageKey?: string; pipelineId?: string }, @CurrentUser() user: AuthUser) {
@@ -198,12 +199,12 @@ export class CrmController {
     return this.crm.saveTaskTypes(body);
   }
   @Get('tasks-deleted')
-  deletedTasks() {
-    return this.crm.listDeletedTasks();
+  deletedTasks(@CurrentUser('id') userId: string) {
+    return this.crm.listDeletedTasks(userId);
   }
   @Post('tasks-deleted/:id/restore')
-  restoreTask(@Param('id') id: string) {
-    return this.crm.restoreTask(id);
+  restoreTask(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.crm.restoreTask(id, user);
   }
   @Delete('tasks/:id')
   async deleteTask(@Param('id') id: string, @CurrentUser() user: AuthUser) {

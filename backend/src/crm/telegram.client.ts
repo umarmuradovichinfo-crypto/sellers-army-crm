@@ -59,7 +59,7 @@ export class TelegramClient implements OnApplicationBootstrap {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id: chatId, text,
+          chat_id: chatId, text, link_preview_options: { is_disabled: true },
           ...(buttons?.length ? { reply_markup: { inline_keyboard: buttons.map((b, i) => [{ text: b.slice(0, 64), callback_data: `sb:${i}` }]) } } : {}),
         }),
       });

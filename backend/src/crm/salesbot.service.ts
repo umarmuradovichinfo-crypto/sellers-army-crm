@@ -146,6 +146,12 @@ export class SalesbotService implements OnModuleInit {
     const bot = await this.prisma.salesbot.findUnique({ where: { id: botId } });
     if (!bot) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Bot topilmadi' });
     if (!(await this.prisma.lead.findUnique({ where: { id: leadId }, select: { id: true } }))) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Bitim topilmadi' });
+    // cheksiz aylanishdan himoya (start_bot o'ziga yoki A→B→A): bitta bitimda 1 daqiqada 20 tadan ortiq yurish bo'lmasin
+    const recent = await this.prisma.salesbotRun.count({ where: { leadId, createdAt: { gte: new Date(Date.now() - 60_000) } } });
+    if (recent >= 20) {
+      await this.activity.record(leadId, 'automation', { actorName: 'Salesbot', text: `Salesbot to'xtatildi (juda ko'p qayta ishga tushish): ${bot.name}`, data: { botId } });
+      return { runId: null as string | null };
+    }
     // bitta bitimda bitta bot bir vaqtda bir marta
     await this.prisma.salesbotRun.updateMany({ where: { leadId, botId, state: { in: ACTIVE } }, data: { state: 'stopped' } });
     const run = await this.prisma.salesbotRun.create({ data: { botId, leadId, stepId: bot.startId, state: 'running' } });

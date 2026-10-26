@@ -404,15 +404,16 @@ export class CrmService {
   }
 
   // Dublikat aniqlash (telefon oxirgi 9 raqam yoki email)
-  async findDuplicates(phone?: string, email?: string, excludeId?: string) {
+  async findDuplicates(phone?: string, email?: string, excludeId?: string, userId?: string) {
     const tail = digits(phone).slice(-9);
     const mail = (email || '').trim().toLowerCase();
     const or: Record<string, unknown>[] = [];
     if (tail.length >= 7) or.push({ phoneTail: tail }); // indekslangan (leads_phoneTail_idx)
     if (mail) or.push({ emailNorm: mail }); // indekslangan (leads_emailNorm_idx)
     if (!or.length) return { duplicates: [] };
+    const own = await this.rights.ownersById(userId, 'leads', 'view');
     const duplicates = await this.prisma.lead.findMany({
-      where: { OR: or, ...(excludeId ? { id: { not: excludeId } } : {}) },
+      where: { OR: or, ...(excludeId ? { id: { not: excludeId } } : {}), ...(own ? { assigneeId: { in: own.length ? own : ['__none__'] } } : {}) },
       select: { id: true, name: true, phone: true, email: true, stage: true },
       take: 10,
     });
@@ -1013,13 +1014,15 @@ export class CrmService {
   }
 
   /** Dublikat guruhlari: by = phone (oxirgi 9 raqam) | email | name. Faqat 2+ bitimli guruhlar, eng kattalari birinchi. */
-  async duplicateGroups(by: string) {
+  async duplicateGroups(by: string, userId?: string) {
+    const own = await this.rights.ownersById(userId, 'leads', 'view');
+    const ownCond = own ? (own.length ? Prisma.sql`l."assigneeId" IN (${Prisma.join(own)})` : Prisma.sql`FALSE`) : Prisma.sql`TRUE`;
     const key = by === 'email' ? Prisma.sql`l."emailNorm"` : by === 'name' ? Prisma.sql`lower(btrim(l.name))` : Prisma.sql`l."phoneTail"`;
     const valid = by === 'email' ? Prisma.sql`l."emailNorm" <> ''` : by === 'name' ? Prisma.sql`btrim(l.name) <> ''` : Prisma.sql`length(l."phoneTail") >= 7`;
     const groups = await this.prisma.$queryRaw<{ k: string; ids: string[]; c: number }[]>(Prisma.sql`
       SELECT g.k, g.ids, g.c FROM (
         SELECT ${key} AS k, array_agg(l.id ORDER BY l."createdAt", l.id) AS ids, count(*)::int AS c
-        FROM leads l WHERE l.unsorted = FALSE AND ${key} IS NOT NULL AND ${valid} GROUP BY 1 HAVING count(*) > 1
+        FROM leads l WHERE l.unsorted = FALSE AND ${ownCond} AND ${key} IS NOT NULL AND ${valid} GROUP BY 1 HAVING count(*) > 1
       ) g ORDER BY g.c DESC, g.k LIMIT 200`);
     const ignored = new Set(await this.dupIgnored());
     const live = groups.filter((g) => !ignored.has(dupSig(g.ids)));
@@ -1331,8 +1334,10 @@ export class CrmService {
     return { custom };
   }
 
-  async listDeletedTasks() {
-    const rows = await this.prisma.deletedTask.findMany({ orderBy: { deletedAt: 'desc' }, take: 500 });
+  async listDeletedTasks(userId?: string) {
+    let rows = await this.prisma.deletedTask.findMany({ orderBy: { deletedAt: 'desc' }, take: 500 });
+    const vis = await this.rights.visibleLeadIds(userId, [...new Set(rows.map((r) => r.leadId))]);
+    if (vis) rows = rows.filter((r) => r.assigneeId === userId || vis.has(r.leadId));
     const leadIds = [...new Set(rows.map((r) => r.leadId))];
     const leads = leadIds.length ? await this.prisma.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true } }) : [];
     const leadName = new Map(leads.map((l) => [l.id, l.name]));
@@ -1345,9 +1350,10 @@ export class CrmService {
     };
   }
 
-  async restoreTask(id: string) {
+  async restoreTask(id: string, user?: AuthUser) {
     const r = await this.prisma.deletedTask.findUnique({ where: { id } });
     if (!r) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Vazifa topilmadi' });
+    if (user) await this.rights.assertLead(user, r.leadId, 'edit');
     if (!(await this.prisma.lead.findUnique({ where: { id: r.leadId }, select: { id: true } })))
       throw new BadRequestException({ error: 'LEAD_GONE', message: "Vazifaning bitimi o'chirilgan — tiklab bo'lmaydi" });
     await this.prisma.$transaction([

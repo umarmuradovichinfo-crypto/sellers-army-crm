@@ -12,14 +12,17 @@ import { PipelineSettingsService } from './pipeline-settings.service';
 import { TelegramClient } from './telegram.client';
 
 const safeList = (v?: string | null): string[] => { try { const a = JSON.parse(v || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } };
+// Akkaunt vaqti — Toshkent (UTC+5); server UTC'da ishlaydi, shuning uchun kun chegaralari qo'lda hisoblanadi
+const TZ_MS = 5 * 3600_000;
 function periodStart(p?: string): Date | null {
-  const d0 = new Date(); d0.setHours(0, 0, 0, 0);
   const day = 86400000;
+  const loc = Date.now() + TZ_MS;
+  const d0 = new Date(loc - (loc % day) - TZ_MS);
   switch (p) {
     case 'today': return d0;
     case 'yesterday': return new Date(d0.getTime() - day);
-    case 'week': { const d = new Date(d0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
-    case 'month': return new Date(d0.getFullYear(), d0.getMonth(), 1);
+    case 'week': { const dow = (new Date(loc).getUTCDay() + 6) % 7; return new Date(d0.getTime() - dow * day); }
+    case 'month': { const l = new Date(loc); return new Date(Date.UTC(l.getUTCFullYear(), l.getUTCMonth(), 1) - TZ_MS); }
     case '30d': return new Date(d0.getTime() - 30 * day);
     default: return null;
   }
@@ -103,6 +106,10 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   private async npsAsk(leadId: string) {
     const { nps } = await this.getChatSettings();
     if (!nps.on) return;
+    // izoh (ommaviy) orqali kelgan yoki Salesbot javob kutayotgan suhbatda baho so'ramaymiz
+    const lastIn = await this.prisma.message.findFirst({ where: { leadId, direction: 'in' }, orderBy: { createdAt: 'desc' }, select: { kind: true } });
+    if (lastIn?.kind === 'comment') return;
+    if (await this.prisma.salesbotRun.findFirst({ where: { leadId, state: { in: ['running', 'waiting', 'paused'] } }, select: { id: true } })) return;
     const sent = await this.sendMessage(leadId, nps.ask, undefined).then(() => true).catch(() => false);
     if (sent) {
       const key = `nps_wait:${leadId}`;
@@ -114,6 +121,8 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     const key = `nps_wait:${leadId}`;
     const wait = await this.prisma.appSetting.findUnique({ where: { key } });
     if (!wait) return false;
+    // Salesbot javob kutayotgan bo'lsa raqam botga tegishli (NPS emas)
+    if (await this.prisma.salesbotRun.findFirst({ where: { leadId, state: 'waiting' }, select: { id: true } })) { await this.prisma.appSetting.deleteMany({ where: { key } }); return false; }
     if (Date.now() - Number(wait.value) > 7 * 86400_000) { await this.prisma.appSetting.deleteMany({ where: { key } }); return false; }
     const m = /^\s*(10|[1-9])\s*[.!]?\s*$/.exec(String(text));
     if (!m) { await this.prisma.appSetting.deleteMany({ where: { key } }); return false; } // boshqa narsa yozdi — oddiy suhbat davom etadi
@@ -194,6 +203,8 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (!low.trim() || s.ignorePhrases.some((p: string) => low.includes(p))) return false;
     const hit = s.intents.find((i: any) => i.keywords.some((k: string) => low.includes(k)));
     if (!hit) return false;
+    // Salesbot shu bitimda ishlayotgan bo'lsa (ikki marta javob ketmasin) — tegmaymiz
+    if (await this.prisma.salesbotRun.findFirst({ where: { leadId, state: { in: ['running', 'waiting', 'paused'] } }, select: { id: true } })) return false;
     // takroriy javob bo'lmasin: so'nggi 30 soniyada operator/bot yuborgan xabar bo'lsa — tegmaymiz
     const recent = await this.prisma.message.findFirst({ where: { leadId, direction: 'out', createdAt: { gte: new Date(Date.now() - 30_000) } }, select: { id: true } });
     if (recent) return false;
@@ -221,21 +232,27 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   async shorten(text: string, leadId: string | null): Promise<string> {
     const base = ChatService.publicBase();
     if (!base || !(await this.getChatSettings()).shortLinks) return text;
-    const urls = [...new Set(text.match(/https?:\/\/[^\s<>"']+/g) || [])].filter((u) => !u.startsWith(`${base}/api/v1/l/`)).slice(0, 10);
-    for (const url of urls) {
-      const clean = url.replace(/[).,!?;:]+$/, '');
+    // har bir havola o'z o'rnida (bir havola ikkinchisining boshi bo'lsa ham buzilmaydi)
+    const re = /https?:\/\/[^\s<>"']+/g;
+    const found = [...text.matchAll(re)].map((m) => ({ at: m.index as number, raw: m[0], clean: m[0].replace(/[).,!?;:]+$/, '') })).filter((u) => !u.clean.startsWith(`${base}/api/v1/l/`)).slice(0, 10);
+    let out = '', pos = 0;
+    for (const u of found) {
       const code = randomBytes(6).toString('base64url');
-      await this.prisma.shortLink.create({ data: { code, url: clean.slice(0, 2000), leadId } });
-      text = text.split(clean).join(`${base}/api/v1/l/${code}`);
+      await this.prisma.shortLink.create({ data: { code, url: u.clean.slice(0, 2000), leadId } });
+      out += text.slice(pos, u.at) + `${base}/api/v1/l/${code}`;
+      pos = u.at + u.clean.length;
     }
-    return text;
+    return out + text.slice(pos);
   }
   /** Qisqa havola bosildi: hisoblagich, bitim lentasiga yozuv, mas'ulga bildirishnoma; asl manzil */
-  async openShortLink(code: string): Promise<string | null> {
+  /** Havola oldindan ko'rish (preview) botlari — haqiqiy mijoz bosishi emas */
+  static isPreviewBot(ua?: string) { return /TelegramBot|facebookexternalhit|Facebot|WhatsApp|Slackbot|Twitterbot|LinkedInBot|Discordbot|bot|crawler|spider|preview/i.test(String(ua || '')); }
+  async openShortLink(code: string, ua?: string): Promise<string | null> {
     const l = await this.prisma.shortLink.findUnique({ where: { code } });
     if (!l || !/^https?:\/\//i.test(l.url)) return null;
-    await this.prisma.shortLink.update({ where: { code }, data: { clicks: { increment: 1 }, lastClickAt: new Date() } });
-    if (l.leadId && l.clicks === 0) {
+    const first = (await this.prisma.shortLink.updateMany({ where: { code, clicks: 0 }, data: { clicks: 1, lastClickAt: new Date() } })).count === 1;
+    if (!first) await this.prisma.shortLink.update({ where: { code }, data: { clicks: { increment: 1 }, lastClickAt: new Date() } });
+    if (l.leadId && first && !ChatService.isPreviewBot(ua)) {
       await this.activity.record(l.leadId, 'link', { actorName: 'Mijoz', text: `Havola ochildi: ${l.url}` });
       const lead = await this.prisma.lead.findUnique({ where: { id: l.leadId }, select: { assigneeId: true, name: true } });
       if (lead?.assigneeId) await this.notif.notify(lead.assigneeId, `Mijoz havolani ochdi: ${lead.name}`, { type: 'mention', link: `/leads/detail/${l.leadId}` });
@@ -337,18 +354,25 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       const btn = (cq.message?.reply_markup?.inline_keyboard || []).flat().find((b: any) => b?.callback_data === cq.data);
       update = { message: { message_id: cq.message?.message_id ? `${cq.message.message_id}-cb-${cq.id}` : cq.id, text: btn?.text || cq.data, chat: cq.message?.chat, from: cq.from } };
     }
-    const msg = update?.message || update?.edited_message;
+    // tahrirlangan xabar yangi kiruvchi xabar emas (bot/javoblar qayta ishga tushmasin)
+    if (!update?.message && update?.edited_message) return { ok: true, skipped: true };
+    const msg = update?.message;
     const text = msg?.text;
     const chat = msg?.chat;
     if (!chat?.id || !text) return { ok: true, skipped: true };
     const chatId = String(chat.id);
     // «/start <kod>» — xodim Telegram'ni CRM bildirishnomalariga ulayapti (mijoz xabari emas)
     const startM = /^\/start(?:@\w+)?\s+([a-f0-9]{10})\s*$/.exec(text.trim());
-    if (startM && (await this.notif.tgConsume(startM[1], chatId))) return { ok: true, linked: true };
+    if (startM && chat.type === 'private' && (await this.notif.tgConsume(startM[1], chatId))) return { ok: true, linked: true };
     const from = msg.from || {};
     const name = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || chat.title || 'Telegram foydalanuvchi';
 
     let lead = await this.prisma.lead.findFirst({ where: { telegramChatId: chatId }, orderBy: { createdAt: 'desc' } });
+    // Telegram qayta yetkazishi (webhook 500 → retry): bir xil message_id ikki marta ishlanmaydi
+    if (lead && msg.message_id != null && !String(msg.message_id).includes('-cb-')) {
+      const dup = await this.prisma.message.findFirst({ where: { leadId: lead.id, channel: 'telegram', direction: 'in', externalId: String(msg.message_id) }, select: { id: true } });
+      if (dup) return { ok: true, leadId: lead.id, duplicate: true };
+    }
     if (lead) {
       const last = await this.prisma.message.findFirst({ where: { leadId: lead.id }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
       if (!(await this.reuseLead(lead, last?.createdAt))) lead = null;
@@ -385,7 +409,6 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       data: { leadId: lead.id, channel: 'telegram', direction: 'in', text: String(text).slice(0, 4000), senderName: name, externalId: String(msg.message_id ?? ''), convNo },
     });
     const consumed = npsReply || (await this.automation.salesbot?.onReply(lead.id, String(text)).catch(() => false));
-    if (!consumed) await this.applyIntents(lead.id, String(text)).catch(() => false);
     await this.activity.record(lead.id, 'email', { actorName: name, text: `📨 Telegram: ${String(text).slice(0, 120)}` });
     await this.prisma.lead.update({ where: { id: lead.id }, data: { lastActivityAt: new Date() } }).catch(() => {});
 
@@ -393,6 +416,8 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     // amoCRM suhbat triggerlari: kiruvchi xabar bilan suhbat yaratilganda / birinchi kiruvchi xabarda
     if (prevAny === 0) await this.automation.fire('conversation_created', lead.id, { actorName: 'Telegram' });
     if (prevIn === 0) await this.automation.fire('message_in', lead.id, { actorName: 'Telegram' });
+    // «Типовые вопросы» — triggerlar (Salesbot) ishga tushgandan KEYIN, bot allaqachon javob berayotgan bo'lmasa
+    if (!consumed) await this.applyIntents(lead.id, String(text)).catch(() => false);
     if (lead.assigneeId) await this.notif.notify(lead.assigneeId, `Telegram xabar: ${name}`, { type: 'mention', link: `/leads/detail/${lead.id}` });
 
     return { ok: true, leadId: lead.id };
@@ -404,7 +429,8 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   }
 
   async listMessages(leadId: string, userId?: string) {
-    const messages = await this.prisma.message.findMany({ where: { leadId }, orderBy: { createdAt: 'asc' }, take: 200 });
+    // eng yangi 200 ta xabar (lentada oxirgilari ko'rinsin), vaqt bo'yicha o'sish tartibida qaytadi
+    const messages = (await this.prisma.message.findMany({ where: { leadId }, orderBy: { createdAt: 'desc' }, take: 200 })).reverse();
     const lead = await this.prisma.lead.findUnique({ where: { id: leadId }, select: { telegramChatId: true } });
     const lastIn = [...messages].reverse().find((m) => m.direction === 'in');
     const tgOk = !!lead?.telegramChatId && this.tg.enabled();
@@ -548,7 +574,6 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       },
     });
     const consumed = npsReply || (await this.automation.salesbot?.onReply(lead.id, a.text).catch(() => false));
-    if (!consumed && a.kind !== 'comment') await this.applyIntents(lead.id, a.text).catch(() => false);
     const label = a.kind === 'comment' ? `${CH_LABEL[a.channel]} izoh` : CH_LABEL[a.channel];
     await this.activity.record(lead.id, 'email', { actorName: a.name, text: `📨 ${label}: ${a.text.slice(0, 120)}` });
     await this.prisma.lead.update({ where: { id: lead.id }, data: { lastActivityAt: new Date() } }).catch(() => {});
@@ -556,6 +581,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (isNew) await this.automation.fire('lead_created', lead.id, { actorName: actor });
     if (prevAny === 0) await this.automation.fire('conversation_created', lead.id, { actorName: actor });
     if (prevIn === 0) await this.automation.fire('message_in', lead.id, { actorName: actor });
+    if (!consumed && a.kind !== 'comment') await this.applyIntents(lead.id, a.text).catch(() => false);
     if (lead.assigneeId) await this.notif.notify(lead.assigneeId, `${label}: ${a.name}`, { type: 'mention', link: `/leads/detail/${lead.id}` });
     return { ok: true, leadId: lead.id };
   }
@@ -580,8 +606,10 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
    * javobgacha o'rtacha vaqt (soniya); "Долго ждёт ответа" — oxirgi xabari mijozdan va 1 soatdan beri javobsiz suhbatlar.
    */
   async chatStats(q: { from?: string; to?: string }) {
-    const from = q.from ? new Date(q.from) : new Date(Date.now() - 30 * 86400000);
-    const to = q.to ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(q.to) ? q.to + 'T23:59:59' : q.to) : new Date();
+    // sana-only qiymatlar Toshkent (UTC+5) kuni chegarasi bo'yicha
+    const ymd = /^\d{4}-\d{2}-\d{2}$/;
+    const from = q.from ? new Date(ymd.test(q.from) ? new Date(q.from + 'T00:00:00Z').getTime() - TZ_MS : q.from) : new Date(Date.now() - 30 * 86400000);
+    const to = q.to ? new Date(ymd.test(q.to) ? new Date(q.to + 'T23:59:59Z').getTime() - TZ_MS : q.to) : new Date();
     if (isNaN(from.getTime()) || isNaN(to.getTime())) return { avgResponseSec: 0, answered: 0, waiting: 0 };
     const msgs = await this.prisma.message.findMany({
       where: { createdAt: { gte: from, lte: new Date(to.getTime() + 7 * 86400000) } },
@@ -677,7 +705,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     const st = await this.prisma.conversationState.findUnique({ where: { leadId } });
     const data: Record<string, unknown> = {};
     if (action === 'close') Object.assign(data, { closed: true, closedAt: new Date(), closedById: user?.id || null });
-    if (action === 'reopen') Object.assign(data, { closed: false, closedAt: null, closedById: null });
+    if (action === 'reopen') { Object.assign(data, { closed: false, closedAt: null, closedById: null }); await this.prisma.appSetting.deleteMany({ where: { key: `nps_wait:${leadId}` } }); }
     if (action === 'fav' && user?.id) {
       const favs = safeList(st?.favJson);
       data.favJson = JSON.stringify(favs.includes(user.id) ? favs.filter((x) => x !== user.id) : [...favs, user.id]);

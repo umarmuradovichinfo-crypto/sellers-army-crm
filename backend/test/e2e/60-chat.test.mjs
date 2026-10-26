@@ -224,3 +224,61 @@ describe('NPS («Обращения и NPS»)', () => {
     await ok('PUT', '/crm/chat-settings', { webChats: cs.webChats || [], nps: { on: false } }, T, 200);
   });
 });
+
+describe('Diagnostika tuzatishlari (chat)', () => {
+  test("lenta eng YANGI 200 xabarni qaytaradi (250 xabarli suhbat), takroriy message_id ikki marta yozilmaydi, tahrirlangan xabar yangi xabar emas", async () => {
+    const chatId = Math.floor(Math.random() * 1e9);
+    const upd = (id, text, extra = {}) => req('POST', '/telegram/webhook', { update_id: id, message: { message_id: id, date: Math.floor(Date.now() / 1000), text, chat: { id: chatId, type: 'private' }, from: { id: chatId, first_name: 'Ko\'pxabar' } }, ...extra }, null, { headers: { 'x-telegram-bot-api-secret-token': secret } });
+    for (let i = 1; i <= 250; i++) await upd(i, `xabar-${i}`);
+    const row = (await ok('GET', '/crm/conversations', undefined, T, 200)).conversations.find((c) => /xabar-250/.test(c.last || ''));
+    assert.ok(row, 'suhbat topilmadi');
+    const m = await ok('GET', `/crm/leads/${row.leadId}/messages`, undefined, T, 200);
+    assert.equal(m.messages.length, 200);
+    assert.equal(m.messages[m.messages.length - 1].text, 'xabar-250', 'oxirgi xabar lentada yo\'q');
+    assert.equal(m.messages[0].text, 'xabar-51');
+    // takroriy yetkazib berish
+    await upd(250, 'xabar-250');
+    const m2 = await ok('GET', `/crm/leads/${row.leadId}/messages`, undefined, T, 200);
+    assert.equal(m2.messages.filter((x) => x.text === 'xabar-250').length, 1, 'message_id takrorlandi');
+    // tahrirlangan xabar
+    await req('POST', '/telegram/webhook', { update_id: 999, edited_message: { message_id: 251, date: 1, text: 'tahrir', chat: { id: chatId, type: 'private' }, from: { id: chatId, first_name: 'X' } } }, null, { headers: { 'x-telegram-bot-api-secret-token': secret } });
+    assert.ok(!(await ok('GET', `/crm/leads/${row.leadId}/messages`, undefined, T, 200)).messages.some((x) => x.text === 'tahrir'), 'tahrirlangan xabar yangi sifatida yozildi');
+  });
+
+  test("qisqa havola: bir havola boshqasining boshi bo'lsa ham to'g'ri almashadi; preview-bot bosishi hisobga olinmaydi; Telegram guruhi ulanish kodini ishlata olmaydi", async () => {
+    await ok('PUT', '/crm/chat-settings', { shortLinks: true, webChats: [{ id: 'wsl', name: 'SL' }] }, T, 200);
+    const w = (await ok('GET', '/crm/chat-settings', undefined, T, 200)).webChats.find((x) => x.id === 'wsl');
+    const base = process.env.E2E_BASE;
+    const vid = 'sl' + Math.random().toString(36).slice(2, 12);
+    await fetch(`${base}/webchat/${w.key}/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visitorId: vid, name: 'SL', text: 'salom' }) });
+    const conv = (await ok('GET', '/crm/conversations', undefined, T, 200)).conversations.find((c) => c.last === 'salom' || /salom/.test(c.last || ''));
+    await ok('POST', `/crm/leads/${conv.leadId}/messages`, { text: 'A: https://a.example.com va B: https://a.example.com/narx' }, T);
+    const out = (await (await fetch(`${base}/webchat/${w.key}/messages?visitorId=${vid}`)).json()).messages.filter((m) => m.from === 'agent').pop().text;
+    const codes = [...out.matchAll(/\/api\/v1\/l\/([\w-]+)/g)].map((x) => x[1]);
+    assert.equal(codes.length, 2, out);
+    const r1 = await fetch(`${base}/l/${codes[1]}`, { redirect: 'manual', headers: { 'user-agent': 'TelegramBot (like TwitterBot)' } });
+    assert.equal(r1.headers.get('location'), 'https://a.example.com/narx');
+    const l1 = await ok('GET', `/crm/leads/${conv.leadId}`, undefined, T, 200);
+    assert.ok(!((l1.lead || l1).activity || []).some((a) => a.type === 'link'), "preview-bot bosishi «havola ochildi» deb yozildi");
+    // guruh chatidan ulash kodi ishlamaydi
+    const st = await ok('GET', '/notifications/telegram', undefined, T, 200);
+    if (st.code) {
+      await req('POST', '/telegram/webhook', { update_id: 5, message: { message_id: 5, date: 1, text: `/start ${st.code}`, chat: { id: -1001, type: 'group', title: 'G' }, from: { id: 7, first_name: 'G' } } }, null, { headers: { 'x-telegram-bot-api-secret-token': secret } });
+      assert.equal((await ok('GET', '/notifications/telegram', undefined, T, 200)).linked, false, 'guruh chati ulandi');
+    }
+    await ok('PUT', '/crm/chat-settings', { shortLinks: false, webChats: [] }, T, 200);
+  });
+
+  test("web-chat: bitta IP'dan juda ko'p yangi mehmon — cheklanadi (429)", async () => {
+    await ok('PUT', '/crm/chat-settings', { webChats: [{ id: 'wrl', name: 'RL' }] }, T, 200);
+    const w = (await ok('GET', '/crm/chat-settings', undefined, T, 200)).webChats.find((x) => x.id === 'wrl');
+    const base = process.env.E2E_BASE;
+    let blocked = 0;
+    for (let i = 0; i < 45; i++) {
+      const r = await fetch(`${base}/webchat/${w.key}/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visitorId: `rl${i}${Math.random().toString(36).slice(2, 10)}`, text: 'x' }) });
+      if (r.status === 429) blocked++;
+    }
+    assert.ok(blocked > 0, 'IP bo\'yicha limit ishlamadi');
+    await ok('PUT', '/crm/chat-settings', { webChats: [] }, T, 200);
+  });
+});

@@ -112,6 +112,29 @@ export class RightsService {
     }
   }
 
+  /** Berilgan bitim id'laridan foydalanuvchi ko'ra oladiganlari; null — cheklov yo'q (hammasi) */
+  async visibleLeadIds(userId: string | undefined, ids: string[]): Promise<Set<string> | null> {
+    const own = await this.ownersById(userId, 'leads', 'view');
+    if (own === null) return null;
+    if (!ids.length) return new Set();
+    const rows = await this.prisma.lead.findMany({ where: { id: { in: ids }, assigneeId: { in: own.length ? own : ['__none__'] } }, select: { id: true } });
+    return new Set(rows.map((r) => r.id));
+  }
+
+  /** Qo'ng'iroq yozuvi / tafsiloti: bitimi ko'rinadigan yoki o'zining qo'ng'irog'i bo'lsa ruxsat */
+  async assertCall(user: Who, callId: string) {
+    const own = await this.owners(user, 'leads', 'view');
+    if (own === null) return;
+    const c = await this.prisma.callLog.findUnique({ where: { id: callId }, select: { leadId: true, userId: true } });
+    if (!c) return;
+    if (c.userId === user.id) return;
+    if (c.leadId) {
+      const l = await this.prisma.lead.findUnique({ where: { id: c.leadId }, select: { assigneeId: true } });
+      if (l?.assigneeId && own.includes(l.assigneeId)) return;
+    }
+    throw new ForbiddenException({ error: 'FORBIDDEN', message: "Bu qo'ng'iroq uchun huquqingiz yo'q" });
+  }
+
   /** «Неразобранное» voronka bo'yicha: D bo'lsa ko'rish/qabul qilish/o'chirish taqiqlanadi */
   async unsortedDenied(userId: string | undefined, action: 'view' | 'edit' | 'delete'): Promise<string[]> {
     if (!userId) return [];

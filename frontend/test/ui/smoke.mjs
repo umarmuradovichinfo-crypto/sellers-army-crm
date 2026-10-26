@@ -30,11 +30,11 @@ const ROUTES = [
   '/contacts/list', `/contacts/detail/${contact.id}`, '/companies/list', `/companies/detail/${company.id}`, '/contacts/import',
   '/imbox', `/imbox/${lead.id}`, '/todo', '/todo/calendar', '/events/list', '/stats', '/stats/consolidated', '/stats/by_activities',
   '/stats/calls', '/stats/goals', '/stats/pipeline', '/analitika', '/agents-and-bots', '/amo-market',
-  '/settings/general', '/settings/users', '/settings/security', '/settings/chats', '/settings/tags', '/settings/fields/lead', '/settings/pipeline/leads/main',
+  '/settings/profile', '/catalogs/products', '/settings/general', '/settings/users', '/settings/security', '/settings/chats', '/settings/tags', '/settings/fields/lead', '/settings/pipeline/leads/main',
 ]
 
 // RU rejimida ko'rinib qolgan o'zbekcha so'zlar (foydalanuvchi ma'lumotlari emas — interfeys matnlari uchun evristika)
-const UZ_RE = /\b(qo'shish|o'chirish|saqlash|bekor qilish|yopish|tanlang|vazifalar|bitimlar|sozlamalar|foydalanuvchi|bosqich|mas'ul|kiriting|yuborish|qidiruv|hammasi|bugun|ertaga|kecha|ro'yxat)\b/i
+const UZ_RE = /\b(qo'shish|o'chirish|saqlash|bekor qilish|yopish|tanlang|vazifalar|bitimlar|sozlamalar|foydalanuvchi|bosqich|mas'ul|kiriting|yuborish|qidiruv|hammasi|bugun|ertaga|kecha|ro'yxat|bildirishnoma\w*|hisobot\w*|mijoz\w*|qo'ng'iroq\w*|xabar\w*|saqlandi|ulangan|zaxira|suhbat\w*|seans\w*|havola\w*|kalit so'z\w*|tayyor)\b/i
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
 

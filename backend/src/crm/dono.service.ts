@@ -1,3 +1,4 @@
+import { RightsService } from '../common/rights/rights.service';
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -76,7 +77,7 @@ export class DonoService {
   private readonly log = new Logger('Dono');
   private client: Anthropic | null = null;
 
-  constructor(private readonly prisma: PrismaService, private readonly crm: CrmService) {}
+  constructor(private readonly prisma: PrismaService, private readonly crm: CrmService, private readonly rights: RightsService) {}
 
   configured() { return !!(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN); }
 
@@ -171,11 +172,12 @@ export class DonoService {
   private async runTool(name: string, input: Record<string, any>, user: AuthUser, actions: { type: string; leadId?: string; text: string }[], touched: Set<string>) {
     const str = (k: string) => (typeof input[k] === 'string' ? input[k].trim() : '');
     switch (name) {
-      case 'get_lead': { const id = str('leadId'); touched.add(id); return this.leadInfo(id); }
-      case 'search_leads': return this.search(str('query'));
+      case 'get_lead': { const id = str('leadId'); await this.rights.assertLead(user, id, 'view'); touched.add(id); return this.leadInfo(id); }
+      case 'search_leads': return this.search(str('query'), user.id);
       case 'list_tasks': return this.tasks(str('scope'), user.id);
       case 'create_task': {
         const leadId = str('leadId'); const title = str('title');
+        await this.rights.assertLead(user, leadId, 'view');
         const due = new Date(str('dueDate'));
         const r = await this.crm.createTask(leadId, { title, type: str('type') || 'task', dueDate: isNaN(+due) ? undefined : due.toISOString() } as any, user);
         touched.add(leadId);
@@ -184,6 +186,7 @@ export class DonoService {
       }
       case 'add_note': {
         const leadId = str('leadId'); const text = str('text');
+        await this.rights.assertLead(user, leadId, 'view');
         if (!text) throw new Error("Izoh matni bo'sh");
         await this.crm.addNote(leadId, { text } as any, user);
         touched.add(leadId);
@@ -191,7 +194,7 @@ export class DonoService {
         return { ok: true };
       }
       case 'pipeline_summary': return this.summary();
-      case 'unanswered_chats': return { chats: await this.unanswered() };
+      case 'unanswered_chats': return { chats: await this.unanswered(user.id) };
       default: throw new Error(`Noma'lum vosita: ${name}`);
     }
   }
@@ -228,8 +231,10 @@ export class DonoService {
     };
   }
 
-  private async search(q: string) {
+  private async search(q: string, userId?: string) {
+    const own = await this.rights.ownersById(userId, 'leads', 'view'); // amoCRM «Права доступа»
     const where: any = q ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, { company: { contains: q, mode: 'insensitive' } }, { phone: { contains: q } }] } : {};
+    if (own) where.assigneeId = { in: own.length ? own : ['__none__'] };
     const [rows, stages] = await Promise.all([
       this.prisma.lead.findMany({ where, orderBy: { updatedAt: 'desc' }, take: 10, select: { id: true, name: true, stage: true, value: true, company: true } }),
       this.stageNames(),
@@ -258,9 +263,10 @@ export class DonoService {
     return { stages: groups.map((g) => ({ stage: stages.get(g.stage)?.name || g.stage, count: g._count._all, sum: g._sum.value || 0 })), wonThisMonth: won, lostThisMonth: lost };
   }
 
-  private async unanswered() {
+  private async unanswered(userId?: string) {
     const last = await this.prisma.message.findMany({ distinct: ['leadId'], orderBy: [{ leadId: 'asc' }, { createdAt: 'desc' }], take: 500, select: { leadId: true, direction: true, createdAt: true, text: true } });
-    const open = last.filter((m) => m.direction === 'in').sort((a, b) => +a.createdAt - +b.createdAt).slice(0, 15);
+    const vis = await this.rights.visibleLeadIds(userId, last.map((m) => m.leadId));
+    const open = last.filter((m) => m.direction === 'in' && (!vis || vis.has(m.leadId))).sort((a, b) => +a.createdAt - +b.createdAt).slice(0, 15);
     if (!open.length) return [];
     const leads = await this.prisma.lead.findMany({ where: { id: { in: open.map((m) => m.leadId) } }, select: { id: true, name: true } });
     const nm = new Map(leads.map((l) => [l.id, l.name]));

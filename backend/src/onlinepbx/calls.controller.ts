@@ -36,8 +36,8 @@ export class CallsController {
 
   // Barcha qo'ng'iroqlar ro'yxati (CRM "Qo'ng'iroqlar" bo'limi)
   @Get('calls')
-  listCalls(@Query('filter') filter?: string, @Query('limit') limit?: string) {
-    return this.calls.listCalls({ filter, limit: limit ? Number(limit) : undefined });
+  listCalls(@CurrentUser('id') userId: string, @Query('filter') filter?: string, @Query('limit') limit?: string) {
+    return this.calls.listCalls({ filter, limit: limit ? Number(limit) : undefined }, userId);
   }
 
   // OnlinePBX tarixidan qo'ng'iroq/yozuvlarni qo'lda sinxronlash (so'nggi 7 kun)
@@ -48,7 +48,8 @@ export class CallsController {
 
   // Qo'ng'iroq yozuvi — server orqali (chatda ijro; tashqi havolaga o'tkazmaydi)
   @Get('calls/:id/recording')
-  async recording(@Param('id') id: string, @Res() res: Response) {
+  async recording(@Param('id') id: string, @Res() res: Response, @CurrentUser() user: AuthUser) {
+    await this.rights.assertCall(user, id);
     const rec = await this.calls.getRecording(id);
     res.setHeader('Content-Type', rec.contentType);
     res.setHeader('Cache-Control', 'private, max-age=3600');
