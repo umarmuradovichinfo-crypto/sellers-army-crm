@@ -881,6 +881,8 @@ export default function LeadCard() {
 
   // bitim almashganda (A → B) A ning kechikkan javobi B ustiga yozilmasin; xato bo'lsa abadiy spinner emas, xabar chiqadi
   const idRef = useRef(id)
+  const madeContacts = useRef({}) // yangi bitimda xatodan keyin kontaktlar qayta yaratilmasin
+  const tagChain = useRef(Promise.resolve()) // teg o'zgartirishlari ketma-ket
   idRef.current = id
   const [loadErr, setLoadErr] = useState(null)
   const loadLead = async () => {
@@ -952,7 +954,6 @@ export default function LeadCard() {
   const set = (k, val) => setDraft((d) => ({ ...d, [k]: val }))
   const setCustom = (k, val) => setDraft((d) => ({ ...d, custom: { ...(d.custom || {}), [k]: val } }))
 
-  const madeContacts = useRef({})
   const save = async () => {
     setSaving(true)
     try {
@@ -1008,7 +1009,6 @@ export default function LeadCard() {
   }
 
   // teg o'zgartirishlari ketma-ket va serverdagi eng so'nggi ro'yxatdan hisoblanadi (tez ketma-ket Enter bitta tegni yo'qotmasin)
-  const tagChain = useRef(Promise.resolve())
   const changeTags = (compute) => {
     tagChain.current = tagChain.current.then(async () => {
       const cur = (await crmService.getLead(lead.id)).lead.tags || []

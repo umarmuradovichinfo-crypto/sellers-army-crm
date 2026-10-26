@@ -13,7 +13,7 @@
 - Frontend: useApi eskirgan javob, offline navbat (401 refresh, logout'da tozalash, create navbatga tushmaydi), LeadCard (xato holati, id guard, save/tags/delete catch, export), IncomingCall qayta ochilmaydi, Dashboard o'rtacha davomiylik, i18n (Eslatma to'qnashuvi, barcha lug'atlar eager), mobil popup eni.
 
 ## Qoldi (ustuvorlik bo'yicha)
-1. [ ] To'liq QA yurish: `cd /Users/umarmuradovich/CRM && npm run build && npm run test:qa` (EXIT=0, UI xatosiz) → commit+push (agar oxirgi o'zgarishlar commit qilinmagan bo'lsa).
+1. [x] To'liq QA yashil (144/144, UI 35×3 xatosiz) — LeadCard hook-tartib xatosi (o'z o'zgarishim) tuzatildi.
 2. [ ] Auth: `crm.export`/`crm.import` ruxsatlari tekshirilmaydi (faqat matritsa darajasi bor) — qaror: matritsa yetarli, hujjatlash. Backup oqimi uzilganda osilib qoladi (`res.once('close')`, xatoda `res.destroy`). iCal/Telegram deaktiv foydalanuvchida ishlayveradi (isActive tekshirish). Migratsiya `20261025090000_lead_contacts` FK'lari idempotent emas (DO $$ … duplicate_object). Setup tokeni production'da majburiy emas. IP whitelist: @Public yo'llar (login/iCal) chetda, XFF ishonchi.
 3. [ ] Telefoniya: recordUrl SSRF (faqat https + onlinepbx/onpbx domenlari, redirect manual), webhookSecret apiKey'dan hosil (random saqlash), `ensureCallerLead` poygasi (advisory lock), tail ≥9 xona contacts regex, 7 kunlik sync ommaviy lid yaratmasin (faqat recent), missed-vazifa dedupe normallangan raqam bo'yicha va mas'ul tayinlash.
 4. [ ] Chat: Telegram-faqat prefda notify satri (bajarildi) — digest tekshiruvi; IG/FB unique(externalId) indeks (migratsiya) + lead yaratish qulfi; automation `send_message` faqat Telegram (ChatService.sendMessage orqali); imBox ro'yxati `take:1000` cheklovi (DISTINCT ON); `listConversations` TZ.
