@@ -17,6 +17,7 @@ export default function IncomingCall() {
   const [on, setOn] = useState(false)
   const [call, setCall] = useState(null)
   const seen = useRef(new Set())
+  const closed = useRef(new Set()) // yopilgan qo'ng'iroqni kechikkan so'rov javobi qayta ochmasin
 
   useEffect(() => {
     crmService.getMyExtension().then((r) => setOn(!!r?.pbxEnabled && r?.popups !== false)).catch(() => setOn(false))
@@ -30,7 +31,7 @@ export default function IncomingCall() {
       try {
         const r = await crmService.incomingCall()
         if (!alive) return
-        const c = r?.call || null
+        const c = r?.call && !closed.current.has(r.call.id) ? r.call : null
         // yangi qo'ng'iroq — bir marta ovoz; tugagan (endi qaytmaydigan) qo'ng'iroq oynasi yopiladi
         if (c && !seen.current.has(c.id)) { seen.current.add(c.id); playPing() }
         setCall(c)
@@ -42,7 +43,7 @@ export default function IncomingCall() {
   }, [on])
 
   if (!call) return null
-  const close = () => { crmService.dismissCall(call.id).catch(() => {}); setCall(null) }
+  const close = () => { closed.current.add(call.id); crmService.dismissCall(call.id).catch(() => {}); setCall(null) }
   const open = () => { if (call.leadId) navigate(`/leads/detail/${call.leadId}`); close() }
   return (
     <div className="ac-incall" role="alertdialog" aria-label={t("Kiruvchi qo'ng'iroq")}>

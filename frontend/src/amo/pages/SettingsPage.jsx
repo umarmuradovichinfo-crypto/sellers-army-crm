@@ -282,8 +282,8 @@ function ChatsSection() {
           <div className="ac-set-block__desc">{t("Suhbat yopilganda mijozga xabar yuboriladi va u xizmatni 1 dan 10 gacha baholaydi. Baho bitim lentasida va quyidagi hisobotda ko'rinadi.")}</div>
           {form?.nps?.on && (
             <>
-              <div className="ac-set-row"><div className="ac-set-row__label" style={{ width: 150 }}>{t("So'rov matni")}</div><input className="ac-input" style={{ width: 420 }} disabled={!canManage} value={form.nps.ask || ''} onChange={(e) => setNps({ ask: e.target.value })} /></div>
-              <div className="ac-set-row"><div className="ac-set-row__label" style={{ width: 150 }}>{t('Rahmat matni')}</div><input className="ac-input" style={{ width: 420 }} disabled={!canManage} value={form.nps.thanks || ''} onChange={(e) => setNps({ thanks: e.target.value })} /></div>
+              <div className="ac-set-row"><div className="ac-set-row__label" style={{ width: 150 }}>{t("So'rov matni")}</div><input className="ac-input" style={{ width: 420, maxWidth: '100%' }} disabled={!canManage} value={form.nps.ask || ''} onChange={(e) => setNps({ ask: e.target.value })} /></div>
+              <div className="ac-set-row"><div className="ac-set-row__label" style={{ width: 150 }}>{t('Rahmat matni')}</div><input className="ac-input" style={{ width: 420, maxWidth: '100%' }} disabled={!canManage} value={form.nps.thanks || ''} onChange={(e) => setNps({ thanks: e.target.value })} /></div>
             </>
           )}
           {npsSt && npsSt.total > 0 && (

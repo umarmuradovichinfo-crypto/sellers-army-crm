@@ -10,6 +10,8 @@ import { NavIcon, Ico } from './AmoIcons'
 import { applyTheme, getTheme } from './theme'
 import { useI18n, useT } from './i18n'
 import { setFormatPrefs, setChatPrefs } from './format'
+// barcha bo'lim lug'atlarini oldindan yuklaymiz: umumiy iboralar (Saqlash, Bekor, Topilmadi…) lazy chunk tartibiga bog'liq bo'lmasin (RU rejim)
+import.meta.glob('./i18n/*.ru.js', { eager: true })
 import { settingsService } from '../services/settings.service'
 import NetworkBar from './NetworkBar'
 import { loadTaskTypes } from './taskTypes'
@@ -44,7 +46,7 @@ function timeLabel(d, tr) {
   return t.toLocaleDateString('ru-RU') + ' ' + hm
 }
 
-const NOTIF_TITLE = { task: 'Vazifa', task_due: 'Vazifa', lead: 'Bitim', mention: 'Eslatma', automation: 'Avtomatlashtirish', info: 'Xabar' }
+const NOTIF_TITLE = { task: 'Vazifa', task_due: 'Vazifa', lead: 'Bitim', mention: 'notif§Eslatma', automation: 'Avtomatlashtirish', info: 'Xabar' }
 
 // amoCRM: sarlavha — voqea turi («Новая заявка», «Просроченная задача»), pastida — bitim/vazifa nomi
 const NOTIF_PREFIX = ['Bugungi vazifa', 'Kechikkan vazifa', 'Yangi vazifa', 'Avtomatik vazifa', 'Dublikat', 'Yangi lid biriktirildi',

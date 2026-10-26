@@ -13,7 +13,7 @@ import PhoneLink from '../PhoneLink'
 import { useT, usePlural } from '../i18n'
 import { tagStyle } from '../tagColors'
 import { FieldModal } from './FieldsSetup'
-import { useFilterMeta } from '../filterState'
+import { useFilterMeta, downloadLeadsCsv } from '../filterState'
 import '../pipesetup.css'
 import '../i18n/leadcard.ru.js'
 import '../leadcard.css'
@@ -879,20 +879,31 @@ export default function LeadCard() {
   const [modeReq, setModeReq] = useState(null)
   const [expanded, setExpanded] = useState({}) // guruhlangan tizim voqealari ("Развернуть")
 
+  // bitim almashganda (A → B) A ning kechikkan javobi B ustiga yozilmasin; xato bo'lsa abadiy spinner emas, xabar chiqadi
+  const idRef = useRef(id)
+  idRef.current = id
+  const [loadErr, setLoadErr] = useState(null)
   const loadLead = async () => {
     if (isNew) return
-    const r = await crmService.getLead(id)
-    const l = r.lead
-    const stageAct = (l.activity || []).find((a) => a.type === 'stage' || a.type === 'won' || a.type === 'lost')
-    setLead({ ...l, stageSince: stageAct?.at || l.createdAt })
+    const rid = id
+    try {
+      const r = await crmService.getLead(id)
+      if (rid !== idRef.current) return
+      const l = r.lead
+      const stageAct = (l.activity || []).find((a) => a.type === 'stage' || a.type === 'won' || a.type === 'lost')
+      setLead({ ...l, stageSince: stageAct?.at || l.createdAt })
+      setLoadErr(null)
+    } catch (e) { if (rid === idRef.current) setLoadErr(e) }
   }
   const loadFeed = async () => {
     if (isNew) return
+    const rid = id
     const [c, tk, m] = await Promise.all([
       crmService.leadCalls(id).catch(() => ({ calls: [] })),
       crmService.listLeadTasks(id).catch(() => ({ tasks: [] })),
       crmService.leadMessages(id).catch(() => ({ messages: [], canReply: false })),
     ])
+    if (rid !== idRef.current) return
     setFeed({ calls: c.calls || [], tasks: tk.tasks || [], messages: m.messages || [], canReply: !!m.canReply, closed: !!m.closed, convNo: m.convNo || null })
   }
 
@@ -919,7 +930,7 @@ export default function LeadCard() {
     setDraft({}); setContactEdits({}); setTab('main')
     const pid = sp.get('pipeline') || ''
     if (isNew) setLead({ id: null, n: '', stage: '', pipelineId: pid, tags: [], custom: {}, value: 0, assigneeId: user?.id, activity: [], notes: [] })
-    else { setLead(null); loadLead() }
+    else { setLead(null); setLoadErr(null); setFeed({ calls: [], tasks: [], messages: [], canReply: false }); loadLead() }
     loadFeed()
     ;(async () => {
       const [main, fl, mem] = await Promise.all([crmService.getPipeline(), crmService.listFields('lead'), crmService.listMembers()])
@@ -933,6 +944,7 @@ export default function LeadCard() {
     })()
   }, [id]) // eslint-disable-line
 
+  if (!lead && loadErr) return <div className="ac-cardpage" style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}><div className="ac-muted">{loadErr.status === 403 ? t("Bu bitimni ko'rish uchun huquqingiz yo'q") : loadErr.status === 404 ? t('Bitim topilmadi yoki o\'chirilgan') : (loadErr.message || t('Xatolik yuz berdi'))}</div><button className="ac-btn" onClick={() => navigate(-1)}>{t('Orqaga')}</button></div>
   if (!lead) return <div className="ac-cardpage" style={{ alignItems: 'center', justifyContent: 'center' }}><div className="ac-spinner" /></div>
 
   const v = { ...lead, ...draft, custom: { ...(lead.custom || {}), ...(draft.custom || {}) } }
@@ -940,6 +952,7 @@ export default function LeadCard() {
   const set = (k, val) => setDraft((d) => ({ ...d, [k]: val }))
   const setCustom = (k, val) => setDraft((d) => ({ ...d, custom: { ...(d.custom || {}), [k]: val } }))
 
+  const madeContacts = useRef({})
   const save = async () => {
     setSaving(true)
     try {
@@ -952,8 +965,11 @@ export default function LeadCard() {
         // yangi bitim: kontaktlar avval yaratiladi/biriktiriladi (birinchisi asosiy)
         const ids = []
         for (const c of contactsOf(lead)) {
-          if (c.isNew) ids.push((await crmService.createContact({ name: c.name, ...(contactEdits[c.id] || {}) })).contact?.id)
-          else ids.push(c.id)
+          if (c.isNew) {
+            // «Saqlash» xatodan keyin qayta bosilsa — kontakt ikkinchi marta yaratilmaydi
+            if (!madeContacts.current[c.id]) madeContacts.current[c.id] = (await crmService.createContact({ name: c.name, ...(contactEdits[c.id] || {}) })).contact?.id
+            ids.push(madeContacts.current[c.id])
+          } else ids.push(c.id)
         }
         const r = await crmService.createLead({ name: v.n || `${t('Bitim')} #${Date.now().toString().slice(-6)}`, stage: v.stage, pipelineId: v.pipelineId || undefined, value: payload.value ?? 0, assigneeId: v.assigneeId || undefined, tags: v.tags, custom: v.custom, items: v.items?.length ? v.items : undefined, contactId: ids[0] || undefined })
         for (const cid of ids.slice(1).filter(Boolean)) await crmService.addLeadContact(r.lead.id, { contactId: cid })
@@ -964,6 +980,8 @@ export default function LeadCard() {
       await crmService.updateLead(lead.id, payload)
       setDraft({}); setContactEdits({})
       await loadLead()
+    } catch (e) {
+      window.alert(e?.message || t('Xatolik yuz berdi')) // majburiy maydon, teg qulfi, huquq xatolari jim yutilmasin
     } finally { setSaving(false) }
   }
 
@@ -989,15 +1007,23 @@ export default function LeadCard() {
     await loadLead()
   }
 
+  // teg o'zgartirishlari ketma-ket va serverdagi eng so'nggi ro'yxatdan hisoblanadi (tez ketma-ket Enter bitta tegni yo'qotmasin)
+  const tagChain = useRef(Promise.resolve())
+  const changeTags = (compute) => {
+    tagChain.current = tagChain.current.then(async () => {
+      const cur = (await crmService.getLead(lead.id)).lead.tags || []
+      await crmService.updateLead(lead.id, { tags: compute(cur) })
+    }).catch((e) => window.alert(e?.message || t('Xatolik yuz berdi'))).finally(() => loadLead())
+    return tagChain.current
+  }
   const addTag = async (name) => {
-    const tags = [...new Set([...(v.tags || []), name.trim()].filter(Boolean))]
-    if (isNew) return setLead((l) => ({ ...l, tags }))
-    await crmService.updateLead(lead.id, { tags }); loadLead()
+    const nm = name.trim()
+    if (isNew) return setLead((l) => ({ ...l, tags: [...new Set([...(l.tags || []), nm].filter(Boolean))] }))
+    return changeTags((cur) => [...new Set([...cur, nm].filter(Boolean))])
   }
   const removeTag = async (name) => {
-    const tags = (v.tags || []).filter((x) => x !== name)
-    if (isNew) return setLead((l) => ({ ...l, tags }))
-    await crmService.updateLead(lead.id, { tags }); loadLead()
+    if (isNew) return setLead((l) => ({ ...l, tags: (l.tags || []).filter((x) => x !== name) }))
+    return changeTags((cur) => cur.filter((x) => x !== name))
   }
 
   const completeTask = async (task, result) => {
@@ -1020,7 +1046,7 @@ export default function LeadCard() {
 
   const deleteLead = async () => {
     if (!window.confirm(t("Bitimni o'chirishni tasdiqlaysizmi?"))) return
-    await crmService.deleteLead(lead.id)
+    try { await crmService.deleteLead(lead.id) } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')); return }
     navigate('/leads/pipeline')
   }
 
@@ -1077,7 +1103,7 @@ export default function LeadCard() {
                   { label: t('Teglarni boshqarish'), icon: 'hash', onClick: () => setTagInput('') },
                   { label: t("Salesbot'ni ishga tushirish"), icon: 'play', onClick: () => setBotPick(true) },
                   { label: t("card§Botni to'xtatish"), icon: 'close', onClick: () => api.post(`/crm/leads/${lead.id}/salesbot-stop`, {}).then((r) => { window.alert(r.stopped ? t("Bot to'xtatildi") : t("Ishlayotgan bot yo'q")); loadLead(); loadFeed() }).catch(() => {}) },
-                  { label: t('Excelga eksport'), icon: 'excel', onClick: () => window.open('/api/v1' + crmService.exportUrl(), '_blank') },
+                  { label: t('Excelga eksport'), icon: 'excel', onClick: () => downloadLeadsCsv({ name: lead.n }).catch((e) => window.alert(e?.message || t('Xatolik yuz berdi'))) },
                   { label: t("Bitimni o'chirish"), icon: 'trash', danger: true, onClick: deleteLead },
                 ]} />
               )}

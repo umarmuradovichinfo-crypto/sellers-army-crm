@@ -6,15 +6,17 @@ import { RightsService } from '../common/rights/rights.service';
 import { and, dateRangeOf, LeadCtx, LeadFilter, leadConds } from './list-query';
 
 // Davr chegarasini xavfsiz o'qish: noto'g'ri sana 500 emas, 400 qaytaradi
+const DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+const BIZ_OFFSET_MS = 5 * 3600_000; // Toshkent (UTC+5); server UTC'da ishlaydi
 function parseFrom(v?: string): Date | undefined {
   if (!v) return undefined;
-  const d = new Date(v);
+  const d = new Date(DAY_ONLY.test(v) ? new Date(v + 'T00:00:00Z').getTime() - BIZ_OFFSET_MS : v);
   if (isNaN(d.getTime())) throw new BadRequestException({ error: 'INVALID_DATE', message: `Noto'g'ri sana: ${v}` });
   return d;
 }
 function parseTo(v?: string): Date | undefined {
   if (!v) return undefined;
-  const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(v) ? v + 'T23:59:59' : v);
+  const d = new Date(DAY_ONLY.test(v) ? new Date(v + 'T23:59:59Z').getTime() - BIZ_OFFSET_MS : v);
   if (isNaN(d.getTime())) throw new BadRequestException({ error: 'INVALID_DATE', message: `Noto'g'ri sana: ${v}` });
   return d;
 }
@@ -57,7 +59,11 @@ export class CrmAnalyticsService {
     if (f.pipelineId === '' || f.pipelineId === undefined) delete f.pipelineId;
     const uids = userList(f.userIds);
     delete f.userIds;
-    if (uids.length) f.assigneeIds = [...userList(f.assigneeIds), ...uids];
+    if (uids.length) {
+      // ikkala filtr ham berilsa — kesishma (kengaytirish emas); kesishma bo'sh bo'lsa hech narsa
+      const have = userList(f.assigneeIds);
+      f.assigneeIds = have.length ? (have.filter((x) => uids.includes(x)).length ? have.filter((x) => uids.includes(x)) : ['__none__']) : uids;
+    }
     if (stripDates) { delete f.from; delete f.to; delete f.datePreset; delete f.dateField; delete f.period; }
     const rows = await this.prisma.$queryRaw<any[]>(
       Prisma.sql`SELECT l.* FROM leads l WHERE ${and([Prisma.sql`l.unsorted = FALSE`, ...leadConds(f as LeadFilter, ctx)])}`,
@@ -369,8 +375,10 @@ export class CrmAnalyticsService {
   }
 
   // ── Qo'ng'iroqlar hisoboti (CallLog) ──
-  async calls(params: { from?: string; to?: string; datePreset?: string }) {
-    const where = this.range('startedAt', params);
+  async calls(params: { from?: string; to?: string; datePreset?: string }, userId?: string) {
+    // amoCRM «Права доступа»: cheklangan foydalanuvchi faqat ko'ra oladigan xodimlar qo'ng'iroqlarini ko'radi
+    const own = await this.rights.ownersById(userId, 'leads', 'view');
+    const where = { ...this.range('startedAt', params), ...(own ? { userId: { in: own.length ? own : ['__none__'] } } : {}) };
     const [logs, nameById] = await Promise.all([
       this.prisma.callLog.findMany({ where }),
       this.userNames(),
@@ -393,7 +401,7 @@ export class CrmAnalyticsService {
       e.totalDur += c.durationSec || 0;
       empMap.set(ek, e);
 
-      const dk = c.startedAt.toISOString().slice(0, 10);
+      const dk = new Date(c.startedAt.getTime() + 5 * 3600_000).toISOString().slice(0, 10); // Toshkent kuni (UTC+5)
       const d = dayMap.get(dk) || { in: 0, out: 0, missed: 0 };
       if (c.direction === 'in') d.in++;
       else d.out++;
@@ -591,17 +599,20 @@ export class CrmAnalyticsService {
 
   // ── Chuqur sotuvchi hisoboti (lid + qo'ng'iroq + vazifa) ──
   async employees(params: Record<string, any>, userId?: string) {
+    // amoCRM «Права доступа»: cheklangan foydalanuvchi faqat ko'ra oladigan xodimlar (o'zi / guruhi) bo'yicha ko'rsatkichlarni ko'radi
+    const own = await this.rights.ownersById(userId, 'leads', 'view');
+    const inOwn = (field: string) => (own ? { [field]: { in: own.length ? own : ['__none__'] } } : {});
     const [stages, { rows: leads }, nameById, callLogs, tasks, openTasks, notes] = await Promise.all([
       this.prisma.crmStage.findMany({ select: { key: true, kind: true } }),
       this.filteredLeads(params, userId),
       this.userNames(),
-      this.prisma.callLog.findMany({ where: this.range('startedAt', params), select: { userId: true } }),
+      this.prisma.callLog.findMany({ where: { ...this.range('startedAt', params), ...inOwn('userId') }, select: { userId: true } }),
       this.prisma.leadTask.findMany({
-        where: { done: true, ...this.range('doneAt', params) },
+        where: { done: true, ...this.range('doneAt', params), ...inOwn('assigneeId') },
         select: { assigneeId: true },
       }),
-      this.prisma.leadTask.findMany({ where: { done: false }, select: { assigneeId: true } }),
-      this.prisma.activity.findMany({ where: { type: 'note', ...this.range('createdAt', params) }, select: { actorId: true } }),
+      this.prisma.leadTask.findMany({ where: { done: false, ...this.range('dueDate', params), ...inOwn('assigneeId') }, select: { assigneeId: true } }),
+      this.prisma.activity.findMany({ where: { type: 'note', ...this.range('createdAt', params), ...inOwn('actorId') }, select: { actorId: true } }),
     ]);
     const kindByKey = new Map(stages.map((s) => [s.key, s.kind]));
 

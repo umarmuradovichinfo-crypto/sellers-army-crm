@@ -24,8 +24,8 @@ export class CrmAnalyticsController {
   }
 
   @Get('calls')
-  calls(@Query('from') from?: string, @Query('to') to?: string, @Query('datePreset') datePreset?: string) {
-    return this.s.calls({ from, to, datePreset });
+  calls(@CurrentUser('id') userId: string, @Query('from') from?: string, @Query('to') to?: string, @Query('datePreset') datePreset?: string) {
+    return this.s.calls({ from, to, datePreset }, userId);
   }
 
   @Get('events')

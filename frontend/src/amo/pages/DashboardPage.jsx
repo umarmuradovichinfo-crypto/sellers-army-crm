@@ -250,7 +250,7 @@ export default function DashboardPage() {
     if (!rs.length) return { total: 0, inbound: 0, outbound: 0, missed: 0, avgDuration: 0 }
     const sum = (k) => rs.reduce((a, r) => a + (Number(r[k]) || 0), 0)
     const total = sum('count')
-    return { total, inbound: sum('inCount'), outbound: sum('outCount'), missed: sum('missed'), avgDuration: total ? Math.round(rs.reduce((a, r) => a + (r.avgDur || 0) * (r.count || 0), 0) / total) : 0 }
+    return { total, inbound: sum('inCount'), outbound: sum('outCount'), missed: sum('missed'), avgDuration: (() => { const ans = sum('answered'); return ans ? Math.round(rs.reduce((a, r) => a + (r.avgDur || 0) * (r.answered || 0), 0) / ans) : 0 })() }
   }, [callsAll, selIds])
   const { data: chatSt } = useApi(() => crmService.chatStats(range).catch(() => null), [range.from, range.to])
   const { data: taskData } = useApi(() => crmService.listTasks({ status: 'open' }), [])

@@ -107,7 +107,7 @@
 
 /* Trigger formasi (katakdan ochiladigan panel) */
 .ac-ps-popback { position: fixed; inset: 0; z-index: 900; background: rgba(0, 0, 0, 0.18); animation: ac-fadeIn 0.2s ease both; }
-.ac-ps-pop { position: fixed; z-index: 901; width: 430px; display: flex; flex-direction: column; background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); animation: ac-fadeIn 0.18s ease both; overflow-y: auto; }
+.ac-ps-pop { position: fixed; z-index: 901; width: 430px; max-width: calc(100vw - 24px); display: flex; flex-direction: column; background: var(--palette-background-primary); border: 1px solid var(--palette-border-primary); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); animation: ac-fadeIn 0.18s ease both; overflow-y: auto; }
 .ac-ps-pop__head { display: flex; gap: 8px; padding: 10px 14px; font-size: 13px; line-height: 1.25; border-bottom: 1px solid var(--palette-border-primary); }
 .ac-ps-pop__ico { flex: none; color: var(--palette-text-secondary-light); display: flex; }
 .ac-ps-pop__ico.on { color: var(--amo-success); }

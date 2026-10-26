@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 const KEY = 'ical_tokens'; // { userId: token }
 
 // iCal matnida maxsus belgilarni ekranlash (RFC 5545)
-const esc = (s: string) => String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const esc = (s: string) => String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 
 /**

@@ -1299,7 +1299,8 @@ export class CrmService {
     if ((dto as any).result !== undefined) data.result = (dto as any).result || null;
     if (dto.done !== undefined) {
       data.done = !!dto.done;
-      data.doneAt = dto.done ? new Date() : null;
+      // bajarilgan vazifaga takroriy done:true — doneAt qayta yozilmaydi (hisobotlarda davr siljib ketmasin)
+      data.doneAt = dto.done ? (existing.done && existing.doneAt ? existing.doneAt : new Date()) : null;
     }
     const t = await this.prisma.leadTask.update({ where: { id }, data });
     if (dto.done === true && !existing.done) {

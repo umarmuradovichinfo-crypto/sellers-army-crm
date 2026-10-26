@@ -30,6 +30,9 @@ export function setSession({ token, refreshToken }) {
 export function clearSession() {
   tokenStore.clear()
   refreshStore.clear()
+  // keyingi foydalanuvchiga oldingisining offline yozuvlari, Dono suhbati va bildirishnoma izlari o'tmasin
+  try { localStorage.removeItem('sa_pending_queue') } catch { /* */ }
+  try { sessionStorage.removeItem('dono:chat'); sessionStorage.removeItem('amo_notif_pushed'); sessionStorage.removeItem('dono:hint') } catch { /* */ }
 }
 
 export class ApiError extends Error {
@@ -163,6 +166,12 @@ export const pendingQueue = {
           throw e
         }
         if (RETRY_STATUS.has(res.status)) { markServerUnreachable(); break }
+        // access token eskirgan (1 soatdan uzoq offline) — yangilab qayta urinamiz; yozuv yo'qolmasin
+        if (res.status === 401) {
+          const r = await tryRefresh()
+          if (r === 'ok') res = await rawFetch(it.method, it.path, it.body, { headers: { 'Idempotency-Key': it.key } }).catch(() => res)
+          if (res.status === 401) break // kirish talab qilinadi — navbat saqlanadi
+        }
         markOnline()
         // 4xx — qayta yuborish foydasiz: yozuvni tashlaymiz; muvaffaqiyatda ham olib tashlaymiz
         q = readQueue().slice(1)
@@ -188,6 +197,8 @@ async function request(method, path, body, opts = {}) {
   const isWrite = method !== 'GET'
   // Offline bo'lsa yozuvchi so'rov navbatga tushadi (auth/upload'lar bundan mustasno)
   if (isWrite && !path.startsWith('/auth/') && getState() === 'offline') {
+    // yangi bitim/kontakt/kompaniya yaratish navbatga tushmaydi: chaqiruvchi javobdagi id'ga tayanadi (dublikat/crash bo'lmasin)
+    if (method === 'POST' && /^\/crm\/(leads|contacts|companies)$/.test(path)) throw new ApiError(0, "Offline: internet yo'q. Ulanish tiklangach qayta urinib ko'ring")
     const key = (opts.headers && opts.headers['Idempotency-Key']) || uuid()
     pendingQueue.add({ method, path, body, key, at: Date.now() })
     return { queued: true, offline: true }

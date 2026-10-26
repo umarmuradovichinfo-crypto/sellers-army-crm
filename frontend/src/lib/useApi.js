@@ -65,19 +65,22 @@ export function useApi(fetchFn, deps = [], cacheKey = null, refreshMs = 0) {
   const [error, setError] = useState(null)
   const fnRef = useRef(fetchFn)
   fnRef.current = fetchFn
+  const seq = useRef(0) // eskirgan (sekin kelgan) javob yangi filtr natijasini bosib ketmasin
 
   const load = useCallback(async (bg = false) => {
+    const my = ++seq.current
     if (!bg) { setLoading(true); setError(null) }
     try {
       const res = await fnRef.current()
+      cacheSet(key, res) // o'z kalitiga doim yoziladi
+      if (my !== seq.current) return // lekin ekranga faqat eng so'nggi so'rov chiqadi
       setData(res)
-      cacheSet(key, res)
       setError(null)
     } catch (e) {
       // Fon yangilanishida yoki kesh bo'lsa — eski ma'lumotni saqlaymiz, xato ko'rsatmaymiz.
-      if (!bg && !cacheHas(key)) setError(e)
+      if (my === seq.current && !bg && !cacheHas(key)) setError(e)
     } finally {
-      if (!bg) setLoading(false)
+      if (!bg && my === seq.current) setLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, key])

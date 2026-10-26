@@ -142,7 +142,7 @@ const RU = {
   "Hammasini o'qilgan qilish": 'Отметить все прочитанными',
   'Vazifa': 'Задача',
   'Bitim': 'Сделка',
-  'Eslatma': 'Упоминание',
+  'notif§Eslatma': 'Упоминание',
   'Xabar': 'Сообщение',
   'Foydalanuvchi': 'Пользователь',
 }

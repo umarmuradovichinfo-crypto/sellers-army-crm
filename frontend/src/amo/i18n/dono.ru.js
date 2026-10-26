@@ -6,7 +6,7 @@ addRu({
   'Dono': 'Доно',
   'Yangi suhbat': 'Новый чат',
   "Xo'sh, bugun nimadan boshlaymiz?": 'Ну что, с чего начнём сегодня?',
-  "Ammadan so'rang": 'Спроси Доно',
+  "Donodan so'rang": 'Спроси Доно',
   'Bu bitimda nima muammo?': 'Что не так с этой сделкой?',
   "Bugunga vazifa qo'y": 'Поставь задачу на сегодня',
   'Mijozga nima javob beray?': 'Что ответить клиенту?',

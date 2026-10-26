@@ -162,7 +162,7 @@ export function DonoPanel({ open, onClose, chat }) {
         {busy && <div className="ac-dono-msg ac-dono-msg--assistant"><DonoAvatar size={22} /><div className="ac-dono-typing"><i /><i /><i /></div></div>}
       </div>
       <div className="ac-dono-panel__foot">
-        <Composer onSend={send} busy={busy} placeholder={t("Ammadan so'rang")} autoFocus />
+        <Composer onSend={send} busy={busy} placeholder={t("Donodan so'rang")} autoFocus />
         {!msgs.length && (
           <div className="ac-dono-chips">
             {SUGGEST.map((s) => <button key={s} onClick={() => send(t(s))}>{t(s)}</button>)}
