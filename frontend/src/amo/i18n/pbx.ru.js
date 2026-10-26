@@ -309,6 +309,8 @@ addRu({
   "pbx§Tashqi raqam": "Внешний номер",
   "pbx§Kimlar uchun": "Для пользователей",
   "pbx§Hammaga": "Для всех",
+  "pbx§Faol litsenziyalar": "Активные",
+  "pbx§Sinov davri": "Пробный период",
   "Telefoniya": "Телефония",
   "Telefoniya (ATS)": "Телефония (АТС)",
 })

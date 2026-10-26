@@ -491,20 +491,23 @@
 .pbxx .pbxt__desc p { margin: 0 0 14px; }
 .pbxx .pbxs--chats .pbxs__aside a { cursor: default; }
 
-/* ---- Litsenziya (OnlinePBX /billing/license) ---- */
-.pbxx .pbxl { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; padding: 16px; align-items: start; }
-.pbxx .pbxl__main, .pbxx .pbxl__side { background: #fff; border-radius: 4px; padding: 16px; min-width: 0; }
-.pbxx .pbxl__tabs { display: flex; gap: 20px; margin-bottom: 18px; }
-.pbxx .pbxl__tabs button { background: none; border: 0; padding: 0; font: inherit; font-size: 12px; font-weight: 500; color: #0088ca; cursor: pointer; }
-.pbxx .pbxl__tabs button.on { color: var(--pb-text); border-bottom: 2px solid var(--pb-text); }
-.pbxx .pbxl h6 { margin: 0 0 12px; font-size: 12px; font-weight: 600; color: var(--pb-text); }
-.pbxx .pbxl__row { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 14px; align-items: center; min-height: 46px; padding: 0 16px; margin-bottom: 4px; background: #e3f4e1; border-radius: 4px; font-size: 12px; color: var(--pb-text); }
+/* ---- Litsenziya (OnlinePBX /billing/license) — qatorlar 48px, r8, #e2f3e2 ---- */
+.pbxx .pbxl { display: grid; grid-template-columns: minmax(0, 1fr) 542px; gap: 32px; padding: 34px 32px; align-items: start; }
+.pbxx .pbxl__main { min-width: 0; }
+.pbxx .pbxl__side { background: #fff; border-radius: 4px; padding: 24px; min-width: 0; }
+.pbxx .pbxl__tabs { display: flex; gap: 32px; margin-bottom: 38px; }
+.pbxx .pbxl__tabs button { background: none; border: 0; padding: 0; font: inherit; font-size: 14px; line-height: 17px; font-weight: 400; color: #0d71d7; cursor: pointer; }
+.pbxx .pbxl__tabs button.on { color: var(--pb-text); font-weight: 500; }
+.pbxx .pbxl h6 { margin: 0 0 20px; font-size: 16px; line-height: 19px; font-weight: 500; color: var(--pb-nav); }
+.pbxx .pbxl__row { display: grid; grid-template-columns: 255px 1fr auto; gap: 14px; align-items: center; height: 48px; box-sizing: border-box; padding: 0 12px 0 16px; margin-bottom: 8px; background: #e2f3e2; border-radius: 8px; font-size: 14px; color: var(--pb-text); }
+.pbxx .pbxl__row b { font-weight: 500; }
+.pbxx .pbxl__row span { color: var(--pb-nav); }
 .pbxx .pbxl__row em { font-style: normal; text-align: right; }
-.pbxx .pbxl__btn { display: inline-block; margin-top: 16px; padding: 9px 16px; background: #0d71d7; color: #fff; border-radius: 4px; font-size: 12px; font-weight: 500; }
-.pbxx .pbxl__side h5 { margin: 0 0 12px; font-size: 14px; font-weight: 500; color: var(--pb-text); }
-.pbxx .pbxl__side a { display: block; margin-bottom: 8px; font-size: 12px; color: #0088ca; }
-.pbxx .pbxl__side p, .pbxx .pbxl__empty { font-size: 12px; color: var(--pb-mute); line-height: 17px; }
-@media (max-width: 900px) { .pbxx .pbxl { grid-template-columns: 1fr; } .pbxx .pbxl__row { grid-template-columns: 1fr; padding: 10px 14px; } .pbxx .pbxl__row em { text-align: left; } }
+.pbxx .pbxl__btn { display: inline-block; margin-top: 16px; height: 32px; line-height: 32px; padding: 0 16px; background: #0d71d7; color: #fff; border-radius: 4px; font-size: 14px; font-weight: 400; }
+.pbxx .pbxl__side h5 { margin: 0 0 16px; font-size: 16px; line-height: 19px; font-weight: 500; color: var(--pb-text); }
+.pbxx .pbxl__side a { display: block; margin-bottom: 12px; font-size: 14px; color: #0d71d7; }
+.pbxx .pbxl__side p, .pbxx .pbxl__empty { font-size: 14px; color: var(--pb-mute); line-height: 21px; }
+@media (max-width: 1200px) { .pbxx .pbxl { grid-template-columns: 1fr; } .pbxx .pbxl__row { grid-template-columns: 1fr; height: auto; padding: 10px 14px; } .pbxx .pbxl__row em { text-align: left; } }
 
 /* ---- Chiquvchi qoidalar (OnlinePBX /ats/outgoing) ---- */
 .pbxx .pbxo { position: relative; min-height: calc(100vh - 50px); padding: 25px 30px 0 30px; display: flex; flex-direction: column; }
@@ -540,3 +543,28 @@
 .pbxx .pbxst svg text { font: 12px Roboto, sans-serif; fill: #b4b3bb; }
 .pbxx .pbxst__legend { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 18px; font-size: 12px; color: var(--pb-text); }
 .pbxx .pbxst__legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+
+/* ---- Bosh sahifa: o'lchangan (kartalar 4 ustun, gap 8, padding 25) ---- */
+.pbxh { padding: 8px; gap: 8px; }
+.pbxh__top { gap: 8px; }
+.pbxh__card { padding: 25px; min-height: 200px; gap: 12px; }
+.pbxh__top .pbxh__card { height: 200px; box-sizing: border-box; }
+.pbxh__card h4, .pbxh__card h3 { font-size: 20px; line-height: 24px; font-weight: 500; }
+.pbxh__card h3 { margin-bottom: 14px; }
+.pbxh__card b { font-size: 48px; line-height: 52px; color: #000; margin-top: 12px; }
+.pbxh__card--peach b, .pbxh__card--lav b { font-size: 36px; line-height: 40px; color: var(--pb-text); }
+.pbxh__card span { color: #8d84b0; font-size: 14px; }
+.pbxh__card p { font-size: 14px; line-height: 21px; }
+.pbxh__card--peach { background: #fce8e0; } .pbxh__card--lav { background: #e2e2ff; }
+.pbxh__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.pbxh__grid > .pbxh__services { grid-column: 1; }
+.pbxh__grid > .pbxh__chart { grid-column: 2 / 4; }
+.pbxh__grid > .pbxh__side { grid-column: 4; gap: 8px; }
+.pbxh__services a { height: 48px; padding: 0 16px; margin-bottom: 12px; font-size: 16px; gap: 12px; }
+.pbxh__services a.on { background: #f7f7fa; }
+.pbxh__chart { padding: 25px; }
+.pbxh__chead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+.pbxh__chead a { font-size: 14px; color: var(--pb-link); }
+.pbxh__side a { font-size: 14px; line-height: 24px; }
+.pbxh__side .pbxh__card:first-child a { padding-left: 0; }
+@media (max-width: 1100px) { .pbxh__grid { grid-template-columns: 1fr; } .pbxh__grid > * { grid-column: auto !important; } }

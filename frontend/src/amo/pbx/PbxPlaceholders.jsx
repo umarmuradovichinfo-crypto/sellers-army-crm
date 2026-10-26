@@ -42,7 +42,6 @@ export function PbxHome() {
   const tiles = data?.tiles || {}
   const tot = data?.totals || { count: 0, talkSec: 0 }
   const series = stats.data?.series || []
-  const max = Math.max(1, ...series.map((d) => d.in + d.out + d.internal))
   const services = [['/pbx/services/tts', 'pbx§Ovoz sintezi va audio fayllar', 'M2 3h12v8H2zM5 14h6'], ['/pbx/services/ai', 'pbx§AI-menejer', 'M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM6 7h.01M10 7h.01M6 10c1 1 3 1 4 0'], ['/pbx/integration', 'pbx§Integratsiya', 'M3 3h10v10H3zM6 6h4v4H6z'], ['/pbx/reports', 'pbx§Analitika', 'M8 2a6 6 0 1 0 6 6H8z'], ['/pbx/chats', 'pbx§Chatlar', 'M2 3h12v8H6l-3 3v-3H2z'], ['/pbx/services/quality', 'pbx§Sifat bahosi', 'M3 2l2.5 3-1.2 1.6a6 6 0 0 0 3.1 3.1L9 8.5l3 2.5-1.2 1.6C6 13 2 9 2 4z'], ['/pbx/services/informer', 'pbx§Avtoinformator', 'M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM6.5 5.5v5l4-2.5z']]
   const actions = [['/pbx/ats/incoming', "pbx§Virtual raqam ulash"], ['/settings/users', "pbx§Foydalanuvchi qo'shish"], ['/pbx/integration', "pbx§CRM bilan integratsiyani sozlash"], ['/contacts', "pbx§«Mijozlar» bo'limiga o'tish"]]
   const kb = [['/pbx/ats/incoming', 'pbx§ATS qanday sozlanadi'], ['/settings/billing', "pbx§Xizmat to'lovi"], ['/pbx/integration', 'pbx§Yana…']]
@@ -64,15 +63,9 @@ export function PbxHome() {
           {services.map(([to, l, d], i) => <Link key={to} to={to} className={i === 0 ? 'on' : ''}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>{t(l)}</Link>)}
         </div>
         <div className="pbxh__card pbxh__chart">
-          <h4>{t("pbx§Qo'ng'iroqlar soni (tur bo'yicha)")}</h4>
-          <div className="ac-cr__bars">
-            {series.map((d) => (
-              <div key={d.day} className="ac-cr__bar" title={`${d.day}: ${d.in}/${d.out}/${d.internal}`}>
-                <div className="ac-cr__stack" style={{ height: 200 }}><i style={{ height: `${(d.in / max) * 100}%`, background: '#01c716' }} /><i style={{ height: `${(d.out / max) * 100}%`, background: '#0d71d7' }} /><i style={{ height: `${(d.internal / max) * 100}%`, background: '#adaabc' }} /></div>
-                <span>{d.day.slice(5)}</span>
-              </div>
-            ))}
-          </div>
+          <div className="pbxh__chead"><h4>{t("pbx§Qo'ng'iroqlar soni (tur bo'yicha)")}</h4><Link to="/pbx/reports">{t('pbx§Hisobotlar')}</Link></div>
+          {series.length > 0 && <LineChart series={series} />}
+          <div className="pbxst__legend">{LINES.map(([k, c, l]) => <span key={k}><i style={{ background: c }} />{t(l)}</span>)}</div>
         </div>
         <div className="pbxh__side">
           <div className="pbxh__card"><h3>{t('pbx§Amallar')}</h3>{actions.map(([to, l]) => <Link key={l} to={to}>{t(l)}</Link>)}</div>
@@ -203,7 +196,7 @@ export function PbxLicense() {
         </div>
         {tab === 'lic' && (
           <>
-            <h6>{t('pbx§Faol')}</h6>
+            <h6>{t('pbx§Faol litsenziyalar')}</h6>
             {b && rows.map(([n, v]) => (
               <div key={n} className="pbxl__row"><b>{n}</b><span>{v}</span><em>{b.endsAt ? `${t('pbx§gacha')} ${fmt(b.endsAt)}${left != null ? ` (${left} ${t('pbx§kun')})` : ''}` : ''}</em></div>
             ))}
