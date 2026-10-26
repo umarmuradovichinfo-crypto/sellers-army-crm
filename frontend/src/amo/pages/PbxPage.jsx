@@ -310,22 +310,36 @@ export function Blacklist() {
   const t = useT()
   const { data, reload } = useApi(() => pbxService.blacklist(), [], 'pbx:blacklist')
   const [num, setNum] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [q, setQ] = useState('')
   const [err, setErr] = useState('')
-  const add = async () => { setErr(''); try { await pbxService.blacklistAdd(num.trim()); setNum(''); reload() } catch (e) { setErr(e?.message || '') } }
+  const add = async () => { setErr(''); try { await pbxService.blacklistAdd(num.trim()); setNum(''); setAdding(false); reload() } catch (e) { setErr(e?.message || '') } }
+  const list = (data?.numbers || []).filter((b) => !q.trim() || b.number.includes(q.trim()))
   return (
-    <div className="ac-pbx__page">
-      <h3>{t("pbx§QORA RO'YXAT")}</h3>
-      <p className="ac-pbx__muted">{t("pbx§Ro'yxatdagi raqamlardan kelgan qo'ng'iroqlar avtomatik rad etiladi. Blokirovka faqat ko'rsatilgan formatdagi raqamga ishlaydi (+998… va 998… alohida qo'shiladi). Bloklangan qo'ng'iroqlar hisobotlarda ko'rinmaydi va CRM'ga yuklanmaydi.")}</p>
-      <div className="ac-pbx__actions">
-        <input className="ac-input" value={num} placeholder="+998901234567" onChange={(e) => setNum(e.target.value)} />
-        <button type="button" className="ac-btn ac-btn--blue" disabled={!num.trim()} onClick={add}>+ {t("pbx§Raqam qo'shish")}</button>
+    <div className="pbxb">
+      <div className="pbxb__left">
+        <h3>{t("pbx§QORA RO'YXAT")}<button type="button" className="pbxb__add" onClick={() => setAdding((v) => !v)}>+ {t("pbx§Raqam qo'shish")}</button></h3>
+        {adding && (
+          <div className="pbxb__form">
+            <input className="ac-input" value={num} placeholder="+998901234567" onChange={(e) => setNum(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && num.trim()) add() }} />
+            <button type="button" className="ac-pbx__save" disabled={!num.trim()} onClick={add}>{t("pbx§Qo'shish")}</button>
+          </div>
+        )}
+        {err && <div className="ac-pbx__err">{err}</div>}
+        <p>{t("pbx§Qora ro'yxat spam, raqobatchilar qo'ng'iroqlari va boshqa keraksiz murojaatlarni chiqarib tashlaydi. Keraksiz raqamlarni ro'yxatga kiriting — tizim ularni avtomatik rad etadi.")}</p>
+        <p>{t('pbx§Ish xususiyatlari:')}</p>
+        <ul>
+          <li>{t("pbx§Blokirovka faqat ko'rsatilgan formatdagi raqamga ishlaydi. Agar +998901234567 kiritilsa, faqat shu formatdagi qo'ng'iroqlar rad etiladi. 998901234567 raqamidan qo'ng'iroq o'tadi, shuning uchun u uchun alohida qoida kerak.")}</li>
+          <li>{t("pbx§Bloklangan qo'ng'iroqlar «Qo'ng'iroqlar», «Statistika», «Hisobotlar»da ko'rinmaydi.")}</li>
+          <li>{t("pbx§Bloklangan qo'ng'iroqlar CRM'ga yuklanmaydi (qoida raqam qo'shilgandan 10 daqiqa o'tgach ishlaydi).")}</li>
+        </ul>
       </div>
-      {err && <div className="ac-pbx__err">{err}</div>}
-      {(data?.numbers || []).length === 0 ? <div className="ac-pbx__empty">{t("pbx§Ro'yxatda raqam yo'q.")}</div> : (
-        <table className="ac-pbx__table"><tbody>{data.numbers.map((b) => (
-          <tr key={b.id}><td>{b.number}</td><td>{b.note || ''}</td><td><button type="button" className="ac-btn" onClick={async () => { await pbxService.blacklistRemove(b.id); reload() }}>×</button></td></tr>
-        ))}</tbody></table>
-      )}
+      <div className="pbxb__right">
+        <span className="pbxb__search"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5" fill="none" stroke="#adaabc" strokeWidth="1.4" /><path d="M13 13l4 4" stroke="#adaabc" strokeWidth="1.4" strokeLinecap="round" /></svg><input className="ac-input" value={q} placeholder={t('pbx§Qidirish')} onChange={(e) => setQ(e.target.value)} /></span>
+        {list.length === 0
+          ? <div className="pbxb__empty">{t("pbx§Ro'yxatda raqam yo'q.")}</div>
+          : <ul className="pbxb__list">{list.map((b) => <li key={b.id}><span>{b.number}</span><button type="button" title={t("pbx§O'chirish")} onClick={async () => { await pbxService.blacklistRemove(b.id); reload() }}>×</button></li>)}</ul>}
+      </div>
     </div>
   )
 }
@@ -335,34 +349,63 @@ export function Music() {
   const { data } = useApi(() => pbxService.music(), [], 'pbx:music')
   const audio = useApi(() => pbxService.audioList().catch(() => ({ files: [] })), [], 'pbx:audio')
   const [m, setM] = useState(null)
+  const [base, setBase] = useState(null)
   const [msg, setMsg] = useState(null)
-  useEffect(() => { if (data && !m) setM(data) }, [data]) // eslint-disable-line
+  useEffect(() => { if (data && !m) { setM(data); setBase(data) } }, [data]) // eslint-disable-line
   if (!m) return <div className="ac-pbx__empty">{t('Yuklanmoqda…')}</div>
-  const save = async () => { try { await pbxService.saveMusic(m); setMsg({ ok: true, text: t('pbx§Saqlandi') }) } catch (e) { setMsg({ ok: false, text: e?.message || '' }) } }
+  const dirty = JSON.stringify(m) !== JSON.stringify(base)
+  const save = async () => { try { const r = await pbxService.saveMusic(m); setM(r); setBase(r); setMsg({ ok: true, text: t('pbx§Saqlandi') }) } catch (e) { setMsg({ ok: false, text: e?.message || '' }) } }
   return (
-    <div className="ac-pbx__page">
-      <h3>{t('pbx§MUSIQA')}</h3>
-      <Field label={t('pbx§Qo\'ng\'iroq paytida (gudok o\'rniga)')}><AudioSelect value={m.ringback === 'default' ? '' : m.ringback} files={audio.data?.files || []} onChange={(v) => setM({ ...m, ringback: v || 'default' })} /></Field>
-      <Field label={t('pbx§Kutish (hold)')}><AudioSelect value={m.hold === 'default' ? '' : m.hold} files={audio.data?.files || []} onChange={(v) => setM({ ...m, hold: v || 'default' })} /></Field>
-      <div className="ac-pbx__actions"><button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button></div>
-      {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
+    <div className="pbxm">
+      <div className="pbxm__card">
+        <h3>{t('pbx§MUSIQA')}</h3>
+        <div className="pbxm__row"><span>{t("pbx§Qo'ng'iroq paytida (gudok o'rniga)")}</span><AudioSelect value={m.ringback === 'default' ? '' : m.ringback} files={audio.data?.files || []} onChange={(v) => setM({ ...m, ringback: v || 'default' })} /></div>
+        <div className="pbxm__row"><span>{t('pbx§Kutish (hold)')}</span><AudioSelect value={m.hold === 'default' ? '' : m.hold} files={audio.data?.files || []} onChange={(v) => setM({ ...m, hold: v || 'default' })} /></div>
+        <button type="button" className="ac-pbx__save" disabled={!dirty} onClick={save}>{t('pbx§Saqlash')}</button>
+        {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
+      </div>
     </div>
   )
 }
 
 export function Diagnostic() {
   const t = useT()
+  const [tab, setTab] = useState('trunks')
+  const trunks = useApi(() => pbxService.modules('trunk'), [], 'pbx:diag-trunks')
+  const users = useApi(() => pbxService.modules('user'), [], 'pbx:diag-users')
   const { data, reload } = useApi(() => pbxService.validate(), [], 'pbx:validate')
+  const host = window.location.hostname
+  const status = <span className="pbxd__pending">{t('pbx§Ulanish kutilmoqda')}</span>
   return (
-    <div className="ac-pbx__page">
-      <h3>{t('pbx§MARSHRUT DIAGNOSTIKASI')}</h3>
-      <button type="button" className="ac-btn" onClick={reload}>{t('pbx§Qayta tekshirish')}</button>
-      {data && data.issues.length === 0 && <div className="ac-pbx__ok">{t('pbx§Marshrutda muammo topilmadi')}</div>}
-      {data && data.issues.length > 0 && (
-        <ul className="ac-pbx__issues">{data.issues.map((i, k) => <li key={k} className={i.level}><b>{i.number}</b> — {i.message}</li>)}</ul>
+    <div className="pbxd">
+      <div className="pbxd__tabs">
+        {[['trunks', 'pbx§Tashqi raqamlar'], ['users', 'pbx§Foydalanuvchilar'], ['flow', 'pbx§Marshrut']].map(([k, l]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t(l)}</button>)}
+      </div>
+      {tab === 'trunks' && (
+        <table className="pbxd__table"><thead><tr><th>SIP ID</th><th>{t('pbx§Nomi')}</th><th>{t('pbx§Raqam')}</th><th>{t('pbx§Holat')}</th></tr></thead>
+          <tbody>
+            {(trunks.data?.modules || []).map((m) => <tr key={m.id}><td><span className="lnk">{m.config.login || m.number}@{m.config.server || host}</span></td><td>{m.name || '—'}</td><td>{m.number}</td><td>{status}</td></tr>)}
+            {(trunks.data?.modules || []).length === 0 && <tr><td colSpan={4} className="ac-pbx__empty">{t("pbx§Hali yo'q")}</td></tr>}
+          </tbody></table>
       )}
-      <AsteriskPreview />
-      <p className="ac-pbx__muted">{t("pbx§SIP-ro'yxatdan o'tish holati (raqam va foydalanuvchilar) stansiya serverga ulangach shu yerda ko'rinadi.")}</p>
+      {tab === 'users' && (
+        <table className="pbxd__table"><thead><tr><th>SIP ID</th><th>{t('pbx§Ism')}</th><th>{t('pbx§Raqam')}</th><th>{t('pbx§Holat')}</th></tr></thead>
+          <tbody>
+            {(users.data?.modules || []).map((m) => <tr key={m.id}><td><span className="lnk">{m.number}@{host}</span></td><td>{m.name || '—'}</td><td>{m.number}</td><td>{status}</td></tr>)}
+            {(users.data?.modules || []).length === 0 && <tr><td colSpan={4} className="ac-pbx__empty">{t("pbx§Hali yo'q")}</td></tr>}
+          </tbody></table>
+      )}
+      {tab === 'flow' && (
+        <div className="ac-pbx__page">
+          <h3>{t('pbx§MARSHRUT DIAGNOSTIKASI')}</h3>
+          <button type="button" className="ac-btn" onClick={reload}>{t('pbx§Qayta tekshirish')}</button>
+          {data && data.issues.length === 0 && <div className="ac-pbx__ok">{t('pbx§Marshrutda muammo topilmadi')}</div>}
+          {data && data.issues.length > 0 && (
+            <ul className="ac-pbx__issues">{data.issues.map((i, k) => <li key={k} className={i.level}><b>{i.number}</b> — {i.message}</li>)}</ul>
+          )}
+          <AsteriskPreview />
+        </div>
+      )}
     </div>
   )
 }

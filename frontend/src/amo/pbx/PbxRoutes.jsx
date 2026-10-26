@@ -17,7 +17,7 @@ export default function PbxRoutes() {
       <Route path="/ats/incoming" element={<S tone="ats"><Incoming /></S>} />
       <Route path="/ats/outgoing" element={<S><AtsLayout><Outgoing /></AtsLayout></S>} />
       <Route path="/ats/diagnostic" element={<S><AtsLayout><Diagnostic /></AtsLayout></S>} />
-      <Route path="/ats/configurator" element={<S><AtsLayout><PbxConfigurator /></AtsLayout></S>} />
+      <Route path="/ats/configurator" element={<S><PbxConfigurator /></S>} />
       <Route path="/ats/blacklist" element={<S><AtsLayout><Blacklist /></AtsLayout></S>} />
       <Route path="/ats/music" element={<S><AtsLayout><Music /></AtsLayout></S>} />
       <Route path="/calls" element={<S><CallsPage /></S>} />
