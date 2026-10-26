@@ -7,6 +7,7 @@ import { useApi } from '../../lib/useApi'
 import { useAuth } from '../../context/AuthContext'
 import { crmService } from '../../services/crm.service'
 import { settingsService } from '../../services/settings.service'
+import { api } from '../../lib/apiClient'
 import SettingsUsers from './SettingsUsers'
 import '../i18n/settings.ru'
 import '../settings.css'
@@ -159,6 +160,21 @@ function ChatsSection() {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
   const [edit, setEdit] = useState(null) // shablon tahrirlash: { id?, name, text, active }
+  const [intent, setIntent] = useState(null) // «Типовые вопросы» mavzusi: { id?, name, keywords, action, templateId, botId }
+  const [bots, setBots] = useState([])
+  useEffect(() => { api.get('/crm/salesbots').then((r) => setBots(r.bots || [])).catch(() => {}) }, [])
+  const putIntent = () => {
+    if (!intent?.name?.trim() || !String(intent.keywords || '').trim()) return
+    setForm((f) => {
+      const list = [...(f.intents || [])]
+      const i = list.findIndex((x) => x.id === intent.id)
+      const kw = Array.isArray(intent.keywords) ? intent.keywords : String(intent.keywords).split(/[,;\n]/).map((k) => k.trim()).filter(Boolean)
+      const item = { id: intent.id || `i${Date.now()}`, name: intent.name.trim(), keywords: kw, action: intent.action || 'reply', templateId: intent.templateId || '', botId: intent.botId || '', count: i >= 0 ? list[i].count : 0 }
+      if (i >= 0) list[i] = item; else list.push(item)
+      return { ...f, intents: list }
+    })
+    setIntent(null)
+  }
   useEffect(() => { if (cs.data) { setForm(cs.data); setBase(cs.data) } }, [cs.data])
   const dirty = form && base && JSON.stringify(form) !== JSON.stringify(base)
   const save = async () => {
@@ -248,6 +264,47 @@ function ChatsSection() {
             <select className="ac-select" value={form?.autoCloseHours || 0} disabled={!canManage} onChange={(e) => setForm((f) => ({ ...f, autoCloseHours: Number(e.target.value) }))}>
               {[0, 1, 3, 6, 12, 24, 48, 72, 168].map((h) => <option key={h} value={h}>{h === 0 ? t('Hech qachon') : h < 24 ? `${h} ${t('soat')}` : `${h / 24} ${t('kun')}`}</option>)}
             </select>
+          </div>
+        </div>
+
+        <div className="ac-set-block">
+          <h2 className="ac-set-block__title">{t('Tipik savollar')}</h2>
+          <div className="ac-set-block__desc">{t("Mijoz yozgan mavzularni kalit so'zlar bo'yicha aniqlang va avtomatik ravishda xabar shablonini yuboring yoki botni ishga tushiring. Javob faqat mijoz yozganda va botdan javob kutilmayotgan paytda ishlaydi.")}</div>
+          <table className="ac-table ac-set-tpl">
+            <thead><tr><th>{t('Mavzu')}</th><th>{t('Kalit so\'zlar')}</th><th>{t('Amal')}</th><th>{t('Ishga tushishlar')}</th><th /></tr></thead>
+            <tbody>
+              {(form?.intents || []).map((x) => (
+                <tr key={x.id}>
+                  <td><a onClick={() => canManage && setIntent({ ...x, keywords: (x.keywords || []).join(', ') })}>{x.name}</a></td>
+                  <td className="ac-set-tpl__text" title={(x.keywords || []).join(', ')}>{(x.keywords || []).join(', ')}</td>
+                  <td>{x.action === 'bot' ? `${t('Bot ishga tushirish')}: ${bots.find((b) => b.id === x.botId)?.name || '—'}` : `${t('Javob')}: ${(form.templates || []).find((tp) => tp.id === x.templateId)?.name || '—'}`}</td>
+                  <td>{x.count || 0}</td>
+                  <td>{canManage && <button className="ac-top__dots" title={t("O'chirish")} onClick={() => setForm((f) => ({ ...f, intents: f.intents.filter((y) => y.id !== x.id) }))}><Ico name="trash" size={13} /></button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {canManage && !intent && <a className="ac-set-addlink" onClick={() => setIntent({ name: '', keywords: '', action: 'reply', templateId: (form?.templates || [])[0]?.id || '', botId: bots[0]?.id || '' })}>+ {t("Yangi mavzu qo'shish")}</a>}
+          {intent && (
+            <div className="ac-set-tplform">
+              <input className="ac-input" placeholder={t('Mavzu')} value={intent.name} onChange={(e) => setIntent({ ...intent, name: e.target.value })} />
+              <textarea className="ac-input" rows={2} placeholder={t("Kalit so'zlar (vergul bilan): narx, qancha, price")} value={intent.keywords} onChange={(e) => setIntent({ ...intent, keywords: e.target.value })} />
+              <select className="ac-select" value={intent.action} onChange={(e) => setIntent({ ...intent, action: e.target.value })}>
+                <option value="reply">{t('Shablon bilan javob berish')}</option>
+                <option value="bot">{t('intent§Botni ishga tushirish')}</option>
+              </select>
+              {intent.action === 'bot'
+                ? <select className="ac-select" value={intent.botId} onChange={(e) => setIntent({ ...intent, botId: e.target.value })}>{bots.length === 0 && <option value="">—</option>}{bots.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
+                : <select className="ac-select" value={intent.templateId} onChange={(e) => setIntent({ ...intent, templateId: e.target.value })}>{(form?.templates || []).length === 0 && <option value="">{t("Avval javob shablonini yarating")}</option>}{(form?.templates || []).map((tp) => <option key={tp.id} value={tp.id}>{tp.name}</option>)}</select>}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="ac-btn ac-btn--blue" disabled={!intent.name.trim() || !String(intent.keywords).trim()} onClick={putIntent}>{t('Tayyor')}</button>
+                <button className="ac-btn ac-btn--plain" onClick={() => setIntent(null)}>{t('Bekor qilish')}</button>
+              </div>
+            </div>
+          )}
+          <div className="ac-set-row" style={{ marginTop: 12, alignItems: 'flex-start' }}>
+            <div className="ac-set-row__label" style={{ width: 'auto', marginRight: 12, paddingTop: 8 }}>{t("E'tiborsiz qoldiriladigan iboralar")}</div>
+            <textarea className="ac-input" rows={2} style={{ width: 300 }} disabled={!canManage} placeholder={t("Har biri yangi qatordan: rahmat, ok, yaxshi")} value={(form?.ignorePhrases || []).join('\n')} onChange={(e) => setForm((f) => ({ ...f, ignorePhrases: e.target.value.split('\n') }))} />
           </div>
         </div>
 

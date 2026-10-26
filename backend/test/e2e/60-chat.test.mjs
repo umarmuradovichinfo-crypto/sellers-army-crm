@@ -104,3 +104,27 @@ describe('Telegram jamlanmasi («Один раз в день»)', () => {
     await ok('DELETE', '/notifications/telegram', undefined, A, 200);
   });
 });
+
+describe('Tipik savollar (amoCRM «Типовые вопросы»)', () => {
+  test("kalit so'z topilsa shablon bilan javob (xato bo'lsa ham hisoblagich), e'tiborsiz ibora tegmaydi, sozlama saqlanadi", async () => {
+    const A = T;
+    const cs = await ok('GET', '/crm/chat-settings', undefined, A, 200);
+    const tpl = { id: 'tq1', name: 'Narx javobi', text: 'Narx haqida: menejerimiz aloqaga chiqadi', active: true };
+    const saved = await ok('PUT', '/crm/chat-settings', { templates: [...(cs.templates || []).filter((x) => x.id !== 'tq1'), tpl], intents: [{ id: 'iq1', name: 'Narx', keywords: 'narxi, qancha pul, price', action: 'reply', templateId: 'tq1' }], ignorePhrases: ['rahmat'] }, A, 200);
+    assert.equal(saved.intents.length, 1);
+    assert.deepEqual(saved.intents[0].keywords, ['narxi', 'qancha pul', 'price']);
+    assert.equal(saved.intents[0].count, 0);
+    const chatId = Math.floor(Math.random() * 1e9);
+    await tg(chatId, 'Salom, narxi qancha turadi?');
+    // Telegram API test muhitida yopiq — yuborish muvaffaqiyatsiz bo'ladi, shuning uchun hisoblagich oshmaydi, lekin xabar «error» holatida lentada qoladi
+    const row = (await ok('GET', '/crm/conversations', undefined, A, 200)).conversations.find((c) => /narxi qancha/.test(c.last || '') || /menejerimiz aloqaga/.test(c.last || ''));
+    assert.ok(row, 'suhbat topilmadi');
+    const m = await ok('GET', `/crm/leads/${row.leadId}/messages`, undefined, A, 200);
+    assert.ok(m.messages.some((x) => x.direction === 'out' && /menejerimiz aloqaga chiqadi/.test(x.text)), "shablon javobi yuborilmadi (lentada yo'q)");
+    await tg(chatId + 7, 'rahmat narxi price');
+    const row2 = (await ok('GET', '/crm/conversations', undefined, A, 200)).conversations.find((c) => /rahmat narxi/.test(c.last || ''));
+    const m2 = await ok('GET', `/crm/leads/${row2.leadId}/messages`, undefined, A, 200);
+    assert.ok(!m2.messages.some((x) => x.direction === 'out'), "e'tiborsiz ibora uchun javob yuborildi");
+    await ok('PUT', '/crm/chat-settings', { intents: [], ignorePhrases: [] }, A, 200);
+  });
+});

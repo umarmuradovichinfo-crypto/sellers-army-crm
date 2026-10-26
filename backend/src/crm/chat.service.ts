@@ -96,6 +96,47 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   }
   onModuleDestroy() { if (this.acTimer) clearInterval(this.acTimer); }
 
+  static cleanIntents(raw: unknown) {
+    if (!Array.isArray(raw)) return [] as any[];
+    return raw.slice(0, 50).map((i: any, n: number) => ({
+      id: String(i?.id || `i${Date.now()}${n}`).slice(0, 40),
+      name: String(i?.name || '').trim().slice(0, 120),
+      keywords: (Array.isArray(i?.keywords) ? i.keywords : String(i?.keywords || '').split(/[,;\n]/)).map((k: unknown) => String(k).trim().toLowerCase().slice(0, 100)).filter(Boolean).slice(0, 100),
+      action: i?.action === 'bot' ? 'bot' : 'reply',
+      templateId: String(i?.templateId || '').slice(0, 40),
+      botId: String(i?.botId || '').slice(0, 40),
+      count: Math.max(0, Math.floor(Number(i?.count) || 0)),
+    })).filter((i: any) => i.name && i.keywords.length);
+  }
+
+  /** «Типовые вопросы»: kirish xabari kalit so'zga mos kelsa — shablon bilan javob yoki Salesbot; hisoblagich oshadi */
+  async applyIntents(leadId: string, text: string): Promise<boolean> {
+    const s = await this.getChatSettings();
+    if (!s.intents.length) return false;
+    const low = String(text || '').toLowerCase();
+    if (!low.trim() || s.ignorePhrases.some((p: string) => low.includes(p))) return false;
+    const hit = s.intents.find((i: any) => i.keywords.some((k: string) => low.includes(k)));
+    if (!hit) return false;
+    // takroriy javob bo'lmasin: so'nggi 30 soniyada operator/bot yuborgan xabar bo'lsa — tegmaymiz
+    const recent = await this.prisma.message.findFirst({ where: { leadId, direction: 'out', createdAt: { gte: new Date(Date.now() - 30_000) } }, select: { id: true } });
+    if (recent) return false;
+    let done = false;
+    if (hit.action === 'bot' && hit.botId) done = !!(await this.automation.salesbot?.run(hit.botId, leadId).then(() => true).catch(() => false));
+    else {
+      const tpl = s.templates.find((t: any) => t.id === hit.templateId && t.active !== false);
+      if (tpl) done = !!(await this.sendMessage(leadId, tpl.text, undefined).then(() => true).catch(() => false));
+    }
+    if (done) {
+      const cur = await this.getChatSettings();
+      const intents = cur.intents.map((i: any) => (i.id === hit.id ? { ...i, count: (i.count || 0) + 1 } : i));
+      const row = await this.prisma.appSetting.findUnique({ where: { key: ChatService.SETTINGS_KEY } });
+      let v: any = {}; try { v = JSON.parse(row?.value || '{}'); } catch { /* */ }
+      const value = JSON.stringify({ ...v, intents });
+      await this.prisma.appSetting.upsert({ where: { key: ChatService.SETTINGS_KEY }, update: { value }, create: { key: ChatService.SETTINGS_KEY, value } });
+    }
+    return done;
+  }
+
   static publicBase() {
     return (process.env.PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).trim().replace(/\/+$/, '');
   }
@@ -155,6 +196,9 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       autoCloseHours: ChatService.AUTO_CLOSE.includes(Number(v.autoCloseHours)) ? Number(v.autoCloseHours) : 0,
       // amoCRM «Сокращать ссылки»
       shortLinks: v.shortLinks === true,
+      // amoCRM «Типовые вопросы»: mavzu — kalit so'zlar → shablon bilan javob yoki Salesbot
+      intents: ChatService.cleanIntents(v.intents),
+      ignorePhrases: Array.isArray(v.ignorePhrases) ? v.ignorePhrases.map((x: unknown) => String(x).trim().toLowerCase().slice(0, 100)).filter(Boolean).slice(0, 200) : [],
     };
   }
   async saveChatSettings(body: any) {
@@ -172,6 +216,12 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (typeof body?.imboxMenu === 'boolean') next.imboxMenu = body.imboxMenu;
     if (body?.replyLimitMin !== undefined && ChatService.REPLY_LIMITS.includes(Number(body.replyLimitMin))) next.replyLimitMin = Number(body.replyLimitMin);
     if (typeof body?.shortLinks === 'boolean') next.shortLinks = body.shortLinks;
+    if (Array.isArray(body?.intents)) {
+      // hisoblagichlar (count) faqat serverda yuritiladi: eski qiymat saqlanadi
+      const old = new Map(cur.intents.map((i: any) => [i.id, i.count]));
+      next.intents = ChatService.cleanIntents(body.intents).map((i: any) => ({ ...i, count: old.get(i.id) ?? 0 }));
+    }
+    if (Array.isArray(body?.ignorePhrases)) next.ignorePhrases = body.ignorePhrases.map((x: unknown) => String(x).trim().toLowerCase().slice(0, 100)).filter(Boolean).slice(0, 200);
     if (body?.autoCloseHours !== undefined && ChatService.AUTO_CLOSE.includes(Number(body.autoCloseHours))) next.autoCloseHours = Number(body.autoCloseHours);
     const value = JSON.stringify(next);
     await this.prisma.appSetting.upsert({ where: { key: ChatService.SETTINGS_KEY }, update: { value }, create: { key: ChatService.SETTINGS_KEY, value } });
@@ -246,7 +296,8 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     await this.prisma.message.create({
       data: { leadId: lead.id, channel: 'telegram', direction: 'in', text: String(text).slice(0, 4000), senderName: name, externalId: String(msg.message_id ?? ''), convNo },
     });
-    await this.automation.salesbot?.onReply(lead.id, String(text)).catch(() => false);
+    const consumed = await this.automation.salesbot?.onReply(lead.id, String(text)).catch(() => false);
+    if (!consumed) await this.applyIntents(lead.id, String(text)).catch(() => false);
     await this.activity.record(lead.id, 'email', { actorName: name, text: `📨 Telegram: ${String(text).slice(0, 120)}` });
     await this.prisma.lead.update({ where: { id: lead.id }, data: { lastActivityAt: new Date() } }).catch(() => {});
 
@@ -400,7 +451,8 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
         threadId: a.threadId, pageId: a.pageId, kind: a.kind, ...(a.createdAt ? { createdAt: a.createdAt } : {}), convNo,
       },
     });
-    await this.automation.salesbot?.onReply(lead.id, a.text).catch(() => false);
+    const consumed = await this.automation.salesbot?.onReply(lead.id, a.text).catch(() => false);
+    if (!consumed && a.kind !== 'comment') await this.applyIntents(lead.id, a.text).catch(() => false);
     const label = a.kind === 'comment' ? `${CH_LABEL[a.channel]} izoh` : CH_LABEL[a.channel];
     await this.activity.record(lead.id, 'email', { actorName: a.name, text: `📨 ${label}: ${a.text.slice(0, 120)}` });
     await this.prisma.lead.update({ where: { id: lead.id }, data: { lastActivityAt: new Date() } }).catch(() => {});

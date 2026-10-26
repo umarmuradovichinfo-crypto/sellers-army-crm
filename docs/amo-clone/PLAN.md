@@ -246,6 +246,8 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
        lentasida «Клиент перешёл по ссылке», mas'ulga bildirishnoma (PUBLIC_URL kerak). test/e2e/60-chat.
        [x] Bildirishnoma kanali Telegram: profilda «Telegram'ga ulash» (t.me/<bot>?start=<kod>, bir martalik 15 daqiqalik kod),
        ulangach «TELEGRAM» ustuni paydo bo'ladi (standart o'chiq), yoqilgan turlar bot orqali keladi. Qolgan: «kuniga bir marta».
+       [x] «kuniga bir marta 18:00» jamlanma (Toshkent vaqti). [x] «Типовые вопросы» — Sozlamalar → Chatlar: mavzu + kalit so'zlar →
+       shablon bilan javob yoki Salesbot ishga tushirish, ishga tushishlar hisobi, e'tiborsiz iboralar; faqat bot javob kutmayotganda.
 
 39. [ ] (foydalanuvchi so'rovi 27.10) Haftalik kuzatuvchi: har hafta amoCRM'da yangi qo'shilgan/o'zgargan narsalarni topib, loyihaga
     avtomatik shunday qilib klonlash. Ishlash tartibi: rejalashtirilgan vazifa `amo-clone-weekly-watch` (har dushanba) →

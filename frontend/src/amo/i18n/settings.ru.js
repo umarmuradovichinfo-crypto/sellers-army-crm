@@ -2,6 +2,21 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Tipik savollar': 'Типовые вопросы',
+  "Mijoz yozgan mavzularni kalit so'zlar bo'yicha aniqlang va avtomatik ravishda xabar shablonini yuboring yoki botni ishga tushiring. Javob faqat mijoz yozganda va botdan javob kutilmayotgan paytda ishlaydi.": 'Определяйте темы, о которых пишет клиент, по ключевым словам и автоматически отправляйте шаблон сообщения или запускайте бота. Срабатывает только на сообщения клиента, когда бот не ожидает ответа.',
+  'Mavzu': 'Тема',
+  "Kalit so'zlar": 'Ключевые слова',
+  'Amal': 'Действие',
+  'Ishga tushishlar': 'Кол-во срабатываний',
+  'Bot ishga tushirish': 'Запуск Salesbot',
+  'Javob': 'Ответить',
+  "Yangi mavzu qo'shish": 'Добавить новую тему',
+  "Kalit so'zlar (vergul bilan): narx, qancha, price": 'Ключевые слова (через запятую): цена, сколько, price',
+  'Shablon bilan javob berish': 'Ответить шаблоном',
+  'intent§Botni ishga tushirish': 'Запустить Salesbot',
+  'Avval javob shablonini yarating': 'Сначала создайте шаблон ответа',
+  "E'tiborsiz qoldiriladigan iboralar": 'Игнорируемые фразы',
+  'Har biri yangi qatordan: rahmat, ok, yaxshi': 'Каждая с новой строки: спасибо, ок, хорошо',
   'Telegram: kuniga bir marta 18:00 da jamlab yuborish': 'Telegram: один раз в день в 18:00',
   'Telegram ulangan — kerakli turlar uchun «TELEGRAM» ustunini yoqing': 'Telegram подключён — включите колонку «TELEGRAM» для нужных типов',
   'tg§Uzish': 'Отключить',
