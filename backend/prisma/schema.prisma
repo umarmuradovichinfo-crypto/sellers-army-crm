@@ -595,3 +595,28 @@ model ShortLink {
   @@index([leadId])
   @@map("crm_short_links")
 }
+
+// O'z telefon stansiyamiz (PLAN 45): qo'ng'iroq oqimi modullari (foydalanuvchi, raqam, vaqt qoidasi, guruh, navbat …)
+model PbxModule {
+  id         String   @id @default(cuid())
+  type       String // user|trunk|telegram|numrule|timerule|greeting|voicemail|http|alias|postcall|group|queue
+  number     String   @unique // marshrut raqami (ichki raqam, modul raqami yoki tashqi raqam)
+  name       String?
+  configJson String   @default("{}")
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([type])
+  @@map("pbx_modules")
+}
+
+// Qora ro'yxat: shu raqamlardan kelgan qo'ng'iroqlar rad etiladi (format bo'yicha qat'iy moslik)
+model PbxBlacklist {
+  id        String   @id @default(cuid())
+  number    String   @unique
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@map("pbx_blacklist")
+}

@@ -1,0 +1,95 @@
+// O'z telefon stansiyamiz: «Настройка АТС» modullari — yaratish, tekshiruv, zanjir, aylanma himoyasi, qora ro'yxat, musiqa, chiquvchi qoidalar.
+import { describe, test, before } from 'node:test';
+import assert from 'node:assert/strict';
+import { req, ok, admin, userWithRole, uniq } from './lib.mjs';
+
+let T;
+const mk = (type, body) => ok('POST', '/pbx/modules', { type, ...body }, T, 201).then((r) => r.module);
+before(async () => { T = await admin(); });
+
+describe('PBX modullari (Настройка АТС)', () => {
+  test('raqamlar avtomatik beriladi; band raqam 409; noto`g`ri tur/raqam 400; oddiy xodim kira olmaydi', async () => {
+    const n1 = (await ok('GET', '/pbx/modules/next-number?type=queue', undefined, T, 200)).number;
+    const q = await mk('queue', { name: uniq('Navbat') });
+    assert.equal(q.number, n1);
+    const n2 = (await ok('GET', '/pbx/modules/next-number?type=queue', undefined, T, 200)).number;
+    assert.notEqual(n2, n1);
+    assert.equal((await req('POST', '/pbx/modules', { type: 'queue', number: q.number }, T)).status, 409);
+    assert.equal((await req('POST', '/pbx/modules', { type: 'yoq' }, T)).status, 400);
+    assert.equal((await req('POST', '/pbx/modules', { type: 'queue', number: 'bad number!' }, T)).status, 400);
+    const S = await userWithRole('sotuvchi');
+    assert.equal((await req('GET', '/pbx/modules', undefined, S.token)).status, 403);
+  });
+
+  test('zanjir: trunk → vaqt qoidasi → (ish vaqti: guruh | ish vaqtidan tashqari: ovozli pochta); xodim moduli CRM foydalanuvchisiga bog`lanadi', async () => {
+    const crmUser = await userWithRole('sotuvchi');
+    const u1 = await mk('user', { number: '9101', name: 'Ali', config: { crmUserId: crmUser.id } });
+    const u2 = await mk('user', { number: '9102', name: 'Vali' });
+    // CRM foydalanuvchisining ichki raqami moslandi
+    const me = await ok('GET', '/crm/my-extension', undefined, crmUser.token, 200);
+    assert.equal(me.extension, '9101');
+    const g = await mk('group', { name: 'Savdo', config: { members: '9101;9102', afterSec: 20 } });
+    const vm = await mk('voicemail', { name: 'Nerabochee', config: { recordSec: 20, email: 'x@y.uz' } });
+    const tr = await mk('timerule', { name: 'Ish vaqti', config: { timezone: 'UTC+5', days: { mon: { on: true, from: '09:00', to: '18:00' } }, workTo: g.number, offTo: vm.number } });
+    assert.equal(tr.config.days.mon.from, '09:00');
+    assert.equal(tr.config.days.sun.on, true, 'berilmagan kunlar standart qiymat bilan to`ldirilishi kerak');
+    const trunk = await mk('trunk', { number: '0552299', name: 'Operator', config: { login: 'l', password: 'sirli-parol', server: '1.2.3.4', forwardTo: tr.number } });
+    assert.equal(trunk.passwordSet, true);
+    assert.equal(trunk.config.password, undefined, 'trunk paroli javobda ko`rinmasligi kerak');
+    // paroli bo'sh yuborilsa eskisi qoladi
+    const upd = await ok('PUT', `/pbx/modules/${trunk.id}`, { name: 'Operator 2', config: { server: '5.6.7.8' } }, T, 200);
+    assert.equal(upd.module.passwordSet, true);
+    assert.equal(upd.module.config.server, '5.6.7.8');
+    assert.equal(upd.module.config.login, 'l', 'yuborilmagan maydonlar saqlanishi kerak');
+    const v = await ok('GET', '/pbx/flow/validate', undefined, T, 200);
+    assert.equal(v.ok, true, JSON.stringify(v.issues));
+    // ro'yxat turi bo'yicha
+    const only = await ok('GET', '/pbx/modules?type=group', undefined, T, 200);
+    assert.ok(only.modules.every((m) => m.type === 'group') && only.modules.some((m) => m.id === g.id));
+    // o'chirishni bog'liq modul to'sadi
+    const del = await req('DELETE', `/pbx/modules/${g.id}`, undefined, T);
+    assert.equal(del.status, 409);
+    assert.ok(String(del.data.message).includes(tr.number), `xabarda bog'langan modul ko'rsatilmadi: ${JSON.stringify(del.data)}`);
+    // raqamini o'zgartirib ham bo'lmaydi (havolalar buzilmasin)
+    assert.equal((await req('PUT', `/pbx/modules/${g.id}`, { number: '77' }, T)).status, 409);
+    // zanjirni teskari tartibda o'chirish mumkin
+    for (const m of [trunk, tr, g, vm, u1, u2]) await ok('DELETE', `/pbx/modules/${m.id}`, undefined, T, 200);
+    const after = await ok('GET', '/crm/my-extension', undefined, crmUser.token, 200);
+    assert.ok(!after.extension, 'modul o`chgach CRM foydalanuvchisining raqami tozalanishi kerak');
+  });
+
+  test('validatsiya: mavjud bo`lmagan marshrut, guruhdagi begona raqam, aylanma, noto`g`ri vaqt/URL', async () => {
+    assert.equal((await req('POST', '/pbx/modules', { type: 'voicemail', config: { forwardTo: '99999' } }, T)).status, 400);
+    assert.equal((await req('POST', '/pbx/modules', { type: 'group', config: { members: '00000' } }, T)).status, 400);
+    assert.equal((await req('POST', '/pbx/modules', { type: 'timerule', config: { days: { mon: { from: '25:00', to: '18:00' } } } }, T)).status, 400);
+    assert.equal((await req('POST', '/pbx/modules', { type: 'http', config: { url: 'ftp://x' } }, T)).status, 400);
+    const a = await mk('voicemail', { name: 'A' });
+    const b = await mk('voicemail', { name: 'B', config: { forwardTo: a.number } });
+    // A → B bo'lsa B → A bilan aylanma
+    assert.equal((await req('PUT', `/pbx/modules/${a.id}`, { config: { forwardTo: b.number } }, T)).status, 400);
+    assert.equal((await req('PUT', `/pbx/modules/${a.id}`, { config: { forwardTo: a.number } }, T)).status, 400);
+    await ok('DELETE', `/pbx/modules/${b.id}`, undefined, T, 200);
+    await ok('DELETE', `/pbx/modules/${a.id}`, undefined, T, 200);
+  });
+
+  test('qora ro`yxat, musiqa va chiquvchi qoidalar', async () => {
+    const n = `+99890${String(Date.now()).slice(-7)}`;
+    const b = await ok('POST', '/pbx/blacklist', { number: n, note: 'spam' }, T, 201);
+    assert.equal((await req('POST', '/pbx/blacklist', { number: n }, T)).status, 409);
+    assert.equal((await req('POST', '/pbx/blacklist', { number: 'abc' }, T)).status, 400);
+    assert.ok((await ok('GET', '/pbx/blacklist', undefined, T, 200)).numbers.some((x) => x.number === n));
+    await ok('DELETE', `/pbx/blacklist/${b.id}`, undefined, T, 200);
+    assert.equal((await req('DELETE', `/pbx/blacklist/${b.id}`, undefined, T)).status, 404);
+
+    assert.deepEqual(await ok('GET', '/pbx/music', undefined, T, 200), { ringback: 'default', hold: 'default' });
+    const m = await ok('PUT', '/pbx/music', { hold: 'klassika' }, T, 200);
+    assert.equal(m.hold, 'klassika');
+    await ok('PUT', '/pbx/music', { hold: 'default' }, T, 200);
+
+    const out = await ok('PUT', '/pbx/outgoing', { rules: [{ name: 'Hammasi', mask: '', trunk: '0552233', externalNumber: '0552233', users: ['100', '101'] }] }, T, 200);
+    assert.equal(out.rules.length, 1);
+    assert.equal((await req('PUT', '/pbx/outgoing', { rules: [{ mask: 'abc<script>' }] }, T)).status, 400);
+    assert.equal((await ok('GET', '/pbx/outgoing', undefined, T, 200)).rules[0].users.length, 2);
+    await ok('PUT', '/pbx/outgoing', { rules: [] }, T, 200);
+  });
+});
