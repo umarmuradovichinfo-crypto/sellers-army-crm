@@ -1,9 +1,12 @@
 // «Настройка АТС» modul formalari: har tur uchun maydonlar (OnlinePBX paneli bilan 1:1, docs/amo-clone/PBX-CLONE.md).
 // kind: text | int | bool | password | select | target (keyingi modul) | members (101;102) | qmembers (101:1;102:2) | menu (1:101;2:5200) | textarea | schedule | forwards | access | notify
-export const TYPE_ORDER = ['trunk', 'timerule', 'greeting', 'group', 'queue', 'voicemail', 'http', 'alias', 'postcall', 'numrule', 'telegram', 'user']
+// ro'yxat bo'limlari tartibi (OnlinePBX: Номера, Правила по времени, Приветствия, Группы, Пользователи …)
+export const TYPE_ORDER = ['trunk', 'numrule', 'timerule', 'greeting', 'voicemail', 'http', 'alias', 'postcall', 'group', 'queue', 'user']
+// «Добавить модуль» chap ro'yxati tartibi (OnlinePBX bilan bir xil); smart — o'chirilgan («Умный перевод»)
+export const ADD_ORDER = ['user', 'trunk', 'telegram', 'numrule', 'timerule', 'greeting', 'voicemail', 'smart', 'http', 'alias', 'postcall', 'group', 'queue']
 export const TYPE_LABEL = {
   trunk: 'pbx§Raqam', timerule: 'pbx§Vaqt qoidasi', greeting: 'pbx§Salomlashish', group: 'pbx§Guruh', queue: 'pbx§Navbat', voicemail: 'pbx§Ovozli pochta',
-  http: 'pbx§HTTP-so\'rov', alias: 'pbx§Psevdonim', postcall: 'pbx§Qo\'ng\'iroqdan keyingi ishlov', numrule: 'pbx§Raqam bo\'yicha qoida', telegram: 'pbx§Telegram raqam', user: 'pbx§Foydalanuvchi',
+  http: 'pbx§HTTP-so\'rov', alias: 'pbx§Psevdonim', postcall: 'pbx§Qo\'ng\'iroqdan keyingi ishlov', numrule: 'pbx§Raqam bo\'yicha qoida', telegram: 'pbx§Telegram raqam', user: 'pbx§Foydalanuvchi', smart: "pbx§Aqlli o'tkazish",
 }
 export const SECTION_LABEL = {
   trunk: 'pbx§RAQAMLAR', timerule: 'pbx§VAQT QOIDALARI', greeting: 'pbx§SALOMLASHISHLAR', group: 'pbx§GURUHLAR', queue: 'pbx§NAVBATLAR', voicemail: 'pbx§OVOZLI POCHTA',
