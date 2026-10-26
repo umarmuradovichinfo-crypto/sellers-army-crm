@@ -299,6 +299,9 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     o'qish; BILLING_ENFORCE=1). Xavf: xarajatim mijoz hisobiga o'tmasligi uchun — faqat oldindan to'lov, har chorakda xarajat qayta hisoblanadi, Dono/SMS
     kabi o'zgaruvchan xarajat mijoz kaliti orqali. Qoldi: back-office jadvali (har mijoz bazasi hajmi/trafigi — haqiqiy xarajatni o'lchash).
 
+45. [ ] (foydalanuvchi so'rovi 26.10) O'z telefon stansiyamiz (PBX, Asterisk) — dizayn: docs/amo-clone/PBX.md. 1) PbxProvider qatlami, 2) Asterisk sinov (ichki qo'ng'iroq, WebRTC, hodisalar, yozuv),
+    3) SIP trunk (operator tanlanishi kerak), 4) navbat/IVR, 5) ishonchlilik. Boshlash sharti: 1–2-bosqich operatorsiz; 3-bosqich operator shartlari aniq bo'lgach.
+
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
   matnlari tarjimasi; Sozlamalar → Umumiy sozlamalarga "Til" maydoni (9-bosqich).
