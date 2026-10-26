@@ -272,6 +272,22 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     firuza, do'ppi bodom naqshli, atlas yoqa; «siz»lab, iliq, maqol bilan, «Barakalla!»); yangi SVG avatar; tizim prompti, salom,
     taklif, kartochka tagline'i. Statistika kaliti (amma:stats) eski ma'lumot yo'qolmasligi uchun o'zgarmadi.
 
+41. [ ] (foydalanuvchi so'rovi 27.10) URL/navigatsiya — dasturlashdagi standart qoidalar bo'yicha: HAR sahifa, tab, ichki bo'lim o'z manziliga
+    ega (deep-link: yangilaganda, nusxalab ochganda, orqaga/oldinga tugmasida shu joyga qaytadi). Qoidalar: ierarxik kebab-case manzillar
+    (`/<bo'lim>/<pastbo'lim>/<id>`, masalan `/settings/users`, `/settings/pipelines/:id`), filtr/saralash/sahifa — query'da (`?preset=…`),
+    menyu/havolalar haqiqiy `<a>`/`<NavLink>` (yangi tabda ochiladi, aktiv holat URL'dan), noma'lum manzil — 404 sahifa (hozir jimgina
+    /dashboard'ga yo'naltiriladi), kirish talab qilinsa `/login?next=<manzil>` va kirgach shu manzilga qaytish, eski manzillar → 301-uslubda
+    `Navigate replace`, bitim kartochkasi tablari (Основное/Статистика/Настроить), Sozlamalar ichki sahifalari, Integratsiyalar tablari,
+    profil (modal emas — sahifa, bajarilgan), `<title>` va breadcrumb har sahifada. Qaror kutilmoqda: `/crm/…` prefiksi (ilova `/crm/*`,
+    ildiz — landing/narxlar/to'lov) yoki amoCRM kabi prefiks­siz.
+42. [ ] (foydalanuvchi so'rovi 27.10) Stripe orqali to'lov va obunalar (billing). Muhim: Stripe O'zbekistonda ro'yxatdan o'tgan biznes uchun
+    to'g'ridan-to'g'ri qo'llab-quvvatlanmaydi (hisob xorijiy yuridik shaxs — masalan AQSh LLC/Stripe Atlas — orqali ochiladi; mahalliy
+    to'lovlar uchun Payme/Click/Uzum alohida). Reja: to'lov provayderi abstraksiyasi + Stripe Checkout/Customer Portal/webhook; tariflar
+    (plan), sinov muddati, o'rindiq (foydalanuvchi) bo'yicha yoki tarif bo'yicha narx, limitlar (foydalanuvchi, bitim, kanal), holatlar
+    (trial → active → past_due → canceled), cheklov o'rnatish (to'lanmasa faqat o'qish), hisob-fakturalar, «Счет и оплата» sahifasi
+    (amoCRM'dagi kabi) — Sozlamalar → Hisob va to'lov. Kalitlar faqat Railway o'zgaruvchilarida (STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET). Tariflar tuzilmasi foydalanuvchi bilan kelishiladi.
+
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim
   matnlari tarjimasi; Sozlamalar → Umumiy sozlamalarga "Til" maydoni (9-bosqich).
