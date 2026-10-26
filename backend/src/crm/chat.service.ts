@@ -38,7 +38,7 @@ export interface SocialProvider {
 /** Meta 24 soatlik xabar oynasi */
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 const isSocial = (c?: string | null): c is SocialChannel => c === 'instagram' || c === 'facebook';
-const CH_LABEL: Record<string, string> = { instagram: 'Instagram', facebook: 'Facebook Messenger', telegram: 'Telegram' };
+const CH_LABEL: Record<string, string> = { instagram: 'Instagram', facebook: 'Facebook Messenger', telegram: 'Telegram', web: 'Onlayn chat' };
 
 /** Graph xatosini foydalanuvchiga tushunarli matnga aylantiradi (24 soatlik oyna va boshqalar). */
 export function friendlySocialError(e: any, channel: string): { error: string; message: string } {
@@ -95,6 +95,39 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     this.acTimer = setInterval(() => this.autoCloseTick().catch(() => {}), 10 * 60_000);
   }
   onModuleDestroy() { if (this.acTimer) clearInterval(this.acTimer); }
+
+  static cleanWebChats(raw: unknown): any[] {
+    if (!Array.isArray(raw)) return [];
+    return raw.slice(0, 20).map((w: any, n: number) => ({
+      id: String(w?.id || `w${Date.now()}${n}`).slice(0, 40),
+      key: String(w?.key || '').slice(0, 40),
+      name: String(w?.name || '').trim().slice(0, 80),
+      greeting: String(w?.greeting || '').trim().slice(0, 300),
+      color: /^#[0-9a-fA-F]{6}$/.test(String(w?.color || '')) ? String(w.color) : '#2d7ff9',
+      active: w?.active !== false,
+    })).filter((w: any) => w.name);
+  }
+
+  // ── Onlayn chat vidjeti (ommaviy) ──
+  async webChatByKey(key: string) {
+    const s = await this.getChatSettings();
+    return (s.webChats as any[]).find((w) => w.key && w.key === key && w.active) || null;
+  }
+  async webIngest(key: string, visitorId: string, name: string, text: string) {
+    const w = await this.webChatByKey(key);
+    if (!w) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Chat topilmadi' });
+    const body = String(text || '').trim().slice(0, 1000);
+    if (!body || !/^[\w-]{8,64}$/.test(visitorId)) throw new BadRequestException({ error: 'BAD_REQUEST', message: "Xabar yoki mehmon id noto'g'ri" });
+    const nm = String(name || '').trim().slice(0, 60) || `Saytdan mehmon #${visitorId.slice(0, 4)}`;
+    return this.ingestSocial({ channel: 'web', kind: 'message', pageId: key, threadId: visitorId, name: nm, source: `Onlayn chat: ${w.name}`, text: body, externalId: '' });
+  }
+  async webMessages(key: string, visitorId: string, after?: string) {
+    if (!(await this.webChatByKey(key))) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Chat topilmadi' });
+    if (!/^[\w-]{8,64}$/.test(visitorId)) return { messages: [] };
+    const since = after && !isNaN(Date.parse(after)) ? new Date(after) : new Date(0);
+    const rows = await this.prisma.message.findMany({ where: { channel: 'web', threadId: visitorId, pageId: key, createdAt: { gt: since } }, orderBy: { createdAt: 'asc' }, take: 100, select: { id: true, direction: true, text: true, senderName: true, createdAt: true } });
+    return { messages: rows.map((m) => ({ id: m.id, from: m.direction === 'in' ? 'visitor' : 'agent', text: m.text, name: m.senderName, at: m.createdAt.toISOString() })) };
+  }
 
   static cleanIntents(raw: unknown) {
     if (!Array.isArray(raw)) return [] as any[];
@@ -196,6 +229,8 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       autoCloseHours: ChatService.AUTO_CLOSE.includes(Number(v.autoCloseHours)) ? Number(v.autoCloseHours) : 0,
       // amoCRM «Сокращать ссылки»
       shortLinks: v.shortLinks === true,
+      // amoCRM «Онлайн чаты»: saytga qo'yiladigan chat vidjetlari
+      webChats: ChatService.cleanWebChats(v.webChats),
       // amoCRM «Типовые вопросы»: mavzu — kalit so'zlar → shablon bilan javob yoki Salesbot
       intents: ChatService.cleanIntents(v.intents),
       ignorePhrases: Array.isArray(v.ignorePhrases) ? v.ignorePhrases.map((x: unknown) => String(x).trim().toLowerCase().slice(0, 100)).filter(Boolean).slice(0, 200) : [],
@@ -216,6 +251,11 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (typeof body?.imboxMenu === 'boolean') next.imboxMenu = body.imboxMenu;
     if (body?.replyLimitMin !== undefined && ChatService.REPLY_LIMITS.includes(Number(body.replyLimitMin))) next.replyLimitMin = Number(body.replyLimitMin);
     if (typeof body?.shortLinks === 'boolean') next.shortLinks = body.shortLinks;
+    if (Array.isArray(body?.webChats)) {
+      const old = new Map((cur.webChats as any[]).map((w) => [w.id, w]));
+      // kalit (key) faqat serverda yaratiladi va o'zgarmaydi
+      next.webChats = ChatService.cleanWebChats(body.webChats).map((w: any) => ({ ...w, key: old.get(w.id)?.key || randomBytes(9).toString('base64url') }));
+    }
     if (Array.isArray(body?.intents)) {
       // hisoblagichlar (count) faqat serverda yuritiladi: eski qiymat saqlanadi
       const old = new Map(cur.intents.map((i: any) => [i.id, i.count]));
@@ -330,6 +370,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       const windowOpen = comment ? true : expiresAt.getTime() > Date.now();
       return { ...base, canReply: pageOk && windowOpen, channel: lastIn.channel, channelLabel: CH_LABEL[lastIn.channel], replyKind: lastIn.kind, windowOpen, windowExpiresAt: comment ? null : expiresAt.toISOString(), replyDisabledReason: !pageOk ? 'NOT_CONNECTED' : !windowOpen ? 'WINDOW_CLOSED' : null };
     }
+    if (lastIn?.channel === 'web') return { ...base, canReply: true, channel: 'web', channelLabel: CH_LABEL.web, replyKind: 'message', windowOpen: true, windowExpiresAt: null };
     return { ...base, canReply: tgOk, channel: lead?.telegramChatId ? 'telegram' : null, channelLabel: lead?.telegramChatId ? 'Telegram' : null, replyKind: 'message', windowOpen: true, windowExpiresAt: null };
   }
 
@@ -344,6 +385,12 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     const target = await this.replyTarget(leadId);
     const buttons = (opts.buttons || []).map((b) => String(b).trim()).filter(Boolean)
     const stored = buttons.length ? `${body}\n\n${buttons.map((b) => `[${b}]`).join(' ')}` : body;
+    // Onlayn chat: mijoz vidjet orqali so'rab turadi (polling) — xabarni saqlash yetarli
+    if (target?.channel === 'web' && target.threadId) {
+      const message = await this.prisma.message.create({ data: { leadId, channel: 'web', direction: 'out', text: stored, senderName: user?.name || 'Operator', threadId: target.threadId, pageId: target.pageId, status: 'sent', convNo: await this.convFor(leadId, false) } });
+      await this.activity.record(leadId, 'email', { actorId: user?.id, actorName: user?.name, text: `📤 Onlayn chat: ${body.slice(0, 120)}` });
+      return { message };
+    }
     if (target && isSocial(target.channel) && target.threadId && target.pageId) return this.sendSocial(lead.id, target, body, user, buttons, stored);
 
     if (!lead.telegramChatId) throw new BadRequestException({ error: 'NO_CHAT', message: 'Bu lidda javob yuboriladigan suhbat yo`q' });
@@ -419,7 +466,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
 
   // ── Instagram / Facebook Messenger: kiruvchi xabar va izoh (FacebookService chaqiradi) ──
   /** Mavjud OCHIQ lid (shu kanal + yuboruvchi bo'yicha) yoki yangi saralanmagan lid. */
-  private async findOrCreateSocialLead(channel: SocialChannel, threadId: string, name: string, source: string) {
+  private async findOrCreateSocialLead(channel: SocialChannel | 'web', threadId: string, name: string, source: string) {
     const prev = await this.prisma.message.findFirst({ where: { channel, threadId }, orderBy: { createdAt: 'desc' }, select: { leadId: true, createdAt: true } });
     if (prev) {
       const lead = await this.prisma.lead.findUnique({ where: { id: prev.leadId } });
@@ -433,7 +480,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async ingestSocial(a: {
-    channel: SocialChannel; kind: 'message' | 'comment'; pageId: string; threadId: string; name: string; source: string;
+    channel: SocialChannel | 'web'; kind: 'message' | 'comment'; pageId: string; threadId: string; name: string; source: string;
     text: string; externalId: string; createdAt?: Date;
   }) {
     // Takroriy yetkazib berish (connector qayta urinishi) — bir xil externalId ikki marta yozilmaydi

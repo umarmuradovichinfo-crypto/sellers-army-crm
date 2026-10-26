@@ -249,6 +249,9 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
        [x] «kuniga bir marta 18:00» jamlanma (Toshkent vaqti). [x] «Типовые вопросы» — Sozlamalar → Chatlar: mavzu + kalit so'zlar →
        shablon bilan javob yoki Salesbot ishga tushirish, ishga tushishlar hisobi, e'tiborsiz iboralar; faqat bot javob kutmayotganda.
        [x] «Регулярный отчет» — profilda: har kuni tanlangan soatda (Toshkent) shaxsiy natijalar Telegram'ga + «Hozir yuborish».
+       [x] «Онлайн чаты» — Sozlamalar → Chatlar: sayt vidjeti (nom, salomlashuv, rang, faol), `<script>` kodi; mehmon yozsa bitim +
+       suhbat (kanal «Onlayn chat»), operator javobi vidjetda (4 soniyalik polling), imBox belgisi; ommaviy API /api/v1/webchat/:kalit/*,
+       rate-limit. Qolgan pullik bloklar: NPS («Обращения и NPS» baho yig'ish), tashqi AI-agentlar, davriy xaridlar.
 
 39. [ ] (foydalanuvchi so'rovi 27.10) Haftalik kuzatuvchi: har hafta amoCRM'da yangi qo'shilgan/o'zgargan narsalarni topib, loyihaga
     avtomatik shunday qilib klonlash. Ishlash tartibi: rejalashtirilgan vazifa `amo-clone-weekly-watch` (har dushanba) →

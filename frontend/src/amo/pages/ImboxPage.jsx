@@ -52,13 +52,15 @@ function listDate(iso, t) {
 // Manba ikonkasi: kanal (instagram | facebook | telegram), bo'lmasa manba nomidan
 function chanOf(c) {
   if (c.channel) return c.channel
+  if (/onlayn chat|online chat/i.test(c.source || '')) return 'chat'
   return /telegram/i.test(c.source || '') ? 'telegram' : /facebook|messenger/i.test(c.source || '') ? 'facebook' : 'instagram'
 }
 function SrcIcon({ channel }) {
-  return <span className={`ac-imbox-row__src ac-imbox-row__src--${channel}`}><Ico name={channel} size={8} /></span>
+  const ch = channel === 'web' ? 'chat' : channel
+  return <span className={`ac-imbox-row__src ac-imbox-row__src--${ch}`}><Ico name={ch === 'chat' ? 'form' : ch} size={8} /></span>
 }
-const CHAT_LABEL = { instagram: 'Instagram bilan chat', facebook: 'Messenger bilan chat', telegram: 'Telegram bilan chat' }
-const CHAN_NAME = { instagram: 'Instagram', facebook: 'Facebook Messenger', telegram: 'Telegram' }
+const CHAT_LABEL = { instagram: 'Instagram bilan chat', facebook: 'Messenger bilan chat', telegram: 'Telegram bilan chat', web: 'Onlayn chat', chat: 'Onlayn chat' }
+const CHAN_NAME = { instagram: 'Instagram', facebook: 'Facebook Messenger', telegram: 'Telegram', web: 'Onlayn chat', chat: 'Onlayn chat' }
 
 function Row({ c, on, onClick, sel }) {
   const t = useT()

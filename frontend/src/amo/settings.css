@@ -214,3 +214,4 @@
 .ac-rm-dots i.on.lv-A { background: #8dc63f; border-color: #8dc63f; }
 .ac-prof-notif td:not(:first-child), .ac-prof-notif th:not(:first-child) { text-align: center; width: 110px; }
 .ac-prof-tg { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; font-size: 14px; }
+.ac-set-code { display: inline-block; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; padding: 2px 6px; border-radius: 3px; background: rgba(255,255,255,.07); font-size: 12px; }

@@ -13,6 +13,7 @@ import { CrmAnalyticsService } from './analytics.service';
 import { AutomationController } from './automation.controller';
 import { AutomationService } from './automation.service';
 import { ChatController, TelegramWebhookController, ShortLinkController } from './chat.controller';
+import { WebChatController } from './webchat.controller';
 import { ChatService } from './chat.service';
 import { TelegramClient } from './telegram.client';
 import { ContactsController } from './contacts.controller';
@@ -53,6 +54,7 @@ import { ReminderService } from './reminder.service';
     ChatController,
     TelegramWebhookController,
     ShortLinkController,
+    WebChatController,
   ],
   providers: [
     CrmService,

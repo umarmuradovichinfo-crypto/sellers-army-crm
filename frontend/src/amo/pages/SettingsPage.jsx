@@ -160,6 +160,21 @@ function ChatsSection() {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
   const [edit, setEdit] = useState(null) // shablon tahrirlash: { id?, name, text, active }
+  const [wc, setWc] = useState(null) // «Онлайн чаты»: { id?, name, greeting, color }
+  const [copied, setCopied] = useState('')
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const snippet = (w) => `<script src="${origin}/api/v1/webchat/${w.key}/widget.js" async></script>`
+  const putWc = () => {
+    if (!wc?.name?.trim()) return
+    setForm((f) => {
+      const list = [...(f.webChats || [])]
+      const i = list.findIndex((x) => x.id === wc.id)
+      const item = { id: wc.id || `w${Date.now()}`, key: i >= 0 ? list[i].key : '', name: wc.name.trim(), greeting: wc.greeting || '', color: wc.color || '#2d7ff9', active: wc.active !== false }
+      if (i >= 0) list[i] = item; else list.push(item)
+      return { ...f, webChats: list }
+    })
+    setWc(null)
+  }
   const [intent, setIntent] = useState(null) // «Типовые вопросы» mavzusi: { id?, name, keywords, action, templateId, botId }
   const [bots, setBots] = useState([])
   useEffect(() => { api.get('/crm/salesbots').then((r) => setBots(r.bots || [])).catch(() => {}) }, [])
@@ -265,6 +280,38 @@ function ChatsSection() {
               {[0, 1, 3, 6, 12, 24, 48, 72, 168].map((h) => <option key={h} value={h}>{h === 0 ? t('Hech qachon') : h < 24 ? `${h} ${t('soat')}` : `${h / 24} ${t('kun')}`}</option>)}
             </select>
           </div>
+        </div>
+
+        <div className="ac-set-block">
+          <h2 className="ac-set-block__title">{t('Onlayn chatlar')}</h2>
+          <div className="ac-set-block__desc">{t("Saytingizga chat vidjetini o'rnating: tashrif buyuruvchi yozsa, yangi bitim va suhbat yaratiladi, javobingiz esa vidjetda ko'rinadi. Quyidagi kodni saytingiz </body> oldiga qo'ying. Yangi chat avval «Saqlash» bilan saqlanadi — shundan keyin kod paydo bo'ladi.")}</div>
+          <table className="ac-table ac-set-tpl">
+            <thead><tr><th>{t('Nomi')}</th><th>{t('Holat')}</th><th>{t("Joylash kodi")}</th><th /></tr></thead>
+            <tbody>
+              {(form?.webChats || []).map((x) => (
+                <tr key={x.id}>
+                  <td><a onClick={() => canManage && setWc({ ...x })}>{x.name}</a></td>
+                  <td><span className={`ac-switch ${x.active !== false ? 'on' : ''}`} onClick={() => canManage && setForm((f) => ({ ...f, webChats: f.webChats.map((y) => (y.id === x.id ? { ...y, active: y.active === false } : y)) }))} /></td>
+                  <td className="ac-set-tpl__text">
+                    {x.key ? <><code className="ac-set-code" title={snippet(x)}>{snippet(x)}</code> <a onClick={() => { navigator.clipboard?.writeText(snippet(x)); setCopied(x.id); setTimeout(() => setCopied(''), 1800) }}>{copied === x.id ? t('Nusxalandi') : t('Nusxalash')}</a></> : <span className="ac-muted">—</span>}
+                  </td>
+                  <td>{canManage && <button className="ac-top__dots" title={t("O'chirish")} onClick={() => setForm((f) => ({ ...f, webChats: f.webChats.filter((y) => y.id !== x.id) }))}><Ico name="trash" size={13} /></button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {canManage && !wc && <a className="ac-set-addlink" onClick={() => setWc({ name: '', greeting: '', color: '#2d7ff9' })}>+ {t("Yangi onlayn chat yaratish")}</a>}
+          {wc && (
+            <div className="ac-set-tplform">
+              <input className="ac-input" placeholder={t('Nomi')} value={wc.name} onChange={(e) => setWc({ ...wc, name: e.target.value })} />
+              <input className="ac-input" placeholder={t('Salomlashuv xabari')} value={wc.greeting} onChange={(e) => setWc({ ...wc, greeting: e.target.value })} />
+              <label className="ac-set-radio"><input type="color" value={wc.color || '#2d7ff9'} onChange={(e) => setWc({ ...wc, color: e.target.value })} /><span>{t('Vidjet rangi')}</span></label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="ac-btn ac-btn--blue" disabled={!wc.name.trim()} onClick={putWc}>{t('Tayyor')}</button>
+                <button className="ac-btn ac-btn--plain" onClick={() => setWc(null)}>{t('Bekor qilish')}</button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="ac-set-block">

@@ -98,3 +98,4 @@
 .ac-imbox-bulk button { background: none; border: 1px solid var(--palette-border-primary); border-radius: 3px; padding: 4px 10px; cursor: pointer; color: var(--palette-text-primary); font: 13px var(--font-main); }
 .ac-imbox-bulk button:disabled { opacity: 0.5; cursor: default; }
 .ac-imbox-row__date.overdue { color: #f37575; font-weight: 700; }
+.ac-imbox-row__src--chat { background: #2d7ff9; }

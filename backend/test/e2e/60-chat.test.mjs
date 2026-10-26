@@ -160,3 +160,40 @@ describe('Muntazam hisobot («Регулярный отчет»)', () => {
     await ok('PUT', '/notifications/report', { on: false }, T, 200);
   });
 });
+
+describe('Onlayn chat vidjeti (amoCRM «Онлайн чаты»)', () => {
+  test("vidjet skripti beriladi, mehmon yozadi → bitim + suhbat, operator javobi mehmonga qaytadi; noto'g'ri kalit/rate-limit", async () => {
+    const cs = await ok('GET', '/crm/chat-settings', undefined, T, 200);
+    const saved = await ok('PUT', '/crm/chat-settings', { webChats: [{ id: 'wq1', name: 'Asosiy sayt', greeting: 'Salom!', color: '#118833' }] }, T, 200);
+    const w = saved.webChats[0];
+    assert.ok(w.key && w.key.length >= 8, 'kalit yaratilmadi');
+    const again = await ok('PUT', '/crm/chat-settings', { webChats: [{ id: 'wq1', name: 'Asosiy sayt 2', key: 'HACK-KEY-123' }] }, T, 200);
+    assert.equal(again.webChats[0].key, w.key, "kalit o'zgarmasligi kerak");
+    const base = process.env.E2E_BASE;
+    const js = await fetch(`${base}/webchat/${w.key}/widget.js`);
+    assert.equal(js.status, 200);
+    const code = await js.text();
+    assert.ok(code.includes(w.key));
+    assert.doesNotThrow(() => new Function(code), 'vidjet skriptida sintaksis xatosi');
+    assert.equal((await fetch(`${base}/webchat/yoqkalit123/widget.js`)).status, 404);
+
+    const vid = 'vis' + Math.random().toString(36).slice(2, 12);
+    const send = (text) => fetch(`${base}/webchat/${w.key}/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visitorId: vid, name: 'Saytchi', text }) });
+    assert.equal((await send('Salom, narx qancha?')).status, 201);
+    const conv = (await ok('GET', '/crm/conversations', undefined, T, 200)).conversations.find((c) => /narx qancha/.test(c.last || ''));
+    assert.ok(conv, 'suhbat topilmadi');
+    const lm = await ok('GET', `/crm/leads/${conv.leadId}/messages`, undefined, T, 200);
+    assert.equal(lm.canReply, true);
+    assert.equal(lm.channel, 'web');
+    await ok('POST', `/crm/leads/${conv.leadId}/messages`, { text: 'Assalomu alaykum, javob!' }, T);
+    const got = await (await fetch(`${base}/webchat/${w.key}/messages?visitorId=${vid}`)).json();
+    assert.ok(got.messages.some((m) => m.from === 'agent' && /javob!/.test(m.text)), JSON.stringify(got));
+    assert.ok(got.messages.some((m) => m.from === 'visitor'));
+    const other = await (await fetch(`${base}/webchat/${w.key}/messages?visitorId=otherVisitor1234`)).json();
+    assert.equal(other.messages.length, 0, 'boshqa mehmon xabarlarini ko\'rdi');
+    assert.equal((await fetch(`${base}/webchat/${w.key}/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visitorId: 'x', text: 'a' }) })).status, 400);
+    await ok('PUT', '/crm/chat-settings', { webChats: [{ id: 'wq1', name: 'Asosiy sayt', active: false }] }, T, 200);
+    assert.equal((await send('o\'chiq chatga')).status, 404);
+    await ok('PUT', '/crm/chat-settings', { webChats: cs.webChats || [] }, T, 200);
+  });
+});

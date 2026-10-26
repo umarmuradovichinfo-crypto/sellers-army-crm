@@ -2,6 +2,14 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Onlayn chatlar': 'Онлайн чаты',
+  "Saytingizga chat vidjetini o'rnating: tashrif buyuruvchi yozsa, yangi bitim va suhbat yaratiladi, javobingiz esa vidjetda ko'rinadi. Quyidagi kodni saytingiz </body> oldiga qo'ying. Yangi chat avval «Saqlash» bilan saqlanadi — shundan keyin kod paydo bo'ladi.": 'Установите чат-виджет на сайт: когда посетитель напишет, создадутся сделка и беседа, а ваш ответ отобразится в виджете. Вставьте код перед </body> вашего сайта. Новый чат сначала сохраняется кнопкой «Сохранить» — после этого появится код.',
+  'Joylash kodi': 'Код для вставки',
+  'Nusxalandi': 'Скопировано',
+  'Yangi onlayn chat yaratish': 'Создать новый онлайн чат',
+  'Salomlashuv xabari': 'Приветственное сообщение',
+  'Vidjet rangi': 'Цвет виджета',
+  'Onlayn chat': 'Онлайн чат',
   'Muntazam hisobot': 'Регулярный отчет',
   "Har kuni belgilangan vaqtda shaxsiy natijalaringiz (yangi/yutilgan bitimlar, vazifalar, qo'ng'iroqlar) Telegram'ga yuboriladi. Buning uchun yuqorida Telegram ulangan bo'lishi kerak.": 'Каждый день в заданное время ваши личные результаты (новые/успешные сделки, задачи, звонки) отправляются в Telegram. Для этого выше должен быть подключён Telegram.',
   'Har kuni yuborish': 'Отправлять каждый день',
