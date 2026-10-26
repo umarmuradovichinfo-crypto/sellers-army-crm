@@ -71,6 +71,16 @@ export default function ProfilePage() {
   const [digestBase, setDigestBase] = useState(false)
   const [perm, setPerm] = useState(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
   useEffect(() => { notifService.prefs().then((r) => { setNBase(r.prefs); setNPrefs(r.prefs); setDigest(!!r.digest); setDigestBase(!!r.digest) }).catch(() => {}) }, [])
+  // «Регулярный отчет»: kunlik shaxsiy hisobot Telegram'ga (soat tanlanadi) + «Hozir yuborish»
+  const [rep, setRep] = useState(null) // { on, hour, linked, preview }
+  const [repMsg, setRepMsg] = useState('')
+  const loadRep = () => notifService.report().then(setRep).catch(() => {})
+  useEffect(() => { loadRep() }, [])
+  const saveRep = (patch) => { setRep((r) => ({ ...r, ...patch })); notifService.saveReport(patch).catch(() => {}) }
+  const sendRep = async () => {
+    setRepMsg('')
+    try { const r = await notifService.reportRun(); setRepMsg(r.sent ? t('Hisobot Telegram’ga yuborildi') : t("Yuborilmadi: avval Telegram'ni ulang")) } catch (e) { setRepMsg(e.message || t('Xatolik')) }
+  }
   const [tg, setTg] = useState(null) // { enabled, linked, code, bot, url }
   const loadTg = () => notifService.tgStatus().then(setTg).catch(() => setTg({ enabled: false }))
   useEffect(() => { loadTg() }, [])
@@ -234,6 +244,29 @@ export default function ProfilePage() {
               {perm === 'denied' && <div className="ac-set-err" style={{ marginTop: 8 }}>{t("Brauzer bildirishnomalari brauzer sozlamalarida bloklangan")}</div>}
             </div>
           </>
+        )}
+
+        {rep && (
+          <div className="ac-set-block">
+            <h2 className="ac-set-block__title">{t('Muntazam hisobot')}</h2>
+            <div className="ac-set-block__desc">{t("Har kuni belgilangan vaqtda shaxsiy natijalaringiz (yangi/yutilgan bitimlar, vazifalar, qo'ng'iroqlar) Telegram'ga yuboriladi. Buning uchun yuqorida Telegram ulangan bo'lishi kerak.")}</div>
+            <div className="ac-set-row">
+              <label className="ac-set-toggle" style={{ margin: 0 }}>
+                <span className={`ac-switch ${rep.on ? 'on' : ''}`} onClick={(e) => { e.preventDefault(); saveRep({ on: !rep.on }) }} />
+                <span>{t('Har kuni yuborish')}</span>
+              </label>
+              <select className="ac-select" style={{ width: 120, marginLeft: 16 }} value={rep.hour} onChange={(e) => saveRep({ hour: Number(e.target.value) })}>
+                {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
+              </select>
+              <button className="ac-btn ac-btn--plain ac-import-btn" style={{ marginLeft: 16 }} onClick={sendRep}>{t('Hozir yuborish')}</button>
+            </div>
+            {rep.preview && (
+              <div className="ac-muted" style={{ fontSize: 13, marginTop: 8 }}>
+                {t('Bugun')}: {t('yangi')} {rep.preview.created} · {t('yutilgan')} {rep.preview.won} · {t("yo'qotilgan")} {rep.preview.lost} · {t('vazifa bajarilgan')} {rep.preview.done} · {t("rep§muddati o'tgan")} {rep.preview.overdue} · {t("qo'ng'iroq")} {rep.preview.calls}
+              </div>
+            )}
+            {repMsg && <div className="ac-set-saved" style={{ marginTop: 6 }}>{repMsg}</div>}
+          </div>
         )}
 
         <div className="ac-set-block">

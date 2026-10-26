@@ -37,9 +37,70 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   private timer: ReturnType<typeof setInterval> | null = null;
   onModuleInit() {
     if (process.env.NODE_ENV === 'test') return;
-    this.timer = setInterval(() => this.digestTick().catch(() => {}), 10 * 60_000);
+    this.timer = setInterval(() => { this.digestTick().catch(() => {}); this.reportTick().catch(() => {}) }, 10 * 60_000);
   }
   onModuleDestroy() { if (this.timer) clearInterval(this.timer); }
+
+  // ── amoCRM «Регулярный отчет»: kunlik shaxsiy hisobot Telegram'ga (belgilangan soatda, Toshkent vaqti) ──
+  async reportCfg(userId: string): Promise<{ on: boolean; hour: number }> {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: `notify_prefs:${userId}` } });
+    try { const r = JSON.parse(row?.value || '{}')._report || {}; return { on: r.on === true, hour: Number.isInteger(r.hour) && r.hour >= 0 && r.hour <= 23 ? r.hour : 20 }; } catch { return { on: false, hour: 20 }; }
+  }
+  async saveReport(userId: string, cfg: { on?: boolean; hour?: number }) {
+    const cur = await this.reportCfg(userId);
+    const next = { on: typeof cfg.on === 'boolean' ? cfg.on : cur.on, hour: Number.isInteger(cfg.hour) && (cfg.hour as number) >= 0 && (cfg.hour as number) <= 23 ? (cfg.hour as number) : cur.hour };
+    const key = `notify_prefs:${userId}`;
+    const row = await this.prisma.appSetting.findUnique({ where: { key } });
+    let v: Record<string, any> = {}; try { v = JSON.parse(row?.value || '{}'); } catch { /* */ }
+    v._report = next;
+    const value = JSON.stringify(v);
+    await this.prisma.appSetting.upsert({ where: { key }, create: { key, value }, update: { value } });
+    this.prefCache.delete(userId);
+    return next;
+  }
+  /** Bugungi (Toshkent kuni) shaxsiy ko'rsatkichlar */
+  async reportData(userId: string) {
+    const tash = new Date(Date.now() + 5 * 3600_000);
+    const start = new Date(Date.UTC(tash.getUTCFullYear(), tash.getUTCMonth(), tash.getUTCDate()) - 5 * 3600_000);
+    const [created, won, lost, done, overdue, calls, missed] = await Promise.all([
+      this.prisma.lead.count({ where: { assigneeId: userId, createdAt: { gte: start } } }),
+      this.prisma.lead.count({ where: { assigneeId: userId, wonAt: { gte: start } } }),
+      this.prisma.lead.count({ where: { assigneeId: userId, lostAt: { gte: start } } }),
+      this.prisma.leadTask.count({ where: { assigneeId: userId, done: true, doneAt: { gte: start } } }),
+      this.prisma.leadTask.count({ where: { assigneeId: userId, done: false, dueDate: { lt: new Date() } } }),
+      this.prisma.callLog.count({ where: { userId, startedAt: { gte: start } } }),
+      this.prisma.callLog.count({ where: { userId, startedAt: { gte: start }, status: 'missed' } }),
+    ]);
+    return { created, won, lost, done, overdue, calls, missed, day: tash.toISOString().slice(0, 10) };
+  }
+  /** Hisobotni Telegram'ga yuboradi; ulanmagan bo'lsa false */
+  async sendReport(userId: string): Promise<{ sent: boolean; data: Awaited<ReturnType<NotificationService['reportData']>> }> {
+    const data = await this.reportData(userId);
+    const chatId = await this.tgChatId(userId);
+    if (!chatId) return { sent: false, data };
+    const text = `📊 Kunlik hisobot (${data.day})\n• Yangi bitimlar: ${data.created}\n• Yutilgan: ${data.won} · Yo'qotilgan: ${data.lost}\n• Bajarilgan vazifalar: ${data.done} · Muddati o'tgan: ${data.overdue}\n• Qo'ng'iroqlar: ${data.calls} (o'tkazib yuborilgan: ${data.missed})`;
+    const r = await this.tg.sendMessage(chatId, text);
+    return { sent: !!r.ok, data };
+  }
+  /** Har soat boshida: shu soatni tanlagan va Telegram ulangan xodimlarga (kuniga bir marta) */
+  async reportTick() {
+    const tash = new Date(Date.now() + 5 * 3600_000);
+    const hour = tash.getUTCHours();
+    const day = tash.toISOString().slice(0, 10);
+    const rows = await this.prisma.appSetting.findMany({ where: { key: { startsWith: 'notify_tg:' } } });
+    let sent = 0;
+    for (const r of rows) {
+      const userId = r.key.slice('notify_tg:'.length);
+      const cfg = await this.reportCfg(userId);
+      if (!cfg.on || cfg.hour > hour) continue;
+      const lk = `notify_report_last:${userId}`;
+      const last = await this.prisma.appSetting.findUnique({ where: { key: lk } });
+      if (last?.value === day) continue;
+      await this.prisma.appSetting.upsert({ where: { key: lk }, create: { key: lk, value: day }, update: { value: day } });
+      if ((await this.sendReport(userId)).sent) sent++;
+    }
+    return sent;
+  }
 
   /** Toshkent (UTC+5) 18:00 dan keyin, kuniga bir marta: jamlanmani yoqqan va Telegram ulangan xodimlarga */
   async digestTick() {
@@ -78,6 +139,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     const cur = await this.prefs(userId);
     const next: Record<string, any> = { ...cur };
     next._digest = typeof digest === 'boolean' ? digest : await this.digestOn(userId);
+    next._report = await this.reportCfg(userId); // hisobot sozlamasi (profil) saqlanib qoladi
     for (const k of NotificationService.CATS) {
       const v = body?.[k];
       if (v && typeof v === 'object') next[k] = { main: typeof v.main === 'boolean' ? v.main : cur[k].main, browser: typeof v.browser === 'boolean' ? v.browser : cur[k].browser, telegram: typeof v.telegram === 'boolean' ? v.telegram : cur[k].telegram };

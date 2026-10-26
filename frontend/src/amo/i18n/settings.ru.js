@@ -2,6 +2,18 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Muntazam hisobot': 'Регулярный отчет',
+  "Har kuni belgilangan vaqtda shaxsiy natijalaringiz (yangi/yutilgan bitimlar, vazifalar, qo'ng'iroqlar) Telegram'ga yuboriladi. Buning uchun yuqorida Telegram ulangan bo'lishi kerak.": 'Каждый день в заданное время ваши личные результаты (новые/успешные сделки, задачи, звонки) отправляются в Telegram. Для этого выше должен быть подключён Telegram.',
+  'Har kuni yuborish': 'Отправлять каждый день',
+  'Hozir yuborish': 'Отправить сейчас',
+  'Hisobot Telegram’ga yuborildi': 'Отчёт отправлен в Telegram',
+  "Yuborilmadi: avval Telegram'ni ulang": 'Не отправлено: сначала подключите Telegram',
+  'yangi': 'новых',
+  'yutilgan': 'успешных',
+  "yo'qotilgan": 'потеряно',
+  'vazifa bajarilgan': 'задач выполнено',
+  "rep§muddati o'tgan": 'просрочено',
+  "qo'ng'iroq": 'звонков',
   'Tipik savollar': 'Типовые вопросы',
   "Mijoz yozgan mavzularni kalit so'zlar bo'yicha aniqlang va avtomatik ravishda xabar shablonini yuboring yoki botni ishga tushiring. Javob faqat mijoz yozganda va botdan javob kutilmayotgan paytda ishlaydi.": 'Определяйте темы, о которых пишет клиент, по ключевым словам и автоматически отправляйте шаблон сообщения или запускайте бота. Срабатывает только на сообщения клиента, когда бот не ожидает ответа.',
   'Mavzu': 'Тема',

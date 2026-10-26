@@ -128,3 +128,35 @@ describe('Tipik savollar (amoCRM «Типовые вопросы»)', () => {
     await ok('PUT', '/crm/chat-settings', { intents: [], ignorePhrases: [] }, A, 200);
   });
 });
+
+describe('Muntazam hisobot («Регулярный отчет»)', () => {
+  test("sozlama saqlanadi va prefs saqlanganda o'chib ketmaydi; ko'rsatkichlar qaytadi; Telegram ulanmagan bo'lsa yuborilmaydi", async () => {
+    const r = await ok('PUT', '/notifications/report', { on: true, hour: 9 }, T, 200);
+    assert.deepEqual([r.on, r.hour], [true, 9]);
+    await ok('PUT', '/notifications/prefs', { prefs: { task: { main: true } } }, T, 200);
+    const g = await ok('GET', '/notifications/report', undefined, T, 200);
+    assert.equal(g.on, true, 'prefs saqlash hisobot sozlamasini o\'chirib yubordi');
+    assert.equal(g.hour, 9);
+    assert.equal(typeof g.preview.created, 'number');
+    assert.equal((await ok('PUT', '/notifications/report', { hour: 99 }, T, 200)).hour, 9, "noto'g'ri soat qabul qilindi");
+    const st = await ok('GET', '/notifications/telegram', undefined, T, 200);
+    if (!st.linked) assert.equal((await ok('POST', '/notifications/report-run', {}, T)).sent, false);
+    await ok('PUT', '/notifications/report', { on: false }, T, 200);
+  });
+});
+
+describe('Muntazam hisobot («Регулярный отчет»)', () => {
+  test("sozlama saqlanadi, ko'rsatkichlar qaytadi, Telegram ulanmagan bo'lsa yuborilmaydi", async () => {
+    const r0 = await ok('GET', '/notifications/report', undefined, T, 200);
+    assert.equal(typeof r0.preview.created, 'number');
+    const s = await ok('PUT', '/notifications/report', { on: true, hour: 9 }, T, 200);
+    assert.deepEqual([s.on, s.hour], [true, 9]);
+    assert.equal((await ok('PUT', '/notifications/report', { hour: 99 }, T, 200)).hour, 9, "noto'g'ri soat qabul qilindi");
+    // hisobot sozlamasi bildirishnoma sozlamasini saqlaganda yo'qolmasligi kerak
+    await ok('PUT', '/notifications/prefs', { prefs: { task: { browser: true } } }, T, 200);
+    assert.equal((await ok('GET', '/notifications/report', undefined, T, 200)).on, true);
+    const run = await ok('POST', '/notifications/report-run', {}, T);
+    assert.equal(typeof run.sent, 'boolean');
+    await ok('PUT', '/notifications/report', { on: false }, T, 200);
+  });
+});

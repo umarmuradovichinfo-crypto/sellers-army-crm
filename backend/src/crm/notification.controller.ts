@@ -14,6 +14,9 @@ export class NotificationController {
   @Delete('telegram') tgUnlink(@CurrentUser('id') userId: string) { return this.s.tgUnlink(userId); }
   @Get('prefs') async prefs(@CurrentUser('id') userId: string) { return { prefs: await this.s.prefs(userId), digest: await this.s.digestOn(userId) }; }
   @Put('prefs') savePrefs(@CurrentUser('id') userId: string, @Body() body: any) { return this.s.savePrefs(userId, body?.prefs || {}, typeof body?.digest === 'boolean' ? body.digest : undefined); }
+  @Get('report') async report(@CurrentUser('id') userId: string) { return { ...(await this.s.reportCfg(userId)), linked: !!(await this.s.tgChatId(userId)), preview: await this.s.reportData(userId) }; }
+  @Put('report') saveReport(@CurrentUser('id') userId: string, @Body() body: { on?: boolean; hour?: number }) { return this.s.saveReport(userId, body || {}); }
+  @Post('report-run') reportRun(@CurrentUser('id') userId: string) { return this.s.sendReport(userId); }
   @Post('digest-run') digestRun(@CurrentUser('id') userId: string) { return this.s.sendDigest(userId).then((sent) => ({ sent })); }
   @Post(':id/read') read(@Param('id') id: string, @CurrentUser('id') userId: string) { return this.s.markRead(userId, id); }
   @Post('read-all') readAll(@CurrentUser('id') userId: string) { return this.s.markAllRead(userId); }
