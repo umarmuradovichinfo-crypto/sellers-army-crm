@@ -18,6 +18,7 @@
 - (26.10, 2) Maqsadlar (goals): oy chegarasi Toshkent vaqti + huquq bo'yicha tushum; vazifalar ro'yxati (3000 limit, bajarilganlar oxirgi 90 kun, tartib); useOutside eskirgan closure; catchsiz `.then` (imBox yopish, Telegram uzish).
 - (26.10, 3) Telefoniya sinxroni eski tarix uchun lid yaratmaydi va avtomatlashtirish (xabar) ishga tushirmaydi (faqat oxirgi sutka); IG/FB/web xabarlari suhbat bo'yicha ketma-ket (parallel yetkazishda ikkita bitim/takror xabar bo'lmaydi).
 - (26.10, 4) Dashboard yutilgan/yo'qotilgan davr bo'yicha wonAt/lostAt (card'ga qo'shildi); SettingsPage SWR formani bosib ketmaydi; AmoShell bildirishnoma intervali eskirgan `t` ishlatmaydi.
+- (26.10, 5) Rahbar qulfi (bir nechta nusxada fon vazifalari bir marta); LeadsList ommaviy bosqich — barcha voronkalar.
 
 ## Qoldi (ustuvorlik bo'yicha)
 1. [x] To'liq QA yashil (144/144, UI 35×3 xatosiz) — LeadCard hook-tartib xatosi (o'z o'zgarishim) tuzatildi.

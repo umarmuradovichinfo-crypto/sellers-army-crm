@@ -6,6 +6,7 @@ import { randomBytes } from 'crypto';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { BillingService } from '../billing/billing.service';
+import { LeaderService } from '../common/leader.service';
 import { ActivityService } from './activity.service';
 import { AutomationService } from './automation.service';
 import { NotificationService } from './notification.service';
@@ -78,6 +79,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     private readonly automation: AutomationService,
     private readonly pset: PipelineSettingsService,
     private readonly billing: BillingService,
+    private readonly leader: LeaderService,
   ) {}
 
   private social: SocialProvider | null = null;
@@ -98,7 +100,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   onModuleInit() {
     this.automation.chatSend = (leadId, text) => this.sendMessage(leadId, text, undefined);
     if (process.env.NODE_ENV === 'test') return;
-    this.acTimer = setInterval(() => this.autoCloseTick().catch(() => {}), 10 * 60_000);
+    this.acTimer = setInterval(() => this.leader.guard(() => this.autoCloseTick()).catch(() => {}), 10 * 60_000);
   }
   onModuleDestroy() { if (this.acTimer) clearInterval(this.acTimer); }
 

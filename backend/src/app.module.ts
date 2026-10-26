@@ -19,6 +19,7 @@ import { OnlinePbxModule } from './onlinepbx/onlinepbx.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SettingsModule } from './settings/settings.module';
 import { BillingModule } from './billing/billing.module';
+import { LeaderModule } from './common/leader.service';
 import { BillingGuard } from './billing/billing.guard';
 import { RightsModule } from './common/rights/rights.service';
 
@@ -52,6 +53,7 @@ function resolveFrontendDist(): string {
     CrmModule,
     SettingsModule,
     BillingModule,
+    LeaderModule,
     OnlinePbxModule,
     FacebookModule,
   ],

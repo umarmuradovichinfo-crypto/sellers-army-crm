@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { LeaderService } from '../common/leader.service';
 import { TelegramClient } from './telegram.client';
 
 /**
@@ -10,7 +11,7 @@ import { TelegramClient } from './telegram.client';
  */
 @Injectable()
 export class NotificationService implements OnModuleInit, OnModuleDestroy {
-  constructor(private readonly prisma: PrismaService, private readonly tg: TelegramClient) {}
+  constructor(private readonly prisma: PrismaService, private readonly tg: TelegramClient, private readonly leader: LeaderService) {}
 
   // amoCRM «Настройки уведомлений»: tur × kanal (main — bildirishnomalar markazi, browser — brauzer oynasi)
   static readonly CATS = ['task', 'task_due', 'lead', 'mention', 'automation'] as const;
@@ -37,7 +38,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   private timer: ReturnType<typeof setInterval> | null = null;
   onModuleInit() {
     if (process.env.NODE_ENV === 'test') return;
-    this.timer = setInterval(() => { this.digestTick().catch(() => {}); this.reportTick().catch(() => {}) }, 10 * 60_000);
+    this.timer = setInterval(() => { this.leader.guard(async () => { await this.digestTick().catch(() => {}); await this.reportTick().catch(() => {}) }).catch(() => {}) }, 10 * 60_000);
   }
   onModuleDestroy() { if (this.timer) clearInterval(this.timer); }
 

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { LeaderService } from '../common/leader.service';
 import { stageCloseData } from './stage-close';
 import { ActivityService } from './activity.service';
 import { NotificationService } from './notification.service';
@@ -55,6 +56,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
   private ticking = false;
 
   constructor(
+    private readonly leader: LeaderService,
     private readonly prisma: PrismaService,
     private readonly activity: ActivityService,
     private readonly notif: NotificationService,
@@ -74,8 +76,8 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit() {
-    setTimeout(() => this.tick().catch(() => {}), 20_000).unref?.();
-    this.timer = setInterval(() => this.tick().catch(() => {}), 60_000);
+    setTimeout(() => this.leader.guard(() => this.tick()).catch(() => {}), 20_000).unref?.();
+    this.timer = setInterval(() => this.leader.guard(() => this.tick()).catch(() => {}), 60_000);
     this.timer.unref?.();
   }
   onModuleDestroy() {

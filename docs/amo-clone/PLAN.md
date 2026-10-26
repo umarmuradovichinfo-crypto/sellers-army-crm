@@ -288,7 +288,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     (amoCRM'dagi kabi) — Sozlamalar → Hisob va to'lov. Kalitlar faqat Railway o'zgaruvchilarida (STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET). Tariflar tuzilmasi foydalanuvchi bilan kelishiladi.
 
-43. [~] TAYYOR (sinalmagan): `deploy/` — compose (Postgres+Caddy), new-customer.sh, update.sh, backup.sh (age+rclone), check-backup.sh, restore-drill.sh, harden.sh, README. Haqiqiy serverda sinash, rahbar qulfi (B daraja) QOLDI. (foydalanuvchi so'rovi 26.10) Railway'dan o'z serverimizga (VPS) ko'chish. Reja: Docker Compose (ilova + umumiy Postgres + Caddy HTTPS),
+43. [~] TAYYOR (sinalmagan): `deploy/` — compose (Postgres+Caddy), new-customer.sh, update.sh, backup.sh (age+rclone), check-backup.sh, restore-drill.sh, harden.sh, README. Rahbar qulfi (LeaderService, app_settings ijarasi; barcha fon taymerlari faqat rahbarda) BAJARILDI + test. Haqiqiy serverda sinash (foydalanuvchi VPS olgach), B daraja replikatsiya QOLDI. (foydalanuvchi so'rovi 26.10) Railway'dan o'z serverimizga (VPS) ko'chish. Reja: Docker Compose (ilova + umumiy Postgres + Caddy HTTPS),
     har mijoz uchun alohida nusxa (subdomen), `new-customer` skripti, har kecha `pg_dump` zaxira (boshqa joyga), yangilash skripti.
     Server joyi: O'zbekiston fuqarolari shaxsiy ma'lumoti (telefon, ism) uchun mahalliy server xavfsizroq (Shaxsiy ma'lumotlar qonuni, 2026-03 tahriri).
     Xarajat hisobi chatda berildi (6–20$/server, 1 serverga ~4–10 mijoz). Qaror kutilmoqda: server provayderi va joyi.

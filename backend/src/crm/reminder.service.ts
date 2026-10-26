@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { LeaderService } from '../common/leader.service';
 import { NotificationService } from './notification.service';
 
 /**
@@ -15,11 +16,12 @@ export class ReminderService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notif: NotificationService,
+    private readonly leader: LeaderService,
   ) {}
 
   onModuleInit() {
-    setTimeout(() => this.tick().catch(() => {}), 30_000);
-    setInterval(() => this.tick().catch(() => {}), 60 * 60 * 1000);
+    setTimeout(() => this.leader.guard(() => this.tick()).catch(() => {}), 30_000);
+    setInterval(() => this.leader.guard(() => this.tick()).catch(() => {}), 60 * 60 * 1000);
   }
 
   async tick() {

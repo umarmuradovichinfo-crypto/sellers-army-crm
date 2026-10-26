@@ -14,6 +14,7 @@ import { ActivityService } from '../crm/activity.service';
 import { AutomationService } from '../crm/automation.service';
 import { PipelineSettingsService } from '../crm/pipeline-settings.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { LeaderService } from '../common/leader.service';
 import { OnlinePbxClient } from './onlinepbx.client';
 import { OnlinePbxConfigService, PbxConfig } from './onlinepbx-config.service';
 import { createHash, timingSafeEqual } from 'crypto';
@@ -44,6 +45,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   private pendingIntents: Array<{ leadId: string; tail: string; at: number }> = [];
 
   constructor(
+    private readonly leader: LeaderService,
     private readonly prisma: PrismaService,
     private readonly pbx: OnlinePbxClient,
     private readonly cfg: OnlinePbxConfigService,
@@ -57,7 +59,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   // bo'lishi bilan qo'ng'iroq/yozuv ~15-20s ichida platformada avtomatik ko'rinadi.
   onModuleInit() {
     this.syncTimer = setInterval(() => {
-      this.syncHistory({ force: true, minutes: 30 }).catch(() => {});
+      this.leader.guard(() => this.syncHistory({ force: true, minutes: 30 })).catch(() => {});
     }, 10_000);
     if (typeof this.syncTimer.unref === 'function') this.syncTimer.unref();
   }

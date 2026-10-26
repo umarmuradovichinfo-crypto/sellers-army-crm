@@ -97,7 +97,11 @@ export default function LeadsList() {
   // Bosqichlar (ommaviy "bosqichni o'zgartirish" uchun) — bir marta; filtr ma'lumotlari useFilterMeta'da
   const { data } = useApi(async () => {
     const pipe = await crmService.getPipeline(undefined, { limit: 0 })
-    return { stages: pipe.stages || [] }
+    // boshqa voronkalar bosqichlari ham (ommaviy ko'chirishda bitim istalgan voronkaga o'tishi mumkin); bir nechta voronka bo'lsa «Voronka › Bosqich»
+    const others = await Promise.all((pipe.pipelines || []).filter((p) => p.id).map((p) => crmService.getPipeline(p.id, { limit: 0 }).then((r) => ({ name: p.name, stages: r.stages || [] })).catch(() => ({ name: p.name, stages: [] }))))
+    const mainName = (pipe.pipelines || []).find((p) => !p.id)?.name || 'Asosiy voronka'
+    const label = (pn, st) => (others.length ? { ...st, name: `${pn} › ${st.name}` } : st)
+    return { stages: [...(pipe.stages || []).map((st) => label(mainName, st)), ...others.flatMap((o) => o.stages.map((st) => label(o.name, st)))] }
   }, [], 'amo-leads-list-meta', 60000)
   const meta = useFilterMeta()
   const Q = useLeadsQuery({ defaultSort: { key: 'createdAt', dir: 'desc' } })

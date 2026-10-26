@@ -54,7 +54,7 @@ qolganlar eski versiyada qoladi.
 
 ## 6. Keyingi daraja (mijozlar ko'payganda)
 Ikkinchi server (boshqa provayderda) + Postgres jonli replikatsiyasi + domen almashishi — qarang `docs/amo-clone/PLAN.md` 43 (B daraja).
-Ilovada fon vazifalari (eslatma, avtomatlashtirish) ikkala serverda ikki marta ishlamasligi uchun «rahbar qulfi» (Postgres advisory lock) avval qo'shilishi kerak.
+Ilovada «rahbar qulfi» tayyor (`LeaderService`): ikkala nusxa bir bazaga ulansa fon vazifalari (eslatma, avtomatlashtirish, Salesbot, OnlinePBX sinxron, hisobotlar) faqat bittasida ishlaydi, rahbar o'chsa ~45 soniyada ikkinchisi egallaydi.
 
 ## Tekshiruv ro'yxati (birinchi o'rnatishdan keyin)
 - [ ] `https://<nom>.<DOMEN>` ochiladi, HTTPS sertifikat bor

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleIni
 
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
+import { LeaderService } from '../common/leader.service';
 import { ActivityService } from './activity.service';
 import { AutomationService } from './automation.service';
 import { ChatService } from './chat.service';
@@ -41,6 +42,7 @@ export class SalesbotService implements OnModuleInit {
   private readonly logger = new Logger('Salesbot');
 
   constructor(
+    private readonly leader: LeaderService,
     private readonly prisma: PrismaService,
     private readonly automation: AutomationService,
     private readonly chat: ChatService,
@@ -54,7 +56,7 @@ export class SalesbotService implements OnModuleInit {
       run: (botId, leadId) => this.start(botId, leadId).then(() => undefined),
     };
     // pauzadan qaytish
-    const t = setInterval(() => this.tick().catch((e) => this.logger.warn('tick: ' + (e as Error).message)), 30_000);
+    const t = setInterval(() => this.leader.guard(() => this.tick()).catch((e) => this.logger.warn('tick: ' + (e as Error).message)), 30_000);
     t.unref?.();
   }
 
