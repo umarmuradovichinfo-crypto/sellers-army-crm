@@ -50,7 +50,7 @@ qolganlar eski versiyada qoladi.
 2. Har mijoz uchun: `./new-customer.sh <nom>` o'rniga mavjud `customers/` va `.env` fayllarini zaxiradan qaytaring (yoki skriptni yurgizib bazani tiklang):
    `age -d -i kalit.key nusxa.dump.age | docker exec -i crm-postgres pg_restore -U postgres --clean --if-exists --no-owner -d crm_<nom>`.
 3. DNS ni yangi IP ga o'tkazing. Taxminan 1 soat.
-> `customers/*/.env` (JWT va baza parollari) ham zaxiralanishi kerak — ularni parol menejeriga yoki shifrlangan arxivga qo'shing (hozir `backup.sh` faqat bazani oladi).
+> `backup.sh` bazalar bilan birga server sozlamalarini ham (`deploy/.env`, `customers/*/.env`, Caddy) shifrlab `config/` ga saqlaydi: `age -d -i kalit.key config-….tar.age | tar -x -C /opt/crm/deploy`.
 
 ## 6. Keyingi daraja (mijozlar ko'payganda)
 Ikkinchi server (boshqa provayderda) + Postgres jonli replikatsiyasi + domen almashishi — qarang `docs/amo-clone/PLAN.md` 43 (B daraja).

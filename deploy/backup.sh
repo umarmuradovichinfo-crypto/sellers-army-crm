@@ -22,6 +22,13 @@ for d in customers/*/; do
   fi
   rm -f "$f"
 done
+# Server sozlamalari (JWT/baza parollari, litsenziya siri, Caddy) ham shifrlangan holda — server o'lsa mijoz nusxalarini aynan tiklash uchun
+if tar -C . -cf - .env customers caddy/sites 2>/dev/null | age -r "$AGE_PUBLIC_KEY" > "$TMP/config-$TS.tar.age" && [ "$(stat -c %s "$TMP/config-$TS.tar.age" 2>/dev/null || stat -f %z "$TMP/config-$TS.tar.age")" -gt 256 ]; then
+  rclone copyto "$TMP/config-$TS.tar.age" "$RCLONE_REMOTE/config/config-$TS.tar.age"
+else
+  echo "XATO: server sozlamalari zaxirasi olinmadi"; fail=$((fail+1))
+fi
+rclone delete --min-age 40d "$RCLONE_REMOTE/config" || true
 rclone delete --min-age 40d "$RCLONE_REMOTE/daily" || true
 rclone delete --min-age 400d "$RCLONE_REMOTE/monthly" || true
 if [ "$fail" -gt 0 ]; then notify "❌ CRM zaxira: $fail ta mijozda xato ($done_n tasi muvaffaqiyatli)"; exit 1; fi
