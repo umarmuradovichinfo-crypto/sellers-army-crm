@@ -9,6 +9,7 @@ export type ActivityType =
   | 'stage'
   | 'note'
   | 'team_chat'
+  | 'link'
   | 'task_created'
   | 'task_done'
   | 'call'

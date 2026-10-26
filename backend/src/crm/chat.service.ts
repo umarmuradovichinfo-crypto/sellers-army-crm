@@ -1,6 +1,7 @@
 import { RightsService } from '../common/rights/rights.service';
 import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
+import { randomBytes } from 'crypto';
 
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -95,6 +96,35 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   }
   onModuleDestroy() { if (this.acTimer) clearInterval(this.acTimer); }
 
+  static publicBase() {
+    return (process.env.PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).trim().replace(/\/+$/, '');
+  }
+  /** «Сокращать ссылки» yoqilgan bo'lsa matndagi http(s) havolalarni kuzatiladigan qisqa havolaga almashtiradi */
+  async shorten(text: string, leadId: string | null): Promise<string> {
+    const base = ChatService.publicBase();
+    if (!base || !(await this.getChatSettings()).shortLinks) return text;
+    const urls = [...new Set(text.match(/https?:\/\/[^\s<>"']+/g) || [])].filter((u) => !u.startsWith(`${base}/api/v1/l/`)).slice(0, 10);
+    for (const url of urls) {
+      const clean = url.replace(/[).,!?;:]+$/, '');
+      const code = randomBytes(6).toString('base64url');
+      await this.prisma.shortLink.create({ data: { code, url: clean.slice(0, 2000), leadId } });
+      text = text.split(clean).join(`${base}/api/v1/l/${code}`);
+    }
+    return text;
+  }
+  /** Qisqa havola bosildi: hisoblagich, bitim lentasiga yozuv, mas'ulga bildirishnoma; asl manzil */
+  async openShortLink(code: string): Promise<string | null> {
+    const l = await this.prisma.shortLink.findUnique({ where: { code } });
+    if (!l || !/^https?:\/\//i.test(l.url)) return null;
+    await this.prisma.shortLink.update({ where: { code }, data: { clicks: { increment: 1 }, lastClickAt: new Date() } });
+    if (l.leadId && l.clicks === 0) {
+      await this.activity.record(l.leadId, 'link', { actorName: 'Mijoz', text: `Havola ochildi: ${l.url}` });
+      const lead = await this.prisma.lead.findUnique({ where: { id: l.leadId }, select: { assigneeId: true, name: true } });
+      if (lead?.assigneeId) await this.notif.notify(lead.assigneeId, `Mijoz havolani ochdi: ${lead.name}`, { type: 'mention', link: `/leads/detail/${l.leadId}` });
+    }
+    return l.url;
+  }
+
   /** Oxirgi xabari N soatdan eski ochiq suhbatlarni yopadi («Robot»). Yopilganlar soni. */
   async autoCloseTick(): Promise<number> {
     const { autoCloseHours } = await this.getChatSettings();
@@ -123,6 +153,8 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       // «Отмечать событие, если превышено время ответа на сообщение» (daqiqa; 0 — o'chiq)
       replyLimitMin: ChatService.REPLY_LIMITS.includes(Number(v.replyLimitMin)) ? Number(v.replyLimitMin) : 0,
       autoCloseHours: ChatService.AUTO_CLOSE.includes(Number(v.autoCloseHours)) ? Number(v.autoCloseHours) : 0,
+      // amoCRM «Сокращать ссылки»
+      shortLinks: v.shortLinks === true,
     };
   }
   async saveChatSettings(body: any) {
@@ -139,6 +171,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (['always', 'no_active', 'no_leads'].includes(body?.conversationRule)) next.conversationRule = body.conversationRule;
     if (typeof body?.imboxMenu === 'boolean') next.imboxMenu = body.imboxMenu;
     if (body?.replyLimitMin !== undefined && ChatService.REPLY_LIMITS.includes(Number(body.replyLimitMin))) next.replyLimitMin = Number(body.replyLimitMin);
+    if (typeof body?.shortLinks === 'boolean') next.shortLinks = body.shortLinks;
     if (body?.autoCloseHours !== undefined && ChatService.AUTO_CLOSE.includes(Number(body.autoCloseHours))) next.autoCloseHours = Number(body.autoCloseHours);
     const value = JSON.stringify(next);
     await this.prisma.appSetting.upsert({ where: { key: ChatService.SETTINGS_KEY }, update: { value }, create: { key: ChatService.SETTINGS_KEY, value } });
@@ -250,8 +283,9 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   async sendMessage(leadId: string, text: string, user?: AuthUser, opts: { buttons?: string[] } = {}) {
     const lead = await this.prisma.lead.findUnique({ where: { id: leadId } });
     if (!lead) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
-    const body = String(text || '').slice(0, 4000);
+    let body = String(text || '').slice(0, 4000);
     if (!body.trim()) throw new BadRequestException({ error: 'EMPTY', message: 'Bo`sh xabar' });
+    body = await this.shorten(body, leadId);
 
     const target = await this.replyTarget(leadId);
     const buttons = (opts.buttons || []).map((b) => String(b).trim()).filter(Boolean)

@@ -1,5 +1,6 @@
 import { RightsService } from '../common/rights/rights.service';
-import { BadRequestException, Body, Controller, Get, Query, Headers, Param, Post, Put } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Query, Headers, Param, Post, Put, Res } from '@nestjs/common';
+import type { Response } from 'express';
 
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
@@ -16,6 +17,20 @@ export class TelegramWebhookController {
   @Post('webhook')
   webhook(@Body() body: any, @Headers('x-telegram-bot-api-secret-token') secret?: string) {
     return this.chat.handleTelegramUpdate(body, secret);
+  }
+}
+
+// amoCRM «Сокращать ссылки»: mijoz bosgan qisqa havola (login'siz) → asl manzilga 302
+@Controller('l')
+export class ShortLinkController {
+  constructor(private readonly chat: ChatService) {}
+
+  @Public()
+  @Get(':code')
+  async open(@Param('code') code: string, @Res() res: Response) {
+    const url = /^[\w-]{4,20}$/.test(code) ? await this.chat.openShortLink(code) : null;
+    if (!url) return res.status(404).send('Havola topilmadi');
+    return res.redirect(302, url);
   }
 }
 

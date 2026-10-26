@@ -16,6 +16,8 @@ export E2E_EMAIL="qa-admin@test.local" E2E_PASSWORD="qa-test-Passw0rd!"
 unset SEED_ADMIN_EMAIL SEED_ADMIN_PASSWORD SETUP_TOKEN ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN TELEGRAM_WEBHOOK_SECRET || true
 # Telegram yoqilgan holat (webhook maxfiy kaliti tekshiruvi uchun); API manzili yopiq port — tashqariga hech narsa ketmaydi
 export TELEGRAM_BOT_TOKEN="e2e-test-token" TELEGRAM_API_BASE="http://127.0.0.1:9"
+# «Сокращать ссылки» qisqa havolalari uchun ommaviy manzil
+export PUBLIC_URL="http://localhost:${PORT}"
 
 DBURL_ADMIN="${BASE_URL_DB%/*}/postgres"
 psql "$DBURL_ADMIN" -qc "DROP DATABASE IF EXISTS ${TEST_DB} WITH (FORCE)" >/dev/null

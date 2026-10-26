@@ -48,7 +48,7 @@ const NOTIF_TITLE = { task: 'Vazifa', task_due: 'Vazifa', lead: 'Bitim', mention
 
 // amoCRM: sarlavha — voqea turi («Новая заявка», «Просроченная задача»), pastida — bitim/vazifa nomi
 const NOTIF_PREFIX = ['Bugungi vazifa', 'Kechikkan vazifa', 'Yangi vazifa', 'Avtomatik vazifa', 'Dublikat', 'Yangi lid biriktirildi',
-  'Sizga lid biriktirildi', 'Yangi bitim biriktirildi', 'Formadan yangi lid', "Formadan dublikat so'rov", 'Telegram xabar']
+  'Sizga lid biriktirildi', 'Yangi bitim biriktirildi', 'Mijoz havolani ochdi', 'Formadan yangi lid', "Formadan dublikat so'rov", 'Telegram xabar']
 function notifSplit(n, t) {
   const text = String(n.text || '')
   const i = text.indexOf(': ')

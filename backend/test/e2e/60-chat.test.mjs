@@ -42,4 +42,23 @@ describe('Chat tarixi (amoCRM suhbatlari)', () => {
     const closed = await ok('GET', '/crm/analytics/events?types=conv_closed', undefined, T, 200);
     assert.ok(closed.items.length > 0 && closed.items.every((x) => x.type === 'conv_closed'), JSON.stringify(closed.items.slice(0, 2)));
   });
+  test("«Сокращать ссылки»: yuborilgan havola qisqa havolaga almashadi, bosilganda asl manzil va lentada yozuv", async () => {
+    await ok('PUT', '/crm/chat-settings', { shortLinks: true }, T, 200);
+    const chatId = Math.floor(Math.random() * 1e9);
+    await tg(chatId, 'Katalog bormi?');
+    const row = (await ok('GET', '/crm/conversations', undefined, T, 200)).conversations.find((c) => /Katalog bormi/.test(c.last || ''));
+    // Telegram API test muhitida yopiq — yuborish xato bilan tugaydi, lekin xabar (qisqa havola bilan) lentada qoladi
+    await req('POST', `/crm/leads/${row.leadId}/messages`, { text: 'Mana katalog: https://example.com/katalog?x=1' }, T);
+    const m = await ok('GET', `/crm/leads/${row.leadId}/messages`, undefined, T, 200);
+    const out = m.messages.filter((x) => x.direction === 'out').pop();
+    const link = (out.text.match(/https?:\/\/\S+\/api\/v1\/l\/([\w-]+)/) || [])[1];
+    assert.ok(link && !out.text.includes('example.com'), out.text);
+    const r = await fetch(`${process.env.E2E_BASE}/l/${link}`, { redirect: 'manual' });
+    assert.equal(r.status, 302);
+    assert.equal(r.headers.get('location'), 'https://example.com/katalog?x=1');
+    const lead = await ok('GET', `/crm/leads/${row.leadId}`, undefined, T, 200);
+    assert.ok(((lead.lead || lead).activity || []).some((a) => a.type === 'link'), "lentada «havola ochildi» yozuvi yo'q");
+    assert.equal((await fetch(`${process.env.E2E_BASE}/l/yoqkod1`, { redirect: 'manual' })).status, 404);
+    await ok('PUT', '/crm/chat-settings', { shortLinks: false }, T, 200);
+  });
 });

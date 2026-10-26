@@ -2,6 +2,8 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Havolalarni qisqartirish': 'Сокращать ссылки',
+  "Yoqilsa, mijozga yuborilgan har bir havola almashtiriladi. Shu tufayli mijoz havolani ochganini kuzatishingiz mumkin: u bosganda bitim lentasida «Havola ochildi» yozuvi paydo bo'ladi va mas'ulga bildirishnoma boradi.": 'Если включено, каждая ссылка, отправленная клиенту, будет подменяться. Благодаря этому вы сможете отследить переход по ссылке: в ленте сделки появится запись о переходе, ответственному придёт уведомление.',
   'Murojaatlar': 'Обращения',
   "Mijoz bilan har bir yozishma raqamlangan suhbat («Беседа № …») bo'ladi. Javobsiz va o'qilmagan suhbatlar belgilangan vaqtdan keyin avtomatik yopiladi; mijoz qayta yozsa — yangi raqamli suhbat ochiladi.": 'Каждое обращение клиента — беседа с уникальным номером («Беседа № …»). Беседы без ответа закрываются автоматически через заданное время; если клиент напишет снова — откроется новая беседа.',
   "Xabar o'qilmagan va javob bo'lmasa, suhbatni avtomatik yopish": 'Автоматически закрывать беседу, если сообщение не было прочитано и нет ответа',

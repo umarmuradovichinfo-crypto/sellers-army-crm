@@ -582,3 +582,16 @@ model DeletedTask {
   @@index([deletedAt])
   @@map("crm_deleted_tasks")
 }
+
+// amoCRM «Сокращать ссылки»: mijozga yuborilgan havola → /api/v1/l/:code (bosilganda bitim lentasiga yozuv)
+model ShortLink {
+  code        String    @id
+  url         String
+  leadId      String?
+  clicks      Int       @default(0)
+  lastClickAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([leadId])
+  @@map("crm_short_links")
+}

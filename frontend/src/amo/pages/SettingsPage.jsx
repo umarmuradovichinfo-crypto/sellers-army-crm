@@ -233,6 +233,14 @@ function ChatsSection() {
         </div>
 
         <div className="ac-set-block">
+          <label className="ac-set-toggle">
+            <span className={`ac-switch ${form?.shortLinks ? 'on' : ''}`} onClick={(e) => { e.preventDefault(); if (canManage) setForm((f) => ({ ...f, shortLinks: !f.shortLinks })) }} />
+            <h2 className="ac-set-block__title" style={{ margin: 0 }}>{t('Havolalarni qisqartirish')}</h2>
+          </label>
+          <div className="ac-set-block__desc">{t("Yoqilsa, mijozga yuborilgan har bir havola almashtiriladi. Shu tufayli mijoz havolani ochganini kuzatishingiz mumkin: u bosganda bitim lentasida «Havola ochildi» yozuvi paydo bo'ladi va mas'ulga bildirishnoma boradi.")}</div>
+        </div>
+
+        <div className="ac-set-block">
           <h2 className="ac-set-block__title">{t('Murojaatlar')}</h2>
           <div className="ac-set-block__desc">{t("Mijoz bilan har bir yozishma raqamlangan suhbat («Беседа № …») bo'ladi. Javobsiz va o'qilmagan suhbatlar belgilangan vaqtdan keyin avtomatik yopiladi; mijoz qayta yozsa — yangi raqamli suhbat ochiladi.")}</div>
           <div className="ac-set-row">

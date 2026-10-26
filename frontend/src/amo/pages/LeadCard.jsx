@@ -669,6 +669,7 @@ const ACT_TEXT = {
   field: "Maydon o'zgartirildi",
   tag: "Teglar o'zgartirildi",
   task_created: 'Yangi vazifa',
+  link: 'Mijoz havolani ochdi',
   task_done: 'Vazifa bajarildi',
   automation: 'Avtomatlashtirish',
   updated: "O'zgartirildi",

@@ -2,6 +2,7 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Mijoz havolani ochdi': 'Клиент перешёл по ссылке',
   'mijoz': 'клиент',
   'Bitim muvaffaqiyatli yakunlandi': 'Сделка успешно реализована',
   'Dubl?': 'Дубль?',

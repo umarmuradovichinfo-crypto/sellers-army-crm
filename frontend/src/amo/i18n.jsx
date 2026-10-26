@@ -66,6 +66,7 @@ const RU = {
   'Yangi lid biriktirildi': 'Назначена новая сделка',
   'Sizga lid biriktirildi': 'Вам назначена сделка',
   'Bugungi vazifa': 'Задача на сегодня',
+  'Mijoz havolani ochdi': 'Клиент перешёл по ссылке',
   'Kechikkan vazifa': 'Просроченная задача',
   'Yangi bitim biriktirildi': 'Назначена новая сделка',
   'Formadan yangi lid': 'Новая заявка',
