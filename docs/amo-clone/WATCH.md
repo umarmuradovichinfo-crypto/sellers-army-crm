@@ -4,8 +4,8 @@ Kuzatuvchi vazifa (`amo-clone-weekly-watch`) har hafta amoCRM'ni (faqat ko'rish)
 Yangi/o'zgargan narsa topilsa: PLAN.md ga yoziladi → klonlanadi → shu fayl yangilanadi.
 
 ## Oxirgi tekshiruv
-- Sana: 2026-10-27 (boshlang'ich holat)
-- Natija: —
+- Sana: 2026-10-26 (haftalik tekshiruv)
+- Natija: yangilik yo'q (chap menyu va Настройки paneli boshlang'ich holat bilan bir xil; hisob ichida kirilgan). Cheklov: /settings/whatsnew/ va /amomarket/ to'g'ridan-to'g'ri URL orqali ochilmadi (dashboard'ga qaytdi / 404), «…» menyulari va amoМаркет tablari bu safar chuqur tekshirilmadi — keyingi safar UI orqali bosib ko'rish kerak.
 
 ## Boshlang'ich holat (2026-10-27, decopoluzz.amocrm.ru)
 - Chap menyu: Рабочий стол, Сделки, imBox, Задачи, AI-агенты и боты, Списки, Аналитика, amoМаркет, Настройки
