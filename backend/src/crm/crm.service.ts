@@ -142,6 +142,8 @@ export class CrmService {
       nextTask: l.nextTask,
       nextTaskDate: l.nextTaskDate ? l.nextTaskDate.toISOString() : null,
       createdAt: l.createdAt.toISOString(),
+      wonAt: (l as any).wonAt ? new Date((l as any).wonAt).toISOString() : undefined,
+      lostAt: (l as any).lostAt ? new Date((l as any).lostAt).toISOString() : undefined,
     };
   }
 

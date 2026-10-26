@@ -84,7 +84,10 @@ function NotificationsPanel({ open, onClose, onCount }) {
     try { sessionStorage.setItem('amo_notif_pushed', JSON.stringify(seen.slice(-200))) } catch { /* */ }
   }
   const load = () => crmService_notifications().then((r) => { setItems(r.items || []); onCount(r.unread || 0); pushBrowser(r.push) }).catch(() => {})
-  useEffect(() => { load(); const t = setInterval(load, 20000); return () => clearInterval(t) }, []) // eslint-disable-line
+  // interval eng so'nggi load'ni chaqiradi (til almashganda eskirgan `t` bilan bildirishnoma matni chiqmasin)
+  const loadRef = useRef(load)
+  loadRef.current = load
+  useEffect(() => { loadRef.current(); const iv = setInterval(() => loadRef.current(), 20000); return () => clearInterval(iv) }, []) // eslint-disable-line
   useEffect(() => {
     if (!open) { setShown(false); return }
     load()

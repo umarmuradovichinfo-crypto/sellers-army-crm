@@ -1,5 +1,5 @@
 // amoCRM "Настройки": chap panel (SectionAside) + bo'limlar — umumiy / foydalanuvchilar / chatlar / xavfsizlik.
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import SectionAside from '../SectionAside'
 import { Ico } from '../AmoIcons'
 import { useI18n, useT } from '../i18n'
@@ -71,9 +71,12 @@ function GeneralSection() {
   const { data } = useApi(() => (can('settings.view') ? settingsService.getGeneral() : Promise.resolve({ general: {} })), [], 'settings:general')
 
   const [base, setBase] = useState({ ...DEFAULTS })
-  useEffect(() => { if (data?.general) { const g = { ...DEFAULTS, ...data.general }; setForm(g); setBase(g) } }, [data])
   // amoCRM: "Сохранить" o'zgarish bo'lgandagina faol (ko'k)
   const dirty = JSON.stringify(form) !== JSON.stringify(base)
+  // fonda yangilangan (SWR) javob foydalanuvchi tahrirlayotgan formani bosib ketmasin
+  const dirtyRef = useRef(false)
+  dirtyRef.current = dirty
+  useEffect(() => { if (data?.general) { const g = { ...DEFAULTS, ...data.general }; setBase(g); if (!dirtyRef.current) setForm(g) } }, [data])
   const access = useApi(() => (canManage ? settingsService.getAccess() : Promise.resolve({ roles: [] })), [], 'settings:access')
   const [navRole, setNavRole] = useState('*')
   const navHidden = form.navHidden || {}

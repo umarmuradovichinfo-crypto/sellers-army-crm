@@ -17,6 +17,7 @@
 - (26.10) Bitimlar: merge tranzaksiyada + AutomationJob/SalesbotRun/ShortLink/ConversationState ko'chiriladi; updateLead kontakt/kompaniya mavjudligi va ko'rish huquqi; `listUnsorted` voronka bo'yicha (frontend `pipelineId`); updateStage kind o'zgarsa oxirgi tur himoyasi + bitimlar sanalari; imBox ro'yxati DISTINCT ON (oxirgi 1000 xabar emas, har bitimning oxirgi xabari).
 - (26.10, 2) Maqsadlar (goals): oy chegarasi Toshkent vaqti + huquq bo'yicha tushum; vazifalar ro'yxati (3000 limit, bajarilganlar oxirgi 90 kun, tartib); useOutside eskirgan closure; catchsiz `.then` (imBox yopish, Telegram uzish).
 - (26.10, 3) Telefoniya sinxroni eski tarix uchun lid yaratmaydi va avtomatlashtirish (xabar) ishga tushirmaydi (faqat oxirgi sutka); IG/FB/web xabarlari suhbat bo'yicha ketma-ket (parallel yetkazishda ikkita bitim/takror xabar bo'lmaydi).
+- (26.10, 4) Dashboard yutilgan/yo'qotilgan davr bo'yicha wonAt/lostAt (card'ga qo'shildi); SettingsPage SWR formani bosib ketmaydi; AmoShell bildirishnoma intervali eskirgan `t` ishlatmaydi.
 
 ## Qoldi (ustuvorlik bo'yicha)
 1. [x] To'liq QA yashil (144/144, UI 35×3 xatosiz) — LeadCard hook-tartib xatosi (o'z o'zgarishim) tuzatildi.
@@ -33,4 +34,4 @@
 3. Bajarilganini yuqoridagi «Bajarildi»ga ko'chir, commit (`Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`) + `git push origin amo-clone`.
 4. Hammasi tugasa — shu faylga `STATUS: DONE` yoz.
 
-STATUS: IN-PROGRESS
+STATUS: IN-PROGRESS (asosiy qismi tugadi; qolganlari past ustuvorlik: webhookSecret, LeadsList bulk stage, StatsPage 'all', tarjimasiz title/placeholder, ical take, Прогноз vidjetlari userIds)

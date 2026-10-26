@@ -271,8 +271,10 @@ export default function DashboardPage() {
   const lostStages = stages.filter((s) => s.kind === 'lost')
   const allLeads = stages.flatMap((s) => s.leads)
   const newLeads = allLeads.filter((l) => inRange(l.createdAt, range))
-  const lostLeads = lostStages.flatMap(fresh)
-  const wonLeads = wonStages.flatMap(fresh)
+  // yutilgan/yo'qotilgan — davr bo'yicha YOPILGAN sanasiga qarab (yaratilgan sana emas); sana yo'q eski yozuvlar uchun yaratilgan sana
+  const closedIn = (s, f) => s.leads.filter((l) => inRange(l[f] || l.createdAt, range))
+  const lostLeads = lostStages.flatMap((s) => closedIn(s, 'lostAt'))
+  const wonLeads = wonStages.flatMap((s) => closedIn(s, 'wonAt'))
 
   // Vazifalar
   const tasks = (taskData?.tasks || []).filter((x) => !x.done && inSel(x.assigneeId))
