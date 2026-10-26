@@ -83,27 +83,42 @@ export function PbxHome() {
   )
 }
 
+const LINES = [['in', '#01c716', 'pbx§Kiruvchi'], ['out', '#0d71d7', 'pbx§Chiquvchi'], ['internal', '#8d84b0', 'pbx§Ichki'], ['missed', '#e8383d', "pbx§O'tkazib yuborilgan"]]
+
+/** Silliq chiziqli grafik (OnlinePBX /statistic). */
+function LineChart({ series }) {
+  const W = 1000, H = 330, L = 40, B = 30, T = 10
+  const max = Math.max(5, ...series.flatMap((d) => LINES.map(([k]) => d[k] || 0)))
+  const step = Math.ceil(max / 5)
+  const top = step * 5
+  const x = (i) => L + (series.length < 2 ? (W - L) / 2 : (i * (W - L - 10)) / (series.length - 1))
+  const y = (v) => T + (H - T - B) * (1 - v / top)
+  const path = (k) => series.map((d, i) => [x(i), y(d[k] || 0)]).reduce((acc, [px, py], i, arr) => {
+    if (i === 0) return `M${px},${py}`
+    const [qx, qy] = arr[i - 1]; const cx = (qx + px) / 2
+    return `${acc} C${cx},${qy} ${cx},${py} ${px},${py}`
+  }, '')
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`}>
+      {[0, 1, 2, 3, 4, 5].map((n) => <g key={n}><line x1={L} x2={W} y1={y(n * step)} y2={y(n * step)} stroke="#efeef5" /><text x={L - 8} y={y(n * step) + 4} textAnchor="end">{n * step}</text></g>)}
+      {series.map((d, i) => (i % Math.ceil(series.length / 8) === 0 ? <text key={d.day} x={x(i)} y={H - 8} textAnchor="middle">{d.day.slice(5).split('-').reverse().join('.')}</text> : null))}
+      {LINES.map(([k, c]) => <path key={k} d={path(k)} fill="none" stroke={c} strokeWidth="2" />)}
+    </svg>
+  )
+}
+
 export function PbxStatistic() {
   const t = useT()
   const { data } = useApi(() => crmService.callsStats({}).catch(() => null), [], 'pbx-statistic', 60000)
   const series = data?.series || []
-  const max = Math.max(1, ...series.map((d) => d.in + d.out + d.internal))
   return (
     <TopTabs first="pbx§Statistika" desc={["pbx§Statistika — qo'ng'iroqlarni mustaqil tahlil qilish uchun qulay vosita.", "pbx§Bu bo'limda noyob qo'ng'iroqlar sonini xodim, raqam, davomiylik va boshqa parametrlar bo'yicha ko'rish mumkin."]}>
-    <Page title={t("pbx§Qo'ng'iroqlar soni (tur bo'yicha)")} narrow={false}>
+    <div className="pbxst">
+      <div className="pbxst__head"><h3>{t('pbx§Statistika')}</h3><span>{t("pbx§Qo'ng'iroqlar soni (tur bo'yicha)")}</span></div>
       {!data && <div className="pbxx__text">{t('Yuklanmoqda…')}</div>}
-      <div className="ac-cr__bars">
-        {series.map((d) => (
-          <div key={d.day} className="ac-cr__bar" title={`${d.day}: ${d.in}/${d.out}/${d.internal}`}>
-            <div className="ac-cr__stack" style={{ height: 160 }}>
-              <i style={{ height: `${(d.in / max) * 100}%`, background: '#01c716' }} /><i style={{ height: `${(d.out / max) * 100}%`, background: '#0d71d7' }} /><i style={{ height: `${(d.internal / max) * 100}%`, background: '#adaabc' }} /><i style={{ height: `${(d.missed / max) * 100}%`, background: '#fb6a6e' }} />
-            </div>
-            <span>{d.day.slice(5)}</span>
-          </div>
-        ))}
-      </div>
-      <div className="ac-cr__legend">{[['#01c716', 'pbx§Kiruvchi'], ['#0d71d7', 'pbx§Chiquvchi'], ['#adaabc', 'pbx§Ichki'], ['#fb6a6e', "pbx§O'tkazib yuborilgan"]].map(([c, l]) => <span key={l}><i style={{ background: c }} />{t(l)}</span>)}</div>
-    </Page>
+      {series.length > 0 && <LineChart series={series} />}
+      <div className="pbxst__legend">{LINES.map(([k, c, l]) => <span key={k}><i style={{ background: c }} />{t(l)}</span>)}</div>
+    </div>
     </TopTabs>
   )
 }

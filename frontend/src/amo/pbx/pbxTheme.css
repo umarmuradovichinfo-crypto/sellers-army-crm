@@ -448,36 +448,38 @@
 .pbxh__side a { font-size: 13px; line-height: 20px; color: var(--pb-link); }
 @media (max-width: 1100px) { .pbxh__top { grid-template-columns: 1fr 1fr; } .pbxh__grid { grid-template-columns: 1fr; } }
 
-/* ---- Servislar (OnlinePBX /services/*) ---- */
-.pbxx .pbxs { display: grid; grid-template-columns: 154px minmax(0, 1fr); min-height: calc(100vh - 50px); background: var(--pb-page); }
-.pbxx .pbxs__aside { background: #fff; border-right: 1px solid var(--pb-hair); padding: 26px 0 0 20px; display: flex; flex-direction: column; gap: 14px; }
-.pbxx .pbxs__aside a { font-size: 12px; line-height: 14px; color: #0088ca; padding-right: 10px; }
+/* ---- Servislar (OnlinePBX /services/*) — o'lchangan: 14px, aside 155px, sarlavha x=214 ---- */
+.pbxx .pbxs { display: grid; grid-template-columns: 155px minmax(0, 1fr); min-height: calc(100vh - 50px); background: var(--pb-page); }
+.pbxx .pbxs__aside { background: #fff; border-right: 1px solid var(--pb-hair); padding: 22px 0 0 24px; display: flex; flex-direction: column; gap: 0; }
+.pbxx .pbxs__aside a { font-size: 14px; line-height: 17px; min-height: 39px; color: #0088ca; }
 .pbxx .pbxs__aside a.on { color: var(--pb-text); font-weight: 500; }
-.pbxx .pbxs__main { background: transparent; display: grid; grid-template-columns: minmax(0, 490px) minmax(0, 1fr); }
+.pbxx .pbxs__main { display: grid; grid-template-columns: minmax(0, 489px) minmax(0, 1fr); }
 .pbxx .pbxs__main > * { background: #fff; border-right: 1px solid var(--pb-hair); }
-.pbxx .pbxs__page { padding: 26px 20px 30px 20px; min-width: 0; }
-.pbxx .pbxs__title { margin: 0 0 20px; font-size: 14px; line-height: 17px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--pb-text); }
-.pbxx .pbxs__tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--pb-hair); margin: 0 -20px 20px; padding: 0 20px; }
-.pbxx .pbxs__tabs button { background: none; border: 0; padding: 0 0 8px; font: inherit; font-size: 12px; font-weight: 500; color: #0088ca; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.pbxx .pbxs__page { padding: 22px 24px 30px 59px; min-width: 0; }
+.pbxx .pbxs__title { margin: 0 0 20px; font-size: 16px; line-height: 19px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; color: var(--pb-text); }
+.pbxx .pbxs--chats .pbxs__title { font-weight: 500; }
+.pbxx .pbxs__tabs { display: flex; gap: 32px; margin: 0 0 31px; padding: 0; }
+.pbxx .pbxs__tabs button { background: none; border: 0; padding: 0 0 6px; font: inherit; font-size: 14px; line-height: 17px; font-weight: 600; color: #0088ca; cursor: pointer; border-bottom: 2px solid transparent; }
 .pbxx .pbxs__tabs button.on { color: var(--pb-text); border-bottom-color: var(--pb-text); }
-.pbxx .pbxs__body { font-size: 12px; line-height: 17px; color: var(--pb-text); }
-.pbxx .pbxs__body p { margin: 0 0 14px; }
-.pbxx .pbxs__body ul { margin: 0 0 14px; padding-left: 28px; }
+.pbxx .pbxs__body { font-size: 14px; line-height: 21px; color: var(--pb-text); }
+.pbxx .pbxs__body p { margin: 0 0 16px; }
+.pbxx .pbxs__body ul { margin: 0 0 16px; padding-left: 40px; }
 .pbxx .pbxs__soon { color: var(--pb-mute); }
-@media (max-width: 760px) { .pbxx .pbxs { grid-template-columns: 1fr; } .pbxx .pbxs__aside { flex-direction: row; flex-wrap: wrap; gap: 6px 16px; padding: 10px 12px; border-right: 0; } .pbxx .pbxs__main { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .pbxx .pbxs { grid-template-columns: 1fr; } .pbxx .pbxs__aside { flex-direction: row; flex-wrap: wrap; gap: 6px 16px; padding: 10px 12px; border-right: 0; } .pbxx .pbxs__aside a { min-height: 0; } .pbxx .pbxs__main { grid-template-columns: 1fr; } .pbxx .pbxs__page { padding: 16px 14px; } }
 
-/* ---- Integratsiya (OnlinePBX /integration) ---- */
-.pbxx .pbxg { background: #fff; min-height: calc(100vh - 50px); padding: 25px 30px 40px; }
-.pbxx .pbxg__title { margin: 0 0 30px; font-size: 14px; line-height: 17px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--pb-text); }
-.pbxx .pbxg h5 { margin: 0 0 18px; font-size: 14px; line-height: 16px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--pb-text); }
-.pbxx .pbxg section { margin-bottom: 40px; }
-.pbxx .pbxg__grid { display: grid; grid-template-columns: repeat(auto-fill, 340px); gap: 0 0; }
-.pbxx .pbxg__card { width: 318px; height: 110px; margin: 0 22px 20px 0; background: var(--pb-page); border-radius: 4px; display: flex; gap: 14px; padding: 22px 18px; box-sizing: border-box; overflow: hidden; }
-.pbxx .pbxg__card i { flex: none; width: 26px; height: 26px; border-radius: 50%; color: #fff; font: 600 13px/26px Roboto, sans-serif; text-align: center; font-style: normal; }
-.pbxx .pbxg__card b { display: block; font-size: 12px; line-height: 14px; font-weight: 500; color: var(--pb-text); margin-bottom: 8px; }
-.pbxx .pbxg__card span { display: block; font-size: 12px; line-height: 15px; color: var(--pb-mute); word-break: break-word; }
-.pbxx .pbxg__card em { display: block; margin-top: 6px; font-size: 11px; font-style: normal; color: var(--pb-label); }
-@media (max-width: 760px) { .pbxx .pbxg { padding: 16px; } .pbxx .pbxg__grid { grid-template-columns: 1fr; } .pbxx .pbxg__card { width: auto; margin-right: 0; } }
+/* ---- Integratsiya (OnlinePBX /integration) — kartalar 392x132, qadam 416 ---- */
+.pbxx .pbxg { background: #fff; min-height: calc(100vh - 50px); padding: 34px 32px 40px 38px; }
+.pbxx .pbxg__title { margin: 0 0 59px -6px; font-size: 16px; line-height: 19px; font-weight: 500; text-transform: uppercase; color: var(--pb-text); }
+.pbxx .pbxg h5 { margin: 0 0 31px; font-size: 16px; line-height: 19px; font-weight: 500; letter-spacing: 1.6px; text-transform: uppercase; color: var(--pb-text); }
+.pbxx .pbxg section { margin-bottom: 46px; }
+.pbxx .pbxg__grid { display: grid; grid-template-columns: repeat(auto-fill, 416px); }
+.pbxx .pbxg__card { width: 392px; height: 132px; margin: 0 24px 24px 0; background: var(--pb-page); border-radius: 8px; display: flex; gap: 20px; padding: 32px; box-sizing: border-box; overflow: hidden; }
+.pbxx .pbxg__card i { flex: none; width: 64px; height: 64px; border-radius: 50%; color: #fff; font: 600 24px/64px Roboto, sans-serif; text-align: center; font-style: normal; }
+.pbxx .pbxg__card b { display: block; font-size: 14px; line-height: 17px; font-weight: 500; color: var(--pb-text); margin-bottom: 12px; }
+.pbxx .pbxg__card span { display: block; font-size: 14px; line-height: 17px; color: var(--pb-label); word-break: break-word; max-height: 34px; overflow: hidden; }
+.pbxx .pbxg__card { position: relative; }
+.pbxx .pbxg__card em { position: absolute; top: 10px; right: 14px; font-size: 12px; line-height: 14px; font-style: normal; color: var(--pb-label); }
+@media (max-width: 760px) { .pbxx .pbxg { padding: 16px; } .pbxx .pbxg__grid { grid-template-columns: 1fr; } .pbxx .pbxg__card { width: auto; margin-right: 0; } .pbxx .pbxg__title { margin-left: 0; } }
 
 /* ---- yuqori tablar (Statistika / Hisobotlar) ---- */
 .pbxx .pbxt { background: #fff; min-height: calc(100vh - 50px); }
@@ -505,24 +507,36 @@
 @media (max-width: 900px) { .pbxx .pbxl { grid-template-columns: 1fr; } .pbxx .pbxl__row { grid-template-columns: 1fr; padding: 10px 14px; } .pbxx .pbxl__row em { text-align: left; } }
 
 /* ---- Chiquvchi qoidalar (OnlinePBX /ats/outgoing) ---- */
-.pbxx .pbxo { position: relative; min-height: calc(100vh - 50px); padding: 25px 30px 0 25px; display: flex; flex-direction: column; }
+.pbxx .pbxo { position: relative; min-height: calc(100vh - 50px); padding: 25px 30px 0 30px; display: flex; flex-direction: column; }
 .pbxx .pbxo__bar { margin-top: auto !important; }
 .pbxx .pbxo__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
 .pbxx .pbxo__head h3 { margin: 0; font-size: 16px; line-height: 19px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--pb-text); }
 .pbxx .pbxo__head h3 a { margin-left: 17px; font-size: 14px; font-weight: 400; letter-spacing: 0; text-transform: none; color: #0088ca; }
 .pbxx .pbxo__head > a { font-size: 14px; color: #0088ca; }
-.pbxx .pbxo__row { display: grid; grid-template-columns: 49px 308px 297px 74px 308px minmax(0, 1fr); align-items: center; min-height: 35px; border-bottom: 1px solid var(--pb-hair); font-size: 14px; color: var(--pb-text); }
-.pbxx .pbxo__row--h { min-height: 24px; border-bottom: 0; color: #b4b3bb; }
+.pbxx .pbxo__row { display: grid; grid-template-columns: 60px 379px 363px 90px 379px minmax(0, 1fr); align-items: center; min-height: 43px; padding-left: 20px; border-bottom: 1px solid var(--pb-hair); font-size: 14px; color: var(--pb-text); }
+.pbxx .pbxo__row--h { min-height: 24px; height: 24px; border-bottom: 0; color: #b4b3bb; }
 .pbxx .pbxo__row--h + .pbxo__row { border-top: 1px solid var(--pb-hair); }
-.pbxx .pbxo__n { padding-left: 16px; color: #bfbec5; }
+.pbxx .pbxo__n { padding-left: 3px; color: #bfbec5; }
 .pbxx .pbxo__row input, .pbxx .pbxo__row select { border: 0; background: transparent; font: inherit; color: inherit; height: 34px; padding: 0; width: calc(100% - 12px); outline: 0; }
 .pbxx .pbxo__row input::placeholder { color: #b4b3bb; }
 .pbxx .pbxo__out { color: var(--pb-text); }
 .pbxx .pbxo__u { display: flex; align-items: center; }
 .pbxx .pbxo__u button { background: none; border: 0; color: #b4b3bb; cursor: pointer; font-size: 18px; padding: 0 10px; }
 .pbxx .pbxo__add { align-self: flex-start; background: none; border: 0; padding: 0; margin-top: 15px; font: inherit; font-size: 14px; color: #0088ca; cursor: pointer; }
-.pbxx .pbxo__bar { position: sticky; bottom: 0; margin: 40px -30px 0 -25px; display: flex; align-items: center; gap: 25px; height: 64px; padding-left: 37px; background: #fff; border-top: 1px solid var(--pb-hair); }
-.pbxx .pbxo__save { height: 32px; padding: 0 13px; border: 0; border-radius: 4px; background: #0d71d7; color: #fff; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.pbxx .pbxo__bar { position: sticky; bottom: 0; margin: 40px -30px 0 -30px; display: flex; align-items: center; gap: 25px; height: 64px; padding-left: 37px; background: #fff; border-top: 1px solid var(--pb-hair); }
+.pbxx .pbxo__save { height: 32px; padding: 0 13px; border: 0; border-radius: 4px; background: #0d71d7; color: #fff; font: inherit; font-size: 14px; font-weight: 400; cursor: pointer; }
 .pbxx .pbxo__save:disabled { background: #80c3e4; cursor: default; }
 .pbxx .pbxo__cancel { background: none; border: 0; font: inherit; font-size: 14px; color: #0088ca; cursor: pointer; }
 @media (max-width: 900px) { .pbxx .pbxo { padding: 16px 12px 0; } .pbxx .pbxo__row { grid-template-columns: 1fr 1fr; gap: 0 8px; padding: 6px 0; } .pbxx .pbxo__row--h { display: none; } .pbxx .pbxo__bar { padding-left: 12px; } }
+
+.pbxx__aside { padding-top: 22px !important; }
+
+/* ---- Statistika: chiziqli grafik ---- */
+.pbxx .pbxst { padding: 25px 30px 40px; }
+.pbxx .pbxst__head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px; }
+.pbxx .pbxst__head h3 { margin: 0; font-size: 16px; line-height: 19px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; color: var(--pb-text); }
+.pbxx .pbxst__head span { font-size: 14px; color: var(--pb-label); }
+.pbxx .pbxst svg { width: 100%; max-width: 1100px; height: auto; display: block; }
+.pbxx .pbxst svg text { font: 12px Roboto, sans-serif; fill: #b4b3bb; }
+.pbxx .pbxst__legend { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 18px; font-size: 12px; color: var(--pb-text); }
+.pbxx .pbxst__legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
