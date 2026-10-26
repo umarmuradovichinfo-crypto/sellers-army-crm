@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { AutoRecallService } from './autorecall.service';
 import { CallbackService } from './callback.service';
 import { PbxService } from './pbx.service';
 
@@ -8,7 +9,7 @@ import { PbxService } from './pbx.service';
 @Controller('pbx')
 @RequirePermissions('crm.settings')
 export class PbxController {
-  constructor(private readonly s: PbxService, private readonly cb: CallbackService) {}
+  constructor(private readonly s: PbxService, private readonly cb: CallbackService, private readonly recall: AutoRecallService) {}
 
   @Get('modules') list(@Query('type') type?: string) { return this.s.list(type); }
   @Get('modules/next-number') next(@Query('type') type: string) { return this.s.nextNumber(type); }
@@ -19,6 +20,9 @@ export class PbxController {
   @Get('flow/validate') validate() { return this.s.validateFlow(); }
 
   @Get('asterisk/preview') asterisk() { return this.s.asteriskPreview(); }
+
+  @Get('autorecall') autorecall() { return this.recall.config(); }
+  @Put('autorecall') autorecallSave(@Body() dto: any) { return this.recall.save(dto); }
 
   @Get('callback') callbackCfg() { return this.cb.config(); }
   @Put('callback') callbackSave(@Body() dto: any) { return this.cb.save(dto); }

@@ -11,7 +11,7 @@ import { ACCESS, DAYS, FIELDS, NOTIFS, SECTION_LABEL, TYPE_LABEL, TYPE_ORDER, fr
 import '../i18n/pbx.ru'
 import '../pbx.css'
 
-const TABS = [['incoming', 'pbx§Kiruvchi'], ['outgoing', 'pbx§Chiquvchi'], ['blacklist', "pbx§Qora ro'yxat"], ['music', 'pbx§Musiqa'], ['callback', 'pbx§Callback vidjeti'], ['diagnostic', 'pbx§Diagnostika']]
+const TABS = [['incoming', 'pbx§Kiruvchi'], ['outgoing', 'pbx§Chiquvchi'], ['blacklist', "pbx§Qora ro'yxat"], ['music', 'pbx§Musiqa'], ['autorecall', "pbx§Avto-qayta qo'ng'iroq"], ['callback', 'pbx§Callback vidjeti'], ['diagnostic', 'pbx§Diagnostika']]
 
 export default function PbxPage() {
   const t = useT()
@@ -25,6 +25,7 @@ export default function PbxPage() {
       {tab === 'outgoing' && <Outgoing />}
       {tab === 'blacklist' && <Blacklist />}
       {tab === 'music' && <Music />}
+      {tab === 'autorecall' && <AutoRecallSettings />}
       {tab === 'callback' && <CallbackSettings />}
       {tab === 'diagnostic' && <Diagnostic />}
     </div>
@@ -348,6 +349,38 @@ function CallbackSettings() {
       <div className="ac-pbx__actions"><button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button></div>
       {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
       {snippet && (<><h4 style={{ marginTop: 18 }}>{t('pbx§Saytga qo\'yiladigan kod')}</h4><pre className="ac-pbx__pre">{snippet}</pre></>)}
+    </div>
+  )
+}
+
+function AutoRecallSettings() {
+  const t = useT()
+  const { data } = useApi(() => pbxService.autorecall(), [], 'pbx:autorecall')
+  const [c, setC] = useState(null)
+  const [msg, setMsg] = useState(null)
+  useEffect(() => { if (data && !c) setC(data) }, [data]) // eslint-disable-line
+  if (!c) return <div className="ac-pbx__empty">{t('Yuklanmoqda…')}</div>
+  const set = (k, v) => setC({ ...c, [k]: v })
+  const save = async () => {
+    setMsg(null)
+    try { const r = await pbxService.saveAutorecall({ ...c, delayMin: Number(c.delayMin), attempts: Number(c.attempts), retryMin: Number(c.retryMin), fromHour: Number(c.fromHour), toHour: Number(c.toHour), withinHours: Number(c.withinHours) }); setC(r); setMsg({ ok: true, text: t('pbx§Saqlandi') }) }
+    catch (e) { setMsg({ ok: false, text: e?.message || t("pbx§Saqlab bo'lmadi") }) }
+  }
+  const num = (k, label) => <Field label={t(label)}><input className="ac-input" type="number" value={c[k]} onChange={(e) => set(k, e.target.value)} /></Field>
+  return (
+    <div className="ac-pbx__page" style={{ maxWidth: 640 }}>
+      <h3>{t("pbx§O'TKAZIB YUBORILGANLARGA AVTO-QAYTA QO'NG'IROQ")}</h3>
+      <p className="ac-pbx__muted">{t("pbx§Kiruvchi qo'ng'iroq o'tkazib yuborilsa, tizim ko'rsatilgan ichki raqamni jiringlatadi va xodim javob bergach mijozga ulaydi. Faqat ish soatlarida, mijozga keyin qo'ng'iroq qilinmagan bo'lsa.")}</p>
+      <Field label={t('pbx§Yoqilgan')}><input type="checkbox" checked={!!c.enabled} onChange={(e) => set('enabled', e.target.checked)} /></Field>
+      <Field label={t("pbx§Qo'ng'iroq boshlanadigan ichki raqam")}><input className="ac-input" value={c.ext} placeholder="100" onChange={(e) => set('ext', e.target.value)} /></Field>
+      {num('delayMin', "pbx§Birinchi urinishgacha kechikish (daqiqa)")}
+      {num('attempts', 'pbx§Urinishlar soni')}
+      {num('retryMin', "pbx§Urinishlar orasidagi vaqt (daqiqa)")}
+      {num('fromHour', 'pbx§Ish vaqti boshlanishi (soat)')}
+      {num('toHour', 'pbx§Ish vaqti tugashi (soat)')}
+      {num('withinHours', "pbx§Necha soat ichidagi o'tkazib yuborilganlar")}
+      <div className="ac-pbx__actions"><button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button></div>
+      {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
     </div>
   )
 }
