@@ -88,6 +88,7 @@ export default function TasksFilter({ value, meta, onApply }) {
     { value: 'overdue', label: t("Muddati o'tgan") },
   ]
   const me = meta.me
+  const [rangeOn, setRangeOn] = useState(() => !!(f.from || f.to))
   return (
     <>
       <div className="ac-filter__presets">
@@ -98,13 +99,16 @@ export default function TasksFilter({ value, meta, onApply }) {
         ))}
       </div>
       <div className="ac-filter__col ac-filter__col--fields">
+        {/* amoCRM: sana oralig'i maydonlari faqat «Davr» tanlanganda ko'rinadi */}
         <MultiSelect single search={false} chevron label="" emptyText="Butun vaqt uchun"
-          options={DATE_PRESETS.map((d) => ({ value: d.key, label: t(d.label) }))} value={f.datePreset} onChange={(v) => setF((p) => ({ ...p, preset: '', datePreset: v, from: '', to: '' }))} />
-        <div className="ac-filter__range">
+          options={[...DATE_PRESETS.map((d) => ({ value: d.key, label: t(d.label) })), { value: '__range', label: t('Davr') }]}
+          value={rangeOn ? '__range' : f.datePreset}
+          onChange={(v) => { setRangeOn(v === '__range'); setF((p) => ({ ...p, preset: '', datePreset: v === '__range' ? '' : v, from: '', to: '' })) }} />
+        {rangeOn && <div className="ac-filter__range">
           <input className="ac-input" type="date" value={f.from} onChange={(e) => setF((p) => ({ ...p, preset: '', from: e.target.value, datePreset: '' }))} />
           <span>-</span>
           <input className="ac-input" type="date" value={f.to} onChange={(e) => setF((p) => ({ ...p, preset: '', to: e.target.value, datePreset: '' }))} />
-        </div>
+        </div>}
         <MultiSelect search={false} options={TASK_TYPES.map((x) => ({ value: x.key, label: t(x.label) }))} value={f.types} onChange={(v) => set('types', v)} label="" emptyText="Barcha turlar" />
         <MultiSelect options={stageOpts} value={f.stages} onChange={(v) => set('stages', v)} label="" emptyText="Voronkalar, bosqichlar" />
         <MultiSelect single search={false} chevron options={statusOpts} value={f.status} onChange={(v) => set('status', v)} label="" emptyText="Barcha holatlar" />

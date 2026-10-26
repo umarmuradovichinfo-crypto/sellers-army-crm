@@ -370,7 +370,7 @@ export default function TasksPage({ mode: modeProp, cal: calProp }) {
             const list = byDay(d)
             return (
               <div key={key} className={`ac-todo-cell ${sameDay(d, today) ? 'today' : ''} ${out ? 'out' : ''} ${overKey === key ? 'drop-target' : ''}`} {...dropProps(d, key)}>
-                {cal !== 'day' && <div className="ac-todo-cell__num">{dayLabel(d, edge || (cal === 'month' && (i === 0 || i === days.length - 1) && out) )}</div>}
+                {cal !== 'day' && <div className="ac-todo-cell__num">{dayLabel(d, edge)}</div>}
                 <div className="ac-todo-cell__tasks">{list.map((x) => card(x, cal === 'month'))}</div>
               </div>
             )

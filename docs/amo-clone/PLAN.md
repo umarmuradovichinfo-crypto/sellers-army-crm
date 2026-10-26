@@ -226,6 +226,9 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
     c) imBox / kartochka lentasi — farqlar (26.10): [x] bitim yopilganda lentada katta blok («Сделка закрыта и не реализована
        26.10.2026, Admin; sabab»); [x] mijoz chati bo'lsa yozish maydoni «Чат» rejimida ochiladi; [x] ichki chat «Чат с <hamkasb>»
        (standart — mas'ul), lentada «Admin → Akmal» pufakcha, oluvchiga bildirishnoma, voqealar ro'yxatida. test/e2e/85-team-chat.
+    d) Vazifalar — [x] filtrda sana oralig'i faqat «Период» tanlanganda; [x] oy kalendarida oy nomi faqat oyning 1-kunida.
+       Lenta, «День/Неделя/Месяц», filtr presetlari avval moslangan.
+    e) Ro'yxatlar — kontaktlar/kompaniyalar jadvali bir xil (telefon yonidagi qo'ng'iroq tugmasi — MicroSIP uchun ataylab qoldirildi).
 
 ## Kutilayotgan so'rovlar (navbati kelganda)
 - Ruscha til — asos qo'shildi (i18n.jsx, uz/ru, akkaunt panelida almashtirish). Qolgani: har bir yangi bo'lim

@@ -1,6 +1,7 @@
 import { addRu } from '../i18n'
 
 addRu({
+  'Davr': 'Период',
   // Yuqori panel
   'Kun': 'День',
   'Hafta': 'Неделя',
