@@ -139,4 +139,31 @@ describe('Telefoniya (OnlinePBX + MicroSIP)', () => {
     assert.ok(r.status >= 400 && r.status < 500, `${r.status}`);
     assert.equal(r.data?.error, 'NO_EXTENSION');
   });
+
+  test("diagnostika: bir yangi raqamdan parallel webhooklar — bitta bitim; «answered» holati o'tkazib yuborilgan emas; yakuniy holat orqaga qaytmaydi", async () => {
+    const n = rnd9();
+    await Promise.all(Array.from({ length: 5 }, (_, i) => hook({ event: 'call_start', caller: `+998${n}`, callee: '100', uuid: uniq('par' + i) })));
+    const found = await ok('GET', `/crm/leads?search=${n.slice(-7)}`, undefined, T, 200);
+    assert.equal(found.total, 1, `parallel webhooklar ${found.total} ta bitim yaratdi`);
+    // «answered» — gaplashuv boshlandi: o'tkazib yuborilgan emas, vazifa yo'q
+    const m = rnd9(); const u = uniq('ans');
+    await hook({ caller: `998${m}`, callee: '100', uuid: u, status: 'answered' });
+    const lm = await ok('GET', `/crm/leads?search=${m.slice(-7)}`, undefined, T, 200);
+    const lid = (lm.leads || lm.items)[0].id;
+    assert.equal((await callsOf(lid))[0].status, 'ringing', "gaplashayotgan qo'ng'iroq yakunlangan deb hisoblandi");
+    assert.equal((await ok('GET', `/crm/leads/${lid}/tasks`, undefined, T, 200)).tasks.length, 0);
+    // yakuniy → kechikkan ringing orqaga qaytarmaydi
+    await hook({ event: 'call_end', caller: `998${m}`, callee: '100', uuid: u, dialog_duration: 20, call_duration: 25 });
+    await hook({ event: 'call_start', caller: `998${m}`, callee: '100', uuid: u });
+    assert.equal((await callsOf(lid))[0].status, 'completed', 'yakuniy holat orqaga qaytdi');
+  });
+
+  test("diagnostika: sotuvchi «from» orqali boshqa ichki/tashqi raqamdan qo'ng'iroq qila olmaydi (toll-fraud)", async () => {
+    await ok('PUT', '/crm/pbx/config', { callMode: 'callback', defaultExt: '100' }, T, 200);
+    const l = await newLead(T, { phone: `+998${rnd9()}` });
+    const r = await req('POST', `/crm/leads/${l.id}/call`, { from: '+88213000000' }, S.token);
+    // PBX test muhitida ulanmagan — muhimi: tashqi raqam «from» sifatida qabul qilinmaydi (xato PBX tomondan, 4xx/5xx), CRM'da chaqiruv yozuvi yaratilmaydi
+    assert.ok(r.status >= 400, `${r.status}`);
+    await ok('PUT', '/crm/pbx/config', { callMode: 'softphone' }, T, 200);
+  });
 });

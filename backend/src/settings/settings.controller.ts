@@ -137,11 +137,17 @@ export class SettingsController {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="crm-backup-${day}.json"`);
     res.setHeader('Cache-Control', 'no-store');
+    let aborted = false;
+    res.once('close', () => { aborted = true; }); // mijoz uzilsa 'drain' hech qachon kelmaydi — osilib qolmasin
     try {
       for await (const chunk of this.settings.backupChunks()) {
-        if (!res.write(chunk)) await new Promise((r) => res.once('drain', r));
+        if (aborted) return;
+        if (!res.write(chunk)) await new Promise<void>((r) => { res.once('drain', () => r()); res.once('close', () => r()); });
       }
-    } finally { res.end(); }
+      res.end();
+    } catch (e) {
+      res.destroy(e as Error); // yarim fayl «muvaffaqiyatli» deb berilmasin
+    }
   }
 
   // Umumiy sozlamalar (akkaunt nomi, mintaqa, formatlar, rolga qarab chap menyu) — interfeys har bir foydalanuvchi uchun

@@ -77,7 +77,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   async sendReport(userId: string): Promise<{ sent: boolean; data: Awaited<ReturnType<NotificationService['reportData']>> }> {
     const data = await this.reportData(userId);
     const chatId = await this.tgChatId(userId);
-    if (!chatId) return { sent: false, data };
+    if (!chatId || !(await this.prisma.user.findUnique({ where: { id: userId }, select: { isActive: true } }))?.isActive) return { sent: false, data };
     const text = `📊 Kunlik hisobot (${data.day})\n• Yangi bitimlar: ${data.created}\n• Yutilgan: ${data.won} · Yo'qotilgan: ${data.lost}\n• Bajarilgan vazifalar: ${data.done} · Muddati o'tgan: ${data.overdue}\n• Qo'ng'iroqlar: ${data.calls} (o'tkazib yuborilgan: ${data.missed})`;
     const r = await this.tg.sendMessage(chatId, text);
     return { sent: !!r.ok, data };
@@ -124,7 +124,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   /** So'nggi 24 soatdagi (Telegram yoqilgan turlar bo'yicha) bildirishnomalarni bitta xabar qilib yuboradi; soni qaytadi */
   async sendDigest(userId: string): Promise<number> {
     const chatId = await this.tgChatId(userId);
-    if (!chatId) return 0;
+    if (!chatId || !(await this.prisma.user.findUnique({ where: { id: userId }, select: { isActive: true } }))?.isActive) return 0;
     const pr = await this.prefs(userId);
     const items = (await this.prisma.notification.findMany({ where: { userId, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } }, orderBy: { createdAt: 'asc' }, take: 100 }))
       .filter((n) => pr[n.type]?.telegram);

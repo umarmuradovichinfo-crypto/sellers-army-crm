@@ -53,6 +53,8 @@ export class IcalController {
     const all = await this.tokens();
     const userId = Object.keys(all).find((k) => all[k] === token);
     if (!userId) throw new NotFoundException();
+    // o'chirilgan foydalanuvchining kalendar havolasi ishlamaydi
+    if (!(await this.prisma.user.findUnique({ where: { id: userId }, select: { isActive: true } }))?.isActive) throw new NotFoundException();
     const tasks = await this.prisma.leadTask.findMany({
       where: { assigneeId: userId, done: false, dueDate: { not: null } },
       include: { lead: { select: { name: true } } }, orderBy: { dueDate: 'asc' }, take: 1000,

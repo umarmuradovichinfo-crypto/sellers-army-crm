@@ -140,6 +140,13 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     if (lead) return lead;
     if (direction !== 'in') return null;
     if (digits(phone).length < 7) return null;
+    // bir xil yangi raqamdan parallel webhooklar (har xil uuid) — navbatma-navbat; ikkinchisi birinchisi yaratgan bitimni topadi
+    return this.withLock(`caller:${digits(phone).slice(-9)}`, async () => {
+      const again = await this.findLeadByPhone(phone);
+      return again || this.createCallerLead(phone);
+    });
+  }
+  private async createCallerLead(phone: string): Promise<{ id: string; name: string }> {
     const place = await this.pset.place(null, null);
     const contact = await this.prisma.contact.create({ data: { name: phone, phone, customJson: '{}' } });
     const created = await this.prisma.lead.create({
@@ -157,7 +164,8 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   // Bitimda shunday ochiq vazifa bo'lsa — yangisi qo'shilmaydi.
   private async missedCallTask(leadId: string, phone: string) {
     const title = `Qayta qo'ng'iroq qiling: ${phone}`;
-    const open = await this.prisma.leadTask.findFirst({ where: { leadId, done: false, title }, select: { id: true } });
+    // raqam formati (+998… / 998…) har xil kelishi mumkin — ochiq «qayta qo'ng'iroq» vazifasi bo'lsa yangisi qo'shilmaydi
+    const open = await this.prisma.leadTask.findFirst({ where: { leadId, done: false, type: 'call', title: { startsWith: "Qayta qo'ng'iroq qiling" } }, select: { id: true } });
     if (open) return;
     const lead = await this.prisma.lead.findUnique({ where: { id: leadId }, select: { assigneeId: true } });
     await this.prisma.leadTask.create({ data: { leadId, title, type: 'call', dueDate: new Date(), assigneeId: lead?.assigneeId || null } });

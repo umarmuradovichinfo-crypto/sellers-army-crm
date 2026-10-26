@@ -114,11 +114,19 @@ export class OnlinePbxClient {
       url = await this.recordUrl(uuidOrUrl); // uuid -> download havola
     }
     if (!url || !/^https?:\/\//i.test(url)) return null;
+    // SSRF himoyasi: faqat OnlinePBX'ning o'z domenlari/ulangan domen (webhook orqali kelgan ixtiyoriy URL ichki tarmoqni o'qimasin)
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+      const u = new URL(url);
+      const { domain } = await this.cfg.get();
+      const host = u.hostname.toLowerCase();
+      const okHost = /(^|\.)(onlinepbx\.ru|onpbx\.ru|onlinepbx\.uz)$/.test(host) || (!!domain && (host === domain.toLowerCase() || host.endsWith('.' + domain.toLowerCase())));
+      if (!okHost || u.protocol !== 'https:' || u.username || u.password) { this.logger.warn(`Yozuv URL'i rad etildi (ruxsat etilmagan host): ${host}`); return null; }
+    } catch { return null; }
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(30_000), redirect: 'error' });
       if (!res.ok) return null;
       const ab = await res.arrayBuffer();
-      if (!ab.byteLength) return null;
+      if (!ab.byteLength || ab.byteLength > 50 * 1024 * 1024) return null;
       const ct = res.headers.get('content-type') || 'audio/mpeg';
       return { buffer: Buffer.from(ab), contentType: ct.includes('audio') || ct.includes('mpeg') ? ct : 'audio/mpeg' };
     } catch (e) {
