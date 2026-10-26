@@ -345,7 +345,8 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       const recent = !startedAt || Date.now() - +startedAt < 86_400_000;
       const existing = await this.prisma.callLog.findFirst({ where: { externalId: uuid } });
       if (existing) {
-        const relink = existing.leadId || lead0?.id || (await this.ensureCallerLead(direction, phone, null))?.id || null;
+        // eski tarix (birinchi ulanish / 7 kunlik sinxron) uchun yangi lid YARATILMAYDI — faqat mavjud lidga bog'lanadi
+        const relink = existing.leadId || lead0?.id || (recent ? (await this.ensureCallerLead(direction, phone, null))?.id : null) || null;
         await this.prisma.callLog.update({
           where: { id: existing.id },
           data: { status, durationSec: durationSec || existing.durationSec, recordUrl: recordUrl || existing.recordUrl, leadId: relink, handled: true },
@@ -354,14 +355,15 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
         if (relink) linked++;
         continue;
       }
-      const lead = await this.ensureCallerLead(direction, phone, lead0);
+      const lead = recent ? await this.ensureCallerLead(direction, phone, lead0) : lead0;
       await this.prisma.callLog.create({
         data: { externalId: uuid, phone, direction, status, durationSec, recordUrl, leadId: lead?.id || null, handled: true, startedAt },
       });
       synced++;
       if (lead) linked++;
       if (lead && direction === 'in' && status === 'missed' && recent) await this.missedCallTask(lead.id, phone);
-      if (lead && direction === 'in') await this.automation.fire('call_in', lead.id, { actorName: 'OnlinePBX' });
+      // avtomatlashtirish (xabar yuborish va h.k.) faqat yangi qo'ng'iroqlarda — eski tarix uchun mijozga xabar ketmasin
+      if (lead && direction === 'in' && recent) await this.automation.fire('call_in', lead.id, { actorName: 'OnlinePBX' });
     }
     if (synced) this.logger.log(`OnlinePBX history sync: jami ${records.length}, yangi ${synced}, lidga bog'langan ${linked}`);
     return { ok: true, synced, total: records.length, linked };

@@ -554,7 +554,20 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     return { lead, isNew: true };
   }
 
+  // Bir suhbat (kanal+thread) xabarlari ketma-ket qayta ishlanadi: parallel yetkazish (Meta qayta urinishi / ikki tezkor xabar)
+  // ikkita bitim yoki takroriy xabar yaratmasin
+  private socialLocks = new Map<string, Promise<unknown>>();
   private async ingestSocial(a: {
+    channel: SocialChannel | 'web'; kind: 'message' | 'comment'; pageId: string; threadId: string; name: string; source: string;
+    text: string; externalId: string; createdAt?: Date;
+  }) {
+    const key = `${a.channel}:${a.pageId}:${a.threadId}`;
+    const prev = this.socialLocks.get(key) || Promise.resolve();
+    const run = prev.catch(() => undefined).then(() => this.ingestSocialRun(a));
+    this.socialLocks.set(key, run);
+    try { return await run; } finally { if (this.socialLocks.get(key) === run) this.socialLocks.delete(key); }
+  }
+  private async ingestSocialRun(a: {
     channel: SocialChannel | 'web'; kind: 'message' | 'comment'; pageId: string; threadId: string; name: string; source: string;
     text: string; externalId: string; createdAt?: Date;
   }) {
