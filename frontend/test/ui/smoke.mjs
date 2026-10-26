@@ -30,7 +30,7 @@ const ROUTES = [
   '/contacts', `/contacts/${contact.id}`, '/companies', `/companies/${company.id}`, '/contacts/import',
   '/inbox', `/inbox/${lead.id}`, '/tasks', '/tasks/calendar', '/events', '/stats', '/stats/consolidated', '/stats/activities',
   '/stats/calls', '/stats/goals', '/stats/pipeline', '/analitika', '/bots', '/integrations',
-  '/settings/profile', '/products', '/settings/general', '/settings/users', '/settings/security', '/settings/billing', '/calls', '/calls/reports', '/calls/reports/group', '/calls/reports/missed', '/settings/pbx/incoming', '/settings/pbx/outgoing', '/settings/pbx/blacklist', '/settings/pbx/music', '/settings/pbx/callback', '/settings/pbx/autorecall', '/settings/pbx/diagnostic', '/settings/chats', '/settings/tags', '/settings/fields/lead', '/settings/pipelines/main',
+  '/settings/profile', '/products', '/settings/general', '/settings/users', '/settings/security', '/settings/billing', '/pbx/home', '/pbx/calls', '/pbx/ats/incoming', '/pbx/ats/outgoing', '/pbx/ats/diagnostic', '/pbx/ats/configurator', '/pbx/ats/blacklist', '/pbx/ats/music', '/pbx/chats', '/pbx/statistic', '/pbx/reports', '/pbx/reports/group', '/pbx/reports/missed', '/pbx/services/autorecall', '/pbx/services/callback', '/pbx/services/quality', '/pbx/integration', '/pbx/license', '/settings/chats', '/settings/tags', '/settings/fields/lead', '/settings/pipelines/main',
 ]
 
 // RU rejimida ko'rinib qolgan o'zbekcha so'zlar (foydalanuvchi ma'lumotlari emas — interfeys matnlari uchun evristika)
@@ -53,7 +53,7 @@ async function visit(lang, viewport) {
   })
   page.on('response', (r) => { if (r.url().includes('/api/') && r.status() >= 500 && !(r.status() === 503 && r.url().includes('/crm/dono/'))) errors.push(`${tag} ${route} API ${r.status()}: ${r.url().replace(/^.*\/api\/v1/, '')}`) })
   // Eski manzillar yangisiga yo'naltirilishi, query saqlanishi va noma'lum manzil 404 berishi
-  const REDIRECTS = [['/todo/line', '/tasks/line'], ['/imbox', '/inbox'], ['/amo-market?foo=1', '/integrations?foo=1'], ['/contacts/list', '/contacts'],
+  const REDIRECTS = [['/todo/line', '/tasks/line'], ['/imbox', '/inbox'], ['/amo-market?foo=1', '/integrations?foo=1'], ['/contacts/list', '/contacts'], ['/calls', '/pbx/calls'], ['/settings/pbx/incoming', '/pbx/ats/incoming'], ['/settings/pbx/callback', '/pbx/services/callback'],
     ['/catalogs/products', '/products'], ['/events/list', '/events'], ['/stats/by_activities', '/stats/activities'], ['/agents-and-bots', '/bots']]
   for (const [from, to] of REDIRECTS) {
     await page.goto(UI + from, { waitUntil: 'domcontentloaded' })

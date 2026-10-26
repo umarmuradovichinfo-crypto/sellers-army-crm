@@ -26,6 +26,7 @@ export const NAV = [
   { key: 'bots', to: '/bots', title: 'AI-agentlar va botlar', icon: 'bots' },
   { key: 'lists', to: '/contacts', title: "Ro'yxatlar", icon: 'lists', match: ['/contacts', '/companies', '/products'] },
   { key: 'stats', to: '/stats', title: 'Analitika', icon: 'stats', match: ['/stats', '/events'] },
+  { key: 'pbx', to: '/pbx/calls', title: 'Telefoniya', icon: 'pbx', match: ['/pbx'] },
   { key: 'market', to: '/integrations', title: 'Market', icon: 'market' },
   { key: 'settings', to: '/settings/general', title: 'Sozlamalar', icon: 'settings' },
 ]

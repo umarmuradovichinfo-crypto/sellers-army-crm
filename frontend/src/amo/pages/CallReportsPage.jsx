@@ -1,8 +1,6 @@
 // Qo'ng'iroq hisobotlari (OnlinePBX «Отчёты»): 4 tur — Xodimlar guruhi, Xodim, O'tkazib yuborilganlar, Muvaffaqiyatli/muvaffaqiyatsiz.
 import React, { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import SectionAside from '../SectionAside'
-import { ASIDE_ITEMS } from './StatsCommon'
 import { useT } from '../i18n'
 import { useApi } from '../../lib/useApi'
 import { crmService } from '../../services/crm.service'
@@ -43,18 +41,17 @@ export default function CallReportsPage() {
   const { data, loading, error } = useApi(() => (kind ? crmService.callsStats(applied) : Promise.resolve(null)), [kind, JSON.stringify(applied)], `calls-stats:${JSON.stringify(applied)}`, 60000)
   return (
     <>
-      <SectionAside title="Analitika" items={ASIDE_ITEMS} collapsible="stats" />
       <div className="ac-content ac-cl">
         {!kind && (
           <div className="ac-cr__cards">
-            {KINDS.map(([k, l, d]) => <Link key={k} to={`/calls/reports/${k}`} className="ac-cr__card"><b>{t(l)}</b><span>{t(d)}</span></Link>)}
+            {KINDS.map(([k, l, d]) => <Link key={k} to={`/pbx/reports/${k}`} className="ac-cr__card"><b>{t(l)}</b><span>{t(d)}</span></Link>)}
           </div>
         )}
         {kind && (
           <>
             <div className="ac-cl__tabs">
-              <Link to="/calls/reports" className="ac-cr__back">← {t('cr§Hisobotlar')}</Link>
-              {KINDS.map(([k, l]) => <Link key={k} to={`/calls/reports/${k}`} className={kind === k ? 'on' : ''}>{t(l)}</Link>)}
+              <Link to="/pbx/reports" className="ac-cr__back">← {t('cr§Hisobotlar')}</Link>
+              {KINDS.map(([k, l]) => <Link key={k} to={`/pbx/reports/${k}`} className={kind === k ? 'on' : ''}>{t(l)}</Link>)}
             </div>
             <div className="ac-cr__filter">
               <input className="ac-input" type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />

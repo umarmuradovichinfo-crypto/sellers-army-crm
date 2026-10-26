@@ -1,8 +1,6 @@
 // «Qo'ng'iroqlar jurnali» (OnlinePBX «Звонки» uslubida): tablar, plitalar, jadval, filtr paneli, jami. Analitika bo'limida.
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import SectionAside from '../SectionAside'
-import { ASIDE_ITEMS } from './StatsCommon'
 import { useT } from '../i18n'
 import { useApi } from '../../lib/useApi'
 import { crmService } from '../../services/crm.service'
@@ -34,7 +32,6 @@ export default function CallsPage() {
 
   return (
     <>
-      <SectionAside title="Analitika" items={ASIDE_ITEMS} collapsible="stats" />
       <div className="ac-content ac-cl">
         <div className="ac-cl__head">
           <div className="ac-cl__tabs">

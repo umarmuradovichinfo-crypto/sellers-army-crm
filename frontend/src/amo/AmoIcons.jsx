@@ -81,6 +81,12 @@ const NAV = {
       <path d="M20.5 6.5a5 5 0 0 0-6.6 6.2L6.8 19.8a1.8 1.8 0 0 0 2.5 2.5l7.1-7.1a5 5 0 0 0 6.2-6.6l-3 3-2.4-.6-.6-2.4z" {...S} stroke={on ? '#1b3446' : 'currentColor'} />
     </>
   ),
+  pbx: (on) => (
+    <>
+      <circle cx="15" cy="15" r="12" {...S} fill={on ? '#fff' : 'none'} stroke={on ? '#fff' : 'currentColor'} />
+      <path d="M11 8.5l2.4 3.2-1.4 1.9a7.5 7.5 0 0 0 3.9 3.9l1.9-1.4 3.2 2.4-1.4 2C13.5 21.5 8.5 16.5 9 10.5z" {...S} stroke={on ? '#1b3446' : 'currentColor'} />
+    </>
+  ),
   bell: () => (
     <>
       <path d="M15 5a7 7 0 0 0-7 7v5l-2.5 4h19L22 17v-5a7 7 0 0 0-7-7z" {...S} />

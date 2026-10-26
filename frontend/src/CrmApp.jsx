@@ -38,8 +38,7 @@ const ProfilePage = lazy(() => import('./amo/pages/ProfilePage'))
 const IntegrationsPage = lazy(() => import('./amo/pages/IntegrationsPage'))
 const BotsPage = lazy(() => import('./amo/pages/BotsPage'))
 const ProductsPage = lazy(() => import('./amo/pages/ProductsPage'))
-const CallsPage = lazy(() => import('./amo/pages/CallsPage'))
-const CallReportsPage = lazy(() => import('./amo/pages/CallReportsPage'))
+const PbxRoutes = lazy(() => import('./amo/pbx/PbxRoutes'))
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
@@ -118,9 +117,15 @@ function CrmShell() {
           <Route path="/companies/new" element={<CompanyCard />} />
           <Route path="/companies/:id" element={<CompanyCard />} />
           <Route path="/products" element={<ProductsPage />} />
-          <Route path="/calls" element={<CallsPage />} />
-          <Route path="/calls/reports" element={<CallReportsPage />} />
-          <Route path="/calls/reports/:kind" element={<CallReportsPage />} />
+          <Route path="/pbx/*" element={<PbxRoutes />} />
+          {/* eski manzillar → «Telefoniya» bo'limi */}
+          <Route path="/calls" element={<Redir to="/pbx/calls" />} />
+          <Route path="/calls/reports" element={<Redir to="/pbx/reports" />} />
+          <Route path="/calls/reports/:kind" element={<Redir to="/pbx/reports/:kind" />} />
+          <Route path="/settings/pbx" element={<Redir to="/pbx/ats/incoming" />} />
+          <Route path="/settings/pbx/callback" element={<Redir to="/pbx/services/callback" />} />
+          <Route path="/settings/pbx/autorecall" element={<Redir to="/pbx/services/autorecall" />} />
+          <Route path="/settings/pbx/:tab" element={<Redir to="/pbx/ats/:tab" />} />
           <Route path="/stats" element={<StatsLast />} />
           <Route path="/stats/pipeline" element={<StatsPage section="pipeline" />} />
           <Route path="/stats/consolidated" element={<StatsPage section="consolidated" />} />
@@ -133,8 +138,6 @@ function CrmShell() {
           <Route path="/settings/users" element={<SettingsPage section="users" />} />
           <Route path="/settings/chats" element={<SettingsPage section="chats" />} />
           <Route path="/settings/security" element={<SettingsPage section="security" />} />
-          <Route path="/settings/pbx" element={<Navigate to="/settings/pbx/incoming" replace />} />
-          <Route path="/settings/pbx/:tab" element={<SettingsPage section="pbx" />} />
           <Route path="/settings/billing" element={<SettingsPage section="billing" />} />
           <Route path="/settings/profile" element={<ProfilePage />} />
           <Route path="/settings/pipelines/:pipelineId" element={<PipelineSetupPage />} />

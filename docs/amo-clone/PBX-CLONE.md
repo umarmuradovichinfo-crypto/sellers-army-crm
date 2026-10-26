@@ -72,3 +72,6 @@ Tablar Оплата / Лицензии / История платежей / По�
 
 ## Klon holati (26.10)
 Bajarildi: Входящие modullari (12 tur, formalar), Исходящие, Чёрный список, Музыка, Диагностика (marshrut tekshiruvi), Звонки jurnali, Отчёты (4 tur), Asterisk generatori. Qoldi: Конфигуратор (qurilma avto-sozlash), Чаты (Telegram/WhatsApp), Сервисы (Оценка качества, Автоперезвон, Автоинформатор, Callback, TTS, ИИ-менеджер), Интеграция sahifasi (Webhooks/API), Лицензия/to'lov, Главная sahifasi, Dashboard, stansiya serveri.
+
+## Dizayn tokenlari (Chrome orqali o'lchangan)
+Shrift Roboto 14px; sarlavha 50px #EFEEF5; sahifa fon #F7F7FA (ATS), qolgani #fff; matn #4E4963; menyu #797199; bo'lim sarlavhasi #A8A4B9 (500, katta harf); havola #0D71D7; yashil #01C716 (holat/toggle 32×14); modul kartochkasi 40px, chegara #E0DDEC, radius 2, o'ng chiziq 6px: raqam rgba(95,200,231,.5), vaqt qoidasi (239,165,223,.5), salomlashish (238,189,98,.5), guruh (170,177,255,.5), foydalanuvchi (133,219,133,.5), o'chirilgan #CCC; forma qatori hairline #DFDEE2; avatar #877EAA 32×32 r4; qo'ng'iroq belgisi #FB6A6E.

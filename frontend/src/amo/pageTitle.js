@@ -2,7 +2,7 @@
 export const TITLES = [
   ['/dashboard', 'Ish stoli'], ['/leads', 'Bitimlar'], ['/inbox', 'imBox'], ['/tasks', 'Vazifalar'],
   ['/contacts', 'Kontaktlar'], ['/companies', 'Kompaniyalar'], ['/products', 'Mahsulotlar'],
-  ['/stats', 'Analitika'], ['/calls', "Qo'ng'iroqlar jurnali"], ['/events', 'Voqealar ro\'yxati'], ['/settings', 'Sozlamalar'],
+  ['/stats', 'Analitika'], ['/pbx', 'Telefoniya'], ['/events', 'Voqealar ro\'yxati'], ['/settings', 'Sozlamalar'],
   ['/integrations', 'Market'], ['/bots', 'AI-agentlar va botlar'],
 ]
 export function titleFor(pathname) {
