@@ -364,7 +364,14 @@ export class CrmService {
       data.name = n.slice(0, 100);
     }
     if (dto.color !== undefined) data.color = dto.color;
+    const kindChanged = dto.kind !== undefined && dto.kind !== st.kind;
     if (dto.kind !== undefined) data.kind = dto.kind;
+    if (kindChanged) {
+      // voronka yutuq/yo'qotishsiz qolmasin (deleteStage'dagi qoida bilan bir xil)
+      const siblings = await this.prisma.crmStage.findMany({ where: { pipelineId: st.pipelineId ?? null, key: { not: key } }, select: { kind: true } });
+      if (!siblings.some((x) => x.kind === st.kind))
+        throw new BadRequestException({ error: 'LAST_OF_KIND', message: "Voronkadagi bu turdagi oxirgi bosqich turini o'zgartirib bo'lmaydi" });
+    }
     if (dto.order !== undefined) data.order = dto.order;
     if (dto.hints !== undefined) {
       const h = dto.hints || {};
@@ -372,7 +379,11 @@ export class CrmService {
       for (const k of ['novice', 'experienced', 'master']) clean[k] = String((h as any)[k] ?? '').slice(0, 1000);
       data.hintsJson = JSON.stringify(clean);
     }
-    const stage = await this.prisma.crmStage.update({ where: { key }, data });
+    // tur o'zgarsa bosqichdagi bitimlarning yopilish sanalari ham yangi turga mos bo'ladi (statistika «yutilgan» bo'lib qolmasin)
+    const [stage] = await this.prisma.$transaction([
+      this.prisma.crmStage.update({ where: { key }, data }),
+      ...(kindChanged ? [this.prisma.lead.updateMany({ where: { stage: key }, data: stageCloseData(dto.kind as any) })] : []),
+    ]);
     return { stage };
   }
   async deleteStage(key: string, user?: AuthUser) {
@@ -536,8 +547,23 @@ export class CrmService {
     if (dto.phone !== undefined) data.phone = dto.phone || null;
     if ((dto as any).email !== undefined) data.email = (dto as any).email || null;
     if (dto.company !== undefined) data.company = dto.company || null;
-    if ((dto as any).companyId !== undefined) data.companyId = (dto as any).companyId || null;
-    if ((dto as any).contactId !== undefined) data.contactId = (dto as any).contactId || null;
+    // kompaniya/kontakt biriktirish: mavjud bo'lishi va foydalanuvchi ko'ra olishi shart (begona yozuv ma'lumotini kartochka orqali ochib bo'lmasin)
+    if ((dto as any).companyId !== undefined) {
+      const cid = (dto as any).companyId || null;
+      if (cid && cid !== existing.companyId) {
+        if (!(await this.prisma.company.findUnique({ where: { id: cid }, select: { id: true } }))) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Kompaniya topilmadi' });
+        if (user) await this.rights.assertEntity(user, 'companies', cid, 'view');
+      }
+      data.companyId = cid;
+    }
+    if ((dto as any).contactId !== undefined) {
+      const cid = (dto as any).contactId || null;
+      if (cid && cid !== existing.contactId) {
+        if (!(await this.prisma.contact.findUnique({ where: { id: cid }, select: { id: true } }))) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Kontakt topilmadi' });
+        if (user) await this.rights.assertEntity(user, 'contacts', cid, 'view');
+      }
+      data.contactId = cid;
+    }
     if (dto.source !== undefined && dto.source !== existing.source) { data.source = dto.source || null; }
     if (dto.value !== undefined && Number(dto.value) !== existing.value) { data.value = Number(dto.value) || 0; }
     if ((dto as any).items !== undefined) {
@@ -1079,66 +1105,80 @@ export class CrmService {
     if (!ids.length) throw new BadRequestException({ error: 'NO_IDS', message: 'Birlashtiriladigan lid yo`q' });
     const others = (await this.prisma.lead.findMany({ where: { id: { in: ids } } })) as LeadRow[];
 
-    // bog'liqlarni asosiy lidga ko'chiramiz
-    await this.prisma.leadTask.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
-    await this.prisma.activity.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
-    await this.prisma.callLog.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
-    await this.prisma.message.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
-    await this.prisma.deletedTask.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
-    // kontaktlar: boshqa bitimlarning asosiy va qo'shimcha kontaktlari asosiy bitimga qo'shimcha kontakt bo'ladi
-    const extra = await this.prisma.leadContact.findMany({ where: { leadId: { in: ids } }, select: { contactId: true } });
-    const have = new Set([keep.contactId, ...(await this.prisma.leadContact.findMany({ where: { leadId: keepId }, select: { contactId: true } })).map((x) => x.contactId)].filter(Boolean) as string[]);
-    let mainContact = keep.contactId;
-    for (const cid of [...others.map((o) => o.contactId), ...extra.map((x) => x.contactId)]) {
-      if (!cid || have.has(cid)) continue;
-      have.add(cid);
-      if (!mainContact) { mainContact = cid; continue; }
-      await this.prisma.leadContact.create({ data: { leadId: keepId, contactId: cid } }).catch(() => undefined);
-    }
-
-    // bo'sh maydonlarni to'ldiramiz + teglar/izohlarni birlashtiramiz
-    const data: Record<string, unknown> = {};
-    for (const o of others) {
-      if (!(keep as any).telegramChatId && (o as any).telegramChatId && !data.telegramChatId) data.telegramChatId = (o as any).telegramChatId; // javob yuborish imkoni yo'qolmasin
-      if (!keep.phone && o.phone) data.phone = o.phone;
-      if (!keep.email && o.email) data.email = o.email;
-      if (!keep.company && o.company) data.company = o.company;
-      if (!keep.source && o.source) data.source = o.source;
-      if (!keep.value && o.value) data.value = o.value;
-    }
-    const tags = new Set(parse<string[]>(keep.tagsJson, []));
-    const notes = parse<{ text: string; at: string; by: string }[]>(keep.notesJson, []);
-    for (const o of others) {
-      parse<string[]>(o.tagsJson, []).forEach((t) => tags.add(t));
-      notes.push(...parse<{ text: string; at: string; by: string }[]>(o.notesJson, []));
-    }
-    data.tagsJson = JSON.stringify([...tags]);
-    data.notesJson = JSON.stringify(notes.sort((a, b) => (b.at || '').localeCompare(a.at || '')).slice(0, 100));
-    if (mainContact !== keep.contactId) data.contactId = mainContact;
-    // foydalanuvchi tanlagan qiymatlar (faqat birlashtirilayotgan bitimlardagi qiymatlardan)
-    if (pick) {
-      const all = [keep, ...others];
-      const from = (id?: string) => all.find((x) => x.id === id);
-      const src = (k: keyof MergePick) => from(pick[k] as string | undefined);
-      if (src('name')) data.name = src('name')!.name;
-      if (src('assignee')) data.assigneeId = src('assignee')!.assigneeId;
-      if (src('value')) data.value = src('value')!.value;
-      if (src('stage')) { data.stage = src('stage')!.stage; data.pipelineId = src('stage')!.pipelineId; }
-      if (Array.isArray(pick.tags)) data.tagsJson = JSON.stringify(pick.tags.filter((t) => tags.has(t)));
-      if (pick.custom && typeof pick.custom === 'object') {
-        const custom = parse<Record<string, unknown>>(keep.customJson, {});
-        for (const [fk, id] of Object.entries(pick.custom)) {
-          const o = from(id);
-          if (!o) continue;
-          const v = parse<Record<string, unknown>>(o.customJson, {})[fk];
-          if (v === undefined || v === null || v === '') delete custom[fk]; else custom[fk] = v;
-        }
-        data.customJson = JSON.stringify(custom);
+    await this.prisma.$transaction(async (tx) => {
+      // bog'liqlarni asosiy lidga ko'chiramiz
+      await tx.leadTask.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
+      await tx.activity.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
+      await tx.callLog.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
+      await tx.message.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
+      await tx.deletedTask.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
+      // kutilayotgan avtomatlashtirish ishlari, Salesbot ishga tushishlari va qisqa havolalar ham asosiy lidga o'tadi (aks holda yo'qolgan lidga ishlaydi)
+      await tx.automationJob.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
+      await tx.salesbotRun.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
+      await tx.shortLink.updateMany({ where: { leadId: { in: ids } }, data: { leadId: keepId } });
+      // imBox suhbat holati (kalit — leadId): asosiyda bo'lmasa birinchi mavjudini ko'chiramiz, qolganlari o'chadi
+      const keepConv = await tx.conversationState.findUnique({ where: { leadId: keepId } });
+      if (!keepConv) {
+        const first = await tx.conversationState.findFirst({ where: { leadId: { in: ids } }, orderBy: { updatedAt: 'desc' } });
+        if (first) await tx.conversationState.update({ where: { leadId: first.leadId }, data: { leadId: keepId } });
       }
-    }
-    await this.prisma.lead.update({ where: { id: keepId }, data });
+      await tx.conversationState.deleteMany({ where: { leadId: { in: ids } } });
+      // kontaktlar: boshqa bitimlarning asosiy va qo'shimcha kontaktlari asosiy bitimga qo'shimcha kontakt bo'ladi
+      const extra = await tx.leadContact.findMany({ where: { leadId: { in: ids } }, select: { contactId: true } });
+      const have = new Set([keep.contactId, ...(await tx.leadContact.findMany({ where: { leadId: keepId }, select: { contactId: true } })).map((x) => x.contactId)].filter(Boolean) as string[]);
+      let mainContact = keep.contactId;
+      for (const cid of [...others.map((o) => o.contactId), ...extra.map((x) => x.contactId)]) {
+        if (!cid || have.has(cid)) continue;
+        have.add(cid);
+        if (!mainContact) { mainContact = cid; continue; }
+        await tx.leadContact.create({ data: { leadId: keepId, contactId: cid } }).catch(() => undefined);
+      }
 
-    await this.prisma.lead.deleteMany({ where: { id: { in: ids } } });
+      // bo'sh maydonlarni to'ldiramiz + teglar/izohlarni birlashtiramiz
+      const data: Record<string, unknown> = {};
+      for (const o of others) {
+        if (!(keep as any).telegramChatId && (o as any).telegramChatId && !data.telegramChatId) data.telegramChatId = (o as any).telegramChatId; // javob yuborish imkoni yo'qolmasin
+        if (!keep.phone && o.phone) data.phone = o.phone;
+        if (!keep.email && o.email) data.email = o.email;
+        if (!keep.company && o.company) data.company = o.company;
+        if (!keep.source && o.source) data.source = o.source;
+        if (!keep.value && o.value) data.value = o.value;
+      }
+      const tags = new Set(parse<string[]>(keep.tagsJson, []));
+      const notes = parse<{ text: string; at: string; by: string }[]>(keep.notesJson, []);
+      for (const o of others) {
+        parse<string[]>(o.tagsJson, []).forEach((t) => tags.add(t));
+        notes.push(...parse<{ text: string; at: string; by: string }[]>(o.notesJson, []));
+      }
+      data.tagsJson = JSON.stringify([...tags]);
+      data.notesJson = JSON.stringify(notes.sort((a, b) => (b.at || '').localeCompare(a.at || '')).slice(0, 100));
+      if (mainContact !== keep.contactId) data.contactId = mainContact;
+      // foydalanuvchi tanlagan qiymatlar (faqat birlashtirilayotgan bitimlardagi qiymatlardan)
+      if (pick) {
+        const all = [keep, ...others];
+        const from = (id?: string) => all.find((x) => x.id === id);
+        const src = (k: keyof MergePick) => from(pick[k] as string | undefined);
+        if (src('name')) data.name = src('name')!.name;
+        if (src('assignee')) data.assigneeId = src('assignee')!.assigneeId;
+        if (src('value')) data.value = src('value')!.value;
+        if (src('stage')) { data.stage = src('stage')!.stage; data.pipelineId = src('stage')!.pipelineId; }
+        if (Array.isArray(pick.tags)) data.tagsJson = JSON.stringify(pick.tags.filter((t) => tags.has(t)));
+        if (pick.custom && typeof pick.custom === 'object') {
+          const custom = parse<Record<string, unknown>>(keep.customJson, {});
+          for (const [fk, id] of Object.entries(pick.custom)) {
+            const o = from(id);
+            if (!o) continue;
+            const v = parse<Record<string, unknown>>(o.customJson, {})[fk];
+            if (v === undefined || v === null || v === '') delete custom[fk]; else custom[fk] = v;
+          }
+          data.customJson = JSON.stringify(custom);
+        }
+      }
+      await tx.lead.update({ where: { id: keepId }, data });
+
+      await tx.lead.deleteMany({ where: { id: { in: ids } } });
+    }, { timeout: 30_000 });
+
     await this.activity.record(keepId, 'updated', { actorId: user?.id, actorName: user?.name, text: `${ids.length} ta dublikat birlashtirildi` });
     return { ok: true, merged: ids.length };
   }
@@ -1149,9 +1189,12 @@ export class CrmService {
     // amoCRM: «Неразобранное» huquqi mas'ulga emas, voronkaga qarab (Запрещено / Разрешено)
     const ctx = { ...(await this.leadCtx(userId)), ownerIds: null };
     const denied = await this.rights.unsortedDenied(userId, 'view');
-    const { pipelineId: _p, stage: _s, unsorted: _u, ...userFilter } = q as any;
+    const { pipelineId: pid, stage: _s, unsorted: _u, ...userFilter } = q as any;
+    // amoCRM: «Неразобранное» har voronkaning o'zida; pipelineId='main' — asosiy voronka; berilmasa — hammasi (eski chaqiruvlar)
+    const pipeCond = pid ? [pid === 'main' ? Prisma.sql`coalesce(l."pipelineId", '') = ''` : Prisma.sql`l."pipelineId" = ${String(pid)}`] : [];
     const where = and([
       Prisma.sql`l.unsorted = TRUE`,
+      ...pipeCond,
       ...(denied.length ? [Prisma.sql`coalesce(l."pipelineId", '') NOT IN (${Prisma.join(denied)})`] : []),
       ...leadConds(userFilter, ctx),
     ]);

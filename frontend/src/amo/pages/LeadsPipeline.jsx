@@ -314,7 +314,7 @@ export default function LeadsPipeline() {
   const { data, reload, setData } = useApi(async () => {
     const { sort: _s, dir: _d, ...unsParams } = filterParams
     const [pipe, uns, lr] = await Promise.all([
-      crmService.getPipeline(pipelineId || undefined, { limit: PAGE, ...filterParams }), crmService.listUnsorted(unsParams), crmService.listLostReasons(),
+      crmService.getPipeline(pipelineId || undefined, { limit: PAGE, ...filterParams }), crmService.listUnsorted({ ...unsParams, pipelineId: pipelineId || 'main' }), crmService.listLostReasons(),
     ])
     return { ...pipe, unsorted: uns.leads || [], unsortedTotal: uns.total ?? (uns.leads || []).length, reasons: lr.reasons || [] }
   }, [pipelineId, fKey], isFiltered ? `ac-pipeline-${pipelineId}-f${fKey}` : `ac-pipeline-${pipelineId}`)

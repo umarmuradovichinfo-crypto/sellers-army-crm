@@ -653,7 +653,13 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
    */
   async listConversations(q: { preset?: string; period?: string; stages?: string; sort?: string } = {}, userId?: string) {
     const since = periodStart(q.period);
-    const recent = await this.prisma.message.findMany({ where: since ? { createdAt: { gte: since } } : {}, orderBy: { createdAt: 'desc' }, take: 1000 });
+    // har bitimning OXIRGI xabari (DISTINCT ON): oxirgi 1000 ta xabar emas — faol bitimlar ko'p xabar yozsa eski suhbatlar ro'yxatdan tushib qolmasin
+    const recent = await this.prisma.$queryRaw<{ leadId: string; text: string; direction: string; createdAt: Date; channel: string; kind: string; senderName: string | null }[]>(Prisma.sql`
+      SELECT * FROM (
+        SELECT DISTINCT ON ("leadId") "leadId", text, direction, "createdAt", channel, kind, "senderName"
+        FROM crm_messages ${since ? Prisma.sql`WHERE "createdAt" >= ${since}` : Prisma.empty}
+        ORDER BY "leadId", "createdAt" DESC
+      ) t ORDER BY "createdAt" DESC LIMIT 1000`);
     const seen = new Set<string>();
     const order: string[] = [];
     const lastByLead = new Map<string, { text: string; direction: string; at: Date; channel: string; kind: string; senderName: string | null }>();
