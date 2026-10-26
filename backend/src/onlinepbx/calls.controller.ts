@@ -112,7 +112,7 @@ export class CallsController {
 
   @Put('pbx/config')
   @RequirePermissions('crm.settings')
-  savePbxConfig(@Body() dto: { domain?: string; apiKey?: string; defaultExt?: string; webhookSecret?: string; callMode?: string; dialScheme?: string; popups?: boolean }) {
+  savePbxConfig(@Body() dto: { provider?: 'onlinepbx' | 'own'; domain?: string; apiKey?: string; defaultExt?: string; webhookSecret?: string; callMode?: string; dialScheme?: string; popups?: boolean }) {
     return this.calls.saveConfig(dto);
   }
 

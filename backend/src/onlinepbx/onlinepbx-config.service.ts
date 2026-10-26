@@ -11,6 +11,7 @@ function normDomain(d: string): string {
 }
 
 export interface PbxConfig {
+  provider: 'onlinepbx' | 'own'; // faol telefoniya provayderi (standart onlinepbx)
   domain: string; // masalan example.onpbx.ru
   apiKey: string; // OnlinePBX auth_key (maxfiy)
   defaultExt: string; // fallback ichki raqam
@@ -31,6 +32,7 @@ export class OnlinePbxConfigService {
 
   private env(): PbxConfig {
     return {
+      provider: 'onlinepbx',
       domain: normDomain(process.env.ONLINEPBX_DOMAIN || ''),
       apiKey: (process.env.ONLINEPBX_KEY || '').trim(),
       defaultExt: (process.env.ONLINEPBX_DEFAULT_EXT || '').trim(),
@@ -68,6 +70,7 @@ export class OnlinePbxConfigService {
   async update(patch: Partial<PbxConfig>): Promise<PbxConfig> {
     const cur = await this.load();
     const next: PbxConfig = { ...cur };
+    if (patch.provider !== undefined) next.provider = patch.provider === 'own' ? 'own' : 'onlinepbx';
     if (patch.domain !== undefined) next.domain = normDomain(patch.domain);
     if (patch.defaultExt !== undefined) next.defaultExt = String(patch.defaultExt || '').trim();
     if (patch.webhookSecret !== undefined) next.webhookSecret = String(patch.webhookSecret || '').trim();

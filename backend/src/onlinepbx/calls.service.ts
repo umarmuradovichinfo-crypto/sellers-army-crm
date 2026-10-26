@@ -15,7 +15,8 @@ import { AutomationService } from '../crm/automation.service';
 import { PipelineSettingsService } from '../crm/pipeline-settings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LeaderService } from '../common/leader.service';
-import { OnlinePbxClient } from './onlinepbx.client';
+import { PbxGateway } from './pbx.gateway';
+import type { PbxCall } from './pbx-provider';
 import { OnlinePbxConfigService, PbxConfig } from './onlinepbx-config.service';
 import { createHash, timingSafeEqual } from 'crypto';
 import { Prisma } from '../generated/prisma/client';
@@ -25,16 +26,6 @@ function digits(p?: string | null): string {
 }
 
 // OnlinePBX vaqt belgisini (unix yoki "YYYY-MM-DD HH:mm:ss" GMT) Date'ga aylantiradi
-function parseStamp(v: any): Date {
-  if (v == null || v === '') return new Date();
-  if (typeof v === 'number') return new Date(v > 1e12 ? v : v * 1000);
-  const s = String(v).trim();
-  if (/^\d+$/.test(s)) { const n = Number(s); return new Date(n > 1e12 ? n : n * 1000); }
-  const iso = s.replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? '' : 'Z');
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? new Date() : d;
-}
-
 @Injectable()
 export class CallsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CallsService.name);
@@ -47,7 +38,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly leader: LeaderService,
     private readonly prisma: PrismaService,
-    private readonly pbx: OnlinePbxClient,
+    private readonly pbx: PbxGateway,
     private readonly cfg: OnlinePbxConfigService,
     private readonly automation: AutomationService,
     private readonly pset: PipelineSettingsService,
@@ -76,6 +67,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   async getConfig() {
     const c = await this.cfg.get();
     return {
+      provider: c.provider === 'own' ? 'own' : 'onlinepbx',
       domain: c.domain || '',
       defaultExt: c.defaultExt || '',
       apiKeySet: !!c.apiKey, // kalit ko'rsatilmaydi, faqat mavjudligi
@@ -308,9 +300,9 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       : Math.min((opts?.days && opts.days > 0 ? opts.days : 1) * 24 * 3600, 7 * 24 * 3600);
     const fromSec = nowSec - span;
 
-    let records: any[] = [];
+    let records: PbxCall[] = [];
     try {
-      records = await this.pbx.historySearch({ start_stamp_from: String(fromSec), start_stamp_to: String(nowSec), limit: '500' });
+      records = await this.pbx.history({ start_stamp_from: String(fromSec), start_stamp_to: String(nowSec), limit: '500' });
     } catch (e) {
       const msg = (e as Error).message;
       this.logger.warn('OnlinePBX history sync xato: ' + msg);
@@ -320,25 +312,22 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     let synced = 0;
     let linked = 0;
     for (const r of records) {
-      const uuid = String(r.uuid || r.call_uuid || r.id || '');
+      const uuid = r.uuid;
       if (!uuid) continue;
-      const account = String(r.accountcode || r.type || r.call_type || r.direction || '').toLowerCase();
-      const caller = String(r.caller || r.caller_id_number || r.from || r.src || '');
-      const callee = String(r.callee || r.destination_number || r.callee_id_number || r.to || r.dst || r.did || '');
-      const { direction, phone: xphone, other } = this.parties(caller, callee, account);
-      const phone = xphone || callee || caller;
+      const { direction, phone: xphone, other } = this.parties(r.caller, r.callee, r.accountHint);
+      const phone = xphone || r.callee || r.caller;
       if (!phone) continue;
 
-      const talk = Number(r.dialog_duration || r.user_talk_time || r.billsec) || 0;
-      const durationSec = Number(r.call_duration || r.duration) || talk || 0;
-      const hangup = String(r.hangup_cause || r.disposition || '').toLowerCase();
+      const talk = r.talkSec;
+      const durationSec = r.durationSec || talk || 0;
+      const hangup = r.hangup;
       // Gaplashildi -> completed; band/rad -> failed; aks holda (gaplashilmagan) -> o'tkazib yuborilgan.
       let status: string;
       if (talk > 0) status = 'completed';
       else if (/busy|reject|fail|занят|отклон|congestion/.test(hangup)) status = 'failed';
       else status = 'missed';
-      const recordUrl = (r.download_url || r.download || r.record || r.file) ? String(r.download_url || r.download || r.record || r.file) : null;
-      const startedAt = parseStamp(r.start_stamp || r.start_stamp_gmt || r.created_at || r.start_time || r.date);
+      const recordUrl = r.recordUrl;
+      const startedAt = r.startedAt;
 
       // Lidga bog'lash — avval "Qo'ng'iroq" bosilgan lid, keyin raqam bo'yicha (dublikat uchun)
       const lead0 = await this.resolveLead(phone, other);

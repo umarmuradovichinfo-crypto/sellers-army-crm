@@ -166,4 +166,15 @@ describe('Telefoniya (OnlinePBX + MicroSIP)', () => {
     assert.ok(r.status >= 400, `${r.status}`);
     await ok('PUT', '/crm/pbx/config', { callMode: 'softphone' }, T, 200);
   });
+
+  test('provayder qatlami: standart onlinepbx; «own» tanlansa ulanmagan holat tushunarli, qayta onlinepbx\'ga qaytadi', async () => {
+    const cur = await ok('GET', '/crm/pbx/config', undefined, T, 200);
+    assert.equal(cur.provider, 'onlinepbx');
+    const own = await ok('PUT', '/crm/pbx/config', { provider: 'own' }, T, 200);
+    assert.equal(own.provider, 'own');
+    const test = await ok('POST', '/crm/pbx/test', undefined, T, [200, 201]);
+    assert.equal(test.ok, false);
+    const back = await ok('PUT', '/crm/pbx/config', { provider: 'onlinepbx' }, T, 200);
+    assert.equal(back.provider, 'onlinepbx');
+  });
 });

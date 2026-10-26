@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { OnlinePbxConfigService } from './onlinepbx-config.service';
+import { parseStamp, type PbxCall, type PbxKind, type PbxProvider } from './pbx-provider';
 
 /**
  * OnlinePBX HTTP API mijozi (api.onlinepbx.ru) — rasmiy docs bo'yicha.
@@ -13,7 +14,8 @@ import { OnlinePbxConfigService } from './onlinepbx-config.service';
  * Kalit bo'lmasa enabled()=false.
  */
 @Injectable()
-export class OnlinePbxClient {
+export class OnlinePbxClient implements PbxProvider {
+  readonly kind: PbxKind = 'onlinepbx';
   private readonly logger = new Logger(OnlinePbxClient.name);
   private session: { key: string; keyId: string } | null = null;
 
@@ -88,6 +90,28 @@ export class OnlinePbxClient {
     const json = await this.post(`/call/now.json`, { from, to, ...extra });
     const ok = String(json?.status) === '1';
     return { ok, uuid: json?.data?.uuid, comment: json?.comment, raw: json };
+  }
+
+  /** OnlinePBX yozuvlarini provayderdan mustaqil shaklga keltiradi (maydon nomlari turli versiyalarda farq qiladi). */
+  async history(params: Record<string, string>): Promise<PbxCall[]> {
+    const out: PbxCall[] = [];
+    for (const r of await this.historySearch(params)) {
+      const uuid = String(r.uuid || r.call_uuid || r.id || '');
+      if (!uuid) continue;
+      const talk = Number(r.dialog_duration || r.user_talk_time || r.billsec) || 0;
+      out.push({
+        uuid,
+        accountHint: String(r.accountcode || r.type || r.call_type || r.direction || '').toLowerCase(),
+        caller: String(r.caller || r.caller_id_number || r.from || r.src || ''),
+        callee: String(r.callee || r.destination_number || r.callee_id_number || r.to || r.dst || r.did || ''),
+        talkSec: talk,
+        durationSec: Number(r.call_duration || r.duration) || talk || 0,
+        hangup: String(r.hangup_cause || r.disposition || '').toLowerCase(),
+        recordUrl: (r.download_url || r.download || r.record || r.file) ? String(r.download_url || r.download || r.record || r.file) : null,
+        startedAt: parseStamp(r.start_stamp || r.start_stamp_gmt || r.created_at || r.start_time || r.date),
+      });
+    }
+    return out;
   }
 
   async historySearch(params: Record<string, string>): Promise<any[]> {
