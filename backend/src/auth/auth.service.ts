@@ -25,6 +25,8 @@ type SetupInput = {
   setupToken?: string;
 };
 
+// mavjud bo'lmagan foydalanuvchi uchun taqqoslash (javob vaqtini tenglashtirish)
+const DUMMY_HASH = bcrypt.hashSync('dummy-password-for-timing', 10);
 type Tokens = { token: string; refreshToken: string };
 
 @Injectable()
@@ -41,7 +43,8 @@ export class AuthService {
     const e = String(email || '').trim();
     if (!e) return null;
     const user = await this.prisma.user.findFirst({ where: { email: { equals: e, mode: 'insensitive' } } });
-    if (!user || !user.isActive) return null;
+    // mavjud bo'lmagan/nofaol email uchun ham bcrypt ishlaydi — javob vaqti bo'yicha foydalanuvchi aniqlanmasin
+    if (!user || !user.isActive) { await bcrypt.compare(password, DUMMY_HASH); return null; }
     const ok = await bcrypt.compare(password, user.passwordHash);
     return ok ? user : null;
   }
@@ -71,14 +74,16 @@ export class AuthService {
     const ip = meta?.ip || '-';
     const kEmail = `login:${ip}:${String(email || '').trim().toLowerCase()}`;
     const kIp = `login-ip:${ip}`;
+    const kAcct = `login-acct:${String(email || '').trim().toLowerCase()}`; // IP almashtirib bitta akkauntni tanlashga qarshi (IP'siz umumiy limit)
     const WIN = 15 * 60_000;
-    if (rateCount(kEmail, WIN) >= 10 || rateCount(kIp, WIN) >= 50) {
+    if (rateCount(kEmail, WIN) >= 10 || rateCount(kIp, WIN) >= 50 || rateCount(kAcct, WIN) >= 30) {
       throw new HttpException({ error: 'TOO_MANY_ATTEMPTS', message: "Juda ko'p noto'g'ri urinish. 15 daqiqadan so'ng qayta urining" }, HttpStatus.TOO_MANY_REQUESTS);
     }
+    rateHit(kEmail); // urinish bcrypt'dan OLDIN hisoblanadi (parallel so'rovlar limitni aylanib o'tmasin)
     const user = await this.validateUser(email, password);
     await this.logAuth(user?.id || null, email, !!user, meta);
     if (user) rateReset(kEmail);
-    else { rateHit(kEmail); rateHit(kIp); }
+    else { rateHit(kIp); rateHit(kAcct); }
     if (!user) {
       throw new UnauthorizedException({
         error: 'INVALID_CREDENTIALS',
@@ -212,6 +217,9 @@ export class AuthService {
         message: 'Sessiya yaroqsiz',
       });
     }
+    // o'chirilgan foydalanuvchi yangi access token ololmaydi
+    const alive = await this.prisma.user.findUnique({ where: { id: payload.sub }, select: { isActive: true } });
+    if (!alive?.isActive) throw new UnauthorizedException({ error: 'INVALID_TOKEN', message: 'Hisob o\'chirilgan' });
 
     // Rotatsiyasiz: eski refresh token BEKOR QILINMAYDI — faqat yangi access token beramiz.
     // Sabab: foydalanuvchi CRM'ni alohida tabda ochadi; ikkala tab bir vaqtda refresh qilsa,

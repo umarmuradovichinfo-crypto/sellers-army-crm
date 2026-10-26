@@ -69,12 +69,13 @@ export class CallsController {
   }
 
   @Get('calls/incoming')
-  incoming() {
-    return this.calls.incoming();
+  incoming(@CurrentUser('id') userId: string) {
+    return this.calls.incoming(userId);
   }
 
   @Post('calls/:id/dismiss')
-  dismiss(@Param('id') id: string) {
+  async dismiss(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    await this.rights.assertCall(user, id);
     return this.calls.dismissIncoming(id);
   }
 
@@ -90,8 +91,8 @@ export class CallsController {
     return this.calls.getWebrtcConfig(user);
   }
   @Get('lead-by-phone')
-  leadByPhone(@Query('phone') phone: string) {
-    return this.calls.leadByPhonePublic(phone || '');
+  leadByPhone(@Query('phone') phone: string, @CurrentUser('id') userId: string) {
+    return this.calls.leadByPhonePublic(phone || '', userId);
   }
   @Put('webrtc/config')
   saveWebrtc(@Body() dto: { extension?: string; sipPassword?: string }, @CurrentUser() user: AuthUser) {

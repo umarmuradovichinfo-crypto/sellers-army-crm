@@ -1,3 +1,4 @@
+import { ForbiddenException } from '@nestjs/common';
 import { RightsService } from '../common/rights/rights.service';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
@@ -67,12 +68,13 @@ export class ContactsService {
     const c = await this.prisma.company.update({ where: { id }, data });
     return { company: { ...c, custom: parse(c.customJson, {}) } };
   }
-  async getCompany(id: string) {
+  async getCompany(id: string, userId?: string) {
     const c = await this.prisma.company.findUnique({ where: { id } });
     if (!c) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Kompaniya topilmadi' });
+    const own = await this.rights.ownersById(userId, 'leads', 'view'); // kompaniya bitimlari — bitim huquqi bo'yicha
     const [contacts, leads] = await Promise.all([
       this.prisma.contact.findMany({ where: { companyId: id } }),
-      this.prisma.lead.findMany({ where: { companyId: id }, select: { id: true, name: true, stage: true, value: true } }),
+      this.prisma.lead.findMany({ where: { companyId: id, ...(own ? { assigneeId: { in: own.length ? own : ['__none__'] } } : {}) }, select: { id: true, name: true, stage: true, value: true } }),
     ]);
     return { company: { ...c, custom: parse(c.customJson, {}) }, contacts, leads };
   }
@@ -151,8 +153,13 @@ export class ContactsService {
       const ex = new Set(dto.excludeIds || []);
       items = r.filter((x) => !ex.has(`${x.kind}:${x.id}`));
     }
-    const contactIds = items.filter((i) => i.kind === 'contact').map((i) => i.id);
-    const companyIds = items.filter((i) => i.kind === 'company').map((i) => i.id);
+    let contactIds = items.filter((i) => i.kind === 'contact').map((i) => i.id);
+    let companyIds = items.filter((i) => i.kind === 'company').map((i) => i.id);
+    // amoCRM «Права доступа»: aniq ro'yxat berilganda ham «O'chirish» huquqi mas'ul bo'yicha tekshiriladi
+    const [ownC, ownK] = await Promise.all([this.rights.ownersById(userId, 'contacts', 'delete'), this.rights.ownersById(userId, 'companies', 'delete')]);
+    if (ownC) contactIds = (await this.prisma.contact.findMany({ where: { id: { in: contactIds }, assigneeKey: { in: ownC.length ? ownC : ['__none__'] } }, select: { id: true } })).map((r) => r.id);
+    if (ownK) companyIds = (await this.prisma.company.findMany({ where: { id: { in: companyIds }, assigneeKey: { in: ownK.length ? ownK : ['__none__'] } }, select: { id: true } })).map((r) => r.id);
+    if ((ownC || ownK) && items.length && !contactIds.length && !companyIds.length) throw new ForbiddenException({ error: 'FORBIDDEN', message: "O'chirish uchun huquqingiz yo'q" });
     const CH = 5000;
     let affected = 0;
     for (let i = 0; i < contactIds.length; i += CH) {

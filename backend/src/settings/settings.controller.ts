@@ -1,5 +1,5 @@
 import { clientIp } from '../common/guards/ip-whitelist.guard';
-import { Body, Controller, Query, Req, Res, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Query, Req, Res, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
 import type { Response } from 'express';
 
 import { CurrentUser, type AuthUser } from '../common/decorators/current-user.decorator';
@@ -28,7 +28,9 @@ export class SettingsController {
 
   @Patch('access')
   @RequirePermissions('settings.roles.manage')
-  setPermission(@Body() dto: SetPermissionDto) {
+  setPermission(@Body() dto: SetPermissionDto, @CurrentUser() me: AuthUser) {
+    // «Rollarni boshqarish» huquqini faqat super_admin beradi/oladi (aks holda delegat admin o'zini kengaytirib oladi)
+    if (dto.permission === 'settings.roles.manage' && me.role !== 'super_admin') throw new ForbiddenException({ error: 'FORBIDDEN', message: "Bu ruxsatni faqat super admin o'zgartiradi" });
     return this.settings.setPermission(dto.roleKey, dto.permission, dto.allowed);
   }
 
@@ -54,14 +56,15 @@ export class SettingsController {
 
   @Post('users')
   @RequirePermissions('settings.roles.manage')
-  createUser(@Body() dto: CreateUserDto) {
+  createUser(@Body() dto: CreateUserDto, @CurrentUser() me: AuthUser) {
+    if (dto.roleKey === 'super_admin' && me.role !== 'super_admin') throw new ForbiddenException({ error: 'FORBIDDEN', message: "Super admin'ni faqat super admin yarata oladi" });
     return this.settings.createUser(dto);
   }
 
   @Patch('users/:id')
   @RequirePermissions('settings.roles.manage')
-  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser('id') uid: string) {
-    return this.settings.updateUser(id, dto, uid);
+  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() me: AuthUser) {
+    return this.settings.updateUser(id, dto, me.id, me.role);
   }
 
   // amoCRM «Настройка групп»
@@ -87,8 +90,8 @@ export class SettingsController {
 
   @Post('users/:id/password')
   @RequirePermissions('settings.roles.manage')
-  resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto) {
-    return this.settings.resetPassword(id, dto.password);
+  resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto, @CurrentUser() me: AuthUser) {
+    return this.settings.resetPassword(id, dto.password, id === me.id ? me.sid : undefined, me.role);
   }
 
   // O'z parolini o'zgartirish (ruxsat talab qilinmaydi — faqat login)

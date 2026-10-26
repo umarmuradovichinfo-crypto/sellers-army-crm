@@ -1,5 +1,5 @@
 import { IP_WHITELIST_KEY, IpWhitelistGuard } from '../common/guards/ip-whitelist.guard';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 
 import { PERMISSION_KEYS, PERMISSION_LABELS } from '../common/constants/permissions';
@@ -162,9 +162,17 @@ export class SettingsService {
     id: string,
     dto: { name?: string; email?: string; roleKey?: string; isActive?: boolean; extension?: string; groupId?: string | null },
     currentUserId?: string,
+    actorRole?: string,
   ) {
-    const existing = await this.prisma.user.findUnique({ where: { id } });
+    const existing = await this.prisma.user.findUnique({ where: { id }, include: { role: { select: { key: true } } } });
     if (!existing) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Foydalanuvchi topilmadi' });
+    // Super admin'ni faqat super admin tahrirlaydi; oxirgi faol super adminni tushirib/o'chirib bo'lmaydi
+    const targetIsSuper = existing.role.key === 'super_admin';
+    if ((targetIsSuper || dto.roleKey === 'super_admin') && actorRole !== undefined && actorRole !== 'super_admin') throw new ForbiddenException({ error: 'FORBIDDEN', message: "Super admin'ni faqat super admin o'zgartira oladi" });
+    if (targetIsSuper && ((dto.roleKey !== undefined && dto.roleKey !== 'super_admin') || dto.isActive === false)) {
+      const others = await this.prisma.user.count({ where: { id: { not: id }, isActive: true, role: { key: 'super_admin' } } });
+      if (!others) throw new BadRequestException({ error: 'LAST_SUPER', message: "Oxirgi faol super adminni o'zgartirib yoki o'chirib bo'lmaydi" });
+    }
     if (id === currentUserId && dto.isActive === false)
       throw new BadRequestException({ error: 'SELF', message: "O'z hisobingizni o'chira olmaysiz" });
     if (dto.name !== undefined && dto.name.trim().length > 100)
@@ -191,7 +199,11 @@ export class SettingsService {
       data.roleId = role.id;
       this.rightsSvc.clear();
     }
-    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    if (dto.isActive !== undefined) {
+      data.isActive = dto.isActive;
+      // o'chirilgan foydalanuvchining sessiyalari ham yopiladi (qayta yoqilsa eski tokenlar tirilmasin)
+      if (dto.isActive === false) await this.prisma.refreshToken.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: new Date() } });
+    }
     if (dto.extension !== undefined) data.extension = dto.extension.trim() || null;
     if (dto.groupId !== undefined) { data.groupId = await this.checkGroup(dto.groupId); this.rightsSvc.clear(); }
 
@@ -203,10 +215,11 @@ export class SettingsService {
     return { user: this.presentUser(u as UserRow) };
   }
 
-  async resetPassword(id: string, password: string, keepSid?: string) {
+  async resetPassword(id: string, password: string, keepSid?: string, actorRole?: string) {
     if ((password || '').length < 6) throw new BadRequestException({ error: 'BAD_PASS', message: 'Parol kamida 6 belgi bo`lsin' });
-    const existing = await this.prisma.user.findUnique({ where: { id } });
+    const existing = await this.prisma.user.findUnique({ where: { id }, include: { role: { select: { key: true } } } });
     if (!existing) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Foydalanuvchi topilmadi' });
+    if (existing.role.key === 'super_admin' && actorRole !== undefined && actorRole !== 'super_admin') throw new ForbiddenException({ error: 'FORBIDDEN', message: "Super admin parolini faqat super admin o'zgartira oladi" });
     const passwordHash = await bcrypt.hash(password, 10);
     await this.prisma.user.update({ where: { id }, data: { passwordHash } });
     // amoCRM: parol almashgach boshqa barcha qurilmalardagi sessiyalar yopiladi (joriydan tashqari)

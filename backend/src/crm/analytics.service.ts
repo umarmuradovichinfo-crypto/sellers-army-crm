@@ -457,7 +457,7 @@ export class CrmAnalyticsService {
     // «email» — chat xabarlari jurnali: xabarlar o'z manbasidan chiqadi (takrorlanmasin); suhbat yopilishi faoliyatdan «Беседа закрыта»
     const actTypes = typeList.filter((t) => ![...CALL_TYPES, ...MSG_TYPES, 'conv_closed', 'email'].includes(t) && okEntity(t));
     if (typeList.includes('conv_closed') && entity !== 'task') actTypes.push('updated');
-    const and: any[] = [{ type: { not: 'email' } }];
+    const and: any[] = [{ type: { notIn: ['email', 'auth'] } }]; // «auth» — kirish jurnali (faqat Sozlamalar → Foydalanuvchilar, administratorga)
     if (typeList.length) and.push({ type: { in: actTypes.length ? actTypes : ['__none__'] } });
     else if (entity === 'task') and.push({ type: { startsWith: 'task_' } });
     else if (entity === 'lead') and.push({ NOT: { type: { startsWith: 'task_' } } });

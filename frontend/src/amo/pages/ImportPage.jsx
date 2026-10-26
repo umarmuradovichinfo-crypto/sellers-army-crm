@@ -369,7 +369,7 @@ export default function ImportPage({ entity = 'leads' }) {
                   </select>
                   <select className="ac-select" value={stageKey} onChange={(e) => setStageKey(e.target.value)}>
                     <option value="">{stages[0] ? stages[0].name : t('Bosqich')}</option>
-                    {stages.slice(1).map((s) => <option key={s.key} value={s.key}>{s.name}</option>)}
+                    {stages.slice(1).map((s) => <option key={s.id ?? s.key} value={s.id ?? s.key}>{s.name}</option>)}
                   </select>
                 </div>
               </div>

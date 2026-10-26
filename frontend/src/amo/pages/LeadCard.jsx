@@ -983,7 +983,7 @@ export default function LeadCard() {
       reason = r || undefined
     }
     try {
-      if ((lead.pipelineId || '') !== pipelineId) await crmService.updateLead(lead.id, { pipelineId: pipelineId || '' })
+      // moveLead voronkani bosqichdan o'zi qo'yadi (majburiy maydon xatosida bitim «ikki voronka orasida» qolmasin)
       await crmService.moveLead(lead.id, stage.id, undefined, reason)
     } catch (e) { window.alert(e?.message || t('Xatolik yuz berdi')) }
     await loadLead()

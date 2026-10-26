@@ -1,3 +1,5 @@
+import { RightsService } from '../common/rights/rights.service';
+import { stageCloseData } from './stage-close';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 import type { AuthUser } from '../common/decorators/current-user.decorator';
@@ -30,15 +32,18 @@ function money(v: unknown): number | null {
   const raw = str(v);
   if (!raw) return 0;
   if (!/\d/.test(raw)) return null;
-  const s = raw.replace(/\s/g, '').replace(',', '.').replace(/[^\d.\-]/g, '');
+  let s = raw.replace(/[\s\u00a0']/g, '').replace(/[^\d.,\-]/g, '');
+  // ming ajratgichlar: bir nechta vergul/nuqta yoki «1,500» / «1.500.000» ko'rinishi → olib tashlanadi; aks holda o'nlik
+  if ((s.match(/[.,]/g) || []).length > 1 || /^\d{1,3}([.,]\d{3})+$/.test(s)) s = s.replace(/[.,]/g, '');
+  else s = s.replace(',', '.');
   const n = Number(s);
-  return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+  return Number.isFinite(n) && n >= 0 && n <= 2_000_000_000 ? Math.round(n) : null;
 }
 
 /** amoCRM uslubidagi import: bitimlar va kontaktlar (partiyalab, qatorma-qator validatsiya). */
 @Injectable()
 export class CrmImportService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly rights: RightsService) {}
 
   /** Google Sheets havolasi → CSV (faqat docs.google.com; jadval «havolaga ega har kim ko'ra oladi» bo'lishi kerak). */
   async fetchSheet(url: string) {
@@ -206,6 +211,7 @@ export class CrmImportService {
         }
 
         if (dup && o.dupMode === 'update') {
+          if (user) await this.rights.assertLead(user, dup.id, 'edit'); // begona bitimni import orqali qayta yozib bo'lmaydi
           const data: Record<string, unknown> = {};
           if (name) data.name = name;
           if (value) data.value = value;
@@ -235,6 +241,7 @@ export class CrmImportService {
             tagsJson: JSON.stringify(tags),
             customJson: JSON.stringify(custom),
             createdById: user?.id || null,
+            ...stageCloseData(stage!.kind), // yutilgan/yo'qotilgan bosqichga import — wonAt/lostAt qo'yiladi
             // amoCRM importi: «Примечание» ustuni bitimga izoh bo'lib tushadi
             ...(str(r.note, 2000) ? { notesJson: JSON.stringify([{ text: str(r.note, 2000), at: new Date().toISOString(), by: user?.name || 'Import' }]) } : {}),
           },

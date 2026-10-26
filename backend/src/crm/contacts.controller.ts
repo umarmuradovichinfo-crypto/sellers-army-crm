@@ -12,7 +12,7 @@ export class ContactsController {
 
   // ── Kompaniyalar ──
   @Get('companies') companies(@Query() q: Record<string, string>, @CurrentUser('id') uid?: string) { return this.s.listCompanies(q, uid); }
-  @Get('companies/:id') async company(@Param('id') id: string, @CurrentUser() u: AuthUser) { await this.r.assertEntity(u, 'companies', id, 'view'); return this.s.getCompany(id); }
+  @Get('companies/:id') async company(@Param('id') id: string, @CurrentUser() u: AuthUser) { await this.r.assertEntity(u, 'companies', id, 'view'); return this.s.getCompany(id, u.id); }
   @Post('companies') async createCompany(@Body() dto: any, @CurrentUser() u: AuthUser) { await this.r.assertAdd(u, 'companies'); return this.s.createCompany(dto, u.id); }
   @Put('companies/:id') async updateCompany(@Param('id') id: string, @Body() dto: any, @CurrentUser() u: AuthUser) { await this.r.assertEntity(u, 'companies', id, 'edit'); return this.s.updateCompany(id, dto); }
   @Delete('companies/:id') async deleteCompany(@Param('id') id: string, @CurrentUser() u: AuthUser) { await this.r.assertEntity(u, 'companies', id, 'delete'); return this.s.deleteCompany(id); }

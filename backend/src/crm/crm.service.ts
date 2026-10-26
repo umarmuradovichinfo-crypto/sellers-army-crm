@@ -389,7 +389,8 @@ export class CrmService {
     await this.prisma.$transaction([
       this.prisma.lead.updateMany({
         where: { stage: key },
-        data: target ? { stage: target.key } : { stage: 'new', pipelineId: null },
+        // ochiq bosqichga ko'chadi: yutilgan/yo'qotilgan sanalari va sabab tozalanadi (statistikada yutilgan bo'lib qolmasin)
+        data: { ...(target ? { stage: target.key } : { stage: 'new', pipelineId: null }), ...stageCloseData('open') },
       }),
       this.prisma.automation.deleteMany({ where: { stageKey: key } }),
       this.prisma.crmStage.delete({ where: { key } }),
@@ -656,6 +657,7 @@ export class CrmService {
     let contactId = dto.contactId || null;
     if (contactId) {
       if (!(await this.prisma.contact.findUnique({ where: { id: contactId }, select: { id: true } }))) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Kontakt topilmadi' });
+      if (user) await this.rights.assertEntity(user, 'contacts', contactId, 'view'); // begona kontaktni biriktirib ma'lumotini ochib bo'lmaydi
     } else {
       const name = String(dto.name || '').trim();
       if (!name) throw new BadRequestException({ error: 'BAD_REQUEST', message: 'Kontakt nomi kerak' });
@@ -846,7 +848,7 @@ export class CrmService {
             await this.prisma.lead.updateMany({ where: { id: { in: changed.map((c) => c.id) } }, data });
             await this.prisma.activity.createMany({
               data: changed.map((c) => ({
-                leadId: c.id, type: target.kind === 'won' ? 'won' : target.kind === 'lost' ? 'lost' : 'stage', actorId: user?.id || null, actorName: user?.name || null, dataJson: '{}',
+                leadId: c.id, type: target.kind === 'won' ? 'won' : target.kind === 'lost' ? 'lost' : 'stage', actorId: user?.id || null, actorName: user?.name || null, dataJson: JSON.stringify({ to: target.key, from: c.stage, fromName: '', toName: stageName }),
                 text: target.kind === 'won' ? `🏆 Sotuv yopildi: ${fmtSum(c.value)} so'm` : target.kind === 'lost' ? "Yo'qotildi" : `Bosqich: ${stageName}`,
               })),
             });
@@ -969,7 +971,8 @@ export class CrmService {
     const stages = await this.prisma.crmStage.findMany();
     const stName = new Map(stages.map((s) => [s.key, s.name]));
     const head = ['Ism', 'Telefon', 'Email', 'Kompaniya', 'Manba', 'Byudjet', 'Bosqich', 'Mas`ul', 'Teglar', 'Yaratilgan'];
-    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    // Excel formula injection'dan himoya: = + - @ bilan boshlanuvchi matn oldiga ' qo'yiladi
+    const esc = (v: any) => { let x = String(v ?? ''); if (/^[=+\-@\t\r]/.test(x) && !/^-?\d+([.,]\d+)?$/.test(x)) x = `'${x}`; return `"${x.replace(/"/g, '""')}"`; };
     const rows = leads.map((l) => [
       l.name, l.phone || '', l.email || '', l.company || '', l.source || '', l.value,
       stName.get(l.stage) || l.stage, l.assigneeId ? names.get(l.assigneeId) || '' : '',
@@ -1096,6 +1099,7 @@ export class CrmService {
     // bo'sh maydonlarni to'ldiramiz + teglar/izohlarni birlashtiramiz
     const data: Record<string, unknown> = {};
     for (const o of others) {
+      if (!(keep as any).telegramChatId && (o as any).telegramChatId && !data.telegramChatId) data.telegramChatId = (o as any).telegramChatId; // javob yuborish imkoni yo'qolmasin
       if (!keep.phone && o.phone) data.phone = o.phone;
       if (!keep.email && o.email) data.email = o.email;
       if (!keep.company && o.company) data.company = o.company;
@@ -1177,10 +1181,17 @@ export class CrmService {
   async acceptUnsorted(id: string, dto: { assigneeId?: string; stageKey?: string; pipelineId?: string }, user?: AuthUser) {
     const lead = await this.prisma.lead.findUnique({ where: { id } });
     if (!lead) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Lid topilmadi' });
+    if (!lead.unsorted) throw new BadRequestException({ error: 'NOT_UNSORTED', message: "Bu bitim «Saralanmagan»da emas" });
     const data: Record<string, unknown> = { unsorted: false };
     if (dto.assigneeId !== undefined) data.assigneeId = dto.assigneeId || null;
-    if (dto.stageKey) data.stage = dto.stageKey;
-    if (dto.pipelineId !== undefined) data.pipelineId = dto.pipelineId || null;
+    if (dto.stageKey) {
+      // bosqich mavjud bo'lishi shart; voronka bosqichdan olinadi; yopilish sanalari va navbat qo'yiladi
+      const st = await this.prisma.crmStage.findUnique({ where: { key: dto.stageKey } });
+      if (!st) throw new BadRequestException({ error: 'BAD_STAGE', message: 'Bosqich topilmadi' });
+      if (dto.pipelineId !== undefined && (dto.pipelineId || null) !== (st.pipelineId || null)) throw new BadRequestException({ error: 'BAD_STAGE', message: "Bosqich tanlangan voronkaga tegishli emas" });
+      await this.assertRequiredFields(lead, dto.stageKey);
+      Object.assign(data, { stage: st.key, pipelineId: st.pipelineId || null, queue: await this.nextQueue(st.key) }, stageCloseData(st.kind));
+    } else if (dto.pipelineId !== undefined) data.pipelineId = dto.pipelineId || null;
     await this.prisma.lead.update({ where: { id }, data });
     await this.activity.record(id, 'updated', { actorId: user?.id, actorName: user?.name, text: 'Saralanmagandan qabul qilindi' });
     if (dto.stageKey && dto.stageKey !== lead.stage) await this.automation.fire('stage_enter', id, { actorName: user?.name });
