@@ -108,7 +108,6 @@ export function PbxStatistic() {
     <TopTabs first="pbx§Statistika" desc={["pbx§Statistika — qo'ng'iroqlarni mustaqil tahlil qilish uchun qulay vosita.", "pbx§Bu bo'limda noyob qo'ng'iroqlar sonini xodim, raqam, davomiylik va boshqa parametrlar bo'yicha ko'rish mumkin."]}>
     <div className="pbxst">
       <div className="pbxst__head"><h3>{t('pbx§Statistika')}</h3><span>{t("pbx§Qo'ng'iroqlar soni (tur bo'yicha)")}</span></div>
-      {!data && <div className="pbxx__text">{t('Yuklanmoqda…')}</div>}
       {series.length > 0 && <LineChart series={series} />}
       <div className="pbxst__legend">{LINES.map(([k, c, l]) => <span key={k}><i style={{ background: c }} />{t(l)}</span>)}</div>
     </div>

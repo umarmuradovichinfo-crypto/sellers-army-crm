@@ -60,7 +60,6 @@ export default function CallReportsPage() {
               <button type="button" className="ac-btn ac-btn--blue" onClick={() => setApplied(f)}>{t("cr§Qo'llash")}</button>
             </div>
             {error && !data && <div className="ac-cl__empty">{t(error.status === 400 ? 'cr§Davr 93 kundan oshmasin' : "cr§Yuklab bo'lmadi")}</div>}
-            {loading && !data && <div className="ac-cl__empty">{t('Yuklanmoqda…')}</div>}
             {data && kind === 'group' && (
               <>
                 <Bars series={data.series} keys={['in', 'out', 'internal']} colors={['#2db26d', '#7c6cf0', '#b8bcc9']} />

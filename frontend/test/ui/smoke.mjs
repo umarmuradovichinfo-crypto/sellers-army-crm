@@ -101,6 +101,7 @@ async function visit(lang, viewport) {
     }))
     if (info.path === '/login') { errors.push(`${tag} ${route}: login sahifasiga qaytarib yuborildi`); continue }
     if (info.text < 20) errors.push(`${tag} ${route}: oq (bo'sh) ekran`)
+    if (/Yuklanmoqda|Загрузка…/i.test(info.body)) errors.push(`${tag} ${route}: «Yuklanmoqda» yozuvi chiqdi`)
     if (viewport.width < 500 && info.overflow > 4) warns.push(`${tag} ${route}: telefonda gorizontal siljish ${info.overflow}px ← ${info.culprits.join(', ')}`)
     if (lang === 'ru') {
       // har bir topilmani atrofidagi matni bilan (qaysi joy ekanini tez topish uchun)

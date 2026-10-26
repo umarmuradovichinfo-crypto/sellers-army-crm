@@ -32,7 +32,7 @@ export default function SettingsBilling() {
   const [copied, setCopied] = useState(false)
 
   if (!can('settings.view')) return <div className="ac-bl"><p>{t("bl§Bu bo'limga ruxsat yo'q")}</p></div>
-  if (loading && !data) return <div className="ac-bl"><p>{t('Yuklanmoqda…')}</p></div>
+  if (loading && !data) return <div className="ac-bl" />
   if (error && !data) return <div className="ac-bl"><p>{t('bl§Yuklab bo\'lmadi')}</p></div>
   if (!data) return null
 

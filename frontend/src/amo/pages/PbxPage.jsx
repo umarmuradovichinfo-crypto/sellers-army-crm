@@ -271,7 +271,7 @@ export function Outgoing() {
   const [rules, setRules] = useState(null)
   const [msg, setMsg] = useState(null)
   useEffect(() => { if (data && rules === null) setRules((data.rules || []).map((r) => ({ ...r, users: (r.users || []).join(';') }))) }, [data]) // eslint-disable-line
-  if (rules === null) return <div className="ac-pbx__empty">{t('Yuklanmoqda…')}</div>
+  if (rules === null) return <div className="ac-pbx__empty" />
   const set = (i, p) => setRules(rules.map((r, j) => (j === i ? { ...r, ...p } : r)))
   const save = async () => {
     setMsg(null)
@@ -356,7 +356,7 @@ export function Music() {
   const [base, setBase] = useState(null)
   const [msg, setMsg] = useState(null)
   useEffect(() => { if (data && !m) { setM(data); setBase(data) } }, [data]) // eslint-disable-line
-  if (!m) return <div className="ac-pbx__empty">{t('Yuklanmoqda…')}</div>
+  if (!m) return <div className="ac-pbx__empty" />
   const dirty = JSON.stringify(m) !== JSON.stringify(base)
   const save = async () => { try { const r = await pbxService.saveMusic(m); setM(r); setBase(r); setMsg({ ok: true, text: t('pbx§Saqlandi') }) } catch (e) { setMsg({ ok: false, text: e?.message || '' }) } }
   return (
@@ -451,7 +451,7 @@ export function CallbackSettings() {
   const [c, setC] = useState(null)
   const [msg, setMsg] = useState(null)
   useEffect(() => { if (data && !c) setC(data) }, [data]) // eslint-disable-line
-  if (!c) return <div className="ac-pbx__empty">{t('Yuklanmoqda…')}</div>
+  if (!c) return <div className="ac-pbx__empty" />
   const set = (k, v) => setC({ ...c, [k]: v })
   const save = async () => {
     try { const r = await pbxService.saveCallback(c); setC(r); setMsg({ ok: true, text: t('pbx§Saqlandi') }) } catch (e) { setMsg({ ok: false, text: e?.message || t("pbx§Saqlab bo'lmadi") }) }
@@ -480,7 +480,7 @@ export function AutoRecallSettings() {
   const [c, setC] = useState(null)
   const [msg, setMsg] = useState(null)
   useEffect(() => { if (data && !c) setC(data) }, [data]) // eslint-disable-line
-  if (!c) return <div className="ac-pbx__empty">{t('Yuklanmoqda…')}</div>
+  if (!c) return <div className="ac-pbx__empty" />
   const set = (k, v) => setC({ ...c, [k]: v })
   const save = async () => {
     setMsg(null)
@@ -532,7 +532,7 @@ export function AudioLibrary() {
     <div className="ac-pbx__page">
       <h3>{t('pbx§AUDIO FAYLLAR')}</h3>
       <p className="ac-pbx__muted">{t("pbx§Salomlashish, navbat, ovozli pochta va musiqa uchun MP3/WAV/OGG fayllar (har biri 5 MB gacha).")}</p>
-      <label className="ac-btn ac-btn--blue" style={{ display: 'inline-flex', alignItems: 'center' }}>{busy ? t('Yuklanmoqda…') : `+ ${t('pbx§Fayl yuklash')}`}<input type="file" accept="audio/mpeg,audio/wav,audio/ogg,.mp3,.wav,.ogg" hidden onChange={upload} disabled={busy} /></label>
+      <label className="ac-btn ac-btn--blue" style={{ display: 'inline-flex', alignItems: 'center' }}>{`+ ${t('pbx§Fayl yuklash')}`}<input type="file" accept="audio/mpeg,audio/wav,audio/ogg,.mp3,.wav,.ogg" hidden onChange={upload} disabled={busy} /></label>
       {err && <div className="ac-pbx__err">{err}</div>}
       {(data?.files || []).length === 0 ? <div className="ac-pbx__empty">{t("pbx§Hali audio fayl yo'q.")}</div> : (
         <table className="ac-pbx__table"><tbody>{data.files.map((f) => (

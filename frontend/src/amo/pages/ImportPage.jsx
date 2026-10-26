@@ -161,7 +161,7 @@ export function ImportModal({ entity = 'leads', onClose }) {
                 <p>{t("Bazangiz Google jadvallarida bo'lsa, u bilan darhol ishlashni boshlashingiz mumkin. Jadvalga «Havolaga ega har kim ko'ra oladi» ruxsatini bering va havolani shu yerga qo'ying.")}</p>
                 <div className="ac-import-card__btns">
                   <input className="ac-input ac-import-card__url" placeholder="https://docs.google.com/spreadsheets/d/…" value={sheet} onChange={(e) => setSheet(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && loadSheet()} />
-                  <button className="ac-btn ac-btn--plain ac-import-btn" disabled={!sheet.trim() || busy} onClick={loadSheet}>{t(busy ? 'Yuklanmoqda…' : 'Jadvalni tanlash')}</button>
+                  <button className="ac-btn ac-btn--plain ac-import-btn" disabled={!sheet.trim() || busy} onClick={loadSheet}>{t('Jadvalni tanlash')}</button>
                 </div>
                 {err && <div className="ac-import-err" style={{ margin: '8px 0 0' }}>{err}</div>}
               </div>

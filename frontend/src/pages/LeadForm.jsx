@@ -19,7 +19,7 @@ export default function LeadForm() {
     return () => { alive = false }
   }, [slug])
 
-  if (loading) return <div className="apply-wrap"><div className="apply-card">Yuklanmoqda…</div></div>
+  if (loading) return <div className="apply-wrap" />
   if (error || !form) return <div className="apply-wrap"><div className="apply-card"><h2>Forma topilmadi</h2><p className="sub2">Havola noto‘g‘ri yoki forma yopilgan.</p></div></div>
 
   return <FormRenderer form={form} idKey="key" onSubmit={(answers) => publicLeadForm.submit(slug, answers)} />

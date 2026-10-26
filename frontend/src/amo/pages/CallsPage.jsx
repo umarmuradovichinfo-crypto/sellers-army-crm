@@ -65,7 +65,6 @@ export default function CallsPage() {
         </div>}
         <div className="pbxc__tablewrap">
           {error && !data && <div className="ac-cl__empty">{t('calls§Yuklab bo\'lmadi')}</div>}
-          {loading && !data && <div className="ac-cl__empty">{t('Yuklanmoqda…')}</div>}
           {data && (
             <table className="pbxc__table">
               <thead><tr><th>{t('calls§Tur')}</th><th className="dark">{t('calls§Vaqt')}</th><th>{t('calls§Kim')}</th><th>{t('calls§Kimga')}</th><th>{t('calls§Tashqi raqam')}</th><th>{t('calls§Jiringlash')}</th><th>{t('calls§Suhbat')}</th><th>{t('calls§Baho')}</th><th>{t('calls§Natija')}</th><th>{t('calls§Yuklangan')}</th><th /></tr></thead>

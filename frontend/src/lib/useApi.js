@@ -57,7 +57,9 @@ function autoKey(fetchFn, deps) {
   return 'k' + hash(src + '|' + d)
 }
 
-export function useApi(fetchFn, deps = [], cacheKey = null, refreshMs = 0) {
+export const DEFAULT_REFRESH_MS = 60000 // butun tizimda ma'lumot har 1 daqiqada fonda yangilanadi
+
+export function useApi(fetchFn, deps = [], cacheKey = null, refreshMs = DEFAULT_REFRESH_MS) {
   const key = cacheKey != null ? cacheKey : autoKey(fetchFn, deps)
   const hasCache = cacheHas(key)
   const [data, setData] = useState(hasCache ? cacheGet(key) : null)
@@ -90,8 +92,10 @@ export function useApi(fetchFn, deps = [], cacheKey = null, refreshMs = 0) {
     if (cacheHas(key)) { setData(cacheGet(key)); setLoading(false) }
     load(cacheHas(key)) // keshda bor bo'lsa fon (spinnersiz), yo'q bo'lsa spinner bilan
     if (refreshMs > 0) {
-      const iv = setInterval(() => load(true), refreshMs)
-      return () => clearInterval(iv)
+      const tick = () => { if (document.visibilityState !== 'hidden') load(true) }
+      const iv = setInterval(tick, refreshMs)
+      document.addEventListener('visibilitychange', tick) // sahifaga qaytganda darrov yangilaydi
+      return () => { clearInterval(iv); document.removeEventListener('visibilitychange', tick) }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load, refreshMs])
