@@ -37,13 +37,13 @@ describe('Asterisk generatori', () => {
     assert.match(r.extensions, /\[m5100\][\s\S]*GotoIfTime\(09:00-18:00,mon,\*,\*,Etc\/GMT-5\?work\)/);
     assert.ok(!/GotoIfTime\([^)]*,sun,/.test(r.extensions), 'o`chirilgan kun uchun vaqt sharti bo`lmasligi kerak');
     assert.match(r.extensions, /2026-01-01"\]\?holiday/);
-    assert.match(r.extensions, /\[m10\]\nexten => s,1,UserEvent\(CrmRing[^\n]*\n same => n,Dial\(PJSIP\/100&PJSIP\/101,20\)[\s\S]*Goto\(m5200,s,1\)/);
+    assert.match(r.extensions, /\[m10\]\nexten => s,1,UserEvent\(CrmRing[^\n]*\n same => n,Dial\(PJSIP\/100&PJSIP\/100-web&PJSIP\/101&PJSIP\/101-web,20\)[\s\S]*Goto\(m5200,s,1\)/);
     assert.match(r.extensions, /\[m5000\][\s\S]*exten => 1,1,Goto\(m10,s,1\)[\s\S]*exten => 100,1,Goto\(m100,s,1\)/);
-    assert.match(r.extensions, /\[m101\]\nexten => s,1,UserEvent\(CrmRing,Caller: \$\{CALLERID\(num\)\},Called: 101,Uuid: \$\{UNIQUEID\}\)\n same => n,Dial\(PJSIP\/101,20\)[\s\S]*Goto\(m5120,s,1\)/);
+    assert.match(r.extensions, /\[m101\]\nexten => s,1,UserEvent\(CrmRing,Caller: \$\{CALLERID\(num\)\},Called: 101,Uuid: \$\{UNIQUEID\}\)\n same => n,Dial\(PJSIP\/101&PJSIP\/101-web,20\)[\s\S]*Goto\(m5120,s,1\)/);
     assert.match(r.extensions, /\[from-internal\][\s\S]*exten => _X\.,1,Goto\(crm-outbound,\$\{EXTEN\},1\)/);
     // qoida faqat ko'rsatilgan xodimlar (100) uchun
-    assert.match(r.extensions, /\[crm-outbound\][\s\S]*GotoIf\(\$\[\$\{REGEX\("\^\(100\)\$" \$\{CRM_EP\}\)\}\]\?r1\)\n same => n,Hangup\(21\)/);
-    assert.match(r.extensions, /same => n\(r1\),Set\(CALLERID\(num\)=0552233\)[\s\S]*?same => n,Dial\(PJSIP\/\$\{EXTEN\}@trunk-0552233,60\)/);
+    assert.match(r.extensions, /\[crm-outbound\][\s\S]*GotoIf\(\$\[\$\{REGEX\("\^\(100\)\(-web\)\?\$" \$\{CRM_EP\}\)\}\]\?r1\)\n same => n,Hangup\(21\)/);
+    assert.match(r.extensions, /same => n\(r1\),Set\(CRM_EXT=\$\{CUT\(CRM_EP,-,1\)\}\)[\s\S]*?Set\(CALLERID\(num\)=0552233\)[\s\S]*?same => n,Dial\(PJSIP\/\$\{EXTEN\}@trunk-0552233,60\)/);
   });
 
   test('in`ektsiya: qator uzilishi / ; / " — sxema rad etadi, generator ikkinchi qatlam sifatida to`xtatadi', () => {
@@ -92,7 +92,7 @@ describe('Asterisk generatori', () => {
     assert.ok(!/\[101\]\ntype=endpoint[^[]*webrtc=yes/.test(off.pjsip), 'stol telefoniga webrtc=yes yozilmasin');
     const on = generateAsterisk(base, { recording: { enabled: true, dir: '/var/spool/asterisk/monitor' }, outgoing: { rules: [{ mask: '', trunk: '0552233', users: [] }] } });
     assert.match(on.extensions, /MixMonitor\(\/var\/spool\/asterisk\/monitor\/\$\{IF\(/);
-    assert.match(on.extensions, /Set\(CDR\(userfield\)=crm:\$\{CRM_UUID\}\)/);
+    assert.match(on.extensions, /Set\(CRM_UF=crm:\$\{CRM_UUID\} \$\{CRM_UF\}\)/);
   });
 
   test('audio kutubxona fayli custom/<id> sifatida ishlatiladi', () => {
@@ -109,7 +109,7 @@ describe('Asterisk generatori', () => {
 
   test('queues.conf: strategiya, a`zolar ustuvorligi', () => {
     assert.match(r.queues, /\[qm5200\]\nstrategy=leastrecent\ntimeout=15/);
-    assert.match(r.queues, /member => PJSIP\/100,0\nmember => PJSIP\/101,1/);
+    assert.match(r.queues, /member => Local\/100@crm-user\/n,0\nmember => Local\/101@crm-user\/n,1/);
   });
 
   test('server: oldindan ko`rish parol chiqarmaydi', async () => {
@@ -152,5 +152,14 @@ describe('Asterisk generatori', () => {
     assert.equal((await req('POST', '/pbx/asterisk/apply', undefined, (await userWithRole('sotuvchi')).token)).status, 403);
     for (const m of [tr, g, m1]) await ok('DELETE', `/pbx/modules/${m.id}`, undefined, T, 200);
     await ok('DELETE', `/pbx/audio/${au.id}`, undefined, T, 200);
+  });
+
+  test('trunk: IP bo`yicha (register=false) — ro`yxatdan o`tish yo`q; qo`shimcha kiruvchi raqamlar (DID) bir xil marshrutga', () => {
+    const t = mod('trunk', '7000', { login: '7000', server: '89.0.0.9', password: 'pw-secret-1', register: false, dids: '+998712345678; 998712345679', forwardTo: '10' });
+    const g = generateAsterisk([mod('user', '100', {}, 'Ali'), mod('group', '10', { members: ['100'], afterSec: 20 }), t], { sipSecrets: { 100: 'x100x100x100x100x100' } });
+    assert.ok(!/type=registration/.test(g.pjsip), 'IP bo`yicha trunkda registration bo`lmasligi kerak');
+    assert.match(g.pjsip, /\[trunk-7000\]\ntype=aor\ncontact=sip:89\.0\.0\.9/);
+    for (const n of ['7000', '998712345678', '+998712345678', '998712345679']) assert.ok(g.extensions.includes('exten => ' + n + ',1,Gosub(blacklist-check,s,1)'), 'DID ' + n + ' marshruti yo`q');
+    assert.throws(() => normalizeConfig('trunk', { login: 'a', server: '1.2.3.4', dids: 'abc' }), /Kiruvchi raqam/);
   });
 });

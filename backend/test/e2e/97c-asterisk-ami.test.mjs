@@ -28,12 +28,12 @@ before(async () => {
         else if (m.Action === 'Command') sock.write(`Response: Follows\r\nActionID: ${m.ActionID}\r\nPrivilege: Command\r\nOutput: birinchi qator\r\nOutput: ikkinchi qator\r\n--END COMMAND--\r\n\r\n`);
         else if (m.Action === 'Hang') sock.noPong = true;
         else if (m.Action === 'Originate') {
-          if (m.Channel === 'PJSIP/999') sock.write(block({ Response: 'Error', ActionID: m.ActionID, Message: 'Channel not found' }));
-          else if (m.Channel === 'PJSIP/555') {
+          if (/^(PJSIP\/999|Local\/999@crm-user\/n)$/.test(m.Channel)) sock.write(block({ Response: 'Error', ActionID: m.ActionID, Message: 'Channel not found' }));
+          else if (/^(PJSIP\/555|Local\/555@crm-user\/n)$/.test(m.Channel)) {
             // xodim telefoni javob bermadi: navbatga qo'yildi, keyin OriginateResponse Failure (hodisada ham Response: bor)
             sock.write(block({ Response: 'Success', ActionID: m.ActionID, Message: 'Originate successfully queued' }));
             sock.write(block({ Event: 'OriginateResponse', ActionID: m.ActionID, Response: 'Failure', Channel: 'PJSIP/555', Reason: '3', Uniqueid: '<null>' }));
-          } else if (m.Channel === 'PJSIP/556') {
+          } else if (/^(PJSIP\/556|Local\/556@crm-user\/n)$/.test(m.Channel)) {
             // CRM_UUID bilan bog'langan ikki CDR (IVR + operator) — bittaga birlashadi
             sock.write(block({ Response: 'Success', ActionID: m.ActionID, Message: 'Originate successfully queued' }));
             const uuid = m.Variable.replace('CRM_UUID=', '');
@@ -105,6 +105,13 @@ describe('O`z stansiya provayderi', () => {
     assert.equal(ivr.dialog_duration, 0);
     assert.equal(ivr.hangup_cause, 'no_answer');
     // CRM_UUID (userfield) bo'lsa — shu uuid; IVR 's' o'rniga javob bergan xodim raqami
+    // chiquvchi (trunk): CALLERID tashqi raqamga almashadi — xodim raqami userfield'dagi `ext:` dan olinadi
+    const outx = cdrToCallBody({ UniqueID: '1800.1', UserField: 'crm:abc-999-def ext:100', Source: '0552233', Destination: '998901234567', DestinationContext: 'crm-outbound', DestinationChannel: 'PJSIP/trunk-0552233-00000009', Disposition: 'ANSWERED', BillableSeconds: '6' });
+    assert.equal(outx.caller, '100');
+    assert.equal(outx.accountcode, 'outbound');
+    assert.equal(outx.uuid, 'abc-999-def');
+    const outy = cdrToCallBody({ UniqueID: '1800.2', UserField: 'ext:101', Source: '0552233', Destination: '998901234567', Disposition: 'NO ANSWER' });
+    assert.equal(outy.caller, '101');
     const lnk = cdrToCallBody({ UniqueID: '1700.5', UserField: 'crm:abc-123-def', Source: '998901234567', Destination: 's', DestinationChannel: 'PJSIP/101-00000001', Disposition: 'ANSWERED', BillableSeconds: '5', StartTime: '2026-10-27 12:00:00' });
     assert.equal(lnk.uuid, 'abc-123-def');
     assert.equal(lnk.callee, '101');
@@ -156,7 +163,7 @@ describe('O`z stansiya provayderi', () => {
     assert.equal(r.ok, true, r.comment);
     assert.ok(r.uuid);
     const o = seen.filter((m) => m.Action === 'Originate').pop();
-    assert.equal(o.Channel, 'PJSIP/100');
+    assert.equal(o.Channel, 'Local/100@crm-user/n');
     assert.equal(o.Exten, '998901234567');
     assert.equal(o.Context, 'from-internal');
     assert.match(o.Variable, /^CRM_UUID=/);

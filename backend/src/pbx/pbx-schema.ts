@@ -57,6 +57,19 @@ export interface Normalized { config: Record<string, unknown>; targets: string[]
 
 type Cfg = Record<string, any>;
 
+/** Qo'shimcha kiruvchi raqamlar (DID): matn (`;`/`,`/bo'shliq) yoki massiv; faqat `+`dan boshlanuvchi 3–20 raqam. */
+function didList(v: unknown): string[] {
+  const arr = Array.isArray(v) ? v : String(v ?? '').split(/[;,\s]+/);
+  const out: string[] = [];
+  for (const x of arr) {
+    const d = String(x).trim();
+    if (!d) continue;
+    if (!/^\+?\d{3,20}$/.test(d)) bad(`Kiruvchi raqam noto'g'ri: ${d}`);
+    if (!out.includes(d.replace(/^\+/, ''))) out.push(d.replace(/^\+/, ''));
+  }
+  return out.slice(0, 50);
+}
+
 export function normalizeConfig(type: ModuleType, raw: Cfg = {}): Normalized {
   const c = raw || {};
   switch (type) {
@@ -83,6 +96,8 @@ export function normalizeConfig(type: ModuleType, raw: Cfg = {}): Normalized {
         config: {
           displayName: cleanName(c.displayName, 80), operator: strict(c.operator, 40, /^[\w-]+$/, 'Operator') || 'other',
           login: strict(c.login, 80, HOST_RE, 'Login'), server: strict(c.server, 120, HOST_RE, 'Server'), sipProxy: strict(c.sipProxy, 120, HOST_RE, 'SIP proxy'),
+          // register=false — operator IP bo'yicha ishlaydi (ro'yxatdan o'tish yo'q); dids — operatorning qo'shimcha kiruvchi raqamlari (bir xil marshrut)
+          register: bool(c.register, true), dids: didList(c.dids),
           forwardTo, forwardViaNumber: bool(c.forwardViaNumber, true), ...(c.password ? { password: safe(c.password, 120, 'Parol') } : {}),
         },
         targets: forwardTo ? [forwardTo] : [], members: [],

@@ -27,6 +27,8 @@ export const FIELDS = {
     { key: 'server', label: 'pbx§Server manzili', kind: 'text' },
     { key: 'sipProxy', label: 'pbx§SIP-proksi', kind: 'text' },
     FWD,
+    { key: 'register', label: 'pbx§Operatorda ro\'yxatdan o\'tish (o\'chiq bo\'lsa — IP bo\'yicha)', kind: 'bool' },
+    { key: 'dids', label: 'pbx§Qo\'shimcha kiruvchi raqamlar (; bilan)', kind: 'text' },
     { key: 'forwardViaNumber', label: 'pbx§Shu raqam orqali yo\'naltirish', kind: 'bool' },
   ],
   timerule: [

@@ -117,7 +117,7 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
     const login = val(c.login || t.number, `${t.number} login`);
     if (!/^[\w.:-]+$/.test(server) || !/^[\w.:+*#-]+$/.test(login)) throw new GeneratorError(`Trunk ${t.number}: server/login noto'g'ri`);
     pj.push(
-      `[${id}]`, 'type=registration', `outbound_auth=${id}`, `server_uri=sip:${server}`, `client_uri=sip:${login}@${server}`, `retry_interval=60`, `contact_user=${enc(t.number)}`, '',
+      ...(c.register === false ? [] : [`[${id}]`, 'type=registration', `outbound_auth=${id}`, `server_uri=sip:${server}`, `client_uri=sip:${login}@${server}`, `retry_interval=60`, `contact_user=${enc(t.number)}`, '']),
       `[${id}]`, 'type=auth', 'auth_type=userpass', `username=${login}`, `password=${val(secrets[id] || c.password || 'CHANGE_ME', `${t.number} trunk paroli`)}`, '',
       `[${id}]`, 'type=aor', `contact=sip:${server}`, '',
       `[${id}]`, 'type=endpoint', 'context=from-trunk', 'disallow=all', 'allow=ulaw,alaw', `outbound_auth=${id}`, `aors=${id}`, `from_user=${login}`, `from_domain=${server}`, 'direct_media=no', 'rtp_symmetric=yes', 'force_rport=yes', '',
@@ -138,7 +138,10 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
   ex.push('[from-trunk]');
   for (const t of trunks) {
     const c = cfgOf(t);
-    ex.push(`exten => ${t.number},1,Gosub(blacklist-check,s,1)`, ...mix, ` same => n,${go(c.forwardTo)}`);
+    for (const n of [t.number, ...((c.dids as string[]) || []).flatMap((d) => [d, `+${d}`])]) {
+      if (!/^\+?[0-9A-Za-z]+$/.test(n)) continue;
+      ex.push(`exten => ${n},1,Gosub(blacklist-check,s,1)`, ...mix, ` same => n,${go(c.forwardTo)}`);
+    }
   }
   ex.push('exten => _X.,1,Hangup()', '');
   // modullar

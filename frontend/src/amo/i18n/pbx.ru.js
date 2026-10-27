@@ -331,6 +331,8 @@ addRu({
   "pbx§Vidjet bo'yicha sutkasiga (ta)": "На виджет в сутки (шт.)",
   "pbx§Yozuv yoqilgan": "Запись включена",
   "pbx§Yozuv o'chiq": "Запись выключена",
+  "pbx§Operatorda ro'yxatdan o'tish (o'chiq bo'lsa — IP bo'yicha)": "Регистрация у оператора (если выключено — по IP)",
+  "pbx§Qo'shimcha kiruvchi raqamlar (; bilan)": "Дополнительные входящие номера (через ;)",
   "Telefoniya": "Телефония",
   "Telefoniya (ATS)": "Телефония (АТС)",
 })
