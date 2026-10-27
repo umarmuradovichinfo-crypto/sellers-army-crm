@@ -23,9 +23,10 @@ export class CallbackController {
 
   @Public()
   @Post(':key/request')
-  async request(@Param('key') key: string, @Body() b: { name?: string; phone?: string }, @Req() req: any) {
+  async request(@Param('key') key: string, @Body() b: { name?: string; phone?: string; website?: string }, @Req() req: any) {
+    // daqiqalik IP/kalit cheklovi — jarayon xotirasida (qisqa portlashlarga qarshi); sutkalik raqam/kalit limitlari — bazada (CallbackService)
     rateLimit(`cb-ip:${clientIp(req)}`, 5, 60_000, "Juda ko'p so'rov, biroz kuting");
     rateLimit(`cb-key:${key}`, 100, 60_000, "Vidjet vaqtincha band");
-    return this.s.request(key, String(b?.name || ''), String(b?.phone || ''));
+    return this.s.request(key, String(b?.name || ''), String(b?.phone || ''), { honeypot: String(b?.website || ''), ip: clientIp(req) });
   }
 }

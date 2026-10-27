@@ -232,6 +232,71 @@ describe('Telefoniya (OnlinePBX + MicroSIP)', () => {
     assert.equal((await req('GET', '/crm/calls/stats?from=2000-01-01&to=2026-12-31', undefined, T)).status, 400, 'juda uzun davr rad etilishi kerak');
   });
 
+  test("ichki raqam validatsiyasi (toll-fraud): faqat 2–5 xonali son, boshqa xodimniki 409; WebRTC paroli kuchsiz bo'lsa 400", async () => {
+    const U = await userWithRole('sotuvchi');
+    for (const bad of ['100@trunk-x', '+88213000000', '1', '123456', '10;0', 'abc']) {
+      assert.equal((await req('PUT', '/crm/my-extension', { extension: bad }, U.token)).status, 400, bad);
+      assert.equal((await req('PUT', '/crm/webrtc/config', { extension: bad }, U.token)).status, 400, bad);
+    }
+    const ext = String(40000 + Math.floor(Math.random() * 9999));
+    await ok('PUT', '/crm/my-extension', { extension: ext }, U.token, 200);
+    const V = await userWithRole('sotuvchi');
+    assert.equal((await req('PUT', '/crm/my-extension', { extension: ext }, V.token)).status, 409);
+    assert.equal((await req('PUT', '/crm/webrtc/config', { sipPassword: 'qisqa' }, U.token)).status, 400);
+    assert.equal((await req('PUT', '/crm/webrtc/config', { sipPassword: 'uzun;parol123' }, U.token)).status, 400);
+    await ok('PUT', '/crm/webrtc/config', { sipPassword: 'Yaxshi-Parol-2026' }, U.token, 200);
+    // o'z stansiyamizda: Пользователь moduli biriktirilmagan raqamni olib bo'lmaydi
+    await ok('PUT', '/crm/pbx/config', { provider: 'own' }, T, 200);
+    assert.ok([400, 403].includes((await req('PUT', '/crm/my-extension', { extension: '48888' }, V.token)).status));
+    assert.equal((await req('PUT', '/crm/webrtc/config', { sipPassword: 'Boshqa-Parol-2026' }, U.token)).status, 400, 'own: SIP parolini server boshqaradi');
+    await ok('PUT', '/crm/pbx/config', { provider: 'onlinepbx' }, T, 200);
+    await ok('PUT', '/crm/my-extension', { extension: '' }, U.token, 200);
+  });
+
+  test("dialer: raqam emas (100@trunk, ; harflar) — 400", async () => {
+    for (const to of ['100@trunk-1', '1;Dial(x)', 'abc', '12']) {
+      const r = await req('POST', '/crm/calls/dial', { to }, S.token);
+      assert.equal(r.status, 400, `${to} → ${r.status}`);
+    }
+  });
+
+  test("hisobot: noto'g'ri sana 400 (500 emas), from>to 400, juda uzun davr 400; truncated maydoni; ext validatsiyasi", async () => {
+    for (const qs of ['from=2026-13-45', 'from=2026-02-30', 'to=abc', 'from=2026-05-10&to=2026-05-01', 'from=2020-01-01&to=2026-01-01', 'ext=100@x']) {
+      assert.equal((await req('GET', `/crm/calls/report?${qs}`, undefined, T)).status, 400, `report ${qs}`);
+      assert.equal((await req('GET', `/crm/calls/stats?${qs}`, undefined, T)).status, 400, `stats ${qs}`);
+    }
+    const r = await ok('GET', '/crm/calls/report', undefined, T, 200);
+    assert.equal(r.truncated, false);
+    assert.equal((await ok('GET', '/crm/calls/stats', undefined, T, 200)).truncated, false);
+  });
+
+  test("CDR dedupe: bir uuid bilan parallel hodisalar — bitta yozuv (externalId noyob); xodim ichki raqam orqali biriktiriladi", async () => {
+    const U = await userWithRole('sotuvchi');
+    const ext = String(41000 + Math.floor(Math.random() * 8999));
+    await ok('PUT', '/crm/my-extension', { extension: ext }, U.token, 200);
+    const n = rnd9(); // yangi raqam — bitim «Saralanmagan»ga tushadi (voronka ustunini to'ldirmaydi)
+    const uuid = uniq('dup');
+    await Promise.all(Array.from({ length: 6 }, (_, i) => hook({ accountcode: 'inbound', caller: `998${n}`, callee: ext, uuid, dialog_duration: i, call_duration: 10 + i })));
+    const rep = await ok('GET', `/crm/calls/report?phone=${n}`, undefined, T, 200);
+    assert.equal(rep.calls.length, 1, `dublikat yozuvlar: ${rep.calls.length}`);
+    assert.equal(rep.calls[0].ext, ext, 'qo`ng`iroq ichki raqam egasiga biriktirilmadi');
+    assert.equal(rep.calls[0].talkSec, 5, 'suhbat davomiyligi eng kattasi bo`lishi kerak');
+    await ok('PUT', '/crm/my-extension', { extension: '' }, U.token, 200);
+  });
+
+  test("qora ro'yxat: boshqa formatdagi (998…/9 xonali) bloklangan raqamdan kiruvchi — lid yaratilmaydi", async () => {
+    const n = rnd9();
+    const b = await ok('POST', '/pbx/blacklist', { number: `+998${n}` }, T, 201);
+    await hook({ accountcode: 'inbound', caller: n, callee: '100', uuid: uniq('bl'), dialog_duration: 0, call_duration: 5, hangup_cause: 'no_answer' });
+    const found = await ok('GET', `/crm/leads?search=${n.slice(-7)}`, undefined, T, 200);
+    assert.equal(found.total, 0, 'bloklangan raqam uchun lid yaratildi');
+    await ok('DELETE', `/pbx/blacklist/${b.id}`, undefined, T, 200);
+  });
+
+  test("POST /crm/calls/sync — faqat sozlama huquqi bilan", async () => {
+    assert.equal((await req('POST', '/crm/calls/sync', undefined, S.token)).status, 403);
+  });
+
   test("brauzer telefoni: «own» provayderda WSS manzili o'z stansiyamizga ko'rsatadi", async () => {
     await ok('PUT', '/crm/pbx/config', { provider: 'own' }, T, 200);
     const me = await ok('GET', '/crm/my-extension', undefined, T, 200);

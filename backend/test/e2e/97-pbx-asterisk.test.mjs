@@ -2,6 +2,7 @@
 import { describe, test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateAsterisk } from '../../dist/pbx/asterisk.generator.js';
+import { normalizeConfig } from '../../dist/pbx/pbx-schema.js';
 import { readFileSync, existsSync } from 'node:fs';
 import { req, ok, admin, uniq, userWithRole } from './lib.mjs';
 
@@ -30,14 +31,68 @@ describe('Asterisk generatori', () => {
 
   test('extensions: kiruvchi raqam → vaqt qoidasi → guruh/salomlashish; qora ro`yxat; chiquvchi marshrut', () => {
     assert.match(r.extensions, /\[from-trunk\]\nexten => 0552233,1,Gosub\(blacklist-check,s,1\)\n same => n,Goto\(m5100,s,1\)/);
-    assert.match(r.extensions, /"\$\{CALLERID\(num\)\}" = "\+998900000000"\]\?blocked,1/);
+    // qora ro'yxat normallashtirilgan (oxirgi 9 raqam) bo'yicha solishtiriladi
+    assert.match(r.extensions, /Set\(CRM_CN=\$\{FILTER\(0123456789,\$\{CALLERID\(num\)\}\)\}\)/);
+    assert.match(r.extensions, /"\$\{CRM_CN:-9\}" = "900000000"\]\?blocked,1/);
     assert.match(r.extensions, /\[m5100\][\s\S]*GotoIfTime\(09:00-18:00,mon,\*,\*,Etc\/GMT-5\?work\)/);
     assert.ok(!/GotoIfTime\([^)]*,sun,/.test(r.extensions), 'o`chirilgan kun uchun vaqt sharti bo`lmasligi kerak');
     assert.match(r.extensions, /2026-01-01"\]\?holiday/);
     assert.match(r.extensions, /\[m10\]\nexten => s,1,UserEvent\(CrmRing[^\n]*\n same => n,Dial\(PJSIP\/100&PJSIP\/101,20\)[\s\S]*Goto\(m5200,s,1\)/);
     assert.match(r.extensions, /\[m5000\][\s\S]*exten => 1,1,Goto\(m10,s,1\)[\s\S]*exten => 100,1,Goto\(m100,s,1\)/);
     assert.match(r.extensions, /\[m101\]\nexten => s,1,UserEvent\(CrmRing,Caller: \$\{CALLERID\(num\)\},Called: 101,Uuid: \$\{UNIQUEID\}\)\n same => n,Dial\(PJSIP\/101,20\)[\s\S]*Goto\(m5120,s,1\)/);
-    assert.match(r.extensions, /exten => _X\.,1,Set\(CALLERID\(num\)=0552233\)\n same => n,Dial\(PJSIP\/\$\{EXTEN\}@trunk-0552233,60\)/);
+    assert.match(r.extensions, /\[from-internal\][\s\S]*exten => _X\.,1,Goto\(crm-outbound,\$\{EXTEN\},1\)/);
+    // qoida faqat ko'rsatilgan xodimlar (100) uchun
+    assert.match(r.extensions, /\[crm-outbound\][\s\S]*GotoIf\(\$\[\$\{REGEX\("\^\(100\)\$" \$\{CRM_EP\}\)\}\]\?r1\)\n same => n,Hangup\(21\)/);
+    assert.match(r.extensions, /same => n\(r1\),Set\(CALLERID\(num\)=0552233\)[\s\S]*?same => n,Dial\(PJSIP\/\$\{EXTEN\}@trunk-0552233,60\)/);
+  });
+
+  test('in`ektsiya: qator uzilishi / ; / " — sxema rad etadi, generator ikkinchi qatlam sifatida to`xtatadi', () => {
+    for (const bad of [{ server: '1.2.3.4\n[evil]' }, { server: '1.2.3.4;x' }, { login: 'a"b' }, { login: 'a\nb' }, { password: 'p;w' }, { password: 'p\r\nw' }]) {
+      assert.throws(() => normalizeConfig('trunk', { login: 'l', server: '1.2.3.4', ...bad }), /noto|ruxsat/i, JSON.stringify(bad));
+    }
+    assert.throws(() => normalizeConfig('numrule', { mask: '998";Dial(x)' }));
+    assert.throws(() => normalizeConfig('numrule', { mask: '_X.' }));
+    assert.throws(() => normalizeConfig('http', { url: 'https://a.uz/x;Dial(PJSIP/1)' }));
+    assert.equal(normalizeConfig('trunk', { displayName: 'A"B;\nC', server: 'sip.uz:5060', login: 'l' }).config.displayName, 'ABC');
+    // generator: sxemani chetlab o'tgan qiymat (eski baza yozuvi) — xato
+    assert.throws(() => generateAsterisk([mod('user', '100', {}, 'Ali\n[evil]')]), /ruxsat/i);
+    assert.throws(() => generateAsterisk([mod('user', '100', {})], { sipSecrets: { 100: 'a;b' } }), /ruxsat/i);
+    assert.throws(() => generateAsterisk([mod('user', 'transport-udp', {})]), /2–5/);
+    // callerid nomidan " olib tashlanadi
+    assert.match(generateAsterisk([mod('user', '100', {}, 'A"li')]).pjsip, /callerid="Ali" <100>/);
+  });
+
+  test('kontekst nomlari to`qnashmaydi (1-2 va 1_2); trunk bo`limi kodlangan', () => {
+    const x = generateAsterisk([mod('alias', '1-2', {}), mod('alias', '1_2', {})]).extensions;
+    assert.match(x, /\[m1_2d2\]/);
+    assert.match(x, /\[m1_5f2\]/);
+  });
+
+  test('http: URL`da ? bo`lsa & bilan qo`shiladi, raqam URL-kodlanadi, ; ekranlanadi', () => {
+    const x = generateAsterisk([mod('http', '5300', { url: 'https://a.uz/h?k=1' })]).extensions;
+    assert.match(x, /CURL\(https:\/\/a\.uz\/h\?k=1&caller=\$\{URIENCODE\(\$\{CALLERID\(num\)\}\)\}/);
+    const y = generateAsterisk([mod('http', '5301', { url: 'https://a.uz/h' })]).extensions;
+    assert.match(y, /CURL\(https:\/\/a\.uz\/h\?caller=/);
+  });
+
+  test('salomlashish: delaySec=0 — kutmasdan o`tadi; noto`g`ri tugma 3 martadan keyin to`xtaydi', () => {
+    const x = generateAsterisk([mod('greeting', '5000', { delaySec: 0 })]).extensions;
+    assert.ok(!/WaitExten/.test(x), 'delaySec=0 da WaitExten bo`lmasligi kerak');
+    assert.match(x, /same => n,Goto\(t,1\)/);
+    assert.match(x, /exten => i,1,Set\(CRM_TRIES=\$\[\$\{CRM_TRIES\} \+ 1\]\)\n same => n,GotoIf\(\$\[\$\{CRM_TRIES\} < 3\]\?s,menu\)/);
+  });
+
+  test('yozib olish (MixMonitor) sozlama bilan; stol telefoni (webrtc=false); chiquvchi maska prefiks', () => {
+    const base = [mod('user', '100', {}), mod('user', '101', { webrtc: false }), mod('trunk', '0552233', { login: 'l', server: '1.1.1.1' })];
+    const off = generateAsterisk(base, { outgoing: { rules: [{ mask: '+998', trunk: '0552233', users: [], externalNumber: '+998712000000' }] } });
+    assert.ok(!off.extensions.includes('MixMonitor'));
+    assert.match(off.extensions, /GotoIf\(\$\[\$\{REGEX\("\^998" \$\{EXTEN\}\)\}\]\?r1\)/);
+    assert.match(off.extensions, /Set\(CALLERID\(num\)=\+998712000000\)/);
+    assert.match(off.pjsip, /\[100\]\ntype=endpoint[\s\S]*?webrtc=yes/);
+    assert.ok(!/\[101\]\ntype=endpoint[^[]*webrtc=yes/.test(off.pjsip), 'stol telefoniga webrtc=yes yozilmasin');
+    const on = generateAsterisk(base, { recording: { enabled: true, dir: '/var/spool/asterisk/monitor' }, outgoing: { rules: [{ mask: '', trunk: '0552233', users: [] }] } });
+    assert.match(on.extensions, /MixMonitor\(\/var\/spool\/asterisk\/monitor\/\$\{IF\(/);
+    assert.match(on.extensions, /Set\(CDR\(userfield\)=crm:\$\{CRM_UUID\}\)/);
   });
 
   test('audio kutubxona fayli custom/<id> sifatida ishlatiladi', () => {

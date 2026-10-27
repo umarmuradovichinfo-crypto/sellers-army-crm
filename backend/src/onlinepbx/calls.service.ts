@@ -1,6 +1,8 @@
 import { RightsService } from '../common/rights/rights.service';
 import {
   BadRequestException,
+  ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -21,6 +23,20 @@ import type { PbxCall } from './pbx-provider';
 import { OnlinePbxConfigService, PbxConfig } from './onlinepbx-config.service';
 import { createHash, timingSafeEqual } from 'crypto';
 import { Prisma } from '../generated/prisma/client';
+import { EXT_RE, dialable, isInternalNumber, phoneKey } from '../pbx/phone';
+
+const isP2002 = (e: unknown) => (e as { code?: string } | null)?.code === 'P2002';
+const DAY_MS = 86_400_000;
+const TZ_MS = 5 * 3_600_000; // akkaunt vaqti — Toshkent (UTC+5)
+/** 'YYYY-MM-DD' (Toshkent kuni) → kun boshi (UTC ms). Berilmagan — null; noto'g'ri — 400. */
+function parseDay(v: string | undefined, field: string): number | null {
+  if (v === undefined || v === '') return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v));
+  const ms = m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : NaN;
+  // 2026-13-45 / 2026-02-30 kabi sanalar rad etiladi (Date.UTC ularni keyingi oyga «aylantirib» yuboradi)
+  if (!m || !Number.isFinite(ms) || new Date(ms).toISOString().slice(0, 10) !== v) throw new BadRequestException({ error: 'BAD_DATE', message: `Sana noto'g'ri (${field}): YYYY-MM-DD bo'lishi kerak` });
+  return ms - TZ_MS;
+}
 
 function digits(p?: string | null): string {
   return (p || '').replace(/\D/g, '');
@@ -52,7 +68,10 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   // bo'lishi bilan qo'ng'iroq/yozuv ~15-20s ichida platformada avtomatik ko'rinadi.
   onModuleInit() {
     // o'z stansiyamiz (Asterisk) CDR hodisalari xuddi webhook kabi qayta ishlanadi (faqat «own» provayder faol bo'lsa)
-    this.own.onCall((body) => { this.cfg.get().then((c) => (c.provider === 'own' ? this.processCallEvent(body) : undefined)).catch((e) => this.logger.warn('CDR: ' + (e as Error).message)); });
+    // AMI hodisalari har nusxaga keladi — faqat rahbar nusxa qayta ishlaydi (ikki marta yozilmasin); baza darajasida externalId noyob
+    this.own.onCall((body) => {
+      this.leader.guard(async () => ((await this.cfg.get()).provider === 'own' ? this.processCallEvent(body) : undefined)).catch((e) => this.logger.warn('CDR: ' + (e as Error).message));
+    });
     this.syncTimer = setInterval(() => {
       this.leader.guard(() => this.syncHistory({ force: true, minutes: 30 })).catch(() => {});
     }, 10_000);
@@ -138,12 +157,29 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     if (lead) return lead;
     if (direction !== 'in') return null;
     if (digits(phone).length < 7) return null;
+    if (await this.isBlacklisted(phone)) return null; // qora ro'yxatdagi raqam uchun lid yaratilmaydi
     // bir xil yangi raqamdan parallel webhooklar (har xil uuid) — navbatma-navbat; ikkinchisi birinchisi yaratgan bitimni topadi
     return this.withLock(`caller:${digits(phone).slice(-9)}`, async () => {
       const again = await this.findLeadByPhone(phone);
       return again || this.createCallerLead(phone);
     });
   }
+  /** Qora ro'yxat: raqamlar normallashtirib (oxirgi 9 raqam) solishtiriladi. */
+  private async isBlacklisted(phone: string) {
+    const key = phoneKey(phone);
+    if (!key) return false;
+    const rows = await this.prisma.pbxBlacklist.findMany({ select: { number: true } });
+    return rows.some((b) => phoneKey(b.number) === key);
+  }
+
+  /** Ichki raqam egasi (CRM foydalanuvchisi). */
+  private async userIdByExt(ext: string): Promise<string | null> {
+    const e = digits(ext);
+    if (!EXT_RE.test(e)) return null;
+    const u = await this.prisma.user.findFirst({ where: { extension: e }, select: { id: true } });
+    return u?.id || null;
+  }
+
   private async createCallerLead(phone: string): Promise<{ id: string; name: string }> {
     const place = await this.pset.place(null, null);
     const contact = await this.prisma.contact.create({ data: { name: phone, phone, customJson: '{}' } });
@@ -188,7 +224,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     const cfg = await this.cfg.get();
     // «from» — faqat o'z ichki raqami (administrator — istalgan ichki raqam); tashqi/xalqaro raqamga qo'ng'iroq (toll-fraud) taqiqlanadi
     const wanted = String(fromOverride || '').trim();
-    const okOverride = /^\d{2,8}$/.test(wanted) && (user.role === 'super_admin' || wanted === (dbUser?.extension || ''));
+    const okOverride = EXT_RE.test(wanted) && (user.role === 'super_admin' || wanted === (dbUser?.extension || ''));
     const from = ((okOverride ? wanted : '') || dbUser?.extension || cfg.defaultExt || '').trim();
     if (!from) {
       throw new BadRequestException({
@@ -196,6 +232,8 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
         message: 'Operator ichki raqami (extension) belgilanmagan. Sozlamalardan qo`shing.',
       });
     }
+    if (!EXT_RE.test(from)) throw new BadRequestException({ error: 'BAD_EXTENSION', message: "Ichki raqam 2–5 xonali bo'lishi kerak" });
+    if (!dialable(lead.phone)) throw new BadRequestException({ error: 'BAD_PHONE', message: "Lid telefon raqami noto'g'ri" });
 
     let res: { ok: boolean; uuid?: string; comment?: string };
     try {
@@ -205,25 +243,33 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       throw new ServiceUnavailableException({ error: 'PBX_ERROR', message: 'OnlinePBX bilan bog`lanib bo`lmadi' });
     }
 
-    const log = await this.prisma.callLog.create({
-      data: {
-        leadId: lead.id,
-        userId: user.id,
-        phone: lead.phone,
-        direction: 'out',
-        status: res.ok ? 'ringing' : 'failed',
-        externalId: res.uuid || null,
-        handled: true,
-      },
-    });
+    const log = await this.logOutgoing({ leadId: lead.id, userId: user.id, phone: lead.phone, status: res.ok ? 'ringing' : 'failed', externalId: res.uuid || null });
     if (!res.ok) throw new ServiceUnavailableException({ error: 'PBX_REJECTED', message: 'OnlinePBX: ' + (res.comment || 'qo`ng`iroq boshlanmadi') });
     return { ok: true, call: log };
+  }
+
+  /**
+   * Chiquvchi qo'ng'iroq yozuvi (click-to-call / dialer). Provayder hodisasi (CDR/webhook) shu uuid bilan oldinroq kelib yozuv yaratgan bo'lishi mumkin —
+   * unda dublikat emas, mavjudiga lid/xodim bog'lanadi (holat o'zgarmaydi).
+   */
+  private async logOutgoing(d: { leadId: string | null; userId: string; phone: string; status: string; externalId: string | null }) {
+    const data = { leadId: d.leadId, userId: d.userId, phone: d.phone, direction: 'out', status: d.status, externalId: d.externalId, handled: true };
+    if (!d.externalId) return this.prisma.callLog.create({ data });
+    const upd = { userId: d.userId, handled: true, ...(d.leadId ? { leadId: d.leadId } : {}) };
+    try {
+      return await this.prisma.callLog.upsert({ where: { externalId: d.externalId }, create: data, update: upd });
+    } catch (e) {
+      if (!isP2002(e)) throw e;
+      return this.prisma.callLog.update({ where: { externalId: d.externalId }, data: upd });
+    }
   }
 
   // ── Dialer (widget) — ixtiyoriy raqamga qo'ng'iroq (callback). Lid topilса — bog'lanadi. ──
   async dial(user: AuthUser, to: string) {
     const num = (to || '').trim();
     if (!num) throw new BadRequestException({ error: 'NO_PHONE', message: 'Raqam kiriting' });
+    // faqat raqam (ixtiyoriy +, bo'shliq/chiziqcha): `100@trunk`, `;`, harflar — rad (toll-fraud / in'ektsiya)
+    if (!dialable(num)) throw new BadRequestException({ error: 'BAD_PHONE', message: "Raqam noto'g'ri (faqat raqamlar, ixtiyoriy +)" });
     if (!(await this.pbx.enabled())) {
       throw new ServiceUnavailableException({ error: 'PBX_DISABLED', message: 'OnlinePBX sozlanmagan: CRM → Sozlamalar → Telefoniya.' });
     }
@@ -231,6 +277,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     const cfg = await this.cfg.get();
     const from = (dbUser?.extension || cfg.defaultExt || '').trim();
     if (!from) throw new BadRequestException({ error: 'NO_EXTENSION', message: 'Ichki raqamingiz belgilanmagan.' });
+    if (!EXT_RE.test(from)) throw new BadRequestException({ error: 'BAD_EXTENSION', message: "Ichki raqam 2–5 xonali bo'lishi kerak" });
 
     let res: { ok: boolean; uuid?: string; comment?: string };
     try {
@@ -240,9 +287,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       throw new ServiceUnavailableException({ error: 'PBX_ERROR', message: 'OnlinePBX bilan bog`lanib bo`lmadi' });
     }
     const lead = await this.findLeadByPhone(num);
-    const log = await this.prisma.callLog.create({
-      data: { leadId: lead?.id || null, userId: user.id, phone: num, direction: 'out', status: res.ok ? 'ringing' : 'failed', externalId: res.uuid || null, handled: true },
-    });
+    const log = await this.logOutgoing({ leadId: lead?.id || null, userId: user.id, phone: num, status: res.ok ? 'ringing' : 'failed', externalId: res.uuid || null });
     if (!res.ok) throw new ServiceUnavailableException({ error: 'PBX_REJECTED', message: 'OnlinePBX: ' + (res.comment || 'qo`ng`iroq boshlanmadi') });
     return { ok: true, call: log, leadId: lead?.id || null, leadName: lead?.name || null };
   }
@@ -338,7 +383,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
 
       // eski tarix (birinchi ulanishda) uchun vazifa yaratmaymiz — faqat so'nggi sutka
       const recent = !startedAt || Date.now() - +startedAt < 86_400_000;
-      const existing = await this.prisma.callLog.findFirst({ where: { externalId: uuid } });
+      const existing = await this.prisma.callLog.findUnique({ where: { externalId: uuid } });
       if (existing) {
         // eski tarix (birinchi ulanish / 7 kunlik sinxron) uchun yangi lid YARATILMAYDI — faqat mavjud lidga bog'lanadi
         const relink = existing.leadId || lead0?.id || (recent ? (await this.ensureCallerLead(direction, phone, null))?.id : null) || null;
@@ -351,9 +396,14 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
         continue;
       }
       const lead = recent ? await this.ensureCallerLead(direction, phone, lead0) : lead0;
-      await this.prisma.callLog.create({
-        data: { externalId: uuid, phone, direction, status, durationSec, talkSec: talk, hangup: hangup || null, recordUrl, leadId: lead?.id || null, handled: true, startedAt },
-      });
+      try {
+        await this.prisma.callLog.create({
+          data: { externalId: uuid, phone, direction, status, durationSec, talkSec: talk, hangup: hangup || null, recordUrl, leadId: lead?.id || null, userId: await this.userIdByExt(other), handled: true, startedAt },
+        });
+      } catch (e) {
+        if (isP2002(e)) continue; // parallel webhook allaqachon yozdi
+        throw e;
+      }
       synced++;
       if (lead) linked++;
       if (lead && direction === 'in' && status === 'missed' && recent) await this.missedCallTask(lead.id, phone);
@@ -379,15 +429,42 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       ? await this.prisma.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true } })
       : [];
     const nameMap = new Map(leads.map((l) => [l.id, l.name]));
-    const missedCount = await this.prisma.callLog.count({ where: { status: 'missed', direction: 'in' } });
+    // «O'tkazib yuborilganlar» soni ham huquq bo'yicha (cheklangan foydalanuvchi boshqalarnikini sanamaydi)
+    let missedCount: number;
+    if (!vis) missedCount = await this.prisma.callLog.count({ where: { status: 'missed', direction: 'in' } });
+    else {
+      const ms = await this.prisma.callLog.findMany({ where: { status: 'missed', direction: 'in' }, select: { leadId: true, userId: true }, orderBy: { startedAt: 'desc' }, take: 5000 });
+      const v2 = await this.rights.visibleLeadIds(userId, [...new Set(ms.map((r) => r.leadId).filter(Boolean) as string[])]);
+      missedCount = ms.filter((r) => r.userId === userId || (r.leadId && (!v2 || v2.has(r.leadId)))).length;
+    }
+    const own = await this.ownProvider();
     return {
       calls: rows.map((c) => ({
         ...c,
         leadName: c.leadId ? nameMap.get(c.leadId) || null : null,
-        hasRecording: !!(c.externalId || c.recordUrl),
+        hasRecording: this.hasRec(c, own),
       })),
       missedCount,
     };
+  }
+
+  private async ownProvider() { return (await this.cfg.get()).provider === 'own'; }
+  /**
+   * Yozuv bormi: o'z stansiyamizda — faqat yozuv fayli topilib saqlangan havola (recordUrl) bo'lsa; OnlinePBX'da — uuid bo'yicha ham olinadi.
+   */
+  private hasRec(c: { externalId: string | null; recordUrl: string | null }, own: boolean) {
+    return own ? !!c.recordUrl : !!(c.externalId || c.recordUrl);
+  }
+
+  /** Hisobot davri: noto'g'ri sana / from>to / juda uzun davr — 400. */
+  private range(q: Record<string, string | undefined>, defFromDays: number, maxDays: number) {
+    const today = parseDay(new Date(Date.now() + TZ_MS).toISOString().slice(0, 10), 'today')!;
+    const f = parseDay(q.from, 'from'), t = parseDay(q.to, 'to');
+    const fromMs = f ?? (t ?? today) - defFromDays * DAY_MS;
+    const toMs = (t ?? (defFromDays === 0 ? fromMs : today)) + DAY_MS;
+    if (toMs <= fromMs) throw new BadRequestException({ error: 'BAD_RANGE', message: "Boshlanish sanasi tugash sanasidan keyin bo'lmasin" });
+    if (toMs - fromMs > maxDays * DAY_MS) throw new BadRequestException({ error: 'RANGE', message: `Davr ${maxDays} kundan oshmasin` });
+    return { fromMs, toMs };
   }
 
   /**
@@ -395,15 +472,14 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
    * Qayta qo'ng'iroq qilinmagan, Dodozvon bo'lmagan, Baholi) va jami. Kunlar akkaunt vaqti (Toshkent, UTC+5) bo'yicha.
    */
   async callsReport(q: Record<string, string | undefined>, userId?: string) {
-    const TZ = 5 * 3_600_000;
-    const day = (s?: string) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? Date.parse(s + 'T00:00:00Z') - TZ : null);
-    const fromMs = day(q.from) ?? day(new Date(Date.now() + TZ).toISOString().slice(0, 10))!;
-    const toMs = (day(q.to) ?? fromMs) + 86_400_000;
+    const TZ = TZ_MS;
+    const { fromMs, toMs } = this.range(q, 0, 366);
     const n = (v?: string) => (v !== undefined && v !== '' && Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : undefined);
     const where: Record<string, any> = { startedAt: { gte: new Date(fromMs), lt: new Date(toMs) } };
     const ph = String(q.phone || '').replace(/\D/g, '');
     if (ph.length >= 3) where.phone = { contains: ph };
     if (q.ext) {
+      if (!EXT_RE.test(String(q.ext))) throw new BadRequestException({ error: 'BAD_EXTENSION', message: "Ichki raqam 2–5 xonali bo'lishi kerak" });
       const u = await this.prisma.user.findFirst({ where: { extension: String(q.ext) }, select: { id: true } });
       where.userId = u?.id ?? '__none__';
     }
@@ -412,16 +488,25 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     if (tMin !== undefined || tMax !== undefined) where.talkSec = { ...(tMin !== undefined ? { gte: tMin } : {}), ...(tMax !== undefined ? { lte: tMax } : {}) };
     if (q.rating && Number(q.rating) >= 1 && Number(q.rating) <= 5) where.rating = Number(q.rating);
 
-    let rows = await this.prisma.callLog.findMany({ where, orderBy: { startedAt: 'desc' }, take: 2000 });
+    // Juda ko'p yozuv bo'lsa — kesiladi va javobda `truncated: true` (plitalar shu qism bo'yicha); davrni toraytirish kerak
+    const LIMIT = 5000;
+    let rows = await this.prisma.callLog.findMany({ where, orderBy: { startedAt: 'desc' }, take: LIMIT + 1 });
+    const truncated = rows.length > LIMIT;
+    if (truncated) rows = rows.slice(0, LIMIT);
     const vis = await this.rights.visibleLeadIds(userId, [...new Set(rows.map((r) => r.leadId).filter(Boolean) as string[])]);
     if (vis) rows = rows.filter((r) => r.userId === userId || (r.leadId && vis.has(r.leadId)));
 
-    const isInternal = (r: { phone: string }) => r.phone.replace(/\D/g, '').length <= 4;
-    // «Qayta qo'ng'iroq qilinmagan»: o'tkazib yuborilgan kiruvchidan keyin shu raqamga chiquvchi qo'ng'iroq bo'lmagan
+    const isInternal = (r: { phone: string }) => isInternalNumber(r.phone);
+    // «Qayta qo'ng'iroq qilinmagan»: o'tkazib yuborilgan kiruvchidan keyin shu raqamga chiquvchi qo'ng'iroq bo'lmagan.
+    // Raqamlar normallashtirib solishtiriladi (+998… / 998… / 90…): oxirgi 9 raqam (phoneTail ustuni yo'q — `endsWith` bilan tanlab, keyin kalit bo'yicha)
     const missedIn = rows.filter((r) => r.direction === 'in' && r.status === 'missed');
-    const phones = [...new Set(missedIn.map((r) => r.phone))];
-    const outs = phones.length ? await this.prisma.callLog.findMany({ where: { direction: 'out', phone: { in: phones }, startedAt: { gte: new Date(fromMs) } }, select: { phone: true, startedAt: true } }) : [];
-    const calledBack = (r: { phone: string; startedAt: Date }) => outs.some((o) => o.phone === r.phone && o.startedAt > r.startedAt);
+    const keys = [...new Set(missedIn.map((r) => phoneKey(r.phone)).filter((k) => k.length >= 3))];
+    const outs = keys.length
+      ? (await this.prisma.callLog.findMany({ where: { direction: 'out', startedAt: { gte: new Date(fromMs) }, OR: keys.slice(0, 500).map((k) => ({ phone: { endsWith: k } })) }, select: { phone: true, startedAt: true }, take: 20000 }))
+      : [];
+    const outsBy = new Map<string, Date[]>();
+    for (const o of outs) { const k = phoneKey(o.phone); const a = outsBy.get(k) || []; a.push(o.startedAt); outsBy.set(k, a); }
+    const calledBack = (r: { phone: string; startedAt: Date }) => (outsBy.get(phoneKey(r.phone)) || []).some((d) => d > r.startedAt);
     const kindOf = (r: (typeof rows)[number]): string[] => {
       const k = ['all'];
       if (isInternal(r)) k.push('internal'); else k.push(r.direction === 'in' ? 'in' : 'out');
@@ -446,8 +531,10 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     const roundedMin = list.reduce((a, r) => a + (r.talkSec > 0 ? Math.ceil(r.talkSec / 60) : 0), 0);
     const total = list.reduce((a, r) => a + r.durationSec, 0);
     const RESULT: [RegExp, string][] = [[/busy|занят/, 'Band'], [/reject|отклон/, 'Rad etildi'], [/fail|congestion/, 'Xato'], [/cancel|no.?answer|не отвеч/, 'Javob berilmadi']];
+    const own = await this.ownProvider();
     return {
       range: { from: new Date(fromMs + TZ).toISOString().slice(0, 10), to: new Date(toMs - 86_400_000 + TZ).toISOString().slice(0, 10) },
+      truncated,
       tiles,
       calls: list.slice(0, Math.min(Number(q.limit) || 200, 500)).map((r) => {
         const u = r.userId ? uMap.get(r.userId) : undefined;
@@ -455,7 +542,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
           id: r.id, kind: isInternal(r) ? 'internal' : r.direction, status: r.status, at: r.startedAt.toISOString(), phone: r.phone,
           userName: u?.name || null, ext: u?.extension || null, leadId: r.leadId, leadName: r.leadId ? lMap.get(r.leadId) || null : null,
           ringSec: Math.max(0, r.durationSec - r.talkSec), talkSec: r.talkSec, rating: r.rating,
-          result: r.hangup ? (RESULT.find(([re]) => re.test(r.hangup!))?.[1] || null) : null, hasRecording: !!(r.externalId || r.recordUrl),
+          result: r.hangup ? (RESULT.find(([re]) => re.test(r.hangup!))?.[1] || null) : null, hasRecording: this.hasRec(r, own),
         };
       }),
       totals: { count: list.length, talkSec: talk, roundedMinutes: roundedMin, totalSec: total },
@@ -467,13 +554,13 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
    * Davr — Toshkent kunlari (from/to), ixtiyoriy ext (ichki raqam). Huquq: faqat ko'rinadigan qo'ng'iroqlar.
    */
   async callsStats(q: Record<string, string | undefined>, userId?: string) {
-    const TZ = 5 * 3_600_000;
-    const day = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? Date.parse(v + 'T00:00:00Z') - TZ : null);
-    const todayMs = day(new Date(Date.now() + TZ).toISOString().slice(0, 10))!;
-    const fromMs = day(q.from) ?? todayMs - 6 * 86_400_000;
-    const toMs = (day(q.to) ?? todayMs) + 86_400_000;
-    if (toMs - fromMs > 93 * 86_400_000) throw new BadRequestException({ error: 'RANGE', message: "Davr 93 kundan oshmasin" });
-    let rows = await this.prisma.callLog.findMany({ where: { startedAt: { gte: new Date(fromMs), lt: new Date(toMs) } }, orderBy: { startedAt: 'asc' }, take: 20000 });
+    const TZ = TZ_MS;
+    const { fromMs, toMs } = this.range(q, 6, 93);
+    if (q.ext && !EXT_RE.test(String(q.ext))) throw new BadRequestException({ error: 'BAD_EXTENSION', message: "Ichki raqam 2–5 xonali bo'lishi kerak" });
+    const LIMIT = 20000;
+    let rows = await this.prisma.callLog.findMany({ where: { startedAt: { gte: new Date(fromMs), lt: new Date(toMs) } }, orderBy: { startedAt: 'asc' }, take: LIMIT + 1 });
+    const truncated = rows.length > LIMIT;
+    if (truncated) rows = rows.slice(0, LIMIT);
     const vis = await this.rights.visibleLeadIds(userId, [...new Set(rows.map((r) => r.leadId).filter(Boolean) as string[])]);
     if (vis) rows = rows.filter((r) => r.userId === userId || (r.leadId && vis.has(r.leadId)));
     const users = await this.prisma.user.findMany({ where: { isActive: true }, select: { id: true, name: true, extension: true } });
@@ -481,7 +568,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     let scope = rows;
     if (q.ext) { const u = users.find((x) => x.extension === q.ext); scope = u ? rows.filter((r) => r.userId === u.id) : []; }
     const dayKey = (d: Date) => new Date(d.getTime() + TZ).toISOString().slice(0, 10);
-    const isInt = (r: { phone: string }) => r.phone.replace(/\D/g, '').length <= 4;
+    const isInt = (r: { phone: string }) => isInternalNumber(r.phone);
     const days: string[] = [];
     for (let t = fromMs; t < toMs; t += 86_400_000) days.push(new Date(t + TZ).toISOString().slice(0, 10));
     const series = days.map((d) => ({ day: d, in: 0, out: 0, internal: 0, missed: 0, talkMin: 0 }));
@@ -506,15 +593,15 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     })).sort((a, b) => b.total - a.total);
     // o'tkazib yuborilganlar: qayta qo'ng'iroq kechikishi
     const outsByPhone = new Map<string, Date[]>();
-    for (const r of rows) if (r.direction === 'out') { const a = outsByPhone.get(r.phone) || []; a.push(r.startedAt); outsByPhone.set(r.phone, a); }
+    for (const r of rows) if (r.direction === 'out') { const k = phoneKey(r.phone); const a = outsByPhone.get(k) || []; a.push(r.startedAt); outsByPhone.set(k, a); }
     const missed = scope.filter((r) => r.direction === 'in' && r.status === 'missed' && !isInt(r)).map((r) => {
-      const next = (outsByPhone.get(r.phone) || []).find((d) => d > r.startedAt);
+      const next = (outsByPhone.get(phoneKey(r.phone)) || []).find((d) => d > r.startedAt);
       return { id: r.id, at: r.startedAt.toISOString(), phone: r.phone, waitSec: r.durationSec, callbackSec: next ? Math.round((next.getTime() - r.startedAt.getTime()) / 1000) : null };
     });
     const cb = missed.filter((m) => m.callbackSec !== null) as (typeof missed[number] & { callbackSec: number })[];
     const real = scope.filter((r) => !isInt(r) && r.status !== 'ringing');
     return {
-      range: { from: days[0], to: days[days.length - 1] }, series, employees,
+      range: { from: days[0], to: days[days.length - 1] }, truncated, series, employees,
       missed: { list: missed.slice(-200).reverse(), count: missed.length, calledBack: cb.length, calledBack15: cb.filter((m) => m.callbackSec <= 900).length, avgCallbackSec: cb.length ? Math.round(cb.reduce((a, m) => a + m.callbackSec, 0) / cb.length) : null, avgWaitSec: missed.length ? Math.round(missed.reduce((a, m) => a + m.waitSec, 0) / missed.length) : 0 },
       outcomes: { success: real.filter((r) => r.talkSec > 0).length, missedIn: real.filter((r) => r.direction === 'in' && r.talkSec === 0).length, failedOut: real.filter((r) => r.direction === 'out' && r.talkSec === 0).length, total: real.length },
     };
@@ -525,7 +612,8 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     await this.syncHistory({ minutes: 15 }).catch(() => {}); // har pollда OnlinePBX'dan tortamiz (throttle ~2.5s)
     const calls = await this.prisma.callLog.findMany({ where: { leadId }, orderBy: { startedAt: 'desc' }, take: 100 });
     // hasRecording — yozuvni server orqali olib bo'ladimi (uuid yoki havola bor)
-    return { calls: calls.map((c) => ({ ...c, hasRecording: !!(c.externalId || c.recordUrl) })) };
+    const own = await this.ownProvider();
+    return { calls: calls.map((c) => ({ ...c, hasRecording: this.hasRec(c, own) })) };
   }
 
   // ── Qo'ng'iroq yozuvini server orqali olib berish (chatda ijro uchun) ──
@@ -584,8 +672,29 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     return { extension: u?.extension || null, pbxEnabled: await this.pbx.enabled(), callMode: c.callMode || 'callback', dialScheme: c.dialScheme || 'tel', popups: c.popups !== false };
   }
   async setMyExtension(user: AuthUser, extension: string) {
-    await this.prisma.user.update({ where: { id: user.id }, data: { extension: (extension || '').trim() || null } });
-    return { ok: true, extension: (extension || '').trim() || null };
+    const ext = await this.checkExtension(user, extension);
+    await this.prisma.user.update({ where: { id: user.id }, data: { extension: ext } });
+    return { ok: true, extension: ext };
+  }
+
+  /**
+   * Ichki raqamni tekshirish (toll-fraud: raqam Originate `Channel: PJSIP/<ext>` ga tushadi):
+   * 2–5 xonali son; boshqa foydalanuvchida bo'lmasin; o'z stansiyamizda — shu foydalanuvchiga biriktirilgan «Пользователь» moduli bo'lishi shart.
+   */
+  private async checkExtension(user: AuthUser, raw: unknown): Promise<string | null> {
+    const ext = String(raw ?? '').trim();
+    if (!ext) return null;
+    if (!EXT_RE.test(ext)) throw new BadRequestException({ error: 'BAD_EXTENSION', message: "Ichki raqam 2–5 xonali son bo'lishi kerak" });
+    const taken = await this.prisma.user.findFirst({ where: { extension: ext, id: { not: user.id } }, select: { id: true } });
+    if (taken) throw new ConflictException({ error: 'EXTENSION_TAKEN', message: 'Bu ichki raqam boshqa xodimga biriktirilgan' });
+    if (await this.ownProvider()) {
+      const m = await this.prisma.pbxModule.findUnique({ where: { number: ext }, select: { type: true, configJson: true } });
+      let owner: unknown = null;
+      try { owner = m ? JSON.parse(m.configJson).crmUserId : null; } catch { /* */ }
+      if (!m || m.type !== 'user') throw new BadRequestException({ error: 'NO_SUCH_EXTENSION', message: 'Bunday ichki raqam (Пользователь moduli) yo`q' });
+      if (owner !== user.id) throw new ForbiddenException({ error: 'EXTENSION_NOT_YOURS', message: 'Ichki raqam sizga biriktirilmagan (Telefoniya → Пользователь modulida biriktiriladi)' });
+    }
+    return ext;
   }
 
   // Telefon raqami bo'yicha lid (WebRTC kiruvchi kartasida nomni ko'rsatish uchun)
@@ -620,8 +729,15 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
   }
   async saveWebrtcConfig(user: AuthUser, dto: { extension?: string; sipPassword?: string }) {
     const data: Record<string, unknown> = {};
-    if (dto.extension !== undefined) data.extension = (dto.extension || '').trim() || null;
-    if (dto.sipPassword) data.sipPassword = String(dto.sipPassword).trim(); // faqat yangi kiritilsa
+    if (dto.extension !== undefined) data.extension = await this.checkExtension(user, dto.extension);
+    if (dto.sipPassword) {
+      // o'z stansiyamizda SIP parolini server yaratadi (Пользователь moduli biriktirilganda) — foydalanuvchi o'zgartira olmaydi
+      if (await this.ownProvider()) throw new BadRequestException({ error: 'SIP_PASSWORD_MANAGED', message: "O'z stansiyada SIP paroli avtomatik yaratiladi" });
+      // OnlinePBX: parol OnlinePBX panelidan olinadi — kamida 8 belgi, bo'shliq/nazorat belgilarisiz
+      const pw = String(dto.sipPassword).trim();
+      if (pw.length < 8 || pw.length > 64 || /[\x00-\x20\x7f;"\\]/.test(pw)) throw new BadRequestException({ error: 'WEAK_SIP_PASSWORD', message: "SIP paroli 8–64 belgi, bo'shliq va ; \" \\ belgilarisiz bo'lsin" });
+      data.sipPassword = pw;
+    }
     await this.prisma.user.update({ where: { id: user.id }, data });
     return this.getWebrtcConfig(user);
   }
@@ -673,6 +789,9 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
 
     const externalId = get('uuid', 'call_id', 'callid', 'id') ? String(get('uuid', 'call_id', 'callid', 'id')) : null;
     const recordUrl = get('download_url', 'download', 'record', 'records', 'record_url', 'file') ? String(get('download_url', 'download', 'record', 'records', 'record_url', 'file')) : null;
+    // qo'ng'iroq boshlangan vaqt (o'z stansiyamiz CDR StartTime → ISO, Toshkent vaqti hisobga olingan); noto'g'ri/kelajakdagi — e'tiborsiz
+    const st = get('start_time') ? new Date(String(get('start_time'))) : null;
+    const startedAt = st && Number.isFinite(st.getTime()) && st.getTime() <= Date.now() + 3_600_000 && st.getTime() > Date.now() - 30 * DAY_MS ? st : null;
 
     // Qo'ng'iroq yakunlanganmi (call_end) yoki hali jiringlayaptimi (call_start / ringing): jiringlayotganini
     // «o'tkazib yuborilgan» demaymiz — aks holda javob berilgan qo'ng'iroqqa ham vazifa tushardi.
@@ -693,8 +812,17 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     }
 
     // bir xil uuid bo'yicha parallel webhook/sync bir-birini kutadi (ikki CallLog / ikki lid yaratilmasin)
-    if (externalId) return this.withLock(`call:${externalId}`, () => this.applyCall({ phone, other, direction, status, durationSec, talkSec: talk, hangup, recordUrl, externalId, final }));
-    return this.applyCall({ phone, other, direction, status, durationSec, talkSec: talk, hangup, recordUrl, externalId, final });
+    const args = { phone, other, direction, status, durationSec, talkSec: talk, hangup, recordUrl, externalId, final, startedAt };
+    if (externalId) {
+      return this.withLock(`call:${externalId}`, async () => {
+        try { return await this.applyCall(args); } catch (e) {
+          // boshqa nusxa/jarayon shu uuid'ni bir lahza oldin yozdi (externalId noyob) — endi yangilash sifatida qayta ishlaymiz
+          if (isP2002(e)) return this.applyCall(args);
+          throw e;
+        }
+      });
+    }
+    return this.applyCall(args);
   }
 
   private locks = new Map<string, Promise<unknown>>();
@@ -705,13 +833,15 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     try { return await run; } finally { if (this.locks.get(key) === run) this.locks.delete(key); }
   }
 
-  private async applyCall(a: { phone: string; other: string; direction: string; status: string; durationSec: number; talkSec: number; hangup: string; recordUrl: string | null; externalId: string | null; final: boolean }) {
-    const { phone, other, direction, status, durationSec, talkSec, hangup, recordUrl, externalId, final } = a;
+  private async applyCall(a: { phone: string; other: string; direction: string; status: string; durationSec: number; talkSec: number; hangup: string; recordUrl: string | null; externalId: string | null; final: boolean; startedAt?: Date | null }) {
+    const { phone, other, direction, status, durationSec, talkSec, hangup, recordUrl, externalId, final, startedAt } = a;
     const lead0 = await this.resolveLead(phone, other, direction);
+    // operator: ichki raqam (kiruvchida — javob bergan/chaqirilgan, chiquvchida — chaqiruvchi) egasi
+    const opUserId = await this.userIdByExt(other);
 
     // externalId bo'lsa — yangilaymiz (ringing -> answered -> completed); bo'lmasa yangi yozuv.
     if (externalId) {
-      const existing = await this.prisma.callLog.findFirst({ where: { externalId } });
+      const existing = await this.prisma.callLog.findUnique({ where: { externalId } });
       if (existing) {
         const relink = existing.leadId || lead0?.id || (await this.ensureCallerLead(direction, phone, null))?.id || null;
         // holat orqaga qaytmaydi: yakuniy (completed/missed/failed) → ringing emas; gaplashilgan (completed) → missed emas
@@ -722,11 +852,12 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
           where: { id: existing.id },
           data: {
             status: nextStatus,
-            durationSec: durationSec || existing.durationSec,
-            talkSec: talkSec || existing.talkSec,
-            hangup: hangup || existing.hangup,
+            durationSec: Math.max(durationSec, existing.durationSec),
+            talkSec: Math.max(talkSec, existing.talkSec),
+            hangup: keepOld ? existing.hangup || hangup || null : hangup || existing.hangup,
             recordUrl: recordUrl || existing.recordUrl,
             leadId: relink,
+            ...(!existing.userId && opUserId ? { userId: opUserId } : {}),
             ...(final ? { handled: true } : {}), // yakunlangach kiruvchi oyna yopiladi
           },
         });
@@ -738,7 +869,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     // yangi raqamdan kiruvchi — kontakt + bitim (jiringlayotgan paytdayoq, oynada mijoz kartochkasi bo'lsin)
     const lead = await this.ensureCallerLead(direction, phone, lead0);
     const call = await this.prisma.callLog.create({
-      data: { leadId: lead?.id || null, phone, direction, status, durationSec, talkSec, hangup: hangup || null, recordUrl, externalId, handled: direction === 'out' || final },
+      data: { leadId: lead?.id || null, userId: opUserId, phone, direction, status, durationSec, talkSec, hangup: hangup || null, recordUrl, externalId, handled: direction === 'out' || final, ...(startedAt ? { startedAt } : {}) },
     });
     if (lead && direction === 'in' && status === 'missed') await this.missedCallTask(lead.id, phone);
     if (lead && direction === 'in') await this.automation.fire('call_in', lead.id, { actorName: 'OnlinePBX' });

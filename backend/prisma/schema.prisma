@@ -191,7 +191,7 @@ model CallLog {
   hangup      String? // uzilish sababi (provayderdan)
   rating      Int? // mijoz bahosi 1..5 («Оценка качества»)
   recordUrl   String? // audio yozuv havolasi
-  externalId  String? // OnlinePBX call uuid
+  externalId  String?  @unique // provayder qo'ng'iroq uuid (OnlinePBX uuid / Asterisk CRM_UUID yoki UniqueID); NULL lar cheklanmaydi
   handled     Boolean  @default(false) // kiruvchi oyna ko'rsatildimi
   startedAt   DateTime @default(now())
 
@@ -200,6 +200,18 @@ model CallLog {
   @@index([startedAt])
   @@index([phone])
   @@map("call_logs")
+}
+
+// Sayt «Callback» vidjeti so'rovlari — sutkalik cheklovlar (raqam/kalit bo'yicha) bazada hisoblanadi (bir nechta nusxada ham to'g'ri).
+model CallbackRequest {
+  id        String   @id @default(cuid())
+  phoneKey  String // oxirgi 9 raqam
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([phoneKey, createdAt])
+  @@index([createdAt])
+  @@map("callback_requests")
 }
 
 // Lid vazifalari (zadacha) — amoCRM uslubi. Sotuvchi asosan shular bilan ishlaydi.

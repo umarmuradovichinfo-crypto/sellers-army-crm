@@ -5,13 +5,18 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { OwnPbxProvider } from '../onlinepbx/own-pbx.provider';
 import { PrismaService } from '../prisma/prisma.service';
-import { generateAsterisk, type GenModule } from './asterisk.generator';
+import { GeneratorError, generateAsterisk, type GenModule } from './asterisk.generator';
 import { DEVICES, MAC_RE, generateDeviceConfig, type CfgLine, type Device } from './configurator';
-import { MODULE_TYPES, NUMBER_BASE, NUMBER_RE, SchemaError, normalizeConfig, type ModuleType } from './pbx-schema';
+import { MODULE_TYPES, NUMBER_BASE, NUMBER_RE, SchemaError, USER_NUMBER_RE, cleanName, normalizeConfig, type ModuleType } from './pbx-schema';
+import { EXT_RE, phoneKey } from './phone';
 
 const isType = (t: unknown): t is ModuleType => (MODULE_TYPES as readonly string[]).includes(String(t));
 const MUSIC_KEY = 'pbx_music';
 const OUTGOING_KEY = 'pbx_outgoing';
+const RECORDING_KEY = 'pbx_recording';
+/** Bazadagi eski (hozirgi qoidalarga mos kelmaydigan) yozuv o'qish yo'llarini 500 ga tushirmasin. */
+const targetsOf = (type: string, json: string) => { try { return normalizeConfig(type as ModuleType, parse(json, {})); } catch { return { config: {}, targets: [] as string[], members: [] as string[] }; } };
+const isP2002 = (e: unknown) => (e as { code?: string } | null)?.code === 'P2002';
 
 type Row = { id: string; type: string; number: string; name: string | null; configJson: string; enabled: boolean; createdAt: Date; updatedAt: Date };
 const parse = <T,>(s: string, d: T): T => { try { return JSON.parse(s) as T; } catch { return d; } };
@@ -59,7 +64,7 @@ export class PbxService {
     }
     // sikl: next dan boshlab havolalar bo'ylab yurib, o'ziga qaytib kelsa — rad
     const graph = new Map<string, string[]>();
-    for (const m of all) graph.set(m.number, normalizeConfig(m.type as ModuleType, parse(m.configJson, {})).targets);
+    for (const m of all) graph.set(m.number, targetsOf(m.type, m.configJson).targets);
     graph.set(next.number, next.targets);
     const seen = new Set<string>();
     const stack = [...next.targets];
@@ -76,11 +81,18 @@ export class PbxService {
     if (!isType(dto.type)) throw new BadRequestException({ error: 'BAD_TYPE', message: "Modul turi noto'g'ri" });
     const type = dto.type;
     const number = String(dto.number || '').trim() || (await this.nextNumber(type)).number;
-    if (!NUMBER_RE.test(number)) throw new BadRequestException({ error: 'BAD_NUMBER', message: "Raqam noto'g'ri (harf/raqam, 32 belgigacha)" });
+    this.assertNumber(type, number);
     if (await this.prisma.pbxModule.findUnique({ where: { number }, select: { id: true } })) throw new ConflictException({ error: 'NUMBER_TAKEN', message: `Bu raqam band: ${number}` });
     const n = this.norm(type, dto.config);
     await this.assertFlow({ number, type, targets: n.targets, members: n.members });
-    const row = (await this.prisma.pbxModule.create({ data: { type, number, name: String(dto.name || '').trim().slice(0, 100) || null, configJson: JSON.stringify(n.config), enabled: dto.enabled !== false } })) as Row;
+    await this.assertCrmUserFree(type, n.config, undefined);
+    let row: Row;
+    try {
+      row = (await this.prisma.pbxModule.create({ data: { type, number, name: cleanName(dto.name, 100) || null, configJson: JSON.stringify(n.config), enabled: dto.enabled !== false } })) as Row;
+    } catch (e) {
+      if (isP2002(e)) throw new ConflictException({ error: 'NUMBER_TAKEN', message: `Bu raqam band: ${number}` });
+      throw e;
+    }
     await this.syncUserExt(row, undefined);
     return { module: this.view(row) };
   }
@@ -90,17 +102,26 @@ export class PbxService {
     if (!cur) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Modul topilmadi' });
     const type = cur.type as ModuleType;
     const number = dto.number !== undefined ? String(dto.number).trim() : cur.number;
-    if (!NUMBER_RE.test(number)) throw new BadRequestException({ error: 'BAD_NUMBER', message: "Raqam noto'g'ri" });
+    this.assertNumber(type, number);
     if (number !== cur.number) {
       if (await this.prisma.pbxModule.findUnique({ where: { number }, select: { id: true } })) throw new ConflictException({ error: 'NUMBER_TAKEN', message: `Bu raqam band: ${number}` });
       if ((await this.referencedBy(cur.number)).length) throw new ConflictException({ error: 'IN_USE', message: "Raqamni o'zgartirib bo'lmaydi: boshqa modullar unga yo'naltirilgan" });
+      const ext = await this.settingRefs(cur.number);
+      if (ext.length) throw new ConflictException({ error: 'IN_USE', message: `Raqamni o'zgartirib bo'lmaydi: ${ext.join(', ')} sozlamasida ishlatilgan` });
     }
     const old = parse<Record<string, unknown>>(cur.configJson, {});
     const patch = { ...(dto.config || {}) };
     if (type === 'trunk' && !patch.password && old.password) patch.password = old.password; // parol bo'sh bo'lsa eskisi qoladi
     const n = this.norm(type, dto.config === undefined ? old : { ...old, ...patch });
     await this.assertFlow({ number, type, targets: n.targets, members: n.members }, id);
-    const row = (await this.prisma.pbxModule.update({ where: { id }, data: { number, ...(dto.name !== undefined ? { name: String(dto.name).trim().slice(0, 100) || null } : {}), configJson: JSON.stringify(n.config), ...(dto.enabled !== undefined ? { enabled: !!dto.enabled } : {}) } })) as Row;
+    await this.assertCrmUserFree(type, n.config, id);
+    let row: Row;
+    try {
+      row = (await this.prisma.pbxModule.update({ where: { id }, data: { number, ...(dto.name !== undefined ? { name: cleanName(dto.name, 100) || null } : {}), configJson: JSON.stringify(n.config), ...(dto.enabled !== undefined ? { enabled: !!dto.enabled } : {}) } })) as Row;
+    } catch (e) {
+      if (isP2002(e)) throw new ConflictException({ error: 'NUMBER_TAKEN', message: `Bu raqam band: ${number}` });
+      throw e;
+    }
     await this.syncUserExt(row, cur);
     return { module: this.view(row) };
   }
@@ -110,6 +131,8 @@ export class PbxService {
     if (!cur) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Modul topilmadi' });
     const refs = await this.referencedBy(cur.number);
     if (refs.length) throw new ConflictException({ error: 'IN_USE', message: `O'chirib bo'lmaydi: ${refs.map((r) => r.number).join(', ')} modullari shunga yo'naltirilgan`, usedBy: refs });
+    const ext = await this.settingRefs(cur.number);
+    if (ext.length) throw new ConflictException({ error: 'IN_USE', message: `O'chirib bo'lmaydi: ${ext.join(', ')} sozlamasida ishlatilgan`, usedBy: ext.map((x) => ({ number: x, type: 'setting' })) });
     await this.prisma.pbxModule.delete({ where: { id } });
     if (cur.type === 'user') {
       const crmUserId = parse<Record<string, any>>(cur.configJson, {}).crmUserId;
@@ -121,9 +144,33 @@ export class PbxService {
   private async referencedBy(number: string) {
     const all = await this.prisma.pbxModule.findMany({ select: { number: true, type: true, configJson: true } });
     return all.filter((m) => {
-      const n = normalizeConfig(m.type as ModuleType, parse(m.configJson, {}));
+      const n = targetsOf(m.type, m.configJson);
       return n.targets.includes(number) || n.members.includes(number);
     }).map((m) => ({ number: m.number, type: m.type }));
+  }
+
+  /** Modul raqami sozlamalarda ishlatilganmi: chiquvchi qoida (trunk/xodim), callback vidjeti, avto-qayta qo'ng'iroq. */
+  private async settingRefs(number: string): Promise<string[]> {
+    const out: string[] = [];
+    const rules = (await this.outgoing()).rules || [];
+    const r = rules.find((x: any) => x?.trunk === number || (Array.isArray(x?.users) && x.users.includes(number)));
+    if (r) out.push(`chiquvchi qoida «${r.name || r.mask || r.id}»`);
+    if ((await this.setting<{ ext?: string }>('pbx_callback', {})).ext === number) out.push('callback vidjeti');
+    if ((await this.setting<{ ext?: string }>('pbx_autorecall', {})).ext === number) out.push("avto-qayta qo'ng'iroq");
+    return out;
+  }
+
+  private assertNumber(type: ModuleType, number: string) {
+    if (!NUMBER_RE.test(number)) throw new BadRequestException({ error: 'BAD_NUMBER', message: "Raqam noto'g'ri (harf/raqam, 32 belgigacha, _ bilan boshlanmaydi)" });
+    if (type === 'user' && !USER_NUMBER_RE.test(number)) throw new BadRequestException({ error: 'BAD_NUMBER', message: "Xodimning ichki raqami 2–5 xonali son bo'lishi kerak" });
+  }
+
+  /** Bitta CRM foydalanuvchisi faqat bitta «Пользователь» moduliga bog'lanadi. */
+  private async assertCrmUserFree(type: ModuleType, cfg: Record<string, unknown>, selfId?: string) {
+    if (type !== 'user' || !cfg.crmUserId) return;
+    const others = await this.prisma.pbxModule.findMany({ where: { type: 'user', ...(selfId ? { id: { not: selfId } } : {}) }, select: { number: true, configJson: true } });
+    const busy = others.find((m) => parse<Record<string, any>>(m.configJson, {}).crmUserId === cfg.crmUserId);
+    if (busy) throw new ConflictException({ error: 'CRM_USER_TAKEN', message: `Bu CRM foydalanuvchisi allaqachon ${busy.number} raqamiga biriktirilgan` });
   }
 
   private norm(type: ModuleType, cfg?: Record<string, unknown>) {
@@ -137,13 +184,20 @@ export class PbxService {
   private async syncUserExt(row: Row, prev?: Row) {
     if (row.type !== 'user') return;
     const cfg = parse<Record<string, any>>(row.configJson, {});
-    if (prev && prev.number !== row.number) {
+    if (prev) {
+      // raqam o'zgardi yoki boshqa foydalanuvchiga (A → B) o'tkazildi — eski egasining ichki raqami tozalanadi
       const pc = parse<Record<string, any>>(prev.configJson, {});
-      if (pc.crmUserId) await this.prisma.user.updateMany({ where: { id: pc.crmUserId, extension: prev.number }, data: { extension: null } });
+      if (pc.crmUserId && (prev.number !== row.number || pc.crmUserId !== cfg.crmUserId)) await this.prisma.user.updateMany({ where: { id: pc.crmUserId, extension: prev.number }, data: { extension: null } });
     }
     if (cfg.crmUserId) {
       const u = await this.prisma.user.findUnique({ where: { id: cfg.crmUserId }, select: { id: true, sipPassword: true } });
-      if (u) await this.prisma.user.update({ where: { id: u.id }, data: { extension: row.number, ...(u.sipPassword ? {} : { sipPassword: randomBytes(9).toString('base64url') }) } });
+      if (u) {
+        // modul — manba: shu raqamni o'zida yozib qo'ygan boshqa foydalanuvchilardan olib tashlanadi
+        await this.prisma.user.updateMany({ where: { extension: row.number, id: { not: u.id } }, data: { extension: null } });
+        // SIP parolini server yaratadi (24 belgi); foydalanuvchi o'zi kiritmaydi
+        const weak = !u.sipPassword || u.sipPassword.length < 16 || /[\x00-\x20;"\\]/.test(u.sipPassword);
+        await this.prisma.user.update({ where: { id: u.id }, data: { extension: row.number, ...(weak ? { sipPassword: randomBytes(18).toString('base64url') } : {}) } });
+      }
     }
   }
 
@@ -154,7 +208,7 @@ export class PbxService {
     const issues: { level: 'error' | 'warn'; number: string; message: string }[] = [];
     const referenced = new Set<string>();
     for (const r of rows) {
-      const n = normalizeConfig(r.type as ModuleType, parse(r.configJson, {}));
+      const n = targetsOf(r.type, r.configJson);
       for (const t of n.targets) { referenced.add(t); if (!numbers.has(t)) issues.push({ level: 'error', number: r.number, message: `Marshrut raqami yo'q: ${t}` }); }
       for (const m of n.members) referenced.add(m);
       if (r.type === 'trunk' && !(r.configJson.includes('forwardTo":"') && !r.configJson.includes('forwardTo":""'))) issues.push({ level: 'warn', number: r.number, message: "Kiruvchi raqam hech qayerga yo'naltirilmagan" });
@@ -177,8 +231,13 @@ export class PbxService {
       return { type: r.type, number: r.number, name: r.name, enabled: r.enabled, config: withSecrets ? cfg : { ...cfg, password: undefined } };
     });
     const bl = (await this.prisma.pbxBlacklist.findMany({ select: { number: true } })).map((b) => b.number);
-    const out = generateAsterisk(mods, { blacklist: bl, outgoing: await this.outgoing(), sipSecrets: withSecrets ? secrets : {} });
-    return { ...out, missing };
+    try {
+      const out = generateAsterisk(mods, { blacklist: bl, outgoing: await this.outgoing(), sipSecrets: withSecrets ? secrets : {}, recording: await this.recording() });
+      return { ...out, missing };
+    } catch (e) {
+      if (e instanceof GeneratorError || e instanceof SchemaError) throw new BadRequestException({ error: 'BAD_CONFIG', message: e.message });
+      throw e;
+    }
   }
 
   /** Asterisk sozlamasini ko'rish (parollar yashiriladi). */
@@ -201,7 +260,7 @@ export class PbxService {
     await fs.mkdir(dir, { recursive: true });
     const written: string[] = [];
     for (const [name, text] of [['pjsip_crm.conf', cfg.pjsip], ['extensions_crm.conf', cfg.extensions], ['queues_crm.conf', cfg.queues]] as const) {
-      const tmp = join(dir, `.${name}.tmp`);
+      const tmp = join(dir, `.${name}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`); // parallel qo'llashda to'qnashmasin
       await fs.writeFile(tmp, text + '\n', { mode: 0o640 });
       await fs.rename(tmp, join(dir, name)); // atomik almashtirish
       written.push(name);
@@ -283,9 +342,11 @@ export class PbxService {
   // ── Qora ro'yxat ──
   async blacklist() { return { numbers: (await this.prisma.pbxBlacklist.findMany({ orderBy: { createdAt: 'desc' } })).map((b) => ({ id: b.id, number: b.number, note: b.note })) }; }
   async blacklistAdd(dto: { number?: string; note?: string }) {
-    const number = String(dto.number || '').trim();
+    const number = String(dto.number || '').trim().replace(/[\s()-]/g, '');
     if (!/^\+?\d{3,20}$/.test(number)) throw new BadRequestException({ error: 'BAD_NUMBER', message: "Raqam noto'g'ri (faqat raqamlar, ixtiyoriy +)" });
-    if (await this.prisma.pbxBlacklist.findUnique({ where: { number } })) throw new ConflictException({ error: 'EXISTS', message: "Bu raqam ro'yxatda bor" });
+    // +998901234567 / 998901234567 / 901234567 — bir raqam (oxirgi 9 raqam bo'yicha)
+    const key = phoneKey(number);
+    if ((await this.prisma.pbxBlacklist.findMany({ select: { number: true } })).some((b) => phoneKey(b.number) === key)) throw new ConflictException({ error: 'EXISTS', message: "Bu raqam ro'yxatda bor" });
     const b = await this.prisma.pbxBlacklist.create({ data: { number, note: String(dto.note || '').trim().slice(0, 200) || null } });
     return { id: b.id, number: b.number, note: b.note };
   }
@@ -311,11 +372,28 @@ export class PbxService {
     return m;
   }
   async outgoing() { return this.setting<{ rules: any[] }>(OUTGOING_KEY, { rules: [] }); }
+  /** Suhbatlarni yozib olish (MixMonitor) — standart yoqilgan; papka Asterisk serveridagi yo'l (CRM uni ASTERISK_RECORDINGS_DIR orqali o'qiydi). */
+  async recording() { return this.setting<{ enabled: boolean; dir: string }>(RECORDING_KEY, { enabled: true, dir: '/var/spool/asterisk/monitor' }); }
+  async saveRecording(dto: { enabled?: boolean; dir?: string }) {
+    const cur = await this.recording();
+    const dir = String(dto.dir ?? cur.dir).trim();
+    if (!/^\/[\w./-]{1,200}$/.test(dir) || dir.includes('..')) throw new BadRequestException({ error: 'BAD_DIR', message: "Papka mutlaq yo'l bo'lsin (masalan /var/spool/asterisk/monitor)" });
+    const v = { enabled: dto.enabled === undefined ? cur.enabled : !!dto.enabled, dir };
+    await this.saveSetting(RECORDING_KEY, v);
+    return v;
+  }
   async saveOutgoing(dto: { rules?: any[] }) {
     const rules = (Array.isArray(dto.rules) ? dto.rules : []).slice(0, 100).map((r, i) => {
-      const mask = String(r?.mask ?? '').trim().slice(0, 64);
-      if (mask && !/^[0-9+*#X.()\[\]-]*$/.test(mask)) throw new BadRequestException({ error: 'BAD_MASK', message: `Maska noto'g'ri: ${mask}` });
-      return { id: String(r?.id || `r${i + 1}`).slice(0, 40), name: String(r?.name || '').trim().slice(0, 80), mask, trunk: String(r?.trunk || '').slice(0, 32), externalNumber: String(r?.externalNumber || '').trim().slice(0, 32), users: (Array.isArray(r?.users) ? r.users : []).map((u: unknown) => String(u).slice(0, 32)).slice(0, 200) };
+      const mask = String(r?.mask ?? '').trim().replace(/[\s()]/g, '').slice(0, 64);
+      if (mask && !/^\+?[0-9XZN*#.!\[\]-]*$/.test(mask)) throw new BadRequestException({ error: 'BAD_MASK', message: `Maska noto'g'ri: ${mask}` });
+      const trunk = String(r?.trunk || '').trim().slice(0, 32);
+      if (trunk && !NUMBER_RE.test(trunk)) throw new BadRequestException({ error: 'BAD_TRUNK', message: `Trunk raqami noto'g'ri: ${trunk}` });
+      const externalNumber = String(r?.externalNumber || '').trim().replace(/[\s()-]/g, '').slice(0, 32);
+      if (externalNumber && !/^\+?\d{3,20}$/.test(externalNumber)) throw new BadRequestException({ error: 'BAD_NUMBER', message: `Chiquvchi raqam noto'g'ri: ${externalNumber}` });
+      const users = (Array.isArray(r?.users) ? r.users : []).map((u: unknown) => String(u).trim()).filter(Boolean).slice(0, 200);
+      const badU = users.find((u: string) => !EXT_RE.test(u));
+      if (badU) throw new BadRequestException({ error: 'BAD_USER', message: `Ichki raqam noto'g'ri: ${badU}` });
+      return { id: String(r?.id || `r${i + 1}`).replace(/[^\w-]/g, '').slice(0, 40) || `r${i + 1}`, name: cleanName(r?.name, 80), mask, trunk, externalNumber, users };
     });
     await this.saveSetting(OUTGOING_KEY, { rules });
     return { rules };

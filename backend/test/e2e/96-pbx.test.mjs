@@ -93,6 +93,55 @@ describe('PBX modullari (Настройка АТС)', () => {
     await ok('PUT', '/pbx/outgoing', { rules: [] }, T, 200);
   });
 
+  test('in`ektsiya: trunk server/login/parol, maska, nom — \\n ; " rad etiladi yoki tozalanadi; xodim raqami faqat 2–5 xonali son', async () => {
+    for (const config of [{ login: 'l', server: '1.2.3.4\n[x]' }, { login: 'l;x', server: '1.2.3.4' }, { login: 'l', server: '1.2.3.4', password: 'a;b' }, { login: 'a"b', server: 'h' }]) {
+      const r = await req('POST', '/pbx/modules', { type: 'trunk', config }, T);
+      assert.equal(r.status, 400, JSON.stringify(config));
+    }
+    assert.equal((await req('POST', '/pbx/modules', { type: 'numrule', config: { mask: '998\nexten' } }, T)).status, 400);
+    assert.equal((await req('POST', '/pbx/modules', { type: 'queue', number: '_X' }, T)).status, 400, '_ bilan boshlanadigan raqam (naqsh) rad');
+    assert.equal((await req('POST', '/pbx/modules', { type: 'user', number: 'trunk-1' }, T)).status, 400);
+    assert.equal((await req('POST', '/pbx/modules', { type: 'user', number: '1234567' }, T)).status, 400);
+    const u = await mk('user', { number: '9181', name: 'Ali"\n[evil];x' });
+    assert.equal(u.name, 'Alievilx');
+    assert.equal((await req('PUT', '/pbx/outgoing', { rules: [{ mask: '', trunk: '0552233', users: ['100@trunk'] }] }, T)).status, 400);
+    assert.equal((await req('PUT', '/pbx/outgoing', { rules: [{ mask: '', trunk: '0552233', externalNumber: '1;2' }] }, T)).status, 400);
+    await ok('DELETE', `/pbx/modules/${u.id}`, undefined, T, 200);
+  });
+
+  test('CRM foydalanuvchisi: ikki modulga bog`lab bo`lmaydi (409); A → B o`tkazilsa A ning raqami tozalanadi; server SIP parolini yaratadi', async () => {
+    const A = await userWithRole('sotuvchi');
+    const B = await userWithRole('sotuvchi');
+    const m = await mk('user', { number: '9191', config: { crmUserId: A.id } });
+    assert.equal((await req('POST', '/pbx/modules', { type: 'user', number: '9192', config: { crmUserId: A.id } }, T)).status, 409);
+    assert.equal((await ok('GET', '/crm/my-extension', undefined, A.token, 200)).extension, '9191');
+    await ok('PUT', `/pbx/modules/${m.id}`, { config: { crmUserId: B.id } }, T, 200);
+    assert.ok(!(await ok('GET', '/crm/my-extension', undefined, A.token, 200)).extension, 'A ning eski raqami tozalanmadi');
+    assert.equal((await ok('GET', '/crm/my-extension', undefined, B.token, 200)).extension, '9191');
+    await ok('DELETE', `/pbx/modules/${m.id}`, undefined, T, 200);
+  });
+
+  test('o`chirish: chiquvchi qoida / callback / avto-qayta qo`ng`iroq ishlatgan trunk yoki xodimni o`chirib bo`lmaydi', async () => {
+    const tr = await mk('trunk', { number: '0557711', config: { login: 'l', server: '1.2.3.4' } });
+    const u = await mk('user', { number: '9171' });
+    await ok('PUT', '/pbx/outgoing', { rules: [{ name: 'Q', mask: '', trunk: '0557711', users: ['9171'] }] }, T, 200);
+    assert.equal((await req('DELETE', `/pbx/modules/${tr.id}`, undefined, T)).status, 409);
+    assert.equal((await req('DELETE', `/pbx/modules/${u.id}`, undefined, T)).status, 409);
+    await ok('PUT', '/pbx/outgoing', { rules: [] }, T, 200);
+    await ok('PUT', '/pbx/autorecall', { ext: '9171' }, T, 200);
+    assert.equal((await req('DELETE', `/pbx/modules/${u.id}`, undefined, T)).status, 409);
+    await ok('PUT', '/pbx/autorecall', { ext: '' }, T, 200);
+    for (const m of [tr, u]) await ok('DELETE', `/pbx/modules/${m.id}`, undefined, T, 200);
+  });
+
+  test('qora ro`yxat: +998…/998…/9 xonali bir raqam deb hisoblanadi (409)', async () => {
+    const n = `90${String(Date.now()).slice(-7)}`;
+    const b = await ok('POST', '/pbx/blacklist', { number: `+998${n}` }, T, 201);
+    assert.equal((await req('POST', '/pbx/blacklist', { number: `998${n}` }, T)).status, 409);
+    assert.equal((await req('POST', '/pbx/blacklist', { number: n }, T)).status, 409);
+    await ok('DELETE', `/pbx/blacklist/${b.id}`, undefined, T, 200);
+  });
+
   test('audio kutubxona: yuklash, ro`yxat, fayl berish, ishlatilayotganini o`chirib bo`lmaydi, noto`g`ri tur/hajm rad etiladi', async () => {
     const wav = Buffer.concat([Buffer.from('RIFF....WAVEfmt '), Buffer.alloc(300, 1)]).toString('base64');
     const f = await ok('POST', '/pbx/audio', { name: uniq('salom') + '.wav', mime: 'audio/wav', data: wav }, T, 201);

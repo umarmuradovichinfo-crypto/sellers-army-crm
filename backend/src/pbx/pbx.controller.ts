@@ -50,5 +50,7 @@ export class PbxController {
   @Get('music') music() { return this.s.music(); }
   @Put('music') saveMusic(@Body() dto: any) { return this.s.saveMusic(dto); }
   @Get('outgoing') outgoing() { return this.s.outgoing(); }
+  @Get('recording') recording() { return this.s.recording(); }
+  @Put('recording') saveRecording(@Body() dto: any) { return this.s.saveRecording(dto); }
   @Put('outgoing') saveOutgoing(@Body() dto: any) { return this.s.saveOutgoing(dto); }
 }

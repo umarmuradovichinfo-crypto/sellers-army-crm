@@ -52,6 +52,7 @@ export class CallsController {
 
   // OnlinePBX tarixidan qo'ng'iroq/yozuvlarni qo'lda sinxronlash (so'nggi 7 kun)
   @Post('calls/sync')
+  @RequirePermissions('crm.settings') // tashqi API'ni qayta-qayta chaqirish — faqat sozlama huquqi bilan
   syncCalls() {
     return this.calls.syncHistory({ force: true, days: 7 });
   }
