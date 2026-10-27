@@ -186,8 +186,7 @@ Bo'lim faqat shu to'rttasi o'tgandan keyin [x] bo'ladi.
        ответа на сообщение» (daqiqa). Beseda qoidalari matni amoCRM'dagidek («…в последнем созданном покупателе…» bizda покупатели
        yo'q — sdelka). Pro-tarif bloklari (Список ботов, Онлайн чаты, Сокращать ссылки, Типовые вопросы, Обращения и NPS) — keyin.
     e) [x] Пользователи: amoCRM'da guruhlar (otdel: ADMINS, CALL CENTRE…) rollardan alohida; «ГРУППА» ustuni guruhni ko'rsatadi.
-    f) [ ] Chap panel: amoCRM tartibi — Общие настройки, Счет и оплата, Пользователи, Чаты и мессенджеры, Безопасность, amoAI,
-       keyin o'rnatilgan vidjetlar (Telegram, WhatsApp…). Bizda Счет и оплата / amoAI kerak emas (o'z serverimiz) — qolgani bir xil.
+    f) [x] Chap panel: amoCRM tartibi — Общие настройки, Счет и оплата, Пользователи, Чаты и мессенджеры, Безопасность (27.10 tartib tenglashtirildi; «Hisob va to'lov» bizda qo'lda to'lov sahifasi). amoAI kerak emas.
     g) [x] Huquqlar matritsasi amoCRM kabi: qatorlar — Сделки, Контакты, Компании, Задачи, Товары, har voronka «Неразобранное» va
        bosqichlari; ustunlar — Создание / Просмотр / Правка / Удаление / Экспорт; darajalar — Запрещено / Если ответственный /
        Для группы / Разрешено (backendda ko'rinish va amallar shu darajaga qarab cheklanadi). Hozir bizda oddiy ruxsat kalitlari.

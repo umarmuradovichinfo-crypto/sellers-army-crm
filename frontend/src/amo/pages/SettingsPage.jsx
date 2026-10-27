@@ -16,10 +16,10 @@ import { setFormatPrefs } from '../format'
 
 const ITEMS = [
   { to: '/settings/general', label: 'Umumiy sozlamalar' },
+  { to: '/settings/billing', label: "Hisob va to'lov" },
   { to: '/settings/users', label: 'Foydalanuvchilar' },
   { to: '/settings/chats', label: 'Chatlar va messenjerlar' },
   { to: '/settings/security', label: 'Xavfsizlik' },
-  { to: '/settings/billing', label: "Hisob va to'lov" },
 ]
 
 export default function SettingsPage({ section = 'general' }) {
