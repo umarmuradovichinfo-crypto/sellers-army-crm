@@ -321,6 +321,12 @@ addRu({
   "pbx§Tez orada": "Скоро",
   "pbx§Qoidalar": "Правила",
   "pbx§Qora ro'yxatdan o'chirilsinmi?": "Удалить из чёрного списка?",
+  "pbx§Brauzer telefoni (WebRTC); stol telefoni uchun o'chiring": "Браузерный телефон (WebRTC); для настольного телефона отключите",
+  "pbx§Ruxsat etilgan mamlakat prefikslari": "Разрешённые коды стран",
+  "pbx§Bitta raqamga sutkasiga (ta)": "На один номер в сутки (шт.)",
+  "pbx§Vidjet bo'yicha sutkasiga (ta)": "На виджет в сутки (шт.)",
+  "pbx§Yozuv yoqilgan": "Запись включена",
+  "pbx§Yozuv o'chiq": "Запись выключена",
   "Telefoniya": "Телефония",
   "Telefoniya (ATS)": "Телефония (АТС)",
 })

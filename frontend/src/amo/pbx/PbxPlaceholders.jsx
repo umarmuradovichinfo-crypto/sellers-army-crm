@@ -35,12 +35,15 @@ export function ServiceInfo({ title, text, items = [] }) {
 
 export function PbxRecord() {
   const t = useT()
+  const { data: rec, setData: setRec } = useApi(() => pbxService.recording().catch(() => null), [], 'pbx:recording')
+  const on = rec ? rec.enabled !== false : true
+  const toggle = async () => { try { setRec(await pbxService.saveRecording({ enabled: !on })) } catch { /* */ } }
   return (
     <div className="pbxr">
       <Link className="pbxr__help" to="/pbx/calls">{t('pbx§Yozuv qanday yoqiladi?')}</Link>
       <div className="pbxr__cards">
         <div className="pbxr__card">
-          <h4>{t('pbx§Suhbatlarni yozib olish')}<i className="pbxr__sw" /></h4>
+          <h4>{t('pbx§Suhbatlarni yozib olish')}<button type="button" className={`pbxr__sw${on ? '' : ' off'}`} onClick={toggle} aria-pressed={on} title={on ? t('pbx§Yozuv yoqilgan') : t('pbx§Yozuv o\'chiq')} /></h4>
           <p>{t("pbx§Yozuvlarni qo'ng'iroqlar jurnalidan")} <Link to="/pbx/calls">{t('pbx§tinglash')}</Link> {t('pbx§mumkin. Stansiya serveri ulangach yozuv avtomatik yoqiladi.')}</p>
           <Link className="pbxr__btn" to="/pbx/license">{t('pbx§Litsenziyani uzaytirish')}</Link>
         </div>

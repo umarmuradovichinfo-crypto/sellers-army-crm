@@ -248,6 +248,7 @@ function UserForm({ sel, setSel, setCfg, tab, crmUsers, targetOptions }) {
       <Field label={t('pbx§Ism')}><input className="ac-input" value={sel.name || ''} onChange={(e) => setSel({ ...sel, name: e.target.value })} /></Field>
       <Field label="E-mail"><input className="ac-input" value={c.email || ''} placeholder="name@mail.ru" onChange={(e) => setCfg('email', e.target.value)} /></Field>
       <label className="ac-pbx__chk"><input type="checkbox" checked={c.acceptSip !== false} onChange={(e) => setCfg('acceptSip', e.target.checked)} /><span>{t("pbx§SIP orqali qo'ng'iroq qabul qilish")}</span></label>
+      <label className="ac-pbx__chk"><input type="checkbox" checked={c.webrtc !== false} onChange={(e) => setCfg('webrtc', e.target.checked)} /><span>{t("pbx§Brauzer telefoni (WebRTC); stol telefoni uchun o'chiring")}</span></label>
       <div className="ac-pbx__sel">
         <small>{t('pbx§CRM foydalanuvchisi')}</small>
         <select className="ac-select" value={c.crmUserId || ''} onChange={(e) => setCfg('crmUserId', e.target.value)}>
@@ -492,6 +493,9 @@ export function CallbackSettings() {
       <Field label={t('pbx§Matn')}><input className="ac-input" value={c.text} onChange={(e) => set('text', e.target.value)} /></Field>
       <Field label={t('pbx§Rang')}><input type="color" value={c.color} onChange={(e) => set('color', e.target.value)} /></Field>
       <Field label={t('pbx§Qo\'ng\'iroq qiladigan ichki raqam')}><input className="ac-input" value={c.ext} placeholder="100" onChange={(e) => set('ext', e.target.value)} /></Field>
+      <Field label={t("pbx§Ruxsat etilgan mamlakat prefikslari")}><input className="ac-input" value={Array.isArray(c.prefixes) ? c.prefixes.join(', ') : c.prefixes || ''} placeholder="998" onChange={(e) => set('prefixes', e.target.value)} /></Field>
+      <Field label={t("pbx§Bitta raqamga sutkasiga (ta)")}><input className="ac-input" type="number" min="1" max="50" value={c.perPhoneDaily ?? 3} onChange={(e) => set('perPhoneDaily', e.target.value)} /></Field>
+      <Field label={t("pbx§Vidjet bo'yicha sutkasiga (ta)")}><input className="ac-input" type="number" min="1" max="10000" value={c.perKeyDaily ?? 300} onChange={(e) => set('perKeyDaily', e.target.value)} /></Field>
       <Field label={t("pbx§Qayta qo'ng'iroq vazifasini yaratish")}><input type="checkbox" checked={!!c.createTask} onChange={(e) => set('createTask', e.target.checked)} /></Field>
       <div className="ac-pbx__actions"><button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button></div>
       {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}

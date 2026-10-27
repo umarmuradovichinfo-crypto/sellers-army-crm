@@ -577,7 +577,7 @@
 .pbxx .pbxr__cards { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
 .pbxx .pbxr__card { width: 232px; min-height: 192px; background: #fff; border-radius: 4px; padding: 24px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; }
 .pbxx .pbxr__card h4 { margin: 0; display: flex; justify-content: space-between; align-items: center; font-size: 12px; line-height: 14px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--pb-text); }
-.pbxx .pbxr__sw { width: 18px; height: 10px; border-radius: 6px; background: var(--pb-green); }
+.pbxx .pbxr__sw { width: 22px; height: 12px; border-radius: 6px; border: 0; padding: 0; cursor: pointer; background: var(--pb-green); } .pbxx .pbxr__sw.off { background: #c9c6d6; }
 .pbxx .pbxr__card p { margin: 0; font-size: 12px; line-height: 16px; color: var(--pb-text); }
 .pbxx .pbxr__card p a { color: #0d71d7; }
 .pbxx .pbxr__btn { margin-top: auto; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; background: #0d71d7; color: #fff !important; font-size: 12px; font-weight: 500; }
