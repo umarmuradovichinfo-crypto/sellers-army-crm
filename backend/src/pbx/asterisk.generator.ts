@@ -86,7 +86,8 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
   const pj: string[] = [
     '; Avtomatik hosil qilingan (CRM → Telefoniya). Qo\'lda tahrirlamang.',
     '[transport-udp]', 'type=transport', 'protocol=udp', 'bind=0.0.0.0:5060', '',
-    '[transport-wss]', 'type=transport', 'protocol=wss', 'bind=0.0.0.0:8089', '',
+    // brauzer telefoni: Asterisk ichkarida oddiy WebSocket (8088); TLS (wss://<domen>/ws) ni Caddy tugatadi — sertifikatni qo'lda sozlash shart emas
+    '[transport-ws]', 'type=transport', 'protocol=ws', 'bind=0.0.0.0', '',
   ];
   for (const u of users) {
     const c = cfgOf(u);

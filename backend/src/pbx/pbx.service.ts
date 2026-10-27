@@ -1,7 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { spawn } from 'child_process';
 import { randomBytes } from 'crypto';
 
 import { promises as fs } from 'fs';
+import { tmpdir } from 'os';
 import { join } from 'path';
 import { OwnPbxProvider } from '../onlinepbx/own-pbx.provider';
 import { PrismaService } from '../prisma/prisma.service';
@@ -20,6 +22,26 @@ const isP2002 = (e: unknown) => (e as { code?: string } | null)?.code === 'P2002
 
 type Row = { id: string; type: string; number: string; name: string | null; configJson: string; enabled: boolean; createdAt: Date; updatedAt: Date };
 const parse = <T,>(s: string, d: T): T => { try { return JSON.parse(s) as T; } catch { return d; } };
+
+/** Audio → 8 kHz mono 16-bit PCM wav (Asterisk standarti). ffmpeg yo'q yoki xato bo'lsa null (asl fayl yoziladi). */
+async function transcodeWav(data: Buffer): Promise<Buffer | null> {
+  // pipe'ga yozilgan wav sarlavhasida o'lcham noto'g'ri (0xFFFFFFFF) — Asterisk format_wav o'qimaydi; shuning uchun vaqtinchalik FAYLga yozamiz
+  const dir = await fs.mkdtemp(join(tmpdir(), 'crm-audio-'));
+  try {
+    await fs.writeFile(join(dir, 'in'), data);
+    const code = await new Promise<number | null>((resolve) => {
+      try {
+        const p = spawn('ffmpeg', ['-v', 'error', '-y', '-i', join(dir, 'in'), '-ar', '8000', '-ac', '1', '-c:a', 'pcm_s16le', '-fflags', '+bitexact', '-flags:a', '+bitexact', '-f', 'wav', join(dir, 'out.wav')], { stdio: 'ignore' });
+        const timer = setTimeout(() => { p.kill('SIGKILL'); resolve(null); }, 30_000);
+        p.on('error', () => { clearTimeout(timer); resolve(null); });
+        p.on('close', (c) => { clearTimeout(timer); resolve(c); });
+      } catch { resolve(null); }
+    });
+    if (code !== 0) return null;
+    const out = await fs.readFile(join(dir, 'out.wav'));
+    return out.length > 44 ? out : null;
+  } catch { return null; } finally { await fs.rm(dir, { recursive: true, force: true }); }
+}
 
 @Injectable()
 export class PbxService {
@@ -250,6 +272,12 @@ export class PbxService {
    * Sozlamani Asterisk'ka qo'llash: ASTERISK_CONF_DIR ga uchta fayl (pjsip_crm.conf, extensions_crm.conf, queues_crm.conf) yoziladi,
    * audio fayllar ASTERISK_SOUNDS_DIR/custom ga ko'chiriladi va AMI orqali qayta yuklanadi. Asosiy konfiguratsiyalar bu fayllarni #include qiladi.
    */
+  /** CRM konteyneri root bo'lsa fayllar root egaligida yoziladi — Asterisk (uid 1000) o'qiy olishi uchun egasini almashtiramiz (xato bo'lsa e'tiborsiz). */
+  private async chownAst(file: string) {
+    const uid = Number(process.env.ASTERISK_UID ?? 1000), gid = Number(process.env.ASTERISK_GID ?? 1000);
+    try { await fs.chown(file, uid, gid); } catch { /* root emas yoki ruxsat yo'q — bir xil foydalanuvchi bo'lsa kerak */ }
+  }
+
   async applyAsterisk() {
     const dir = process.env.ASTERISK_CONF_DIR;
     if (!dir) throw new BadRequestException({ error: 'NO_CONF_DIR', message: 'ASTERISK_CONF_DIR sozlanmagan (stansiya serveri ulanmagan)' });
@@ -263,6 +291,7 @@ export class PbxService {
       const tmp = join(dir, `.${name}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`); // parallel qo'llashda to'qnashmasin
       await fs.writeFile(tmp, text + '\n', { mode: 0o640 });
       await fs.rename(tmp, join(dir, name)); // atomik almashtirish
+      await this.chownAst(join(dir, name));
       written.push(name);
     }
     const sounds = process.env.ASTERISK_SOUNDS_DIR;
@@ -272,7 +301,14 @@ export class PbxService {
       await fs.mkdir(cdir, { recursive: true });
       for (const a of await this.prisma.pbxAudio.findMany()) {
         const ext = a.mime.includes('mpeg') || a.mime.includes('mp3') ? 'mp3' : a.mime.includes('ogg') ? 'ogg' : 'wav';
-        await fs.writeFile(join(cdir, `${a.id}.${ext}`), Buffer.from(a.data)); audio++;
+        // Asterisk wav faqat 8 kHz mono 16-bit PCM; mp3/ogg uchun qo'shimcha modul kerak — ffmpeg bo'lsa hammasi 8 kHz mono wav'ga o'tkaziladi
+        const wav = await transcodeWav(Buffer.from(a.data));
+        const out = wav ? 'wav' : ext;
+        const target = join(cdir, `${a.id}.${out}`);
+        await fs.writeFile(target, wav || Buffer.from(a.data));
+        await this.chownAst(target);
+        for (const o of ['wav', 'mp3', 'ogg']) if (o !== out) await fs.rm(join(cdir, `${a.id}.${o}`), { force: true }); // eski format qolib ketmasin
+        audio++;
       }
     }
     let reloaded = false;

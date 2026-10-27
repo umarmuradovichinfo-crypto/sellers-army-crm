@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Yangi mijoz nusxasi: alohida baza + konteyner + HTTPS subdomen.
-# Ishlatish:  ./new-customer.sh <nom>        (nom: kichik lotin harf/raqam/tire, 2–30 belgi; masalan "decopol")
+# Ishlatish:  ./new-customer.sh <nom> [--pbx]   (nom: kichik lotin harf/raqam/tire, 2–30 belgi; masalan "decopol")
+#   --pbx: shu mijozga o'z telefon stansiyamizni (Asterisk, deploy/asterisk) ulaydi. Bitta Asterisk — bitta mijozga. Oldin: AMI_SECRET=… asterisk/init.sh asterisk-data;
+#          deploy/.env da PBX_SIP_HOST (telefonlar ro'yxatdan o'tadigan domen) va AMI_SECRET bo'lishi kerak; keyin `docker compose --profile pbx up -d asterisk`.
 # Natija: https://<nom>.<DOMAIN>  (birinchi ochilganda mijoz «Birinchi sozlash»da SETUP_TOKEN bilan admin yaratadi)
 set -euo pipefail
 cd "$(dirname "$0")"
 [ -f .env ] || { echo "deploy/.env yo'q (.env.example dan nusxa oling)"; exit 1; }
 set -a; . ./.env; set +a
-NAME="${1:-}"
+NAME="${1:-}"; PBX=0; [ "${2:-}" = "--pbx" ] && PBX=1
 [[ "$NAME" =~ ^[a-z0-9][a-z0-9-]{1,29}$ ]] || { echo "Nom noto'g'ri: kichik lotin harf/raqam/tire, 2–30 belgi"; exit 1; }
 DIR="customers/$NAME"
 [ -e "$DIR" ] && { echo "Bu mijoz allaqachon bor: $DIR"; exit 1; }
@@ -26,6 +28,7 @@ PORT=8000
 PUBLIC_URL=https://$NAME.$DOMAIN
 SETUP_TOKEN=$SETUP_TOKEN
 LICENSE_SECRET=$LICENSE_SECRET
+$( [ "$PBX" = 1 ] && printf "ASTERISK_AMI_HOST=asterisk\nASTERISK_AMI_PORT=5038\nASTERISK_AMI_USER=crm\nASTERISK_AMI_SECRET=%s\nASTERISK_CONF_DIR=/asterisk/etc\nASTERISK_SOUNDS_DIR=/asterisk/sounds\nASTERISK_RECORDINGS_DIR=/asterisk/recordings\nPBX_SIP_HOST=%s\n" "${AMI_SECRET:?AMI_SECRET kerak (deploy/.env)}" "${PBX_SIP_HOST:?PBX_SIP_HOST kerak (deploy/.env)}" )
 BILLING_CARD_NUMBER=$BILLING_CARD_NUMBER
 BILLING_CARD_HOLDER=$BILLING_CARD_HOLDER
 BILLING_TELEGRAM=$BILLING_TELEGRAM
@@ -42,6 +45,7 @@ services:
     env_file: .env
     mem_limit: 512m
     networks: [crm-net]
+$( [ "$PBX" = 1 ] && printf '    volumes:\n      - ../../asterisk-data/etc:/asterisk/etc\n      - ../../asterisk-data/sounds:/asterisk/sounds\n      - ../../asterisk-data/recordings:/asterisk/recordings:ro\n' )
 networks:
   crm-net:
     external: true

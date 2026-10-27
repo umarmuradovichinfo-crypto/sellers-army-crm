@@ -301,7 +301,7 @@ describe('Telefoniya (OnlinePBX + MicroSIP)', () => {
     await ok('PUT', '/crm/pbx/config', { provider: 'own' }, T, 200);
     const me = await ok('GET', '/crm/my-extension', undefined, T, 200);
     const w = await ok('GET', '/crm/webrtc/config', undefined, T, 200);
-    assert.match(w.wss, /^wss:\/\/localhost:8089\/ws$/, JSON.stringify({ w, me }));
+    assert.match(w.wss, /^wss:\/\/localhost\/ws$/, JSON.stringify({ w, me }));
     assert.equal(w.domain, 'localhost');
     await ok('PUT', '/crm/pbx/config', { provider: 'onlinepbx' }, T, 200);
     const w2 = await ok('GET', '/crm/webrtc/config', undefined, T, 200);
