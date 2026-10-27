@@ -3,8 +3,9 @@
 Bitta VPS (tavsiya: 4 vCPU / 8 GB, ~€9/oy) ichida: **umumiy Postgres + Caddy (avtomatik HTTPS)** va **har mijozga alohida konteyner + alohida baza**.
 Mijoz manzili: `https://<nom>.<DOMEN>`. ~15–20 mijozgacha bitta server yetadi.
 
-> Diqqat: bu skriptlar **haqiqiy serverda hali sinalmagan** (faqat sintaksis va fayl yaratish quruq yurgizilgan). Birinchi o'rnatishni
-> bo'sh serverda, test mijoz bilan boshlang va quyidagi «Tekshiruv ro'yxati»ni bajaring.
+> **27.10.2026 mahalliy mashqda (Docker/Colima, DOMAIN=localhost) sinalgan:** Postgres+Caddy (HTTPS), `docker build`, `new-customer.sh` (migratsiya, SETUP_TOKEN bilan birinchi sozlash, billing: sinov 14 kun, O'rnatish ID), `backup.sh` (age + rclone) va `restore-drill.sh` (TIKLANDI). Haqiqiy serverda (DNS, Let's Encrypt, `harden.sh`, `update.sh`) hali sinalmagan.
+> Birinchi o'rnatishni bo'sh serverda, test mijoz bilan boshlang va quyidagi «Tekshiruv ro'yxati»ni bajaring.
+> Eslatma: yangi mijoz nusxasi ishga tushganda Meta Connector'da (Facebook) o'zini ro'yxatdan o'tkazadi; test/vaqtinchalik nusxalarni o'chirganda Connector'dagi yozuvni ham tozalang.
 
 ## 1. Server tayyorlash (bir marta)
 1. VPS oling (Hetzner CX33 / Contabo / Netcup). Ubuntu 24.04. SSH kalit bilan kiring.

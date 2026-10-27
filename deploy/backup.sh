@@ -28,6 +28,7 @@ if tar -C . -cf - .env customers caddy/sites 2>/dev/null | age -r "$AGE_PUBLIC_K
 else
   echo "XATO: server sozlamalari zaxirasi olinmadi"; fail=$((fail+1))
 fi
+for p in config daily monthly; do rclone mkdir "$RCLONE_REMOTE/$p" 2>/dev/null || true; done # bo'sh papka bo'lsa «directory not found» xatosi chiqmasin
 rclone delete --min-age 40d "$RCLONE_REMOTE/config" || true
 rclone delete --min-age 40d "$RCLONE_REMOTE/daily" || true
 rclone delete --min-age 400d "$RCLONE_REMOTE/monthly" || true

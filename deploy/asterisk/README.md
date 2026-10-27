@@ -1,6 +1,6 @@
 # Asterisk (o'z stansiyamiz) — o'rnatish
 
-> **Hali haqiqiy serverda sinalmagan.** CRM tomoni (konfiguratsiya generatori, AMI mijozi, CDR → qo'ng'iroqlar jurnali) soxta Asterisk bilan testlangan.
+> **27.10.2026: haqiqiy Asterisk 23 (Docker) bilan mahalliy sinalgan** (`scripts/pbx-live/`): konfiguratsiyani qo'llash, SIP telefonlar (baresip) ro'yxatdan o'tishi, ichki/kiruvchi/chiquvchi qo'ng'iroq (soxta provayder trunk), navbat, qora ro'yxat, yozuv, CDR → CRM jurnali. Haqiqiy operator trunk'i va haqiqiy serverda hali sinalmagan.
 > Birinchi o'rnatishni bo'sh serverda, ichki raqamlar bilan boshlang (tashqi liniyasiz), keyin trunk ulang.
 
 ## Tuzilma
@@ -24,7 +24,7 @@ PBX_SIP_HOST=sip.sizning-domen.uz   # telefonlar ro'yxatdan o'tadigan manzil
 CRM konteyneriga `asterisk/etc`, `asterisk/sounds`, `asterisk/recordings` papkalarini ulang (compose `volumes`), Telefoniya sozlamasida provayderni «own» ga o'tkazing.
 
 ## Birinchi ishga tushirish (qadamlar)
-1. `cp -r etc /opt/crm/deploy/asterisk-data/etc` va `manager.conf` ichidagi `__AMI_SECRET__` ni haqiqiy parolga almashtiring.
+1. `AMI_SECRET=<tasodifiy parol> ./init.sh /opt/crm/deploy/asterisk-data` — konteynerning standart konfiguratsiyasini (asterisk.conf, modules.conf …) ko'chirib, ustiga bizning fayllarni yozadi va `manager.conf` dagi parolni qo'yadi (papkani butunlay mount qilish uchun standart fayllar shart).
 2. `docker compose --profile pbx up -d asterisk` (compose.yml dagi `asterisk` xizmati).
 3. CRM'da ichki raqamlar (foydalanuvchi modullari, har biriga CRM foydalanuvchisi biriktirilgan) va marshrutni tuzing → «Stansiyaga qo'llash».
 4. Brauzer telefoni yoki stol telefoni bilan ro'yxatdan o'ting (Konfigurator), ichki raqamlar orasida sinang.
