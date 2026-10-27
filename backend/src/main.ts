@@ -29,6 +29,7 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter());
 
   const port = Number(process.env.PORT || 8000);
+  app.enableShutdownHooks();
   await app.listen(port);
   console.log(`API ishlamoqda: http://localhost:${port}/api/v1`);
 }

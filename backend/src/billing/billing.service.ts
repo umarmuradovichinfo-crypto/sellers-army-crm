@@ -1,4 +1,5 @@
-import { BadRequestException, HttpException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { verifyLicense } from './license';
@@ -9,8 +10,11 @@ const DAY = 86_400_000;
 export const TRIAL_DAYS = 14;
 export const TRIAL_USERS = 5;
 export const GRACE_DAYS = 3;
+const LOCK_ID = 7401; // litsenziya faollashtirish uchun pg advisory lock
+type Db = Pick<PrismaService, 'appSetting'>;
 
 interface State {
+  installId?: string; // shu o'rnatishning noyob id si: litsenziya kodi shunga bog'lanadi
   trialStartedAt?: string;
   plan?: string;
   users?: number;
@@ -29,22 +33,34 @@ export class BillingService {
 
   enforced() { return /^(1|true|yes)$/i.test(process.env.BILLING_ENFORCE || ''); }
 
-  private async load(): Promise<State> {
-    const row = await this.prisma.appSetting.findUnique({ where: { key: KEY } });
-    if (!row) return {};
-    try { return JSON.parse(row.value) as State; } catch { return {}; }
+  private readonly log = new Logger('Billing');
+
+  /** Holatni o'qish. `corrupt` — JSON buzilgan: bunda hech narsani qayta yozmaymiz (used/history yo'qolmasin). */
+  private async loadRaw(db: Db = this.prisma): Promise<{ s: State; corrupt: boolean }> {
+    const row = await db.appSetting.findUnique({ where: { key: KEY } });
+    if (!row) return { s: {}, corrupt: false };
+    try { return { s: JSON.parse(row.value) as State, corrupt: false }; } catch {
+      this.log.error('billing_state JSON buzilgan — yozuv o\'zgartirilmaydi');
+      return { s: {}, corrupt: true };
+    }
   }
 
-  private async save(s: State) {
+  private async save(s: State, db: Db = this.prisma) {
     const value = JSON.stringify(s);
-    await this.prisma.appSetting.upsert({ where: { key: KEY }, update: { value }, create: { key: KEY, value } });
+    await db.appSetting.upsert({ where: { key: KEY }, update: { value }, create: { key: KEY, value } });
     this.cache = null;
   }
 
   private async compute() {
-    let s = await this.load();
+    const { s: loaded, corrupt } = await this.loadRaw();
+    let s = loaded;
+    // Sinov soati faqat cheklov YOQILGANDA boshlanadi (BILLING_ENFORCE o'chiq paytda mavjud mijozlar «sinov tugagan» bo'lib qolmasin).
     if (!s.trialStartedAt) {
       s = { ...s, trialStartedAt: new Date().toISOString() };
+      if (this.enforced() && !corrupt) await this.save(s);
+    }
+    if (!s.installId && !corrupt) {
+      s = { ...s, installId: randomBytes(5).toString('hex') };
       await this.save(s);
     }
     const now = Date.now();
@@ -84,7 +100,7 @@ export class BillingService {
       quotes: Object.keys(PERIODS).map((m) => quote(key as 'basic', 1, Number(m))),
     }));
     return {
-      status: c.status, plan: c.plan, planName: c.plan && isPlan(c.plan) ? PLANS[c.plan].name : null, users: c.users, activeUsers: active,
+      installId: c.state.installId || '', status: c.status, plan: c.plan, planName: c.plan && isPlan(c.plan) ? PLANS[c.plan].name : null, users: c.users, activeUsers: active,
       endsAt: c.endsAt, daysLeft: c.daysLeft, enforced: this.enforced(), trialDays: TRIAL_DAYS, graceDays: GRACE_DAYS, minMonths: MIN_MONTHS,
       plans, periods: Object.keys(PERIODS).map(Number),
       payment: {
@@ -103,18 +119,26 @@ export class BillingService {
     if (!secret) throw new ServiceUnavailableException({ error: 'LICENSE_NOT_CONFIGURED', message: 'Litsenziya sozlanmagan (serverda LICENSE_SECRET yo\'q)' });
     const p = verifyLicense(code, secret);
     if (!p || !isPlan(p.p) || !PERIODS[p.m] || p.u < 1 || p.u > 1000) throw new BadRequestException({ error: 'BAD_LICENSE', message: "Kod noto'g'ri" });
-    const s = await this.load();
-    if ((s.used || []).includes(p.i)) throw new BadRequestException({ error: 'LICENSE_USED', message: 'Bu kod avval ishlatilgan' });
-    const now = new Date();
-    const cur = s.until ? new Date(s.until) : now;
-    const from = cur.getTime() > now.getTime() ? cur : now;
-    const next: State = {
-      ...s,
-      plan: p.p, users: p.u, until: addMonths(from, p.m).toISOString(),
-      used: [...(s.used || []), p.i].slice(-200),
-      history: [...(s.history || []), { at: now.toISOString(), id: p.i, plan: p.p, users: p.u, months: p.m, customer: p.c }].slice(-100),
-    };
-    await this.save(next);
+    // Bir vaqtda kiritilgan kodlar bir-birini bosib ketmasin va bitta kod ikki marta ishlamasin: tranzaksiya + advisory lock.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock(${LOCK_ID})`);
+      const { s, corrupt } = await this.loadRaw(tx);
+      if (corrupt) throw new HttpException({ error: 'BILLING_STATE_CORRUPT', message: "Obuna holati buzilgan — qo'llab-quvvatlashga murojaat qiling" }, 500);
+      if (p.d ? p.d !== s.installId : process.env.LICENSE_ALLOW_UNBOUND !== '1') {
+        throw new BadRequestException({ error: 'LICENSE_OTHER_INSTALL', message: p.d ? "Bu kod boshqa o'rnatish uchun berilgan" : "Kod o'rnatishga bog'lanmagan (installId kerak)" });
+      }
+      if ((s.used || []).includes(p.i)) throw new BadRequestException({ error: 'LICENSE_USED', message: 'Bu kod avval ishlatilgan' });
+      const now = new Date();
+      const cur = s.until ? new Date(s.until) : now;
+      const from = cur.getTime() > now.getTime() ? cur : now;
+      const next: State = {
+        ...s,
+        plan: p.p, users: p.u, until: addMonths(from, p.m).toISOString(),
+        used: [...(s.used || []), p.i].slice(-1000),
+        history: [...(s.history || []), { at: now.toISOString(), id: p.i, plan: p.p, users: p.u, months: p.m, customer: p.c }].slice(-100),
+      };
+      await this.save(next, tx);
+    });
     return this.overview();
   }
 
@@ -127,6 +151,7 @@ export class BillingService {
     const c = await this.current();
     if (c.status === 'trial') return true;
     if (c.status === 'expired') return feature === 'backup';
+    if (c.status === 'grace' && feature === 'backup') return true; // ma'lumotni olib chiqish tugash arafasida ham ochiq
     return planAllows(c.plan, feature);
   }
 

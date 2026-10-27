@@ -90,4 +90,15 @@ describe('Obuna va to\'lov', () => {
     assert.equal(r.history[0].planName, 'Maxsus tarif');
     assert.ok(!r.plans.some((p) => p.key === 'cost'));
   });
+
+  test('kod o\'rnatishga bog\'lanadi: boshqa installId rad, o\'zinikiga ishlaydi; bir vaqtda ikki marta kiritilsa faqat biri o\'tadi', async () => {
+    const A = await admin();
+    const ov = await ok('GET', '/billing', undefined, A, 200);
+    assert.match(ov.installId, /^[0-9a-f]{10}$/);
+    const bad = await req('POST', '/billing/activate', { code: code({ i: 'bind-x', p: 'basic', u: 3, m: 3, d: 'ffffffffff' }) }, A);
+    assert.equal(bad.status, 400);
+    const good = code({ i: 'bind-ok', p: 'basic', u: 3, m: 3, d: ov.installId });
+    const [r1, r2] = await Promise.all([req('POST', '/billing/activate', { code: good }, A), req('POST', '/billing/activate', { code: good }, A)]);
+    assert.deepEqual([r1.status, r2.status].sort(), [201, 400], 'bitta kod ikki marta ishladi');
+  });
 });

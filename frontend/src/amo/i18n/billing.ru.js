@@ -46,6 +46,8 @@ addRu({
   'bl§Telegram hali sozlanmagan (BILLING_TELEGRAM)': 'Telegram ещё не настроен (BILLING_TELEGRAM)',
   "bl§To'lov tasdiqlangach sizga kod yuboriladi. Uni shu yerga kiriting": 'После подтверждения оплаты вам пришлют код. Введите его здесь',
   'bl§Faollashtirish': 'Активировать',
+  "bl§so'm": 'сум',
+  "bl§O'rnatish ID": 'ID установки',
   'bl§Kodni faqat super admin kiritadi': 'Код вводит только суперадмин',
   'bl§Obuna faollashtirildi': 'Подписка активирована',
   'bl§Kod qabul qilinmadi': 'Код не принят',

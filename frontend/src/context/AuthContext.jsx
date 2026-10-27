@@ -43,7 +43,7 @@ export function AuthProvider({ children }) {
 
   // Refresh token yaroqsiz bo'lganda (haqiqiy sessiya tugashi) — tizimdan chiqarish
   useEffect(() => {
-    const h = () => { clearCachedUser(); setUser(null); setPermissions([]) }
+    const h = () => { invalidateCache(); clearCachedUser(); setUser(null); setPermissions([]) }
     window.addEventListener('sa:unauthorized', h)
     return () => window.removeEventListener('sa:unauthorized', h)
   }, [])
@@ -66,6 +66,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback(async () => {
+    invalidateCache() // avval tozalaymiz: logout so'rovi paytida tugagan javoblar keshga qayta yozilmasin
     try { await api.post('/auth/logout') } catch { /* */ }
     invalidateCache() // keshni tozalab, keyingi foydalanuvchiga sirqib o'tmasin
     clearCachedUser()

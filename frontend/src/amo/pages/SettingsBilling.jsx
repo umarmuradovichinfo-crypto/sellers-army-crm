@@ -43,7 +43,7 @@ export default function SettingsBilling() {
   const st = data.status
   const statusText = { trial: t('bl§Sinov davri'), active: t('bl§Faol'), grace: t('bl§Muddat tugadi (qo\'shimcha kunlar)'), expired: t('bl§Obuna tugagan') }[st]
   const periodLabel = (m) => (m < 12 ? `${m} ${t('bl§oy')}` : m === 12 ? `1 ${t('bl§yil')}` : `${m / 12} ${t('bl§yil')}`)
-  const msgText = `${t('bl§Assalomu alaykum! To\'lov qildim')}: ${p.name}, ${users} ${t('bl§foydalanuvchi')}, ${periodLabel(months)}, ${fmt(total)} so'm.`
+  const msgText = `${t('bl§Assalomu alaykum! To\'lov qildim')}: ${p.name}, ${users} ${t('bl§foydalanuvchi')}, ${periodLabel(months)}, ${fmt(total)} ${t("bl§so'm")}.`
   const tgUrl = data.payment.telegram ? `https://t.me/${data.payment.telegram}?text=${encodeURIComponent(msgText)}` : ''
 
   const copy = async (text) => { try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch { /* */ } }
@@ -74,7 +74,7 @@ export default function SettingsBilling() {
         {data.plans.map((x) => (
           <button key={x.key} type="button" className={`ac-bl__plan ${plan === x.key ? 'on' : ''}`} onClick={() => setPlan(x.key)}>
             <div className="ac-bl__plan-name">{x.name}</div>
-            <div className="ac-bl__plan-price">{fmt(x.price)} <small>so'm / {t('bl§foydalanuvchi')} / {t('bl§oy')}</small></div>
+            <div className="ac-bl__plan-price">{fmt(x.price)} <small>{t("bl§so'm")} / {t('bl§foydalanuvchi')} / {t('bl§oy')}</small></div>
             <div className="ac-bl__muted ac-bl__amo">amoCRM: <s>{fmt(AMO[x.key])}</s></div>
             <ul>{FEATURES[x.key].map((f) => <li key={f}>{t(f)}</li>)}</ul>
           </button>
@@ -98,22 +98,22 @@ export default function SettingsBilling() {
         </div>
         <div className="ac-bl__total">
           <span>{t('bl§Jami')}</span>
-          <b>{fmt(total)} so'm</b>
-          <span className="ac-bl__muted">({fmt(total / months / users)} so'm / {t('bl§foydalanuvchi')} / {t('bl§oy')}) · amoCRM: {fmt(amoTotal)} so'm</span>
+          <b>{fmt(total)} {t("bl§so'm")}</b>
+          <span className="ac-bl__muted">({fmt(total / months / users)} {t("bl§so'm")} / {t('bl§foydalanuvchi')} / {t('bl§oy')}) · amoCRM: {fmt(amoTotal)} {t("bl§so'm")}</span>
         </div>
       </div>
 
       <h3>{t("bl§To'lov")}</h3>
       <ol className="ac-bl__steps">
         <li>
-          {t("bl§Quyidagi kartaga")} <b>{fmt(total)} so'm</b> {t("bl§o'tkazing")}:
+          {t("bl§Quyidagi kartaga")} <b>{fmt(total)} {t("bl§so'm")}</b> {t("bl§o'tkazing")}:
           {data.payment.card
             ? <div className="ac-bl__card ac-bl__pay"><span className="ac-bl__cardno">{data.payment.card}</span>{data.payment.holder && <span className="ac-bl__muted">{data.payment.holder}</span>}
                 <button type="button" className="ac-btn" onClick={() => copy(data.payment.card.replace(/\s/g, ''))}>{copied ? t('bl§Nusxalandi') : t('bl§Nusxalash')}</button></div>
             : <div className="ac-bl__muted">{t("bl§Karta raqami hali sozlanmagan (serverda BILLING_CARD_NUMBER)")}</div>}
         </li>
         <li>
-          {t("bl§To'lov chekini (skrinshot) Telegramga yuboring")}:{' '}
+          {t("bl§To'lov chekini (skrinshot) Telegramga yuboring")}{data.installId ? <> ({t("bl§O'rnatish ID")}: <b>{data.installId}</b>)</> : null}:{' '}
           {tgUrl ? <a className="ac-btn ac-btn--blue" href={tgUrl} target="_blank" rel="noreferrer">{t('bl§Telegramga yuborish')}</a> : <span className="ac-bl__muted">{t('bl§Telegram hali sozlanmagan (BILLING_TELEGRAM)')}</span>}
         </li>
         <li>

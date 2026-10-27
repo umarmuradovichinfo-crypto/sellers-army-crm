@@ -15,11 +15,19 @@ const _cache = new Map() // key -> data (RAM tezkor qatlam)
 function lsGet(key) {
   try { const s = localStorage.getItem(PREFIX + key); return s == null ? undefined : JSON.parse(s) } catch { return undefined }
 }
+// Filtrli/katta javoblar faqat RAM'da: har filtr uchun yangi kalit localStorage kvotasini to'ldirmasin.
+const ramOnly = (key) => key.includes('{') || key.startsWith('calls-')
+let epoch = 0 // invalidateCache() (logout/login) dan keyin kechikib kelgan eski javoblar keshga yozilmasin
+const isEmpty = (v) => (Array.isArray(v) ? v.length === 0 : v && typeof v === 'object' ? Object.values(v).every((x) => Array.isArray(x) && x.length === 0) && Object.keys(v).length > 0 : false)
 function lsSet(key, val) {
-  try { localStorage.setItem(PREFIX + key, JSON.stringify(val)) }
+  if (ramOnly(key)) return
+  let str
+  try { str = JSON.stringify(val) } catch { return }
+  if (str.length > 250_000) return
+  try { localStorage.setItem(PREFIX + key, str) }
   catch { /* kvota to'lsa — eski swr yozuvlarini tozalab qayta urinamiz */
     try { for (const k of Object.keys(localStorage)) if (k.startsWith(PREFIX)) localStorage.removeItem(k) } catch {}
-    try { localStorage.setItem(PREFIX + key, JSON.stringify(val)) } catch {}
+    try { localStorage.setItem(PREFIX + key, str) } catch {}
   }
 }
 function lsDel(key) { try { localStorage.removeItem(PREFIX + key) } catch {} }
@@ -41,7 +49,7 @@ function cacheSet(key, val) { _cache.set(key, val); lsSet(key, val) }
 
 // Butun keshni yoki bitta kalitni tozalash (masalan logout/boshqa userga o'tishda).
 export function invalidateCache(key) {
-  if (key == null) { _cache.clear(); lsClearAll() }
+  if (key == null) { epoch++; _cache.clear(); lsClearAll() }
   else { _cache.delete(key); lsDel(key) }
 }
 
@@ -67,14 +75,20 @@ export function useApi(fetchFn, deps = [], cacheKey = null, refreshMs = DEFAULT_
   const [error, setError] = useState(null)
   const fnRef = useRef(fetchFn)
   fnRef.current = fetchFn
+  const lastLoad = useRef(0)
   const seq = useRef(0) // eskirgan (sekin kelgan) javob yangi filtr natijasini bosib ketmasin
 
   const load = useCallback(async (bg = false) => {
     const my = ++seq.current
+    const ep = epoch
+    lastLoad.current = Date.now()
     if (!bg) { setLoading(true); setError(null) }
     try {
       const res = await fnRef.current()
-      cacheSet(key, res) // o'z kalitiga doim yoziladi
+      if (ep !== epoch) return // sessiya almashgan: eski javob keshga ham, ekranga ham chiqmasin
+      // Fon yangilanishida kutilmaganda bo'shab qolgan ro'yxat (tarmoq uzilishi yutilgan xato) oldingi to'liq keshni bosib ketmasin.
+      if (bg && isEmpty(res) && cacheHas(key) && !isEmpty(cacheGet(key))) return
+      if (res != null) cacheSet(key, res) // null (yutilgan xato) keshlanmaydi
       if (my !== seq.current) return // lekin ekranga faqat eng so'nggi so'rov chiqadi
       setData(res)
       setError(null)
@@ -94,14 +108,17 @@ export function useApi(fetchFn, deps = [], cacheKey = null, refreshMs = DEFAULT_
     if (refreshMs > 0) {
       const tick = () => { if (document.visibilityState !== 'hidden') load(true) }
       const iv = setInterval(tick, refreshMs)
-      document.addEventListener('visibilitychange', tick) // sahifaga qaytganda darrov yangilaydi
-      return () => { clearInterval(iv); document.removeEventListener('visibilitychange', tick) }
+      // Sahifaga qaytganda yangilaydi, lekin 15 soniyadan tez-tez emas (uyqudan uyg'onganda so'rovlar ko'chkisi bo'lmasin).
+      const onVis = () => { if (document.visibilityState === 'visible' && Date.now() - lastLoad.current > 15_000) load(true) }
+      document.addEventListener('visibilitychange', onVis)
+      return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis) }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load, refreshMs])
 
   const setDataCached = useCallback(
     (updater) => {
+      seq.current++ // optimistik o'zgarishdan oldin boshlangan fon so'rovi uni bosib ketmasin
       setData((prev) => {
         const next = typeof updater === 'function' ? updater(prev) : updater
         cacheSet(key, next)

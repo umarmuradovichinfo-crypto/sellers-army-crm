@@ -317,7 +317,7 @@ export default function LeadsPipeline() {
       crmService.getPipeline(pipelineId || undefined, { limit: PAGE, ...filterParams }), crmService.listUnsorted({ ...unsParams, pipelineId: pipelineId || 'main' }), crmService.listLostReasons(),
     ])
     return { ...pipe, unsorted: uns.leads || [], unsortedTotal: uns.total ?? (uns.leads || []).length, reasons: lr.reasons || [] }
-  }, [pipelineId, fKey], isFiltered ? `ac-pipeline-${pipelineId}-f${fKey}` : `ac-pipeline-${pipelineId}`)
+  }, [pipelineId, fKey], isFiltered ? `ac-pipeline-${pipelineId}-f${fKey}` : `ac-pipeline-${pipelineId}`, 0) // fon yangilanishi komponentning o'z mantig'ida (extraLoaded/drag/avto-yangilash)
 
   const stages = data?.stages || []
   const openStages = stages.filter((s) => s.kind === 'open')

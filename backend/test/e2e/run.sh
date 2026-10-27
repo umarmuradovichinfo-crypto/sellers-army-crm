@@ -22,7 +22,7 @@ export PUBLIC_URL="http://localhost:${PORT}"
 rm -rf /tmp/crm-e2e-asterisk
 export ASTERISK_CONF_DIR="/tmp/crm-e2e-asterisk/conf" ASTERISK_SOUNDS_DIR="/tmp/crm-e2e-asterisk/sounds"
 # Obuna litsenziyasi sinovi uchun test sirri (faqat lokal test bazasi)
-export LICENSE_SECRET="e2e-license-secret" BILLING_CARD_NUMBER="8600 0000 0000 0000" BILLING_CARD_HOLDER="TEST HOLDER" BILLING_TELEGRAM="@test_admin"
+export LICENSE_ALLOW_UNBOUND=1 LICENSE_SECRET="e2e-license-secret" BILLING_CARD_NUMBER="8600 0000 0000 0000" BILLING_CARD_HOLDER="TEST HOLDER" BILLING_TELEGRAM="@test_admin"
 
 DBURL_ADMIN="${BASE_URL_DB%/*}/postgres"
 psql "$DBURL_ADMIN" -qc "DROP DATABASE IF EXISTS ${TEST_DB} WITH (FORCE)" >/dev/null

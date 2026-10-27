@@ -1,3 +1,4 @@
+import { BillingService } from '../billing/billing.service';
 import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 
 import type { AuthUser } from '../common/decorators/current-user.decorator';
@@ -47,6 +48,7 @@ export class SalesbotService implements OnModuleInit {
     private readonly automation: AutomationService,
     private readonly chat: ChatService,
     private readonly activity: ActivityService,
+    private readonly billing: BillingService,
   ) {}
 
   onModuleInit() {
@@ -180,6 +182,7 @@ export class SalesbotService implements OnModuleInit {
 
   /** Mijoz javobi: shu bitimda javob kutayotgan bot bo'lsa davom ettiradi. */
   private async onReply(leadId: string, text: string): Promise<boolean> {
+    if (!(await this.billing.allows('automation'))) return false;
     const run = await this.prisma.salesbotRun.findFirst({ where: { leadId, state: 'waiting' }, orderBy: { updatedAt: 'desc' } });
     if (!run) return false;
     const bot = await this.prisma.salesbot.findUnique({ where: { id: run.botId } });
@@ -210,6 +213,7 @@ export class SalesbotService implements OnModuleInit {
   }
 
   private async tick() {
+    if (!(await this.billing.allows('automation'))) return;
     const due = await this.prisma.salesbotRun.findMany({ where: { state: 'paused', resumeAt: { lte: new Date() } }, take: 50 });
     for (const r of due) {
       const bot = await this.prisma.salesbot.findUnique({ where: { id: r.botId } });

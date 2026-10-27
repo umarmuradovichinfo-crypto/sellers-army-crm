@@ -8,6 +8,7 @@ export interface LicensePayload {
   u: number; // foydalanuvchilar soni
   m: number; // necha oy beriladi (sovg'a oylar bilan)
   c?: string; // mijoz nomi (faqat tarix uchun)
+  d?: string; // o'rnatish id (installId): kod faqat shu o'rnatishda ishlaydi
 }
 
 const b64 = (b: Buffer) => b.toString('base64url');
@@ -27,7 +28,7 @@ export function verifyLicense(code: string, secret: string): LicensePayload | nu
   if (got.length !== expected.length || !timingSafeEqual(got, expected)) return null;
   try {
     const p = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')) as LicensePayload;
-    if (!p || typeof p.i !== 'string' || typeof p.p !== 'string' || !Number.isInteger(p.u) || !Number.isInteger(p.m)) return null;
+    if (!p || typeof p.i !== 'string' || typeof p.p !== 'string' || !Number.isInteger(p.u) || !Number.isInteger(p.m) || (p.d !== undefined && typeof p.d !== 'string')) return null;
     return p;
   } catch { return null; }
 }

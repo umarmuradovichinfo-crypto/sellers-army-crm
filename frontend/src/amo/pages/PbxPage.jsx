@@ -1,6 +1,6 @@
 // «Настройка АТС» (o'z stansiyamiz, PLAN 45): modulli qo'ng'iroq oqimi — chapda «Modul qo'shish», o'rtada ro'yxat, o'ngda forma.
 // Tablar: Kiruvchi · Chiquvchi · Qora ro'yxat · Musiqa · Diagnostika. OnlinePBX paneli bilan 1:1 (docs/amo-clone/PBX-CLONE.md).
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useT } from '../i18n'
 import { useApi } from '../../lib/useApi'
@@ -102,7 +102,7 @@ export function Incoming() {
         {mods.length === 0 && <div className="ac-pbx__empty">{t('pbx§Chapdan modul qo\'shing: avval raqam (trunk), keyin vaqt qoidasi, guruh va foydalanuvchilar.')}</div>}
       </section>
       <section className="ac-pbx__form">
-        {!sel && <div className="ac-pbx__empty ac-pbx__hint">{t('pbx§Modulni tanlang yoki yangisini qo\'shing')}</div>}
+        {!sel && <div className="ac-pbx__empty ac-pbx__hint ac-pbx__hint--none">{t('pbx§Modulni tanlang yoki yangisini qo\'shing')}</div>}
         {sel && (
           <>
             <div className="ac-pbx__fhead">
@@ -266,20 +266,26 @@ function UserForm({ sel, setSel, setCfg, tab, crmUsers, targetOptions }) {
 
 export function Outgoing() {
   const t = useT()
-  const { data } = useApi(() => pbxService.outgoing(), [], 'pbx:outgoing')
+  const { data, reload } = useApi(() => pbxService.outgoing(), [], 'pbx:outgoing')
+  const norm = (d) => (d?.rules || []).map((r) => ({ ...r, users: (r.users || []).join(';') }))
+  const prevRef = useRef(null)
   const trunks = useApi(() => pbxService.modules('trunk'), [], 'pbx:trunks')
   const [rules, setRules] = useState(null)
   const [msg, setMsg] = useState(null)
-  useEffect(() => { if (data && rules === null) setRules((data.rules || []).map((r) => ({ ...r, users: (r.users || []).join(';') }))) }, [data]) // eslint-disable-line
+  useEffect(() => { // yangi javob: foydalanuvchi tahrirlamagan bo'lsagina formani yangilaymiz
+    if (!data) return
+    if (rules === null || JSON.stringify(rules) === JSON.stringify(norm(prevRef.current))) setRules(norm(data))
+    prevRef.current = data
+  }, [data]) // eslint-disable-line
   if (rules === null) return <div className="ac-pbx__empty" />
   const set = (i, p) => setRules(rules.map((r, j) => (j === i ? { ...r, ...p } : r)))
   const save = async () => {
     setMsg(null)
-    try { await pbxService.saveOutgoing(rules.map((r) => ({ ...r, users: String(r.users || '').split(/[;,\s]+/).filter(Boolean) }))); setMsg({ ok: true, text: t('pbx§Saqlandi') }) }
+    try { await pbxService.saveOutgoing(rules.map((r) => ({ ...r, users: String(r.users || '').split(/[;,\s]+/).filter(Boolean) }))); await reload(); setMsg({ ok: true, text: t('pbx§Saqlandi') }) }
     catch (e) { setMsg({ ok: false, text: e?.message || t('pbx§Saqlab bo\'lmadi') }) }
   }
-  const dirty = JSON.stringify(rules) !== JSON.stringify((data?.rules || []).map((r) => ({ ...r, users: (r.users || []).join(';') })))
-  const reset = () => setRules((data?.rules || []).map((r) => ({ ...r, users: (r.users || []).join(';') })))
+  const dirty = JSON.stringify(rules) !== JSON.stringify(norm(data))
+  const reset = () => setRules(norm(data))
   return (
     <div className="pbxo">
       <div className="pbxo__head">
@@ -342,7 +348,7 @@ export function Blacklist() {
         <span className="pbxb__search"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5" fill="none" stroke="#adaabc" strokeWidth="1.4" /><path d="M13 13l4 4" stroke="#adaabc" strokeWidth="1.4" strokeLinecap="round" /></svg><input className="ac-input" value={q} placeholder={t('pbx§Qidirish')} onChange={(e) => setQ(e.target.value)} /></span>
         {list.length === 0
           ? <div className="pbxb__empty">{t("pbx§Ro'yxatda raqam yo'q.")}</div>
-          : <ul className="pbxb__list">{list.map((b) => <li key={b.id}><span>{b.number}</span><button type="button" title={t("pbx§O'chirish")} onClick={async () => { await pbxService.blacklistRemove(b.id); reload() }}>×</button></li>)}</ul>}
+          : <ul className="pbxb__list">{list.map((b) => <li key={b.id}><span>{b.number}</span><button type="button" title={t("pbx§O'chirish")} onClick={async () => { if (!window.confirm(t("pbx§Qora ro'yxatdan o'chirilsinmi?"))) return; await pbxService.blacklistRemove(b.id); reload() }}>×</button></li>)}</ul>}
       </div>
     </div>
   )
@@ -350,15 +356,15 @@ export function Blacklist() {
 
 export function Music() {
   const t = useT()
-  const { data } = useApi(() => pbxService.music(), [], 'pbx:music')
+  const { data, setData } = useApi(() => pbxService.music(), [], 'pbx:music')
   const audio = useApi(() => pbxService.audioList().catch(() => ({ files: [] })), [], 'pbx:audio')
   const [m, setM] = useState(null)
   const [base, setBase] = useState(null)
   const [msg, setMsg] = useState(null)
-  useEffect(() => { if (data && !m) { setM(data); setBase(data) } }, [data]) // eslint-disable-line
+  useEffect(() => { if (!data) return; if (!m || JSON.stringify(m) === JSON.stringify(base)) setM(data); setBase(data) }, [data]) // eslint-disable-line
   if (!m) return <div className="ac-pbx__empty" />
   const dirty = JSON.stringify(m) !== JSON.stringify(base)
-  const save = async () => { try { const r = await pbxService.saveMusic(m); setM(r); setBase(r); setMsg({ ok: true, text: t('pbx§Saqlandi') }) } catch (e) { setMsg({ ok: false, text: e?.message || '' }) } }
+  const save = async () => { try { const r = await pbxService.saveMusic(m); setM(r); setBase(r); setData(r); setMsg({ ok: true, text: t('pbx§Saqlandi') }) } catch (e) { setMsg({ ok: false, text: e?.message || '' }) } }
   return (
     <div className="pbxm">
       <div className="pbxm__card">
@@ -445,22 +451,42 @@ function AsteriskPreview() {
   )
 }
 
+/** Servis sahifasi qobig'i (OnlinePBX): sarlavha, «Qoidalar / Tavsif» tablari; tavsif matni alohida tabda. */
+function SvcTabbed({ title, desc, first = 'pbx§Sozlamalar', children }) {
+  const t = useT()
+  const [tab, setTab] = useState('set')
+  return (
+    <div className="pbxs__page">
+      <h3 className="pbxs__title">{title}</h3>
+      <div className="pbxs__tabs">
+        <button type="button" className={tab === 'set' ? 'on' : ''} onClick={() => setTab('set')}>{t(first)}</button>
+        <button type="button" className={tab === 'desc' ? 'on' : ''} onClick={() => setTab('desc')}>{t('pbx§Tavsif')}</button>
+      </div>
+      {tab === 'desc' ? <div className="pbxs__body"><p>{desc}</p></div> : children}
+    </div>
+  )
+}
+
 export function CallbackSettings() {
   const t = useT()
-  const { data } = useApi(() => pbxService.callback(), [], 'pbx:callback')
+  const { data, setData } = useApi(() => pbxService.callback(), [], 'pbx:callback')
   const [c, setC] = useState(null)
   const [msg, setMsg] = useState(null)
-  useEffect(() => { if (data && !c) setC(data) }, [data]) // eslint-disable-line
+  // Server/kesh javobi kelganda: foydalanuvchi tahrirlamagan bo'lsagina formani yangilaymiz (saqlanmagan o'zgarishlar bosilmasin)
+  const baseRef = useRef(null)
+  useEffect(() => {
+    if (!data) return
+    if (!c || JSON.stringify(c) === JSON.stringify(baseRef.current)) setC(data)
+    baseRef.current = data
+  }, [data]) // eslint-disable-line
   if (!c) return <div className="ac-pbx__empty" />
   const set = (k, v) => setC({ ...c, [k]: v })
   const save = async () => {
-    try { const r = await pbxService.saveCallback(c); setC(r); setMsg({ ok: true, text: t('pbx§Saqlandi') }) } catch (e) { setMsg({ ok: false, text: e?.message || t("pbx§Saqlab bo'lmadi") }) }
+    try { const r = await pbxService.saveCallback(c); setC(r); setData(r); setMsg({ ok: true, text: t('pbx§Saqlandi') }) } catch (e) { setMsg({ ok: false, text: e?.message || t("pbx§Saqlab bo'lmadi") }) }
   }
   const snippet = c.key ? `<script src="${window.location.origin}/api/v1/callback/${c.key}/widget.js" async></script>` : ''
   return (
-    <div className="ac-pbx__page" style={{ maxWidth: 640 }}>
-      <h3>{t('pbx§CALLBACK VIDJETI')}</h3>
-      <p className="ac-pbx__muted">{t("pbx§Saytda tugma paydo bo'ladi: mehmon raqamini qoldiradi — CRM'da bitim va qayta qo'ng'iroq vazifasi yaratiladi. Ichki raqam ko'rsatilsa va stansiya ulangan bo'lsa, xodim telefoni avtomatik jiringlaydi.")}</p>
+    <SvcTabbed title={t('pbx§CALLBACK VIDJETI')} desc={t("pbx§Saytda tugma paydo bo'ladi: mehmon raqamini qoldiradi — CRM'da bitim va qayta qo'ng'iroq vazifasi yaratiladi. Ichki raqam ko'rsatilsa va stansiya ulangan bo'lsa, xodim telefoni avtomatik jiringlaydi.")}>
       <Field label={t('pbx§Yoqilgan')}><input type="checkbox" checked={!!c.enabled} onChange={(e) => set('enabled', e.target.checked)} /></Field>
       <Field label={t('pbx§Sarlavha')}><input className="ac-input" value={c.title} onChange={(e) => set('title', e.target.value)} /></Field>
       <Field label={t('pbx§Matn')}><input className="ac-input" value={c.text} onChange={(e) => set('text', e.target.value)} /></Field>
@@ -470,28 +496,32 @@ export function CallbackSettings() {
       <div className="ac-pbx__actions"><button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button></div>
       {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
       {snippet && (<><h4 style={{ marginTop: 18 }}>{t('pbx§Saytga qo\'yiladigan kod')}</h4><pre className="ac-pbx__pre">{snippet}</pre></>)}
-    </div>
+    </SvcTabbed>
   )
 }
 
 export function AutoRecallSettings() {
   const t = useT()
-  const { data } = useApi(() => pbxService.autorecall(), [], 'pbx:autorecall')
+  const { data, setData } = useApi(() => pbxService.autorecall(), [], 'pbx:autorecall')
   const [c, setC] = useState(null)
   const [msg, setMsg] = useState(null)
-  useEffect(() => { if (data && !c) setC(data) }, [data]) // eslint-disable-line
+  // Server/kesh javobi kelganda: foydalanuvchi tahrirlamagan bo'lsagina formani yangilaymiz (saqlanmagan o'zgarishlar bosilmasin)
+  const baseRef = useRef(null)
+  useEffect(() => {
+    if (!data) return
+    if (!c || JSON.stringify(c) === JSON.stringify(baseRef.current)) setC(data)
+    baseRef.current = data
+  }, [data]) // eslint-disable-line
   if (!c) return <div className="ac-pbx__empty" />
   const set = (k, v) => setC({ ...c, [k]: v })
   const save = async () => {
     setMsg(null)
-    try { const r = await pbxService.saveAutorecall({ ...c, delayMin: Number(c.delayMin), attempts: Number(c.attempts), retryMin: Number(c.retryMin), fromHour: Number(c.fromHour), toHour: Number(c.toHour), withinHours: Number(c.withinHours) }); setC(r); setMsg({ ok: true, text: t('pbx§Saqlandi') }) }
+    try { const r = await pbxService.saveAutorecall({ ...c, delayMin: Number(c.delayMin), attempts: Number(c.attempts), retryMin: Number(c.retryMin), fromHour: Number(c.fromHour), toHour: Number(c.toHour), withinHours: Number(c.withinHours) }); setC(r); setData(r); setMsg({ ok: true, text: t('pbx§Saqlandi') }) }
     catch (e) { setMsg({ ok: false, text: e?.message || t("pbx§Saqlab bo'lmadi") }) }
   }
   const num = (k, label) => <Field label={t(label)}><input className="ac-input" type="number" value={c[k]} onChange={(e) => set(k, e.target.value)} /></Field>
   return (
-    <div className="ac-pbx__page" style={{ maxWidth: 640 }}>
-      <h3>{t("pbx§O'TKAZIB YUBORILGANLARGA AVTO-QAYTA QO'NG'IROQ")}</h3>
-      <p className="ac-pbx__muted">{t("pbx§Kiruvchi qo'ng'iroq o'tkazib yuborilsa, tizim ko'rsatilgan ichki raqamni jiringlatadi va xodim javob bergach mijozga ulaydi. Faqat ish soatlarida, mijozga keyin qo'ng'iroq qilinmagan bo'lsa.")}</p>
+    <SvcTabbed first="pbx§Qoidalar" title={t("pbx§O'TKAZIB YUBORILGANLARGA AVTO-QAYTA QO'NG'IROQ")} desc={t("pbx§Kiruvchi qo'ng'iroq o'tkazib yuborilsa, tizim ko'rsatilgan ichki raqamni jiringlatadi va xodim javob bergach mijozga ulaydi. Faqat ish soatlarida, mijozga keyin qo'ng'iroq qilinmagan bo'lsa.")}>
       <Field label={t('pbx§Yoqilgan')}><input type="checkbox" checked={!!c.enabled} onChange={(e) => set('enabled', e.target.checked)} /></Field>
       <Field label={t("pbx§Qo'ng'iroq boshlanadigan ichki raqam")}><input className="ac-input" value={c.ext} placeholder="100" onChange={(e) => set('ext', e.target.value)} /></Field>
       {num('delayMin', "pbx§Birinchi urinishgacha kechikish (daqiqa)")}
@@ -502,7 +532,7 @@ export function AutoRecallSettings() {
       {num('withinHours', "pbx§Necha soat ichidagi o'tkazib yuborilganlar")}
       <div className="ac-pbx__actions"><button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button></div>
       {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
-    </div>
+    </SvcTabbed>
   )
 }
 

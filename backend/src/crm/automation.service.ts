@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleDes
 
 import { PrismaService } from '../prisma/prisma.service';
 import { LeaderService } from '../common/leader.service';
+import { BillingService } from '../billing/billing.service';
 import { stageCloseData } from './stage-close';
 import { ActivityService } from './activity.service';
 import { NotificationService } from './notification.service';
@@ -61,6 +62,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
     private readonly activity: ActivityService,
     private readonly notif: NotificationService,
     private readonly tg: TelegramClient,
+    private readonly billing: BillingService,
   ) {}
 
   /** Salesbot ulanishi (SalesbotService o'rnatadi — aylana bog'liqliksiz): hodisalar, har kiruvchi javob, «botni ishga tushirish» amali. */
@@ -204,6 +206,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
   }
 
   async fire(event: string, leadId: string, opts: { actorName?: string; depth?: number } = {}) {
+    if (!(await this.billing.allows('automation'))) return; // tarifda yo'q / obuna tugagan: avtomatlashtirish va Salesbot ishlamaydi
     const depth = opts.depth ?? 0;
     if (this.salesbot) await this.salesbot.onEvent(event, leadId).catch((e) => this.logger.warn('Salesbot trigger xato: ' + (e as Error).message));
     try {
@@ -527,6 +530,7 @@ export class AutomationService implements OnModuleInit, OnModuleDestroy {
   // ── Cron tick (har daqiqa): kechiktirilgan navbat + vaqt triggerlari ──
   async tick() {
     if (this.ticking) return { skipped: true };
+    if (!(await this.billing.allows('automation'))) return { skipped: true };
     this.ticking = true;
     const stats = { jobs: 0, time: 0, noReply: 0, beforeDate: 0 };
     try {

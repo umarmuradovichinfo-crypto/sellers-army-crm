@@ -319,6 +319,8 @@ addRu({
   "pbx§Stereoyozuv": "Стереозапись",
   "pbx§Stereoyozuv ovoz sifatini oshiradi va nutq tahlili xizmatlaridan foydalanish imkonini beradi.": "Стереозапись повышает качество аудио и позволяет использовать сервисы речевой аналитики.",
   "pbx§Tez orada": "Скоро",
+  "pbx§Qoidalar": "Правила",
+  "pbx§Qora ro'yxatdan o'chirilsinmi?": "Удалить из чёрного списка?",
   "Telefoniya": "Телефония",
   "Telefoniya (ATS)": "Телефония (АТС)",
 })

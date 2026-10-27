@@ -198,8 +198,10 @@ function ChatsSection() {
     })
     setIntent(null)
   }
-  useEffect(() => { if (cs.data) { setForm(cs.data); setBase(cs.data) } }, [cs.data])
   const dirty = form && base && JSON.stringify(form) !== JSON.stringify(base)
+  const csDirtyRef = useRef(false)
+  csDirtyRef.current = !!dirty
+  useEffect(() => { if (cs.data) { setBase(cs.data); if (!csDirtyRef.current) setForm(cs.data) } }, [cs.data])
   const save = async () => {
     setBusy(true); setMsg(null)
     try { const r = await crmService.saveChatSettings(form); setForm(r); setBase(r); window.dispatchEvent(new CustomEvent('amo:chat-settings', { detail: r })); setMsg({ ok: true, m: t('Saqlandi') }); setTimeout(() => setMsg(null), 2500) }
@@ -421,8 +423,10 @@ function useIpWhitelist(enabled) {
   const [ip, setIp] = useState('')
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
-  useEffect(() => { if (data) setList(data.ips || []) }, [data])
   const dirty = list && data && JSON.stringify(list) !== JSON.stringify(data.ips || [])
+  const ipDirtyRef = useRef(false)
+  ipDirtyRef.current = !!dirty
+  useEffect(() => { if (data && !ipDirtyRef.current) setList(data.ips || []) }, [data])
   const add = () => { const v = ip.trim(); if (v && !list.includes(v)) setList([...list, v]); setIp('') }
   const save = async () => {
     setBusy(true); setMsg(null)

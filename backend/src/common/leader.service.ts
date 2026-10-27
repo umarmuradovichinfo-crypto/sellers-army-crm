@@ -1,4 +1,4 @@
-import { Global, Injectable, Logger, Module } from '@nestjs/common';
+import { Global, Injectable, Logger, Module, OnModuleDestroy } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 
 import { Prisma } from '../generated/prisma/client';
@@ -13,7 +13,7 @@ const LEASE_MS = 45_000;
 const RECHECK_MS = 10_000;
 
 @Injectable()
-export class LeaderService {
+export class LeaderService implements OnModuleDestroy {
   private readonly logger = new Logger('Leader');
   private readonly me = randomUUID();
   private last = 0;
@@ -41,6 +41,15 @@ export class LeaderService {
       this.logger.warn('Rahbar tekshiruvi xato: ' + (e as Error).message);
     }
     return this.leader;
+  }
+
+  /** To'xtaganda ijarani bo'shatadi: qayta ishga tushgan (deploy) nusxa 45 soniya kutmasdan darrov rahbar bo'ladi. */
+  async onModuleDestroy() {
+    if (!this.leader) return;
+    try {
+      await this.prisma.$executeRaw(Prisma.sql`DELETE FROM app_settings WHERE key = 'leader_lease' AND (value::json ->> 'owner') = ${this.me}::text`);
+    } catch { /* baza yopilgan bo'lishi mumkin */ }
+    this.leader = false;
   }
 
   /** Fon vazifasini faqat rahbar nusxada ishga tushiradi. */

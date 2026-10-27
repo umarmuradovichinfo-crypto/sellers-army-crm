@@ -38,7 +38,7 @@ export default function CallReportsPage() {
   const { kind } = useParams()
   const [f, setF] = useState({ from: ago(6), to: today(), ext: '' })
   const [applied, setApplied] = useState(f)
-  const { data, loading, error } = useApi(() => (kind ? crmService.callsStats(applied) : Promise.resolve(null)), [kind, JSON.stringify(applied)], `calls-stats:${JSON.stringify(applied)}`, 60000)
+  const { data, loading, error } = useApi(() => (kind ? crmService.callsStats(applied) : Promise.resolve(null)), [kind, JSON.stringify(applied)], `calls-stats:${kind || '-'}:${JSON.stringify(applied)}`, kind ? 60000 : 0)
   return (
     <>
       <div className="ac-content ac-cl">

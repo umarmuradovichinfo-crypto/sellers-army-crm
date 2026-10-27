@@ -1,7 +1,7 @@
 // «Настройка АТС» modul formalari: har tur uchun maydonlar (OnlinePBX paneli bilan 1:1, docs/amo-clone/PBX-CLONE.md).
 // kind: text | int | bool | password | select | target (keyingi modul) | members (101;102) | qmembers (101:1;102:2) | menu (1:101;2:5200) | textarea | schedule | forwards | access | notify
 // ro'yxat bo'limlari tartibi (OnlinePBX: Номера, Правила по времени, Приветствия, Группы, Пользователи …)
-export const TYPE_ORDER = ['trunk', 'numrule', 'timerule', 'greeting', 'voicemail', 'http', 'alias', 'postcall', 'group', 'queue', 'user']
+export const TYPE_ORDER = ['trunk', 'telegram', 'numrule', 'timerule', 'greeting', 'voicemail', 'http', 'alias', 'postcall', 'group', 'queue', 'user']
 // «Добавить модуль» chap ro'yxati tartibi (OnlinePBX bilan bir xil); smart — o'chirilgan («Умный перевод»)
 export const ADD_ORDER = ['user', 'trunk', 'telegram', 'numrule', 'timerule', 'greeting', 'voicemail', 'smart', 'http', 'alias', 'postcall', 'group', 'queue']
 export const TYPE_LABEL = {
@@ -99,6 +99,8 @@ export const toForm = (type, cfg = {}) => {
   if (type === 'queue' && Array.isArray(c.members)) c.members = c.members.map((m) => `${m.ext}:${m.priority}`).join(';')
   if (type === 'greeting' && Array.isArray(c.menu)) c.menu = c.menu.map((m) => `${m.key}:${m.to}`).join(';')
   if (type === 'timerule' && Array.isArray(c.holidays)) c.holidays = c.holidays.join(', ')
+  // select maydonlar ekranda birinchi variantni ko'rsatadi — qiymat formaga ham yozilsin (vaqt mintaqasi — Toshkent UTC+5)
+  for (const f of FIELDS[type] || []) if (f.kind === 'select' && (c[f.key] == null || c[f.key] === '')) c[f.key] = f.key === 'timezone' ? 'UTC+5' : f.options?.[0]?.[0]
   return c
 }
 export const fromForm = (type, cfg = {}) => {

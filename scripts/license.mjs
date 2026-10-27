@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Litsenziya kodi yaratish (mijoz to'lovini tasdiqlagach qo'lda beriladi).
-// Ishlatish:  LICENSE_SECRET=<sir> node scripts/license.mjs --plan pro --users 10 --months 12 --customer "DECOPOL"
+// Ishlatish:  LICENSE_SECRET=<sir> node scripts/license.mjs --plan pro --users 10 --months 12 --customer "DECOPOL" --install <installId>
+// --install: mijozning «Hisob va to'lov» sahifasidagi «O'rnatish ID» si. Kod faqat shu o'rnatishda ishlaydi (boshqa mijozga ko'chirib bo'lmaydi). Majburiy.
 // plan: basic | advanced | pro | cost (cost = eksklyuziv mijoz uchun yashirin «xarajat» tarifi, narx menyuda yo'q);  months: 3 | 6 | 9 | 12 | 24 (sovg'a oylar bilan berilgan davr).
 // Sir macOS Keychain'da («crm-license-secret») saqlangan — o'zgaruvchi berish shart emas. Sirni chatga yozmang va commitga qo'shmang — u serverlarda (Railway/VPS o'zgaruvchilari) bir xil bo'lishi kerak.
 import { createHmac, randomBytes } from 'node:crypto'
@@ -17,7 +18,8 @@ if (!['basic', 'advanced', 'pro', 'cost'].includes(a.plan)) { console.error('--p
 const users = Number(a.users), months = Number(a.months)
 if (!Number.isInteger(users) || users < 1) { console.error('--users butun son >= 1'); process.exit(1) }
 if (![3, 6, 9, 12, 24].includes(months)) { console.error('--months 3|6|9|12|24'); process.exit(1) }
-const payload = { i: randomBytes(6).toString('hex'), p: a.plan, u: users, m: months, ...(a.customer ? { c: a.customer } : {}) }
+if (!a.install || !/^[0-9a-f]{6,32}$/i.test(a.install)) { console.error("--install <O'rnatish ID> kerak (mijoz «Hisob va to'lov» sahifasidan oladi)"); process.exit(1) }
+const payload = { i: randomBytes(6).toString('hex'), p: a.plan, u: users, m: months, d: a.install, ...(a.customer ? { c: a.customer } : {}) }
 const body = Buffer.from(JSON.stringify(payload)).toString('base64url')
 const sig = createHmac('sha256', secret).update(body).digest().subarray(0, 16).toString('base64url')
 console.log(`SA1.${body}.${sig}`)
