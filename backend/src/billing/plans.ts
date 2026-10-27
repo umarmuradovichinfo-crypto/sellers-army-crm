@@ -49,7 +49,24 @@ export const FEATURE_LABEL: Record<Feature, string> = {
   automation: 'Avtomatlashtirish va Salesbot', goals: 'KPI va sotuv rejalari', catalogs: 'Kataloglar (mahsulotlar)', backup: 'Zaxira nusxa', intents: 'Mijoz savollariga avto-javob',
 };
 const RANK: Record<PlanKey, number> = { basic: 1, advanced: 2, pro: 3, cost: 3 };
+/** Tarif darajasi (basic < advanced < pro = cost); noma'lum tarif — 0. */
+export function planRank(plan: unknown): number {
+  return isPlan(plan) ? RANK[plan] : 0;
+}
 export function planAllows(plan: string | null | undefined, feature: Feature): boolean {
   if (!isPlan(plan)) return false;
   return RANK[plan] >= RANK[FEATURE_MIN[feature]];
+}
+
+/** Kunlik narx (OnlinePBX kabi): oylik narx / 30, so'm / foydalanuvchi / kun. */
+export const dailyRate = (plan: PlanKey) => PLANS[plan].price / 30;
+
+/** Ikki vaqt orasidagi kunlar soni (to'liq bo'lmagan kun ham hisoblanadi). */
+export const daysBetween = (from: number, until: number) => Math.max(0, Math.ceil((until - from) / 86_400_000 - 1e-9));
+
+/** Foydalanuvchi qo'shish narxi: qolgan kunlarga proporsional (users × kunlik × kunlar). */
+export function quoteAddon(plan: PlanKey, users: number, now: number, until: number) {
+  const days = daysBetween(now, until);
+  const daily = dailyRate(plan);
+  return { plan, users, days, daily: Math.round(daily * 100) / 100, until: new Date(until).toISOString(), total: Math.round(daily * days * users) };
 }

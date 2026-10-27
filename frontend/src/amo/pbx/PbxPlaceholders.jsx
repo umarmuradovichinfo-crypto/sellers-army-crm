@@ -207,10 +207,23 @@ export function PbxIntegration() {
 export function PbxLicense() {
   const t = useT()
   const [tab, setTab] = useState('lic')
-  const { data: b } = useApi(() => billingService.status().catch(() => null), [], 'billing:status', 600000)
+  const [sel, setSel] = useState([])
+  // To'liq ma'lumot (litsenziyalar, tarix) sozlamalar huquqi bilan; bo'lmasa — qisqa holat
+  const { data: b } = useApi(() => billingService.overview().catch(() => billingService.status().catch(() => null)), [], 'billing:overview-pbx', 600000)
   const fmt = (d) => (d ? new Date(d).toLocaleDateString('ru-RU') : '—')
+  const sum = (n) => Math.round(n || 0).toLocaleString('ru-RU')
+  const lic = b?.licenses || []
+  const groups = [['active', 'pbx§Faol litsenziyalar'], ['future', "pbx§Oldindan to'langan kelajak davr litsenziyalari (avtomatik faollashadi)"]]
+  const toggle = (id) => setSel((x) => (x.includes(id) ? x.filter((y) => y !== id) : [...x, id]))
+  const row = (l) => (
+    <label key={l.id + l.from} className="pbxl__row pbxl__row--lic">
+      <input type="checkbox" checked={sel.includes(l.id)} onChange={() => toggle(l.id)} />
+      <b>{l.users} {t('pbx§foydalanuvchi')} · {l.planName}</b>
+      <span>{fmt(l.from)} – {fmt(l.until)} ({l.days} {t('pbx§kun')})</span>
+      <em>{sum(l.amount)} {t("pbx§so'm")}</em>
+    </label>
+  )
   const left = b?.daysLeft != null ? Math.max(0, b.daysLeft) : null
-  const rows = b ? [[t('pbx§Platformaga kirish'), `${b.planName || t('pbx§Sinov davri')}`], [t('pbx§Foydalanuvchilar'), `${b.activeUsers ?? 0} / ${b.users ?? '—'}`]] : []
   return (
     <div className="pbxl">
       <div className="pbxl__main">
@@ -219,14 +232,20 @@ export function PbxLicense() {
         </div>
         {tab === 'lic' && (
           <>
-            <h6>{t('pbx§Faol litsenziyalar')}</h6>
-            {b && rows.map(([n, v]) => (
-              <div key={n} className="pbxl__row"><b>{n}</b><span>{v}</span><em>{b.endsAt ? `${t('pbx§gacha')} ${fmt(b.endsAt)}${left != null ? ` (${left} ${t('pbx§kun')})` : ''}` : ''}</em></div>
-            ))}
-            <Link className="pbxl__btn" to="/settings/billing">{t("pbx§Tanlangan litsenziyalarni uzaytirish")}</Link>
+            {lic.length ? groups.map(([st, title]) => {
+              const rows = lic.filter((l) => l.status === st)
+              return rows.length ? <div key={st}><h6>{t(title)}</h6>{rows.map(row)}</div> : null
+            }) : (
+              <>
+                <h6>{t('pbx§Faol litsenziyalar')}</h6>
+                {b && <div className="pbxl__row"><b>{t('pbx§Platformaga kirish')}</b><span>{b.status === 'trial' ? t('pbx§Sinov davri') : b.planName || '—'}</span><em>{b.endsAt ? `${t('pbx§gacha')} ${fmt(b.endsAt)}${left != null ? ` (${left} ${t('pbx§kun')})` : ''}` : ''}</em></div>}
+              </>
+            )}
+            <Link className="pbxl__btn" to={sel.length ? `/settings/billing?renew=${encodeURIComponent(sel.join(','))}` : '/settings/billing'}>{t("pbx§Tanlangan litsenziyalarni uzaytirish")}</Link>{' '}
+            <Link className="pbxl__btn pbxl__btn--ghost" to="/settings/billing">+ {t("pbx§Yangi litsenziya qo'shish")}</Link>
           </>
         )}
-        {tab === 'hist' && (b?.history?.length ? b.history.map((h, i) => <div key={i} className="pbxl__row"><b>{h.planName}</b><span>{h.users} · {h.months} {t('pbx§oy')}</span><em>{fmt(h.at || h.date)}</em></div>) : <p className="pbxl__empty">{t("pbx§To'lovlar tarixi bo'sh")}</p>)}
+        {tab === 'hist' && (b?.history?.length ? b.history.map((h, i) => <div key={i} className="pbxl__row"><b>{h.planName}</b><span>{h.users} · {h.from && h.until ? `${fmt(h.from)} – ${fmt(h.until)}` : `${h.months} ${t('pbx§oy')}`}</span><em>{fmt(h.at || h.date)}{typeof h.amount === 'number' ? ` · ${sum(h.amount)} ${t("pbx§so'm")}` : ''}</em></div>) : <p className="pbxl__empty">{t("pbx§To'lovlar tarixi bo'sh")}</p>)}
         {(tab === 'pay' || tab === 'help') && <p className="pbxl__empty">{t("pbx§Tarif, foydalanuvchilar soni va to'lov «Hisob va to'lov» bo'limida boshqariladi.")} <Link to="/settings/billing">{t("pbx§Hisob va to'lov")}</Link></p>}
       </div>
       <aside className="pbxl__side">

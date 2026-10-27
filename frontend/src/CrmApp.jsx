@@ -67,8 +67,9 @@ function BillingBanner() {
   const { data } = useApi(() => billingService.status().catch(() => null), [], 'billing:status', 600000)
   if (!data || !data.enforced) return null // cheklov yoqilmagan serverda (hozirgi Railway) banner chiqmaydi
   const bad = data.status === 'expired' || data.status === 'grace'
-  if (!bad && !(data.daysLeft <= 7)) return null
-  const text = data.status === 'expired' ? t('bl§Obuna tugagan') : data.status === 'grace' ? t("bl§Muddat tugadi (qo'shimcha kunlar)") : `${t('bl§Obuna tugayapti')}: ${Math.max(0, data.daysLeft)} ${t('bl§kun')}`
+  const left = data.paidDaysLeft ?? data.daysLeft // oldindan to'langan kelajak litsenziyalar bilan qamrov
+  if (!bad && !(left <= 7)) return null
+  const text = data.status === 'expired' ? t('bl§Obuna tugagan') : data.status === 'grace' ? t("bl§Muddat tugadi (qo'shimcha kunlar)") : `${t('bl§Obuna tugayapti')}: ${Math.max(0, left)} ${t('bl§kun')}`
   return (
     <div className={`ac-bl__banner ${bad ? 'ac-bl__banner--bad' : ''}`}>
       {text}{can('settings.view') && <> — <Link to="/settings/billing">{t("Hisob va to'lov")}</Link></>}
