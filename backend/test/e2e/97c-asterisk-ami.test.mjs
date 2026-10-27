@@ -108,7 +108,8 @@ describe('O`z stansiya provayderi', () => {
     const lnk = cdrToCallBody({ UniqueID: '1700.5', UserField: 'crm:abc-123-def', Source: '998901234567', Destination: 's', DestinationChannel: 'PJSIP/101-00000001', Disposition: 'ANSWERED', BillableSeconds: '5', StartTime: '2026-10-27 12:00:00' });
     assert.equal(lnk.uuid, 'abc-123-def');
     assert.equal(lnk.callee, '101');
-    assert.equal(lnk.start_time, '2026-10-27T07:00:00.000Z', 'CDR vaqti Toshkent (UTC+5) deb o`qilishi kerak');
+    assert.equal(lnk.start_time, '2026-10-27T12:00:00.000Z', 'CDR vaqti GMT (cdr_manager usegmtime=yes) deb o`qilishi kerak');
+    assert.equal(cdrTime('2026-10-27 12:00:00', '+05:00'), '2026-10-27T07:00:00.000Z', 'ASTERISK_TZ bilan boshqa mintaqa');
     assert.equal(cdrTime('yomon'), null);
     const out = cdrToCallBody({ UniqueID: 'u2', Source: '100', Destination: '998909998877', Disposition: 'NO ANSWER' });
     assert.equal(out.accountcode, 'outbound');
@@ -186,7 +187,7 @@ describe('O`z stansiya provayderi', () => {
     const r4 = await p.call('556', '998901112233');
     const lb = await Promise.race([linked, new Promise((_, rej) => setTimeout(() => rej(new Error('CDR kelmadi')), 3000))]);
     assert.equal(lb.uuid, r4.uuid);
-    assert.equal(lb.start_time, '2026-10-27T07:00:00.000Z');
+    assert.equal(lb.start_time, '2026-10-27T12:00:00.000Z');
     assert.equal((await p.testConnection()).ok, true);
     p.onModuleDestroy();
     delete process.env.ASTERISK_AMI_HOST; delete process.env.ASTERISK_AMI_SECRET;

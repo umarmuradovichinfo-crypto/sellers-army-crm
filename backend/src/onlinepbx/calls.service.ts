@@ -720,7 +720,8 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       enabled,
       domain,
       wss: domain ? (own ? `wss://${domain}:${Number(process.env.PBX_WSS_PORT) || 8089}/ws` : `wss://${domain}:7443`) : '',
-      uri: domain && ext ? `sip:${ext}@${domain}` : '',
+      // o'z stansiyada brauzer telefoni alohida «<raqam>-web» endpoint'ga ro'yxatdan o'tadi (WebRTC); OnlinePBX — oddiy raqam
+      uri: domain && ext ? `sip:${ext}${own ? '-web' : ''}@${domain}` : '',
       extension: ext,
       password: u?.sipPassword || '',
       sipPasswordSet: !!u?.sipPassword,

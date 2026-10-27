@@ -9,14 +9,14 @@ import type { PbxCall, PbxKind, PbxProvider } from './pbx-provider';
 
 const isInt = (s: string) => /^\d{2,5}$/.test(s);
 /** `PJSIP/100-0000001a` → `100` (kanal nomidan ichki raqam). */
-const extOfChannel = (ch?: string) => { const m = /^PJSIP\/(\d{2,5})-[0-9a-f]+$/i.exec(String(ch || '')); return m ? m[1] : ''; };
+const extOfChannel = (ch?: string) => { const m = /^PJSIP\/(\d{2,5})(?:-web)?-[0-9a-f]+$/i.exec(String(ch || '')); return m ? m[1] : ''; };
 /** CRM qo'ng'iroq identifikatori: dialplan `CDR(userfield)=crm:<uuid>` yozadi (Originate'ga `CRM_UUID` o'zgaruvchisi bilan beriladi). */
 const crmUuidOf = (e: AmiMsg) => { const m = /(?:^|[\s;,])crm:([\w-]{6,64})/.exec(` ${e.UserField || ''}`); return m ? m[1] : ''; };
 
 /**
- * CDR vaqti (`2026-10-27 12:00:00`, Asterisk server mahalliy vaqti) → ISO. Server vaqt mintaqasi ASTERISK_TZ (standart +05:00, Toshkent).
+ * CDR vaqti (`2026-10-27 08:00:00`, cdr_manager.conf `usegmtime = yes` — GMT) → ISO. Boshqa mintaqa kerak bo'lsa ASTERISK_TZ (standart +00:00).
  */
-export function cdrTime(s?: string, tz = process.env.ASTERISK_TZ || '+05:00'): string | null {
+export function cdrTime(s?: string, tz = process.env.ASTERISK_TZ || '+00:00'): string | null {
   const m = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})$/.exec(String(s || '').trim());
   if (!m || !/^[+-]\d{2}:\d{2}$/.test(tz)) return null;
   const d = new Date(`${m[1]}T${m[2]}${tz}`);
@@ -227,7 +227,7 @@ export class OwnPbxProvider implements PbxProvider, OnModuleInit, OnModuleDestro
       const safeExtra = Object.fromEntries(Object.entries(extra).filter(([k]) => /^[A-Za-z]+$/.test(k) && !['Channel', 'Context', 'Exten', 'Application', 'Data', 'ActionID'].includes(k)));
       const res = await this.ami!.action('Originate', {
         ...safeExtra,
-        ActionID: actionId, Channel: `PJSIP/${f}`, Context: 'from-internal', Exten: t, Priority: '1', CallerID: `${t} <${f}>`, Async: 'true', Timeout: '30000',
+        ActionID: actionId, Channel: `Local/${f}@crm-user/n`, Context: 'from-internal', Exten: t, Priority: '1', CallerID: `${t} <${f}>`, Async: 'true', Timeout: '30000',
         ChannelId: uuid, Variable: `CRM_UUID=${uuid}`,
       });
       return { ok: true, uuid, comment: res.Message, raw: res };

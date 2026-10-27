@@ -33,7 +33,7 @@ Kod testlari matn tuzilishini tekshiradi; quyidagilar faqat haqiqiy Asterisk (20
 - **Vaqt qoidasi tunni kesib o'tsa** (masalan 22:00–02:00): `GotoIfTime(22:00-02:00,…)` bitta qator bilan to'g'ri ishlashi va kun almashishi (sat 23:00 → sun 01:00) tekshirilsin.
 - **Originate `ChannelId`** = CRM uuid → CDR `UniqueID` shu bo'lishi; `CDR(userfield)=crm:<uuid>` Cdr AMI hodisasida `UserField` sifatida kelishi (cdr_manager.conf).
 - **Bir qo'ng'iroq — bir nechta CDR** (IVR Answer + Dial): `DestinationChannel` bo'sh ANSWERED qismi «operator javob bermadi» deb hisoblanadi; CDR'lar 1,5 s ichida birlashtiriladi (ASTERISK_CDR_MERGE_MS).
-- **CDR StartTime** server mahalliy vaqtida: server TZ ≠ Toshkent bo'lsa `ASTERISK_TZ` (masalan `+00:00`) qo'yilsin.
+- **CDR StartTime** GMT (UTC) da keladi (`cdr_manager.conf: usegmtime = yes`, haqiqiy Asterisk 23 da tekshirilgan); CRM `ASTERISK_TZ` standarti `+00:00`.
 - **Chiquvchi qoidalar**: `CHANNEL(endpoint)` + `REGEX` bilan «kimga ruxsat» tekshiruvi, mos qoida bo'lmasa `Hangup(21)`.
 - **MixMonitor**: `${IF(...)}` bilan fayl nomi, papka (`pbx_recording.dir`) CRM'dagi `ASTERISK_RECORDINGS_DIR` bilan bir xil (umumiy disk) bo'lishi; yozuv faqat fayl topilsa CRM'da ko'rinadi.
 - **Qora ro'yxat**: `FILTER(0123456789,…)` va `${CRM_CN:-9}` (oxirgi 9 raqam) solishtirish.

@@ -72,6 +72,9 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
   const trunks = on.filter((m) => m.type === 'trunk');
   for (const u of users) if (!EXT_RE.test(u.number)) throw new GeneratorError(`Xodim raqami 2–5 xonali bo'lishi kerak: ${u.number}`);
   const exists = new Set(on.map((m) => m.number));
+  const webExt = new Set(users.filter((u) => cfgOf(u).webrtc !== false).map((u) => u.number));
+  /** Xodim qurilmalari: stol telefoni (PJSIP/N) va, yoqilgan bo'lsa, brauzer telefoni (PJSIP/N-web). */
+  const legs = (n: string) => (webExt.has(n) ? `PJSIP/${n}&PJSIP/${n}-web` : `PJSIP/${n}`);
   const go = (to?: string) => (to && exists.has(to) ? `Goto(${ctx(to)},s,1)` : 'Hangup()');
   const secrets = opt.sipSecrets || {};
   const rec = opt.recording?.enabled ? val(opt.recording.dir || '/var/spool/asterisk/monitor', 'recording.dir').replace(/\/+$/, '') : '';
@@ -89,12 +92,23 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
     const c = cfgOf(u);
     const id = u.number; // faqat raqam (EXT_RE) — transport-*/trunk-* bo'limlari bilan to'qnashmaydi
     const name = String(u.name || id).replace(/[\x00-\x1f\x7f;"<>\[\]\\]/g, '') || id;
+    const web = c.webrtc !== false;
+    // Oddiy SIP telefon (stol telefoni, MicroSIP, mobil softfon): oddiy RTP. Brauzer telefoni (WebRTC) — alohida «<raqam>-web» endpoint
+    // (DTLS-SRTP/ICE majburiy); bir endpointda ikkalasi bo'lmaydi: webrtc=yes oddiy telefonni «no common codecs» bilan rad etadi.
     pj.push(
-      `[${id}]`, 'type=endpoint', `context=from-internal`, 'disallow=all', 'allow=opus,ulaw,alaw', `auth=${id}`, `aors=${id}`, `callerid="${name}" <${id}>`,
-      ...(c.webrtc === false ? [] : ['webrtc=yes']), 'direct_media=no', 'rtp_symmetric=yes', 'force_rport=yes', 'rewrite_contact=yes', '',
+      `[${id}]`, 'type=endpoint', `context=from-internal`, 'disallow=all', 'allow=ulaw,alaw', `auth=${id}`, `aors=${id}`, `callerid="${name}" <${id}>`,
+      'direct_media=no', 'rtp_symmetric=yes', 'force_rport=yes', 'rewrite_contact=yes', '',
       `[${id}]`, 'type=auth', 'auth_type=userpass', `username=${id}`, `password=${val(secrets[id] || 'CHANGE_ME', `${id} SIP paroli`)}`, '',
       `[${id}]`, 'type=aor', 'max_contacts=5', 'remove_existing=yes', 'qualify_frequency=30', '',
     );
+    if (web) {
+      pj.push(
+        `[${id}-web]`, 'type=endpoint', `context=from-internal`, 'disallow=all', 'allow=opus,ulaw,alaw', `auth=${id}-web`, `aors=${id}-web`, `callerid="${name}" <${id}>`,
+        'webrtc=yes', 'direct_media=no', 'rtp_symmetric=yes', 'force_rport=yes', 'rewrite_contact=yes', '',
+        `[${id}-web]`, 'type=auth', 'auth_type=userpass', `username=${id}-web`, `password=${val(secrets[id] || 'CHANGE_ME', `${id} SIP paroli`)}`, '',
+        `[${id}-web]`, 'type=aor', 'max_contacts=3', 'remove_existing=yes', 'qualify_frequency=30', '',
+      );
+    }
   }
   for (const t of trunks) {
     const c = cfgOf(t);
@@ -135,11 +149,11 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
     switch (m.type) {
       case 'user': {
         const f = (c.forward || [])[0] || { afterSec: 15, to: '' };
-        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${m.number},Uuid: \${UNIQUEID})`, ` same => n,Dial(PJSIP/${m.number},${f.afterSec ?? 15})`, ` same => n,GotoIf($["\${DIALSTATUS}" = "ANSWER"]?done)`, ` same => n,${go(f.to)}`, ' same => n(done),Hangup()');
+        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${m.number},Uuid: \${UNIQUEID})`, ` same => n,Dial(${legs(m.number)},${f.afterSec ?? 15})`, ` same => n,GotoIf($["\${DIALSTATUS}" = "ANSWER"]?done)`, ` same => n,${go(f.to)}`, ' same => n(done),Hangup()');
         break;
       }
       case 'group':
-        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${(c.members as string[])[0] || m.number},Uuid: \${UNIQUEID})`, ` same => n,Dial(${(c.members as string[]).map((x) => `PJSIP/${x}`).join('&') || 'Local/0@nowhere'},${c.afterSec ?? 20})`, ` same => n,GotoIf($["\${DIALSTATUS}" = "ANSWER"]?done)`, ` same => n,${go(c.forwardTo)}`, ' same => n(done),Hangup()');
+        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${(c.members as string[])[0] || m.number},Uuid: \${UNIQUEID})`, ` same => n,Dial(${(c.members as string[]).map((x) => legs(x)).join('&') || 'Local/0@nowhere'},${c.afterSec ?? 20})`, ` same => n,GotoIf($["\${DIALSTATUS}" = "ANSWER"]?done)`, ` same => n,${go(c.forwardTo)}`, ' same => n(done),Hangup()');
         break;
       case 'queue':
         lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${(c.members as { ext: string }[])[0]?.ext || m.number},Uuid: \${UNIQUEID})`, ` same => n,Queue(q${ctx(m.number)},t,,,${c.queueSec ?? 180})`, ` same => n,${go(c.forwardTo)}`);
@@ -185,21 +199,26 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
     }
     ex.push(...lines, '');
   }
+  // xodim qurilmalari (stol + brauzer telefoni): CRM click-to-call (Originate Local/<ext>@crm-user) va navbat a'zolari shu kontekstdan chaqiradi
+  ex.push('[crm-user]');
+  for (const u of users) ex.push(`exten => ${u.number},1,Dial(${legs(u.number)},40)`, ' same => n,Hangup()');
+  ex.push('');
   // ichki va chiquvchi
   ex.push('[from-internal]');
-  for (const u of users) ex.push(`exten => ${u.number},1,Goto(${ctx(u.number)},s,1)`);
-  for (const m of on) if (['group', 'queue', 'greeting', 'voicemail', 'alias', 'http'].includes(m.type)) ex.push(`exten => ${m.number},1,Goto(${ctx(m.number)},s,1)`);
+  // ichki qo'ng'iroqlar ham yoziladi (MixMonitor — sozlamada yoqilgan bo'lsa)
+  for (const u of users) ex.push(`exten => ${u.number},1,NoOp(Ichki)`, ...mix, ` same => n,Goto(${ctx(u.number)},s,1)`);
+  for (const m of on) if (['group', 'queue', 'greeting', 'voicemail', 'alias', 'http'].includes(m.type)) ex.push(`exten => ${m.number},1,NoOp(Ichki)`, ...mix, ` same => n,Goto(${ctx(m.number)},s,1)`);
   // Chiquvchi qoidalar: tartib bo'yicha birinchi mos qoida (maska + «kimga ruxsat» ro'yxati). Faqat ko'rsatilgan xodimlar o'sha trunkdan chiqadi;
   // mos qoida bo'lmasa — rad (Hangup 21). Click-to-call (Originate) kanali ham xodim endpoint'i bo'lgani uchun xuddi shu tekshiruvdan o'tadi.
   const rules = (opt.outgoing?.rules || []).filter((r) => r.trunk && exists.has(r.trunk) && on.some((m) => m.type === 'trunk' && m.number === r.trunk));
   if (rules.length) {
     ex.push('exten => _X.,1,Goto(crm-outbound,${EXTEN},1)', '');
-    ex.push('[crm-outbound]', 'exten => _X.,1,NoOp(Chiquvchi)', ' same => n,Set(CRM_EP=${CHANNEL(endpoint)})');
+    ex.push('[crm-outbound]', 'exten => _X.,1,NoOp(Chiquvchi)', ' same => n,Set(CRM_EP=${CHANNEL(endpoint)})', ' same => n,ExecIf($["${CRM_EP}" = ""]?Set(CRM_EP=${CALLERID(num)}))');
     rules.forEach((r, i) => {
       const conds: string[] = [];
       if (r.mask) conds.push(`\${REGEX("${maskRe(r.mask)}" \${EXTEN})}`);
       const us = (r.users || []).filter((u) => EXT_RE.test(String(u)));
-      if (us.length) conds.push(`\${REGEX("^(${us.join('|')})$" \${CRM_EP})}`);
+      if (us.length) conds.push(`\${REGEX("^(${us.join('|')})(-web)?$" \${CRM_EP})}`);
       ex.push(conds.length ? ` same => n,GotoIf($[${conds.join(' & ')}]?r${i + 1})` : ` same => n,Goto(r${i + 1})`);
     });
     ex.push(' same => n,Hangup(21)');
@@ -218,7 +237,7 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
     const c = cfgOf(m);
     const strat = ({ count: 'leastrecent', ringall: 'ringall', roundrobin: 'rrmemory', random: 'random' } as Record<string, string>)[c.strategy] || 'leastrecent';
     q.push(`[q${ctx(m.number)}]`, `strategy=${strat}`, `timeout=${c.ringSec ?? 15}`, 'retry=2', `announce-position=${c.announcePosition ? 'yes' : 'no'}`, `announce-frequency=${c.repeatSec ?? 0}`);
-    for (const mem of c.members as { ext: string; priority: number }[]) q.push(`member => PJSIP/${mem.ext},${mem.priority - 1}`);
+    for (const mem of c.members as { ext: string; priority: number }[]) q.push(`member => ${webExt.has(mem.ext) ? `Local/${mem.ext}@crm-user/n` : `PJSIP/${mem.ext}`},${mem.priority - 1}`);
     q.push('');
   }
   return { pjsip: pj.join('\n'), extensions: ex.join('\n'), queues: q.join('\n') };
