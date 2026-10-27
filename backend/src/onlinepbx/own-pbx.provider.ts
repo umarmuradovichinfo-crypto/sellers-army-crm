@@ -11,6 +11,8 @@ const isInt = (s: string) => /^\d{2,5}$/.test(s);
 /** `PJSIP/100-0000001a` → `100` (kanal nomidan ichki raqam). */
 const extOfChannel = (ch?: string) => { const m = /^PJSIP\/(\d{2,5})(?:-web)?-[0-9a-f]+$/i.exec(String(ch || '')); return m ? m[1] : ''; };
 /** CRM qo'ng'iroq identifikatori: dialplan `CDR(userfield)=crm:<uuid>` yozadi (Originate'ga `CRM_UUID` o'zgaruvchisi bilan beriladi). */
+/** CDR userfield'dagi `ext:<ichki raqam>` — chiquvchi qo'ng'iroqda CALLERID tashqi raqamga almashgani uchun xodim raqami shu yerdan olinadi. */
+const crmExtOf = (e: AmiMsg) => { const m = /(?:^|[\s;,])ext:(\d{2,5})(?:$|[\s;,])/.exec(` ${e.UserField || ''}`); return m ? m[1] : ''; };
 const crmUuidOf = (e: AmiMsg) => { const m = /(?:^|[\s;,])crm:([\w-]{6,64})/.exec(` ${e.UserField || ''}`); return m ? m[1] : ''; };
 
 /**
@@ -33,7 +35,9 @@ export function cdrTime(s?: string, tz = process.env.ASTERISK_TZ || '+00:00'): s
 export function cdrToCallBody(e: AmiMsg, opts: { recording?: boolean } = {}): Record<string, unknown> | null {
   const uuid = crmUuidOf(e) || e.UniqueID || e.Uniqueid;
   if (!uuid) return null;
-  const src = e.Source || e.CallerID || '';
+  const extTok = crmExtOf(e);
+  // chiquvchi (trunk orqali): CDR Source — tashqi caller-id; haqiqiy chaqiruvchi xodim raqami userfield'da
+  const src = extTok && !isInt(String(e.Source || '')) ? extTok : e.Source || e.CallerID || '';
   // `s` (dialplan ichki kengaytmasi) — haqiqiy raqam emas: operator raqami kanal nomidan olinadi
   const dstRaw = e.Destination || '';
   const dstExt = extOfChannel(e.DestinationChannel);

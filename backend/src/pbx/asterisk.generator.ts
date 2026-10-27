@@ -224,8 +224,10 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
     ex.push(' same => n,Hangup(21)');
     rules.forEach((r, i) => {
       const cid = r.externalNumber && /^\+?\d{3,20}$/.test(r.externalNumber) ? r.externalNumber : r.trunk;
-      ex.push(` same => n(r${i + 1}),Set(CALLERID(num)=${val(cid, 'externalNumber')})`,
-        ' same => n,ExecIf($["${CRM_UUID}" != ""]?Set(CDR(userfield)=crm:${CRM_UUID}))', ...mix,
+      // CALLERID(num) tashqi raqamga almashadi (CDR Source ham shu bo'ladi) — shuning uchun xodim ichki raqami CDR userfield'iga `ext:` bilan yoziladi
+      ex.push(` same => n(r${i + 1}),Set(CRM_EXT=\${CUT(CRM_EP,-,1)})`,
+        ' same => n,Set(CRM_UF=ext:${CRM_EXT})', ' same => n,ExecIf($["${CRM_UUID}" != ""]?Set(CRM_UF=crm:${CRM_UUID} ${CRM_UF}))', ' same => n,Set(CDR(userfield)=${CRM_UF})',
+        ` same => n,Set(CALLERID(num)=${val(cid, 'externalNumber')})`, ...mix,
         ` same => n,Dial(PJSIP/\${EXTEN}@${trunkId(r.trunk)},60)`, ' same => n,Hangup()');
     });
   }

@@ -8,6 +8,13 @@ SECRET=livesecret123
 rm -rf "$W"; mkdir -p "$W"
 AMI_SECRET=$SECRET AMI_PERMIT="0.0.0.0/0.0.0.0" "$ROOT/deploy/asterisk/init.sh" "$W" >/dev/null
 mv "$W/recordings" "$W/rec"
+python3 - <<'PY'
+import wave,math,struct,os
+p=os.path.expanduser('~/.crm-live/rec/tone.wav')
+w=wave.open(p,'wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(8000)
+w.writeframes(b''.join(struct.pack('<h',int(8000*math.sin(2*math.pi*440*i/8000))) for i in range(8000*30))); w.close()
+PY
+chmod a+r "$W/rec/tone.wav"
 docker image inspect crm-ast-test >/dev/null 2>&1 || docker build -q -t crm-ast-test "$ROOT/scripts/pbx-live" >/dev/null
 docker rm -f crm-ast-live >/dev/null 2>&1 || true
 docker run -d --name crm-ast-live -p 127.0.0.1:5038:5038 -p 5060:5060/udp -p 127.0.0.1:8089:8089 -p 10000-10100:10000-10100/udp \
