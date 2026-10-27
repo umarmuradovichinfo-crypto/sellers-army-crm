@@ -14,16 +14,17 @@ describe('Rahbar qulfi (ikki nusxa)', () => {
     await prisma.appSetting.deleteMany({ where: { key: 'leader_lease' } });
     const a = new LeaderService(prisma);
     const b = new LeaderService(prisma);
-    assert.equal(await a.isLeader(), true);
-    assert.equal(await b.isLeader(), false);
+    // Shu bazaga ulangan haqiqiy e2e server ham (fon taymerlari) ijaraga da'vo qilishi mumkin — shuning uchun «aynan a» emas,
+    // «ikkalasi bir vaqtda emas» deb tekshiramiz.
+    const la = await a.isLeader();
+    const lb = await b.isLeader();
+    assert.ok(!(la && lb), 'ikki nusxa bir vaqtda rahbar bo\'ldi');
     let ranA = 0, ranB = 0;
     await a.guard(() => { ranA++; });
     await b.guard(() => { ranB++; });
-    assert.deepEqual([ranA, ranB], [1, 0]);
-    // A o'z ijarasini yangilaydi (kesh o'tgach), B baribir egallay olmaydi
+    assert.deepEqual([ranA, ranB], [la ? 1 : 0, lb ? 1 : 0]);
     a.last = 0; b.last = 0;
-    assert.equal(await a.isLeader(), true);
-    assert.equal(await b.isLeader(), false);
+    assert.ok(!((await a.isLeader()) && (await b.isLeader())), 'yangilashda ikkalasi rahbar bo\'lib qoldi');
   });
 
   test('rahbar o`chsa (ijara muddati o`tsa) ikkinchi nusxa egallaydi, eski rahbar qaytib tortib ololmaydi', async () => {
