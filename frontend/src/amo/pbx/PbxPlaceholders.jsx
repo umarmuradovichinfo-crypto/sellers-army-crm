@@ -33,6 +33,27 @@ export function ServiceInfo({ title, text, items = [] }) {
   )
 }
 
+export function PbxRecord() {
+  const t = useT()
+  return (
+    <div className="pbxr">
+      <Link className="pbxr__help" to="/pbx/calls">{t('pbx§Yozuv qanday yoqiladi?')}</Link>
+      <div className="pbxr__cards">
+        <div className="pbxr__card">
+          <h4>{t('pbx§Suhbatlarni yozib olish')}<i className="pbxr__sw" /></h4>
+          <p>{t("pbx§Yozuvlarni qo'ng'iroqlar jurnalidan")} <Link to="/pbx/calls">{t('pbx§tinglash')}</Link> {t('pbx§mumkin. Stansiya serveri ulangach yozuv avtomatik yoqiladi.')}</p>
+          <Link className="pbxr__btn" to="/pbx/license">{t('pbx§Litsenziyani uzaytirish')}</Link>
+        </div>
+        <div className="pbxr__card">
+          <h4>{t('pbx§Stereoyozuv')}</h4>
+          <p>{t("pbx§Stereoyozuv ovoz sifatini oshiradi va nutq tahlili xizmatlaridan foydalanish imkonini beradi.")}</p>
+          <span className="pbxr__btn pbxr__btn--off">{t('pbx§Tez orada')}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function PbxHome() {
   const t = useT()
   const today = new Date(Date.now() + 5 * 3_600_000).toISOString().slice(0, 10)

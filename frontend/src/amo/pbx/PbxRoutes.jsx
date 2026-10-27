@@ -4,7 +4,7 @@ import PbxShell, { AtsLayout, ServicesLayout } from './PbxShell'
 import { AudioLibrary, Blacklist, CallbackSettings, AutoRecallSettings, Diagnostic, Incoming, Music, Outgoing } from '../pages/PbxPage'
 import CallsPage from '../pages/CallsPage'
 import CallReportsPage from '../pages/CallReportsPage'
-import { PbxChats, PbxConfigurator, PbxHome, PbxIntegration, PbxLicense, PbxStatistic, ServiceInfo, TopTabs } from './PbxPlaceholders'
+import { PbxChats, PbxConfigurator, PbxHome, PbxIntegration, PbxLicense, PbxRecord, PbxStatistic, ServiceInfo, TopTabs } from './PbxPlaceholders'
 
 const S = (props) => <PbxShell {...props} />
 
@@ -30,7 +30,7 @@ export default function PbxRoutes() {
       <Route path="/services/autorecall" element={<S><ServicesLayout><AutoRecallSettings /></ServicesLayout></S>} />
       <Route path="/services/callback" element={<S><ServicesLayout><CallbackSettings /></ServicesLayout></S>} />
       <Route path="/services/ai" element={<S><ServicesLayout><ServiceInfo title="pbx§AI-menejer" text="pbx§Sun'iy intellekt qo'ng'iroqlarni tahlil qiladi, suhbat mazmunini yozib oladi va mijoz kartochkasiga xulosa qo'shadi." /></ServicesLayout></S>} />
-      <Route path="/services/record" element={<S><ServicesLayout><ServiceInfo title="pbx§Suhbatlarni yozib olish" text="pbx§Barcha suhbatlar yozib olinadi va qo'ng'iroqlar jurnalidan tinglash mumkin; stereo yozuv nutq tahlili uchun." /></ServicesLayout></S>} />
+      <Route path="/services/record" element={<S><ServicesLayout free><PbxRecord /></ServicesLayout></S>} />
       <Route path="/services/quality" element={<S><ServicesLayout><ServiceInfo title="pbx§Sifat bahosi" text="pbx§Suhbatdan keyin mijozdan 1–5 baho so'raladi; past baholar haqida xabar beriladi, natijalar hisobotda ko'rinadi." items={['pbx§Qo\'ng\'iroqdan keyin ovozli so\'rov', 'pbx§Past baholar haqida xabarnoma', 'pbx§Qo\'ng\'iroqlar jurnalida baho bo\'yicha filtr']} /></ServicesLayout></S>} />
       <Route path="/services/informer" element={<S><ServicesLayout><ServiceInfo title="pbx§Avtoinformator" text="pbx§Ovozli xabarni raqamlar ro'yxatiga avtomatik qo'ng'iroq qilib yetkazadi: balans, to'lov eslatmasi, aksiya, tabrik." /></ServicesLayout></S>} />
       <Route path="/services/tts" element={<S><ServicesLayout><AudioLibrary /></ServicesLayout></S>} />
