@@ -28,4 +28,21 @@ export const pbxService = {
   saveMusic: (body) => api.put('/pbx/music', body),
   outgoing: () => api.get('/pbx/outgoing'),
   saveOutgoing: (rules) => api.put('/pbx/outgoing', { rules }),
+  // ovoz sintezi (matn → audio kutubxona)
+  ttsVoices: () => api.get('/pbx/tts/voices'),
+  ttsSettings: (provider) => api.put('/pbx/tts/settings', { provider }),
+  tts: (body) => api.post('/pbx/tts', body),
+  // sifat bahosi
+  quality: () => api.get('/pbx/quality'),
+  saveQuality: (body) => api.put('/pbx/quality', body),
+  // avtoinformator
+  informerSettings: () => api.get('/pbx/informer/settings'),
+  saveInformerSettings: (body) => api.put('/pbx/informer/settings', body),
+  informers: () => api.get('/pbx/informer'),
+  informer: (id, state) => api.get(`/pbx/informer/${id}${state ? `?state=${state}` : ''}`),
+  informerCreate: (body) => api.post('/pbx/informer', body),
+  informerUpdate: (id, body) => api.put(`/pbx/informer/${id}`, body),
+  informerRemove: (id) => api.delete(`/pbx/informer/${id}`),
+  informerNumbers: (id, text) => api.post(`/pbx/informer/${id}/numbers`, { text }),
+  informerAction: (id, action) => api.post(`/pbx/informer/${id}/${action}`, {}),
 }

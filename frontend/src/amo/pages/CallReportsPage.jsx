@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useT } from '../i18n'
 import { useApi } from '../../lib/useApi'
 import { crmService } from '../../services/crm.service'
+import { pbxService } from '../../services/pbx.service'
 import '../i18n/callreports.ru'
 import '../calls.css'
 
@@ -36,8 +37,14 @@ function Bars({ series, keys, colors }) {
 export default function CallReportsPage() {
   const t = useT()
   const { kind } = useParams()
-  const [f, setF] = useState({ from: ago(6), to: today(), ext: '' })
+  const [f, setF] = useState({ from: ago(6), to: today(), ext: '', group: '' })
   const [applied, setApplied] = useState(f)
+  // filtr ro'yxatlari: xodimlar (so'nggi 30 kun hisobotidan, ichki raqami bor) va guruhlar/navbatlar (o'z stansiya modullari; huquq bo'lmasa — yashiriladi)
+  const base = useApi(() => (kind ? crmService.callsStats({ from: ago(29), to: today() }).catch(() => null) : Promise.resolve(null)), [kind], `calls-stats-emps:${kind || '-'}`, 300000)
+  const groups = useApi(() => (kind ? Promise.all([pbxService.modules('group'), pbxService.modules('queue')]).then(([a, b]) => [...(a.modules || []), ...(b.modules || [])]).catch(() => []) : Promise.resolve([])), [kind], `calls-groups:${kind || '-'}`, 300000)
+  const emps = (base.data?.employees || []).filter((e) => e.ext)
+  const PRESETS = [['cr§Bugun', 0, 0], ['cr§Kecha', 1, 1], ['cr§7 kun', 6, 0], ['cr§30 kun', 29, 0]]
+  const preset = (a, b) => { const n = { ...f, from: ago(a), to: ago(b) }; setF(n); setApplied(n) }
   const { data, loading, error } = useApi(() => (kind ? crmService.callsStats(applied) : Promise.resolve(null)), [kind, JSON.stringify(applied)], `calls-stats:${kind || '-'}:${JSON.stringify(applied)}`, kind ? 60000 : 0)
   return (
     <>
@@ -54,10 +61,23 @@ export default function CallReportsPage() {
               {KINDS.map(([k, l]) => <Link key={k} to={`/pbx/reports/${k}`} className={kind === k ? 'on' : ''}>{t(l)}</Link>)}
             </div>
             <div className="ac-cr__filter">
-              <input className="ac-input" type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />
-              <input className="ac-input" type="date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} />
-              {kind === 'employee' && <input className="ac-input" placeholder={t('cr§Ichki raqam')} value={f.ext} onChange={(e) => setF({ ...f, ext: e.target.value })} />}
+              <span className="ac-cr__presets">{PRESETS.map(([l, a, b]) => <button key={l} type="button" className={applied.from === ago(a) && applied.to === ago(b) ? 'on' : ''} onClick={() => preset(a, b)}>{t(l)}</button>)}</span>
+              <input className="ac-input" type="date" value={f.from} aria-label={t('cr§Dan')} onChange={(e) => setF({ ...f, from: e.target.value })} />
+              <input className="ac-input" type="date" value={f.to} aria-label={t('cr§Gacha')} onChange={(e) => setF({ ...f, to: e.target.value })} />
+              {emps.length ? (
+                <select className="ac-select" value={f.ext} aria-label={t('cr§Xodim')} onChange={(e) => setF({ ...f, ext: e.target.value })}>
+                  <option value="">{t('cr§Barcha xodimlar')}</option>
+                  {emps.map((e) => <option key={e.id} value={e.ext}>{e.ext} {e.name}</option>)}
+                </select>
+              ) : <input className="ac-input" placeholder={t('cr§Ichki raqam')} value={f.ext} onChange={(e) => setF({ ...f, ext: e.target.value })} />}
+              {(groups.data || []).length > 0 && (
+                <select className="ac-select" value={f.group} aria-label={t('cr§Guruh')} onChange={(e) => setF({ ...f, group: e.target.value })}>
+                  <option value="">{t('cr§Barcha guruhlar')}</option>
+                  {groups.data.map((g) => <option key={g.id} value={g.number}>{g.number}{g.name ? ` ${g.name}` : ''}</option>)}
+                </select>
+              )}
               <button type="button" className="ac-btn ac-btn--blue" onClick={() => setApplied(f)}>{t("cr§Qo'llash")}</button>
+              {(applied.ext || applied.group) && <button type="button" className="ac-btn" onClick={() => { const n = { ...f, ext: '', group: '' }; setF(n); setApplied(n) }}>{t('cr§Tozalash')}</button>}
             </div>
             {error && !data && <div className="ac-cl__empty">{t(error.status === 400 ? 'cr§Davr 93 kundan oshmasin' : "cr§Yuklab bo'lmadi")}</div>}
             {data && kind === 'group' && (
@@ -71,7 +91,7 @@ export default function CallReportsPage() {
               <>
                 <Bars series={data.series} keys={['talkMin']} colors={['#2db26d']} />
                 <Legend items={[['#2db26d', 'cr§Suhbat, daqiqa']]} />
-                <Employees list={f.ext ? data.employees : data.employees.slice(0, 1)} detailed />
+                <Employees list={applied.ext ? data.employees : data.employees.slice(0, 1)} detailed />
               </>
             )}
             {data && kind === 'missed' && <Missed m={data.missed} />}

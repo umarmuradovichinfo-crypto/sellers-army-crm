@@ -23,6 +23,9 @@ rm -rf /tmp/crm-e2e-asterisk
 export ASTERISK_CONF_DIR="/tmp/crm-e2e-asterisk/conf" ASTERISK_SOUNDS_DIR="/tmp/crm-e2e-asterisk/sounds"
 # yozuvlar papkasi (saqlash muddati / «yozuv mavjud emas» sinovi)
 export ASTERISK_RECORDINGS_DIR="/tmp/crm-e2e-asterisk/rec"; mkdir -p "$ASTERISK_RECORDINGS_DIR"
+# Ovoz sintezi: sinov provayderi (kalitsiz, tarmoqsiz) va kichik sutkalik limit (limit sinovi uchun)
+export PBX_TTS_MOCK=1 PBX_TTS_DAILY=12
+unset AZURE_TTS_KEY AZURE_TTS_REGION GOOGLE_TTS_API_KEY ESPEAK_BIN || true
 # Obuna litsenziyasi sinovi uchun test sirri (faqat lokal test bazasi)
 export LICENSE_ALLOW_UNBOUND=1 LICENSE_SECRET="e2e-license-secret" BILLING_CARD_NUMBER="8600 0000 0000 0000" BILLING_CARD_HOLDER="TEST HOLDER" BILLING_TELEGRAM="@test_admin"
 

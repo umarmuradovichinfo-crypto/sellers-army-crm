@@ -37,6 +37,16 @@ CFG
 cat > "$P/etc/extensions.conf" <<'CFG'
 [general]
 [provider-in]
+; avtoinformator sinovi: bu raqam javob bermaydi (jiringlab turadi)
+exten => 998901110003,1,Ringing()
+ same => n,Wait(50)
+ same => n,Hangup()
+; sifat bahosi (chiquvchi, «hammasi»): mijoz javob beradi, operator qo'ygach IVR so'roviga 5 ni bosadi
+exten => 998907770005,1,Answer()
+ same => n,Wait(10)
+ same => n,SendDTMF(5)
+ same => n,Wait(6)
+ same => n,Hangup()
 ; bizning stansiyadan trunk orqali kelgan chiquvchi qo'ng'iroq: javob berib 6 soniya turadi
 exten => _X.,1,NoOp(Provayderga chiquvchi: ${EXTEN} from ${CALLERID(num)})
  same => n,Answer()
@@ -45,6 +55,12 @@ exten => _X.,1,NoOp(Provayderga chiquvchi: ${EXTEN} from ${CALLERID(num)})
 [provider-out]
 ; provayderdan bizga kiruvchi (originate shu kontekstda)
 exten => s,1,Answer()
+ same => n,Wait(6)
+ same => n,Hangup()
+; sifat bahosi sinovi (kiruvchi): operator ~5 s gaplashib qo'yadi, so'ng bizning IVR so'roviga mijoz 4 ni bosadi
+exten => rate,1,Answer()
+ same => n,Wait(12)
+ same => n,SendDTMF(4)
  same => n,Wait(6)
  same => n,Hangup()
 CFG

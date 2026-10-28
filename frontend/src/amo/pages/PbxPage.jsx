@@ -9,6 +9,7 @@ import { pbxService } from '../../services/pbx.service'
 import { settingsService } from '../../services/settings.service'
 import { ACCESS, ADD_ORDER, DAYS, FIELDS, NOTIFS, SECTION_LABEL, TYPE_LABEL, TYPE_ORDER, fromForm, toForm } from '../pbxFields'
 import '../i18n/pbx.ru'
+import { TtsBlock } from '../pbx/TtsBlock'
 
 export function Field({ label, children, hint }) {
   return <label className="ac-pbx__row"><span className="ac-pbx__lab">{label}</span><span className="ac-pbx__val">{children}</span>{hint && <small className="ac-pbx__hint">{hint}</small>}</label>
@@ -566,6 +567,7 @@ export function AudioLibrary() {
     <div className="ac-pbx__page">
       <h3>{t('pbx§AUDIO FAYLLAR')}</h3>
       <p className="ac-pbx__muted">{t("pbx§Salomlashish, navbat, ovozli pochta va musiqa uchun MP3/WAV/OGG fayllar (har biri 5 MB gacha).")}</p>
+      <TtsBlock onCreated={() => reload()} />
       <label className="ac-btn ac-btn--blue" style={{ display: 'inline-flex', alignItems: 'center' }}>{`+ ${t('pbx§Fayl yuklash')}`}<input type="file" accept="audio/mpeg,audio/wav,audio/ogg,.mp3,.wav,.ogg" hidden onChange={upload} disabled={busy} /></label>
       {err && <div className="ac-pbx__err">{err}</div>}
       {(data?.files || []).length === 0 ? <div className="ac-pbx__empty">{t("pbx§Hali audio fayl yo'q.")}</div> : (

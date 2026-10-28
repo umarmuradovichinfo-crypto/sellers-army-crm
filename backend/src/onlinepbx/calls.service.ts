@@ -72,6 +72,10 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     this.own.onCall((body) => {
       this.leader.guard(async () => ((await this.cfg.get()).provider === 'own' ? this.processCallEvent(body) : undefined)).catch((e) => this.logger.warn('CDR: ' + (e as Error).message));
     });
+    // sifat bahosi (IVR → AMI UserEvent CrmRate) — faqat rahbar nusxa yozadi
+    this.own.onRate((r) => {
+      this.leader.guard(() => this.applyRating(r.uuid, r.rating)).catch((e) => this.logger.warn('Baho: ' + (e as Error).message));
+    });
     this.syncTimer = setInterval(() => {
       this.leader.guard(() => this.syncHistory({ force: true, minutes: 30 })).catch(() => {});
     }, 10_000);
@@ -573,6 +577,15 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     const uById = new Map(users.map((u) => [u.id, u]));
     let scope = rows;
     if (q.ext) { const u = users.find((x) => x.extension === q.ext); scope = u ? rows.filter((r) => r.userId === u.id) : []; }
+    // xodimlar guruhi (o'z stansiya «Группа»/«Очередь» moduli): a'zolarning qo'ng'iroqlari
+    if (q.group) {
+      if (!/^[0-9A-Za-z_+*#-]{1,32}$/.test(String(q.group))) throw new BadRequestException({ error: 'BAD_GROUP', message: "Guruh raqami noto'g'ri" });
+      const g = await this.prisma.pbxModule.findUnique({ where: { number: String(q.group) }, select: { type: true, configJson: true } });
+      let exts: string[] = [];
+      try { const c = g && ['group', 'queue'].includes(g.type) ? JSON.parse(g.configJson) : {}; exts = (Array.isArray(c.members) ? c.members : []).map((m: any) => String(typeof m === 'object' ? m?.ext : m)); } catch { /* */ }
+      const ids = new Set(users.filter((u) => u.extension && exts.includes(u.extension)).map((u) => u.id));
+      scope = scope.filter((r) => r.userId && ids.has(r.userId));
+    }
     const dayKey = (d: Date) => new Date(d.getTime() + TZ).toISOString().slice(0, 10);
     const isInt = (r: { phone: string }) => isInternalNumber(r.phone);
     const days: string[] = [];
@@ -606,7 +619,18 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     });
     const cb = missed.filter((m) => m.callbackSec !== null) as (typeof missed[number] & { callbackSec: number })[];
     const real = scope.filter((r) => !isInt(r) && r.status !== 'ringing');
+    // sifat bahosi: o'rtacha, taqsimot (1–5), past baholar (≤ lowMax, standart 2) — eng yangilari
+    const rated = scope.filter((r) => r.rating && r.rating >= 1 && r.rating <= 5);
+    const lowMax = Math.min(4, Math.max(1, Number(q.lowMax) || 2));
+    const dist: Record<string, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const r of rated) dist[String(r.rating)]++;
+    const low = rated.filter((r) => r.rating! <= lowMax).slice(-100).reverse().map((r) => {
+      const u = r.userId ? uById.get(r.userId) : undefined;
+      return { id: r.id, at: r.startedAt.toISOString(), phone: r.phone, rating: r.rating, direction: r.direction, talkSec: r.talkSec, userName: u?.name || null, ext: u?.extension || null, leadId: r.leadId };
+    });
+    const quality = { count: rated.length, avg: rated.length ? Math.round((rated.reduce((a, r) => a + r.rating!, 0) / rated.length) * 100) / 100 : null, dist, lowMax, low, answered: real.filter((r) => r.talkSec > 0).length };
     return {
+      quality,
       range: { from: days[0], to: days[days.length - 1] }, truncated, series, employees,
       missed: { list: missed.slice(-200).reverse(), count: missed.length, calledBack: cb.length, calledBack15: cb.filter((m) => m.callbackSec <= 900).length, avgCallbackSec: cb.length ? Math.round(cb.reduce((a, m) => a + m.callbackSec, 0) / cb.length) : null, avgWaitSec: missed.length ? Math.round(missed.reduce((a, m) => a + m.waitSec, 0) / missed.length) : 0 },
       outcomes: { success: real.filter((r) => r.talkSec > 0).length, missedIn: real.filter((r) => r.direction === 'in' && r.talkSec === 0).length, failedOut: real.filter((r) => r.direction === 'out' && r.talkSec === 0).length, total: real.length },
@@ -822,14 +846,37 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     const args = { phone, other, direction, status, durationSec, talkSec: talk, hangup, recordUrl, externalId, final, startedAt };
     if (externalId) {
       return this.withLock(`call:${externalId}`, async () => {
-        try { return await this.applyCall(args); } catch (e) {
+        let out;
+        try { out = await this.applyCall(args); } catch (e) {
           // boshqa nusxa/jarayon shu uuid'ni bir lahza oldin yozdi (externalId noyob) — endi yangilash sifatida qayta ishlaymiz
-          if (isP2002(e)) return this.applyCall(args);
-          throw e;
+          if (isP2002(e)) out = await this.applyCall(args); else throw e;
         }
+        await this.flushRating(externalId);
+        return out;
       });
     }
     return this.applyCall(args);
+  }
+
+  /**
+   * Mijoz bahosi (1–5) → call_logs.rating (externalId = qo'ng'iroq uuid). Idempotent: bir xil hodisa qayta kelsa natija o'zgarmaydi.
+   * Baho CDR'dan OLDIN keladi (mijoz hali go'shakni qo'ymagan) — yozuv bo'lmasa 30 daqiqa xotirada kutadi va CDR yozilganda qo'llanadi.
+   */
+  private pendingRatings = new Map<string, { rating: number; at: number }>();
+  async applyRating(uuid: string, rating: number): Promise<{ ok: boolean; updated: number; pending?: boolean }> {
+    if (!/^[\w.-]{6,64}$/.test(String(uuid || '')) || !Number.isInteger(rating) || rating < 1 || rating > 5) return { ok: false, updated: 0 };
+    const r = await this.prisma.callLog.updateMany({ where: { externalId: uuid }, data: { rating } });
+    if (r.count) { this.pendingRatings.delete(uuid); return { ok: true, updated: r.count }; }
+    const now = Date.now();
+    for (const [k, v] of this.pendingRatings) if (now - v.at > 30 * 60_000) this.pendingRatings.delete(k);
+    if (this.pendingRatings.size < 5000) this.pendingRatings.set(uuid, { rating, at: now });
+    return { ok: true, updated: 0, pending: true };
+  }
+  private async flushRating(externalId: string | null) {
+    const p = externalId ? this.pendingRatings.get(externalId) : undefined;
+    if (!p || !externalId) return;
+    const r = await this.prisma.callLog.updateMany({ where: { externalId }, data: { rating: p.rating } });
+    if (r.count) this.pendingRatings.delete(externalId);
   }
 
   private locks = new Map<string, Promise<unknown>>();

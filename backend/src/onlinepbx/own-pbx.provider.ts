@@ -35,6 +35,8 @@ export function cdrTime(s?: string, tz = process.env.ASTERISK_TZ || '+00:00'): s
 export function cdrToCallBody(e: AmiMsg, opts: { recording?: boolean } = {}): Record<string, unknown> | null {
   const uuid = crmUuidOf(e) || e.UniqueID || e.Uniqueid;
   if (!uuid) return null;
+  // sifat bahosi so'rovi (operator qo'ygandan keyingi qism) — alohida qo'ng'iroq emas (asosiy CDR suhbatni allaqachon yozgan)
+  if (/^crm-rate$/i.test(String(e.DestinationContext || e.DstContext || ''))) return null;
   const extTok = crmExtOf(e);
   // chiquvchi (trunk orqali): CDR Source — tashqi caller-id; haqiqiy chaqiruvchi xodim raqami userfield'da
   const src = extTok && !isInt(String(e.Source || '')) ? extTok : e.Source || e.CallerID || '';
@@ -48,7 +50,7 @@ export function cdrToCallBody(e: AmiMsg, opts: { recording?: boolean } = {}): Re
   let accountcode = 'inbound';
   if (isInt(src) && !isInt(dst)) accountcode = 'outbound';
   else if (isInt(src) && isInt(dst)) accountcode = 'local';
-  else if (/from-internal|crm-outbound/.test(ctx) && !isInt(dst)) accountcode = 'outbound';
+  else if (/from-internal|crm-outbound|crm-informer/.test(ctx) && !isInt(dst)) accountcode = 'outbound';
   const disp = String(e.Disposition || '').toUpperCase();
   const bridged = !!String(e.DestinationChannel || '').trim();
   const operatorAnswered = disp === 'ANSWERED' && bridged;
@@ -96,6 +98,20 @@ export function ringToCallBody(e: AmiMsg): Record<string, unknown> | null {
 }
 
 /**
+ * Dialplan'dagi `UserEvent(CrmRate,Uuid: …,Rating: N)` (sifat bahosi IVR) → { uuid, rating }. Faqat 1–5 va xavfsiz uuid; aks holda null.
+ */
+export function rateFromEvent(e: AmiMsg): { uuid: string; rating: number } | null {
+  if (e.Event !== 'UserEvent' || e.UserEvent !== 'CrmRate') return null;
+  const uuid = String(e.Uuid || '').trim();
+  const r = String(e.Rating || '').trim();
+  if (!/^[\w.-]{6,64}$/.test(uuid) || !/^[1-5]$/.test(r)) return null;
+  return { uuid, rating: Number(r) };
+}
+
+/** Originate natijasi (AMI OriginateResponse Reason): 4 — javob berildi; 5 — band; 3/1 — javob yo'q; 8 — tarmoq band; 0 — kanal yaratilmadi. */
+export interface OriginateResult { uuid: string; answered: boolean; reason: string; kind: string }
+
+/**
  * O'z stansiyamiz (Asterisk) provayderi: AMI orqali qo'ng'iroq boshlash va CDR hodisalarini olish; yozuvlar umumiy papkadan.
  * Sozlama (env): ASTERISK_AMI_HOST, ASTERISK_AMI_PORT (5038), ASTERISK_AMI_USER, ASTERISK_AMI_SECRET, ASTERISK_RECORDINGS_DIR, ASTERISK_TZ (+05:00),
  * ASTERISK_CDR_MERGE_MS (bitta qo'ng'iroq CDR'larini yig'ish oynasi, standart 1500).
@@ -108,10 +124,12 @@ export class OwnPbxProvider implements PbxProvider, OnModuleInit, OnModuleDestro
   private ami: AmiClient | null = null;
   private connecting: Promise<void> | null = null;
   private listeners: ((body: Record<string, unknown>) => void)[] = [];
+  private rateListeners: ((r: { uuid: string; rating: number }) => void)[] = [];
+  private origListeners: ((r: OriginateResult) => void)[] = [];
   private retry: NodeJS.Timeout | null = null;
   private destroyed = false;
   /** Originate → OriginateResponse bog'lanishi (ActionID → qo'ng'iroq). */
-  private originates = new Map<string, { uuid: string; from: string; to: string; at: number }>();
+  private originates = new Map<string, { uuid: string; from: string; to: string; at: number; kind?: string }>();
   /** uuid → yig'ilayotgan CDR'lar (bir nechta CDR bitta natijaga birlashtiriladi). */
   private cdrBuf = new Map<string, { body: Record<string, unknown>; timer: NodeJS.Timeout }>();
 
@@ -122,6 +140,10 @@ export class OwnPbxProvider implements PbxProvider, OnModuleInit, OnModuleDestro
 
   /** CDR hodisalarini tinglovchi (CallsService shu orqali yozuvni oladi). */
   onCall(cb: (body: Record<string, unknown>) => void) { this.listeners.push(cb); }
+  /** Sifat bahosi (CrmRate UserEvent). */
+  onRate(cb: (r: { uuid: string; rating: number }) => void) { this.rateListeners.push(cb); }
+  /** CRM boshlagan Originate natijasi (avtoinformator shu orqali «javob berildi/berilmadi» ni biladi). */
+  onOriginate(cb: (r: OriginateResult) => void) { this.origListeners.push(cb); }
 
   onModuleInit() {
     if (!this.configured() || process.env.NODE_ENV === 'test') return;
@@ -178,7 +200,10 @@ export class OwnPbxProvider implements PbxProvider, OnModuleInit, OnModuleDestro
     const o = this.originates.get(e.ActionID || '');
     if (!o) return;
     this.originates.delete(e.ActionID);
-    if (/^success$/i.test(e.Response || '')) return; // keyin CDR keladi
+    const ok = /^success$/i.test(e.Response || '');
+    const res: OriginateResult = { uuid: o.uuid, answered: ok, reason: String(e.Reason || ''), kind: o.kind || 'call' };
+    for (const l of this.origListeners) { try { l(res); } catch (err) { this.logger.warn('Originate: ' + (err as Error).message); } }
+    if (ok) return; // keyin CDR keladi
     // xodim telefoni javob bermadi / ulanib bo'lmadi — CRM yozuvi «failed» (abadiy «ringing» bo'lib qolmasin)
     this.emit({ uuid: o.uuid, accountcode: 'outbound', caller: o.from, callee: o.to, dialog_duration: 0, call_duration: 0, hangup_cause: 'call_rejected', event: 'call_end' });
   }
@@ -192,6 +217,8 @@ export class OwnPbxProvider implements PbxProvider, OnModuleInit, OnModuleDestro
     ami.on('event', (e: AmiMsg) => {
       if (e.Event === 'Cdr') return this.onCdr(e);
       if (e.Event === 'OriginateResponse') return this.onOriginateResponse(e);
+      const rate = rateFromEvent(e);
+      if (rate) { for (const l of this.rateListeners) { try { l(rate); } catch (err) { this.logger.warn('Baho: ' + (err as Error).message); } } return; }
       const body = ringToCallBody(e);
       if (body) this.emit(body);
     });
@@ -249,6 +276,33 @@ export class OwnPbxProvider implements PbxProvider, OnModuleInit, OnModuleDestro
     } catch (e) {
       this.originates.delete(actionId);
       return { ok: false, comment: (e as Error).message, raw: null };
+    }
+  }
+
+  /**
+   * Avtoinformator qo'ng'irog'i: `Local/<raqam>@crm-informer-out/n` (trunk — chiquvchi qoida bo'yicha), javobdan keyin birinchi kanal
+   * `crm-informer-play` da `custom/<audioId>` ni o'ynatadi. CRM uuid: ChannelId va `__CRM_UUID` (ikkinchi kanalga meros — CDR userfield).
+   * Natija — onOriginate (Reason 4 = javob berildi) va CDR → call_logs (direction=out).
+   */
+  async informerCall(to: string, audioId: string, timeoutSec = 40, presetUuid?: string): Promise<{ ok: boolean; uuid?: string; comment?: string }> {
+    if (!this.configured()) return { ok: false, comment: 'Asterisk sozlanmagan' };
+    const t = dialable(to);
+    if (!t || t.length < 7) return { ok: false, comment: "Raqam noto'g'ri" };
+    if (!/^[A-Za-z0-9]{1,80}$/.test(audioId)) return { ok: false, comment: "Audio noto'g'ri" };
+    const uuid = presetUuid && /^[\w-]{6,64}$/.test(presetUuid) ? presetUuid : randomUUID();
+    const actionId = `crm-${uuid}`;
+    try {
+      await this.ensure();
+      this.originates.set(actionId, { uuid, from: 'informer', to: t, at: Date.now(), kind: 'informer' });
+      const res = await this.ami!.action('Originate', {
+        ActionID: actionId, Channel: `Local/${t}@crm-informer-out/n`, Context: 'crm-informer-play', Exten: t, Priority: '1', CallerID: `Avtoinformator <${t}>`,
+        Async: 'true', Timeout: String(Math.min(90, Math.max(10, timeoutSec)) * 1000), ChannelId: uuid, Variable: `__CRM_UUID=${uuid},CRM_AUDIO=${audioId}`,
+      });
+      if (!/^success$/i.test(String(res.Response || 'Success'))) { this.originates.delete(actionId); return { ok: false, uuid, comment: res.Message }; }
+      return { ok: true, uuid };
+    } catch (e) {
+      this.originates.delete(actionId);
+      return { ok: false, uuid, comment: (e as Error).message };
     }
   }
 

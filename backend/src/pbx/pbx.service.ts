@@ -16,6 +16,8 @@ const isType = (t: unknown): t is ModuleType => (MODULE_TYPES as readonly string
 const MUSIC_KEY = 'pbx_music';
 const OUTGOING_KEY = 'pbx_outgoing';
 const RECORDING_KEY = 'pbx_recording';
+const QUALITY_KEY = 'pbx_quality';
+export interface QualityCfg { enabled: boolean; promptAudioId: string | null; thanksAudioId: string | null; scope: 'in' | 'all' }
 /** Bazadagi eski (hozirgi qoidalarga mos kelmaydigan) yozuv o'qish yo'llarini 500 ga tushirmasin. */
 const targetsOf = (type: string, json: string) => { try { return normalizeConfig(type as ModuleType, parse(json, {})); } catch { return { config: {}, targets: [] as string[], members: [] as string[] }; } };
 const isP2002 = (e: unknown) => (e as { code?: string } | null)?.code === 'P2002';
@@ -24,7 +26,7 @@ type Row = { id: string; type: string; number: string; name: string | null; conf
 const parse = <T,>(s: string, d: T): T => { try { return JSON.parse(s) as T; } catch { return d; } };
 
 /** Audio → 8 kHz mono 16-bit PCM wav (Asterisk standarti). ffmpeg yo'q yoki xato bo'lsa null (asl fayl yoziladi). */
-async function transcodeWav(data: Buffer): Promise<Buffer | null> {
+export async function transcodeWav(data: Buffer): Promise<Buffer | null> {
   // pipe'ga yozilgan wav sarlavhasida o'lcham noto'g'ri (0xFFFFFFFF) — Asterisk format_wav o'qimaydi; shuning uchun vaqtinchalik FAYLga yozamiz
   const dir = await fs.mkdtemp(join(tmpdir(), 'crm-audio-'));
   try {
@@ -254,7 +256,7 @@ export class PbxService {
     });
     const bl = (await this.prisma.pbxBlacklist.findMany({ select: { number: true } })).map((b) => b.number);
     try {
-      const out = generateAsterisk(mods, { blacklist: bl, outgoing: await this.outgoing(), sipSecrets: withSecrets ? secrets : {}, recording: await this.recording(), nat: natFromEnv() });
+      const out = generateAsterisk(mods, { blacklist: bl, outgoing: await this.outgoing(), sipSecrets: withSecrets ? secrets : {}, recording: await this.recording(), nat: natFromEnv(), quality: await this.quality() });
       return { ...out, missing };
     } catch (e) {
       if (e instanceof GeneratorError || e instanceof SchemaError) throw new BadRequestException({ error: 'BAD_CONFIG', message: e.message });
@@ -278,6 +280,27 @@ export class PbxService {
     try { await fs.chown(file, uid, gid); } catch { /* root emas yoki ruxsat yo'q — bir xil foydalanuvchi bo'lsa kerak */ }
   }
 
+  /**
+   * Bitta audio faylni Asterisk ovozlar papkasiga (`custom/<id>.wav`) yozadi — «Stansiyaga qo'llash» va avtoinformator ishga tushganda.
+   * Asterisk wav faqat 8 kHz mono 16-bit PCM; mp3/ogg uchun qo'shimcha modul kerak — ffmpeg bo'lsa hammasi 8 kHz mono wav'ga o'tkaziladi.
+   */
+  async writeAudioFile(id: string): Promise<boolean> {
+    const sounds = process.env.ASTERISK_SOUNDS_DIR;
+    if (!sounds || !/^[A-Za-z0-9_-]+$/.test(id)) return false;
+    const a = await this.prisma.pbxAudio.findUnique({ where: { id } });
+    if (!a) return false;
+    const cdir = join(sounds, 'custom');
+    await fs.mkdir(cdir, { recursive: true });
+    const ext = a.mime.includes('mpeg') || a.mime.includes('mp3') ? 'mp3' : a.mime.includes('ogg') ? 'ogg' : 'wav';
+    const wav = await transcodeWav(Buffer.from(a.data));
+    const out = wav ? 'wav' : ext;
+    const target = join(cdir, `${a.id}.${out}`);
+    await fs.writeFile(target, wav || Buffer.from(a.data));
+    await this.chownAst(target);
+    for (const o of ['wav', 'mp3', 'ogg']) if (o !== out) await fs.rm(join(cdir, `${a.id}.${o}`), { force: true }); // eski format qolib ketmasin
+    return true;
+  }
+
   async applyAsterisk() {
     const dir = process.env.ASTERISK_CONF_DIR;
     if (!dir) throw new BadRequestException({ error: 'NO_CONF_DIR', message: 'ASTERISK_CONF_DIR sozlanmagan (stansiya serveri ulanmagan)' });
@@ -294,23 +317,8 @@ export class PbxService {
       await this.chownAst(join(dir, name));
       written.push(name);
     }
-    const sounds = process.env.ASTERISK_SOUNDS_DIR;
     let audio = 0;
-    if (sounds) {
-      const cdir = join(sounds, 'custom');
-      await fs.mkdir(cdir, { recursive: true });
-      for (const a of await this.prisma.pbxAudio.findMany()) {
-        const ext = a.mime.includes('mpeg') || a.mime.includes('mp3') ? 'mp3' : a.mime.includes('ogg') ? 'ogg' : 'wav';
-        // Asterisk wav faqat 8 kHz mono 16-bit PCM; mp3/ogg uchun qo'shimcha modul kerak — ffmpeg bo'lsa hammasi 8 kHz mono wav'ga o'tkaziladi
-        const wav = await transcodeWav(Buffer.from(a.data));
-        const out = wav ? 'wav' : ext;
-        const target = join(cdir, `${a.id}.${out}`);
-        await fs.writeFile(target, wav || Buffer.from(a.data));
-        await this.chownAst(target);
-        for (const o of ['wav', 'mp3', 'ogg']) if (o !== out) await fs.rm(join(cdir, `${a.id}.${o}`), { force: true }); // eski format qolib ketmasin
-        audio++;
-      }
-    }
+    if (process.env.ASTERISK_SOUNDS_DIR) for (const a of await this.prisma.pbxAudio.findMany({ select: { id: true } })) if (await this.writeAudioFile(a.id)) audio++;
     let reloaded = false;
     if (await this.own.enabled()) {
       for (const c of ['module reload res_pjsip.so', 'dialplan reload', 'queue reload all']) await this.own.command(c);
@@ -369,6 +377,10 @@ export class PbxService {
     const used = mods.filter((m) => m.configJson.includes(`"${id}"`)).map((m) => m.number);
     const music = await this.music();
     if (music.ringback === id || music.hold === id) used.push('musiqa');
+    const q = await this.quality();
+    if (q.promptAudioId === id || q.thanksAudioId === id) used.push('sifat bahosi');
+    const inf = await this.prisma.pbxInformer.findFirst({ where: { audioId: id, status: { not: 'done' } }, select: { name: true } });
+    if (inf) used.push(`avtoinformator «${inf.name}»`);
     if (used.length) throw new ConflictException({ error: 'IN_USE', message: `O'chirib bo'lmaydi: ishlatilmoqda (${used.join(', ')})` });
     const r = await this.prisma.pbxAudio.deleteMany({ where: { id } });
     if (!r.count) throw new NotFoundException({ error: 'NOT_FOUND', message: 'Audio topilmadi' });
@@ -430,6 +442,28 @@ export class PbxService {
     const v = { enabled: dto.enabled === undefined ? cur.enabled : !!dto.enabled, dir, keepDays };
     await this.saveSetting(RECORDING_KEY, v);
     return v;
+  }
+  /** «Оценка качества»: suhbatdan keyin mijozdan 1–5 baho (dialplan `crm-rate`). scope: in — faqat kiruvchi, all — chiquvchi ham. */
+  async quality(): Promise<QualityCfg> {
+    const r = await this.setting<Partial<QualityCfg>>(QUALITY_KEY, {});
+    const id = (v: unknown) => (typeof v === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(v) ? v : null);
+    return { enabled: !!r.enabled, promptAudioId: id(r.promptAudioId), thanksAudioId: id(r.thanksAudioId), scope: r.scope === 'all' ? 'all' : 'in' };
+  }
+  async saveQuality(dto: Partial<QualityCfg>) {
+    const cur = await this.quality();
+    const next: QualityCfg = {
+      enabled: dto.enabled === undefined ? cur.enabled : !!dto.enabled,
+      promptAudioId: dto.promptAudioId === undefined ? cur.promptAudioId : dto.promptAudioId ? String(dto.promptAudioId) : null,
+      thanksAudioId: dto.thanksAudioId === undefined ? cur.thanksAudioId : dto.thanksAudioId ? String(dto.thanksAudioId) : null,
+      scope: dto.scope === undefined ? cur.scope : dto.scope === 'all' ? 'all' : dto.scope === 'in' ? 'in' : (() => { throw new BadRequestException({ error: 'BAD_SCOPE', message: "Qamrov noto'g'ri (in yoki all)" }); })(),
+    };
+    for (const k of ['promptAudioId', 'thanksAudioId'] as const) {
+      const v = next[k];
+      if (v && !(await this.prisma.pbxAudio.findUnique({ where: { id: v }, select: { id: true } }))) throw new BadRequestException({ error: 'AUDIO_NOT_FOUND', message: 'Audio fayl topilmadi' });
+    }
+    if (next.enabled && !next.promptAudioId) throw new BadRequestException({ error: 'NO_PROMPT', message: "Yoqish uchun so'rov audiosini tanlang (yoki matndan yarating)" });
+    await this.saveSetting(QUALITY_KEY, next);
+    return next;
   }
   async saveOutgoing(dto: { rules?: any[] }) {
     const rules = (Array.isArray(dto.rules) ? dto.rules : []).slice(0, 100).map((r, i) => {

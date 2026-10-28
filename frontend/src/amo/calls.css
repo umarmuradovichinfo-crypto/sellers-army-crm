@@ -35,6 +35,10 @@
 .ac-cl__tabs a { padding: 8px 0; color: #92989b; text-decoration: none; }
 .ac-cl__tabs a.on { color: inherit; border-bottom: 2px solid #4c8bf5; }
 .ac-cr__filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.ac-cr__presets { display: inline-flex; border: 1px solid #dfe2ea; border-radius: 6px; overflow: hidden; }
+.ac-cr__presets button { border: 0; border-right: 1px solid #dfe2ea; background: #fff; padding: 0 10px; font: inherit; font-size: 13px; cursor: pointer; color: #4e4963; min-height: 32px; }
+.ac-cr__presets button:last-child { border-right: 0; }
+.ac-cr__presets button.on { background: #0d71d7; color: #fff; }
 .ac-cr__bars { max-width: 100%; display: flex; gap: 6px; align-items: flex-end; overflow-x: auto; padding: 8px 0; }
 .ac-cr__bar { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 34px; font-size: 11px; color: #92989b; }
 .ac-cr__stack { display: flex; flex-direction: column-reverse; width: 22px; }

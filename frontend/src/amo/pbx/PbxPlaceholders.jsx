@@ -176,19 +176,40 @@ export function TopTabs({ first, desc, children }) {
 export function PbxChats() {
   const t = useT()
   const [tab, setTab] = useState('desc')
+  const [ch, setCh] = useState('telegram')
+  const { data: st } = useApi(() => crmService.chatStatus().catch(() => null), [], 'chat-status', 60000)
+  // Kanallar holati (mavjud /crm/chat-status): Telegram bot, Facebook/Instagram; WhatsApp hali ulanmagan
+  const CH = [['telegram', 'Telegram', !!st?.telegram], ['whatsapp', 'WhatsApp', false], ['facebook', 'Facebook', !!st?.facebook], ['instagram', 'Instagram', !!st?.instagram]]
+  const cur = CH.find((x) => x[0] === ch)
   return (
     <div className="pbxs pbxs--chats">
-      <aside className="pbxs__aside"><a className="on">Telegram</a><a>WhatsApp</a></aside>
+      <aside className="pbxs__aside">{CH.slice(0, 2).map(([k, l]) => <a key={k} href="#" className={ch === k ? 'on' : ''} onClick={(e) => { e.preventDefault(); setCh(k) }}>{l}</a>)}</aside>
       <div className="pbxs__main">
         <div className="pbxs__page">
           <h3 className="pbxs__title">{t('pbx§Chatlar')}</h3>
           <div className="pbxs__tabs">
             {[['desc', 'pbx§Tavsif'], ['set', 'pbx§Sozlamalar']].map(([k, l]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t(l)}</button>)}
           </div>
-          <div className="pbxs__body">
-            <p>{t("pbx§Telegram va boshqa chatlar CRM ichidagi imBox bo'limida ishlaydi: mijozlar bilan yozishma, bot, tezkor javoblar shu yerda.")}</p>
-            <Link className="pbxx__btn" to="/inbox">{t("pbx§imBox'ga o'tish")}</Link>
-          </div>
+          {tab === 'desc' ? (
+            <div className="pbxs__body">
+              <p>{t("pbx§Telegram va boshqa chatlar CRM ichidagi imBox bo'limida ishlaydi: mijozlar bilan yozishma, bot, tezkor javoblar shu yerda.")}</p>
+              <Link className="pbxx__btn" to="/inbox">{t("pbx§imBox'ga o'tish")}</Link>
+            </div>
+          ) : (
+            <div className="pbxs__body">
+              <p><b>{cur[1]}</b>: {st === null || st === undefined ? '…' : cur[2] ? <span className="pbxch__on">{t('pbx§Ulangan')}</span> : <span className="pbxch__off">{ch === 'whatsapp' ? t('pbx§Hali ulanmagan (tayyorlanmoqda)') : t('pbx§Ulanmagan')}</span>}</p>
+              <div className="pbxch__list">
+                {CH.map(([k, l, on]) => (
+                  <div key={k} className="pbxch__item"><b>{l}</b>{on ? <span className="pbxch__on">● {t('pbx§Ulangan')}</span> : <span className="pbxch__off">○ {t('pbx§Ulanmagan')}</span>}</div>
+                ))}
+              </div>
+              <p className="ac-pbx__muted">{t("pbx§Kanallarni ulash, javob shablonlari va suhbatlarni avtomatik yopish qoidasi CRM sozlamalarida.")}</p>
+              <div className="pbxch__links">
+                <Link className="pbxx__btn" to="/settings/chats">{t('pbx§Sozlamalar → Chatlar')}</Link>
+                <Link className="pbxx__btn" to="/inbox">{t("pbx§imBox'ga o'tish")}</Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

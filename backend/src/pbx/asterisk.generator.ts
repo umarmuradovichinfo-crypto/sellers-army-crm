@@ -15,6 +15,11 @@ export interface GenOptions {
    * Faqat berilganda yoziladi (env PBX_EXTERNAL_IP / PBX_LOCAL_NET).
    */
   nat?: { externalAddress?: string; localNets?: string[] };
+  /**
+   * Sifat bahosi (IVR so'rovi): operator go'shakni qo'ygach mijoz kanali `crm-rate` ga o'tadi — prompt, 1 tugma (1–5), `UserEvent(CrmRate)`.
+   * scope: in — faqat kiruvchi (trunk), all — chiquvchi ham (Dial `F(crm-rate^s^1)`: operator qo'ygach mijoz shu yerga o'tadi).
+   */
+  quality?: { enabled: boolean; promptAudioId?: string | null; thanksAudioId?: string | null; scope?: 'in' | 'all' };
 }
 export interface GenResult { pjsip: string; extensions: string; queues: string }
 
@@ -178,6 +183,14 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
     );
   }
 
+  // Sifat bahosi: kiruvchi kanalda bayroq (meros qilinmaydi) va CRM qo'ng'iroq identifikatori (CDR uuid bilan bir xil; `__` — bolalar kanaliga meros)
+  const qa = opt.quality?.enabled ? opt.quality : null;
+  const rateId = ' same => n,Set(__CRM_RATE_ID=${IF($["${CRM_UUID}" != ""]?${CRM_UUID}:${UNIQUEID})})';
+  const rateIn = qa ? [' same => n,Set(CRM_RATE_ON=1)', rateId] : [];
+  /** Dial `g` — operator qo'ygach mijoz kanali dialplan'da davom etadi (aks holda u ham uziladi). */
+  const dialG = qa ? ',g' : '';
+  const doneLines = qa ? [' same => n(done),GotoIf($["${CRM_RATE_ON}" = "1"]?crm-rate,s,1)', ' same => n,Hangup()'] : [' same => n(done),Hangup()'];
+
   // ── extensions.conf ──
   const ex: string[] = ['; Avtomatik hosil qilingan (CRM → Telefoniya). Qo\'lda tahrirlamang.', '[general]', 'static=yes', 'writeprotect=no', ''];
   // qora ro'yxat (faqat kiruvchi): raqamlar normallashtirib solishtiriladi — oxirgi 9 raqam (+998…/998…/90… bir xil)
@@ -193,7 +206,7 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
     const c = cfgOf(t);
     for (const n of [t.number, ...((c.dids as string[]) || []).flatMap((d) => [d, `+${d}`])]) {
       if (!/^\+?[0-9A-Za-z]+$/.test(n)) continue;
-      ex.push(`exten => ${n},1,Gosub(blacklist-check,s,1)`, ...mix, ` same => n,${go(c.forwardTo)}`);
+      ex.push(`exten => ${n},1,Gosub(blacklist-check,s,1)`, ...rateIn, ...mix, ` same => n,${go(c.forwardTo)}`);
     }
   }
   ex.push('exten => _X.,1,Hangup()', '');
@@ -205,14 +218,17 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
     switch (m.type) {
       case 'user': {
         const f = (c.forward || [])[0] || { afterSec: 15, to: '' };
-        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${m.number},Uuid: \${UNIQUEID})`, ` same => n,Dial(${legs(m.number)},${f.afterSec ?? 15})`, ` same => n,GotoIf($["\${DIALSTATUS}" = "ANSWER"]?done)`, ` same => n,${go(f.to)}`, ' same => n(done),Hangup()');
+        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${m.number},Uuid: \${UNIQUEID})`, ` same => n,Dial(${legs(m.number)},${f.afterSec ?? 15}${dialG})`, ` same => n,GotoIf($["\${DIALSTATUS}" = "ANSWER"]?done)`, ` same => n,${go(f.to)}`, ...doneLines);
         break;
       }
       case 'group':
-        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${(c.members as string[])[0] || m.number},Uuid: \${UNIQUEID})`, ` same => n,Dial(${(c.members as string[]).map((x) => legs(x)).join('&') || 'Local/0@nowhere'},${c.afterSec ?? 20})`, ` same => n,GotoIf($["\${DIALSTATUS}" = "ANSWER"]?done)`, ` same => n,${go(c.forwardTo)}`, ' same => n(done),Hangup()');
+        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${(c.members as string[])[0] || m.number},Uuid: \${UNIQUEID})`, ` same => n,Dial(${(c.members as string[]).map((x) => legs(x)).join('&') || 'Local/0@nowhere'},${c.afterSec ?? 20}${dialG})`, ` same => n,GotoIf($["\${DIALSTATUS}" = "ANSWER"]?done)`, ` same => n,${go(c.forwardTo)}`, ...doneLines);
         break;
       case 'queue':
-        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${(c.members as { ext: string }[])[0]?.ext || m.number},Uuid: \${UNIQUEID})`, ` same => n,Queue(q${ctx(m.number)},t,,,${c.queueSec ?? 180})`, ` same => n,${go(c.forwardTo)}`);
+        lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${(c.members as { ext: string }[])[0]?.ext || m.number},Uuid: \${UNIQUEID})`, ...(qa
+          // `c` — operator qo'ygach mijoz davom etadi (QUEUESTATUS=CONTINUE) → baho; navbat vaqti tugasa — «keyingi qadam»
+          ? [` same => n,Queue(q${ctx(m.number)},tc,,,${c.queueSec ?? 180})`, ' same => n,GotoIf($["${QUEUESTATUS}" = "CONTINUE"]?done)', ` same => n,${go(c.forwardTo)}`, ...doneLines]
+          : [` same => n,Queue(q${ctx(m.number)},t,,,${c.queueSec ?? 180})`, ` same => n,${go(c.forwardTo)}`]));
         break;
       case 'timerule': {
         // Tunni kesib o'tuvchi oraliq (masalan dush 22:00–06:00): GotoIfTime'da vaqt va hafta kuni ALOHIDA tekshiriladi — `22:00-06:00,mon`
@@ -295,11 +311,31 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
       // CALLERID(num) tashqi raqamga almashadi (CDR Source ham shu bo'ladi) — shuning uchun xodim ichki raqami CDR userfield'iga `ext:` bilan yoziladi
       ex.push(` same => n(r${i + 1}),Set(CRM_EXT=\${CUT(CRM_EP,-,1)})`,
         ' same => n,Set(CRM_UF=ext:${CRM_EXT})', ' same => n,ExecIf($["${CRM_UUID}" != ""]?Set(CRM_UF=crm:${CRM_UUID} ${CRM_UF}))', ' same => n,Set(CDR(userfield)=${CRM_UF})',
-        ` same => n,Set(CALLERID(num)=${val(cid, 'externalNumber')})`, ...mix,
-        ` same => n,Dial(PJSIP/\${EXTEN}@${trunkId(r.trunk)},60)`, ' same => n,Hangup()');
+        ` same => n,Set(CALLERID(num)=${val(cid, 'externalNumber')})`, ...mix, ...(qa?.scope === 'all' ? [rateId] : []),
+        ` same => n,Dial(PJSIP/\${EXTEN}@${trunkId(r.trunk)},60${qa?.scope === 'all' ? ',F(crm-rate^s^1)' : ''})`, ' same => n,Hangup()');
+    });
+    ex.push('');
+    // Avtoinformator: faqat CRM Originate (AMI) chaqiradi — hech qaysi telefon/trunk konteksti bu yerga Goto qilmaydi (toll-fraud yo'q).
+    // Trunk — chiquvchi qoidalar maskasi bo'yicha (xodim cheklovi hisobga olinmaydi: chaqiruvchi — tizim). Mamlakat oq ro'yxati CRM'da.
+    ex.push('[crm-informer-out]', 'exten => _X.,1,NoOp(Avtoinformator)', ' same => n,Set(CDR(userfield)=crm:${CRM_UUID} inf:1)');
+    rules.forEach((r, i) => ex.push(r.mask ? ` same => n,GotoIf($[\${REGEX("${maskRe(r.mask)}" \${EXTEN})}]?r${i + 1})` : ` same => n,Goto(r${i + 1})`));
+    ex.push(' same => n,Hangup(21)');
+    rules.forEach((r, i) => {
+      const cid = r.externalNumber && /^\+?\d{3,20}$/.test(r.externalNumber) ? r.externalNumber : r.trunk;
+      ex.push(` same => n(r${i + 1}),Set(CALLERID(num)=${val(cid, 'externalNumber')})`, ` same => n,Dial(PJSIP/\${EXTEN}@${trunkId(r.trunk)},45)`, ' same => n,Hangup()');
     });
   }
   ex.push('');
+  // Avtoinformator xabari: Originate'ning birinchi kanali javobdan keyin shu yerda audio'ni o'ynatadi (CRM_AUDIO — kutubxona fayli id'si)
+  ex.push('[crm-informer-play]', 'exten => _X.,1,Answer()', ' same => n,Wait(1)', ' same => n,Playback(custom/${FILTER(0-9A-Za-z,${CRM_AUDIO})})', ' same => n,Wait(1)', ' same => n,Hangup()', '');
+  if (qa) {
+    // Sifat bahosi: 1 ta tugma (1–5), 2 urinish, 6 s kutish; to'g'ri baho — CRM'ga UserEvent (AMI) va «rahmat»
+    // CDR_PROP(disable): so'rov qismi alohida CDR bo'lmasin — chiquvchida mijoz kanali (F) o'z UniqueID'si bilan «kiruvchi, o'tkazib yuborilgan»
+    // bo'lib jurnalga tushardi (jonli sinovda topilgan). Suhbat CDR'i (ko'prik) allaqachon yakunlangan — u saqlanadi.
+    ex.push('[crm-rate]', 'exten => s,1,NoOp(Sifat bahosi)', ' same => n,Set(CDR_PROP(disable)=1)', ' same => n,ExecIf($["${CRM_RATE_ID}" = ""]?Set(CRM_RATE_ID=${UNIQUEID}))', ' same => n,Set(CRM_RATE=)',
+      ` same => n,Read(CRM_RATE,${snd(qa.promptAudioId, 'beep')},1,,2,6)`, ' same => n,GotoIf($[${REGEX("^[1-5]$" ${CRM_RATE})}]?ok)', ' same => n,Hangup()',
+      ' same => n(ok),UserEvent(CrmRate,Uuid: ${CRM_RATE_ID},Rating: ${CRM_RATE})', ` same => n,Playback(${snd(qa.thanksAudioId, 'auth-thankyou')})`, ' same => n,Hangup()', '');
+  }
 
   // ── queues.conf ──
   const q: string[] = ['; Avtomatik hosil qilingan (CRM → Telefoniya).', '[general]', 'persistentmembers=yes', ''];

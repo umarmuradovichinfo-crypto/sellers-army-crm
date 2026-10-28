@@ -648,3 +648,44 @@ model PbxAudio {
 
   @@map("pbx_audio")
 }
+
+// Avtoinformator (OnlinePBX «Автоинформатор»): ommaviy ovozli xabar kampaniyasi. Runner faqat rahbar nusxada (LeaderService).
+model PbxInformer {
+  id          String              @id @default(cuid())
+  name        String
+  audioId     String // pbx_audio.id (custom/<id>)
+  status      String              @default("draft") // draft | running | paused | done
+  startAt     DateTime? // shu vaqtdan oldin qo'ng'iroq qilinmaydi
+  windowFrom  String              @default("09:00") // ish oynasi (Toshkent vaqti)
+  windowTo    String              @default("20:00")
+  maxParallel Int                 @default(2) // bir vaqtda qo'ng'iroqlar (≤10)
+  retries     Int                 @default(1) // qayta urinishlar (≤3), oraliq ≥ retryMin
+  retryMin    Int                 @default(30)
+  dailyLimit  Int                 @default(1000) // sutkasiga ko'pi bilan qo'ng'iroq
+  dayKey      String? // dayCount qaysi kun uchun (YYYY-MM-DD, Toshkent)
+  dayCount    Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  targets     PbxInformerTarget[]
+
+  @@index([status])
+  @@map("pbx_informers")
+}
+
+model PbxInformerTarget {
+  id         String      @id @default(cuid())
+  campaignId String
+  campaign   PbxInformer @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  phone      String // faqat raqamlar (998901234567)
+  state      String      @default("pending") // pending | calling | answered | noanswer | failed | dnd
+  attempts   Int         @default(0)
+  lastAt     DateTime?
+  lastResult String? // oxirgi urinish sababi (busy, noanswer, congestion, error…)
+  uuid       String? // oxirgi urinishning CRM uuid'i (call_logs.externalId)
+  callLogId  String?
+
+  @@unique([campaignId, phone])
+  @@index([campaignId, state])
+  @@index([uuid])
+  @@map("pbx_informer_targets")
+}

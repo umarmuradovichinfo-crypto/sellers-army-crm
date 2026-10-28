@@ -3,6 +3,8 @@ import type { Response } from 'express';
 
 import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { AutoRecallService } from './autorecall.service';
+import { InformerService } from './informer/informer.service';
+import { TtsService } from './tts/tts.service';
 import { CallbackService } from './callback.service';
 import { PbxService } from './pbx.service';
 import { RecordingRetentionService } from './recording-retention.service';
@@ -11,7 +13,7 @@ import { RecordingRetentionService } from './recording-retention.service';
 @Controller('pbx')
 @RequirePermissions('crm.settings')
 export class PbxController {
-  constructor(private readonly s: PbxService, private readonly cb: CallbackService, private readonly recall: AutoRecallService, private readonly retention: RecordingRetentionService) {}
+  constructor(private readonly s: PbxService, private readonly cb: CallbackService, private readonly recall: AutoRecallService, private readonly retention: RecordingRetentionService, private readonly tts: TtsService, private readonly inf: InformerService) {}
 
   @Get('modules') list(@Query('type') type?: string) { return this.s.list(type); }
   @Get('modules/next-number') next(@Query('type') type: string) { return this.s.nextNumber(type); }
@@ -56,4 +58,24 @@ export class PbxController {
   /** Saqlash muddatini darhol qo'llash (kunlik fon vazifasini kutmasdan). */
   @Post('recording/cleanup') recordingCleanup() { return this.retention.cleanup(); }
   @Put('outgoing') saveOutgoing(@Body() dto: any) { return this.s.saveOutgoing(dto); }
+
+  // «Синтез речи»: matndan audio (kutubxonaga yoziladi)
+  @Get('tts/voices') ttsVoices() { return this.tts.voices(); }
+  @Put('tts/settings') ttsSettings(@Body() dto: any) { return this.tts.saveSettings(dto || {}); }
+  @Post('tts') ttsCreate(@Body() dto: any) { return this.tts.create(dto || {}); }
+
+  // «Оценка качества»: suhbatdan keyin 1–5 baho (IVR)
+  @Get('quality') quality() { return this.s.quality(); }
+  @Put('quality') saveQuality(@Body() dto: any) { return this.s.saveQuality(dto || {}); }
+
+  // «Автоинформатор»: ommaviy ovozli xabar kampaniyalari
+  @Get('informer/settings') informerCfg() { return this.inf.config(); }
+  @Put('informer/settings') informerCfgSave(@Body() dto: any) { return this.inf.saveConfig(dto || {}); }
+  @Get('informer') informerList() { return this.inf.list(); }
+  @Post('informer') informerCreate(@Body() dto: any) { return this.inf.create(dto || {}); }
+  @Get('informer/:id') informerGet(@Param('id') id: string, @Query() q: Record<string, string>) { return this.inf.get(id, q); }
+  @Put('informer/:id') informerUpdate(@Param('id') id: string, @Body() dto: any) { return this.inf.update(id, dto || {}); }
+  @Delete('informer/:id') informerRemove(@Param('id') id: string) { return this.inf.remove(id); }
+  @Post('informer/:id/numbers') informerNumbers(@Param('id') id: string, @Body() dto: any) { return this.inf.addNumbers(id, dto || {}); }
+  @Post('informer/:id/:action') informerAction(@Param('id') id: string, @Param('action') action: string) { return this.inf.setStatus(id, action); }
 }
