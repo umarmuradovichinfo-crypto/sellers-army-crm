@@ -93,6 +93,25 @@ model RefreshToken {
   @@index([userId])
 }
 
+// «Parolni unutdim»: bir martalik 6 xonali kod (faqat sha256(tuz:kod) saqlanadi). Mavjud bo'lmagan email uchun ham
+// yozuv yaratiladi (kod hech kimga yuborilmaydi) — javoblar/xatolar orqali foydalanuvchi borligi aniqlanmasin.
+model PasswordResetCode {
+  id        String    @id @default(cuid())
+  email     String // normallashtirilgan (kichik harf, trim)
+  userId    String? // faol foydalanuvchi bo'lsa
+  codeHash  String
+  salt      String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime? // ishlatilgan / bekor qilingan
+  ip        String?
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
+  @@index([createdAt])
+  @@map("password_reset_codes")
+}
+
 // ─────────────────────────────────────────────
 // CRM — sotuv voronkasi (amoCRM uslubi)
 // ─────────────────────────────────────────────

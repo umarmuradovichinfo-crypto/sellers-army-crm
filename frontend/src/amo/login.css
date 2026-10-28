@@ -39,3 +39,21 @@
 }
 .ac-login__lang button:hover { background: rgba(255, 255, 255, .25); }
 .ac-login__lang button.is-active { background: #fff; color: #153043; border-color: #fff; }
+
+/* «Parolni unutdim» */
+.ac-login__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 4px 0 18px; }
+.ac-login__row .ac-login__remember { margin: 0; }
+.ac-login__link {
+  display: block; margin: 14px auto 0; padding: 4px 2px; background: none; border: 0; cursor: pointer;
+  font: 14px var(--font-main); color: var(--palette-link-primary, #0057a9); text-decoration: none;
+}
+.ac-login__link:hover { text-decoration: underline; }
+.ac-login__row .ac-login__forgot { margin: 0; }
+.ac-login__links { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ac-login__links .ac-login__link { margin: 14px 0 0; }
+.ac-login__note {
+  margin: 4px 0 16px; padding: 9px 11px; border-radius: 4px; font-size: 13px; line-height: 1.4;
+  color: var(--palette-text-primary); background: var(--palette-background-secondary-100, rgba(47, 128, 237, .08));
+  border: 1px solid var(--palette-border-default, rgba(47, 128, 237, .25));
+}
+.ac-login .ac-login__code { letter-spacing: 6px; font-size: 20px; text-align: center; }

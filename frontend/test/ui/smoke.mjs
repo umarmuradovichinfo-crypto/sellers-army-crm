@@ -145,6 +145,33 @@ async function flows() {
   await ctx.close()
 }
 
+// Ochiq sahifa: login → «Parolni unutdingizmi?» → email → kod kiritish bosqichi (tokensiz, telefon o'lchamida, UZ va RU)
+async function forgotFlow(lang) {
+  const ctx = await browser.newContext({ viewport: { width: 375, height: 812 } })
+  await ctx.addInitScript((l) => { localStorage.setItem('amo_lang', l) }, lang)
+  const page = await ctx.newPage()
+  const tag = `[${lang} 375px] /login (parolni tiklash)`
+  page.on('pageerror', (e) => errors.push(`${tag} JS xato: ${e.message}`))
+  page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource.*(40[134]|503)|favicon/.test(m.text())) errors.push(`${tag} console.error: ${m.text().slice(0, 200)}`) })
+  try {
+    await page.goto(`${UI}/login`, { waitUntil: 'networkidle' })
+    await page.locator('.ac-login__forgot').click()
+    await page.locator('.ac-login__card input[type=email]').fill(`ui-forgot-${Date.now()}@test.local`)
+    await page.locator('.ac-login__submit').click()
+    await page.locator('.ac-login__code').waitFor({ timeout: 5000 })
+    const st = await page.evaluate(() => ({ note: document.querySelector('.ac-login__note')?.textContent || '', overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth }))
+    if (!/Telegram/.test(st.note)) errors.push(`${tag}: umumiy javob matni chiqmadi`)
+    if (st.overflow > 4) warns.push(`${tag}: telefonda gorizontal siljish ${st.overflow}px`)
+    if (lang === 'ru' && UZ_RE.test(await page.locator('body').innerText())) warns.push(`${tag}: tarjima qilinmagan bo'lishi mumkin`)
+  } catch (e) {
+    errors.push(`${tag}: oqim bajarilmadi: ${e.message.split('\n')[0]}`)
+    await page.screenshot({ path: `${tmpdir()}/ui-fail-forgot-${lang}.png` }).catch(() => {})
+  }
+  await ctx.close()
+}
+await forgotFlow('uz')
+await forgotFlow('ru')
+
 for (const [lang, vp] of [['uz', { width: 1366, height: 820 }], ['ru', { width: 1366, height: 820 }], ['uz', { width: 375, height: 812 }]]) {
   const { ctx } = await visit(lang, vp)
   await ctx.close()

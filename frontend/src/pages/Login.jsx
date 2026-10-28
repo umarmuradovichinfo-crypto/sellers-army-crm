@@ -124,10 +124,123 @@ export default function Login() {
   }, [])
   if (setupInfo === undefined) return <Shell />
   if (setupInfo && setupInfo.needsSetup) return <SetupForm tokenRequired={!!setupInfo.tokenRequired} />
-  return <LoginForm />
+  return <LoginOrForgot />
 }
 
-function LoginForm() {
+function LoginOrForgot() {
+  const [forgot, setForgot] = useState(null) // null — login; string — «Parolni unutdim» (boshlang'ich email)
+  if (forgot !== null) return <ForgotForm initialEmail={forgot} onBack={() => setForgot(null)} />
+  return <LoginForm onForgot={(email) => setForgot(email || '')} />
+}
+
+// «Parolni unutdim»: 1) email → 2) Telegram'dan kelgan kod + yangi parol (2 marta) → 3) tayyor, login'ga qaytish
+function ForgotForm({ initialEmail, onBack }) {
+  const { t } = useI18n()
+  const [step, setStep] = useState(1)
+  const [email, setEmail] = useState(initialEmail)
+  const [code, setCode] = useState('')
+  const [password, setPassword] = useState('')
+  const [password2, setPassword2] = useState('')
+  const [info, setInfo] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  function errText(e) {
+    const c = e?.data?.error
+    if (c === 'CODE_INVALID') {
+      const left = e?.data?.details?.attemptsLeft
+      return left != null ? `${t("Kod noto'g'ri")}. ${t('Qolgan urinishlar')}: ${left}` : t("Kod noto'g'ri yoki eskirgan. Yangi kod so'rang")
+    }
+    if (c === 'CODE_EXPIRED') return t("Kodning muddati o'tgan (15 daqiqa). Yangi kod so'rang")
+    if (c === 'CODE_ATTEMPTS') return t("Noto'g'ri urinishlar soni tugadi. Yangi kod so'rang")
+    if (e?.status === 429) return t("Juda ko'p so'rov. Birozdan so'ng qayta urining")
+    if (c === 'VALIDATION_ERROR' && /email/i.test(e?.message || '')) return t("Email noto'g'ri")
+    return e?.message || t('Xatolik yuz berdi')
+  }
+
+  async function sendCode(e) {
+    e?.preventDefault()
+    setErr('')
+    const em = email.trim().toLowerCase()
+    if (!/^\S+@\S+\.\S+$/.test(em)) return setErr(t("Email noto'g'ri"))
+    setBusy(true)
+    try {
+      await api.post('/auth/forgot', { email: em })
+      setInfo(t("Agar akkauntingizga Telegram ulangan bo'lsa, kod yuborildi. Aks holda administratorga murojaat qiling"))
+      setCode(''); setStep(2)
+    } catch (e2) { setErr(errText(e2)) } finally { setBusy(false) }
+  }
+
+  async function doReset(e) {
+    e.preventDefault()
+    setErr('')
+    const c = code.replace(/\s+/g, '')
+    if (!/^\d{6}$/.test(c)) return setErr(t('Kod 6 ta raqamdan iborat'))
+    if (password.length < 6) return setErr(t("Parol kamida 6 ta belgi bo'lishi kerak"))
+    if (password !== password2) return setErr(t('Parollar bir xil emas'))
+    setBusy(true)
+    try {
+      await api.post('/auth/reset', { email: email.trim().toLowerCase(), code: c, newPassword: password })
+      setPassword(''); setPassword2(''); setStep(3)
+    } catch (e2) { setErr(errText(e2)) } finally { setBusy(false) }
+  }
+
+  return (
+    <Shell>
+      {step === 1 && (
+        <form className="ac-login__card" onSubmit={sendCode}>
+          <Brand />
+          <h1 className="ac-login__title">{t('Parolni tiklash')}</h1>
+          <div className="ac-login__sub">{t("Emailingizni kiriting — Telegram'ga bir martalik kod yuboramiz")}</div>
+          <Field label={t('Email')}>
+            <input className="ac-input" type="email" autoComplete="username" autoCapitalize="none" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" autoFocus />
+          </Field>
+          {err && <div className="ac-login__err">{err}</div>}
+          <button className="ac-btn ac-btn--blue ac-login__submit" disabled={busy}>
+            {busy && <span className="ac-spinner" />}
+            {t('Kod olish')}
+          </button>
+          <button type="button" className="ac-login__link" onClick={onBack}>{t("Kirish sahifasiga qaytish")}</button>
+        </form>
+      )}
+      {step === 2 && (
+        <form className="ac-login__card" onSubmit={doReset}>
+          <Brand />
+          <h1 className="ac-login__title">{t('Parolni tiklash')}</h1>
+          {info && <div className="ac-login__note">{info}</div>}
+          <Field label={t('Tasdiqlash kodi')}>
+            <input className="ac-input ac-login__code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" autoFocus />
+          </Field>
+          <Field label={t('Yangi parol')}>
+            <input className="ac-input" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('Kamida 6 ta belgi')} />
+          </Field>
+          <Field label={t('Parolni takrorlang')}>
+            <input className="ac-input" type="password" autoComplete="new-password" value={password2} onChange={(e) => setPassword2(e.target.value)} placeholder="••••••••" />
+          </Field>
+          {err && <div className="ac-login__err">{err}</div>}
+          <button className="ac-btn ac-btn--blue ac-login__submit" disabled={busy}>
+            {busy && <span className="ac-spinner" />}
+            {t('Parolni yangilash')}
+          </button>
+          <div className="ac-login__links">
+            <button type="button" className="ac-login__link" onClick={() => { setErr(''); setStep(1) }}>{t('Kodni qayta yuborish')}</button>
+            <button type="button" className="ac-login__link" onClick={onBack}>{t("Kirish sahifasiga qaytish")}</button>
+          </div>
+        </form>
+      )}
+      {step === 3 && (
+        <div className="ac-login__card">
+          <Brand />
+          <h1 className="ac-login__title">{t('Parol yangilandi')}</h1>
+          <div className="ac-login__sub">{t('Barcha qurilmalardagi seanslar yopildi. Endi yangi parol bilan kiring')}</div>
+          <button type="button" className="ac-btn ac-btn--blue ac-login__submit" onClick={onBack}>{t('KIRISH')}</button>
+        </div>
+      )}
+    </Shell>
+  )
+}
+
+function LoginForm({ onForgot }) {
   const { login } = useAuth()
   const { t } = useI18n()
   const navigate = useNavigate()
@@ -164,10 +277,13 @@ function LoginForm() {
           <input className="ac-input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
         </Field>
 
-        <label className="ac-login__remember">
-          <input type="checkbox" className="ac-check" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-          {t('Meni eslab qol')}
-        </label>
+        <div className="ac-login__row">
+          <label className="ac-login__remember">
+            <input type="checkbox" className="ac-check" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+            {t('Meni eslab qol')}
+          </label>
+          <button type="button" className="ac-login__link ac-login__forgot" onClick={() => onForgot(email.trim())}>{t('Parolni unutdingizmi?')}</button>
+        </div>
 
         {err && <div className="ac-login__err">{err}</div>}
 

@@ -207,7 +207,7 @@ async function request(method, path, body, opts = {}) {
 
   // login va refresh — bularga refresh urinishi qilinmaydi (loop oldini olish).
   // /auth/me esa refresh qilinishi KERAK (eskirgan tokenda tiklash uchun).
-  const noRefresh = path.startsWith('/auth/login') || path.startsWith('/auth/setup') || path.startsWith('/auth/refresh')
+  const noRefresh = path.startsWith('/auth/login') || path.startsWith('/auth/setup') || path.startsWith('/auth/refresh') || path.startsWith('/auth/forgot') || path.startsWith('/auth/reset')
   let res = await fetchWithRetry(method, path, body, opts)
 
   // Access token eskirgan bo'lsa (401) — refresh qilib, so'rovni bir marta qayta yuboramiz.

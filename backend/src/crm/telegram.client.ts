@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { createHash, timingSafeEqual } from 'crypto';
+import { appendFileSync } from 'fs';
 
 /**
  * Telegram Bot API mijozi. Kalitsiz qurilgan — TELEGRAM_BOT_TOKEN env bo'lmasa
@@ -46,6 +47,17 @@ export class TelegramClient implements OnApplicationBootstrap {
     } catch { /* tarmoq — keyingi ishga tushishda */ }
   }
 
+  /**
+   * FAQAT TEST: TELEGRAM_TEST_SINK=<fayl> berilgan va NODE_ENV !== 'production' bo'lsa, yuborilayotgan har bir xabar shu faylga
+   * (JSON qatorlar, 0600) qo'shib yoziladi — e2e testlar botga ketgan matnni (masalan parol tiklash kodini) shu yerdan o'qiydi.
+   * Production'da hech qachon ishlamaydi; yuborishning o'zi o'zgarmaydi (keyin odatdagidek API'ga so'rov ketadi).
+   */
+  private static testSink(chatId: string, text: string) {
+    const file = (process.env.TELEGRAM_TEST_SINK || '').trim();
+    if (!file || process.env.NODE_ENV === 'production') return;
+    try { appendFileSync(file, JSON.stringify({ chatId: String(chatId), text, at: Date.now() }) + '\n', { mode: 0o600 }); } catch { /* test yordamchisi */ }
+  }
+
   private base() {
     // TELEGRAM_API_BASE — faqat test/mock uchun (standart: rasmiy Bot API)
     return `${(process.env.TELEGRAM_API_BASE || 'https://api.telegram.org').replace(/\/$/, '')}/bot${this.token}`;
@@ -54,6 +66,7 @@ export class TelegramClient implements OnApplicationBootstrap {
   /** buttons — amoCRM Salesbot tugmalari: xabar ostidagi inline tugmalar (bosilganda callback_query keladi). */
   async sendMessage(chatId: string, text: string, buttons?: string[]): Promise<{ ok: boolean; messageId?: string; error?: string }> {
     if (!this.enabled()) return { ok: false, error: 'TELEGRAM_DISABLED' };
+    TelegramClient.testSink(chatId, text);
     try {
       const res = await fetch(`${this.base()}/sendMessage`, {
         method: 'POST',

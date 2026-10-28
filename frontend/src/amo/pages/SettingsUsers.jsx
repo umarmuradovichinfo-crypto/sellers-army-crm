@@ -51,7 +51,7 @@ function AuthLogModal({ onClose }) {
                     <td>{r.name || r.email}</td>
                     <td>{r.ip || '—'}</td>
                     <td>{browser(r.ua)}{os(r.ua) ? `, ${os(r.ua)}` : ''}</td>
-                    <td className={r.ok ? 'ac-set-saved' : 'ac-set-err'}>{t(r.ok ? 'Kirdi' : "Noto'g'ri parol")}</td>
+                    <td className={r.ok ? 'ac-set-saved' : 'ac-set-err'}>{t(r.kind === 'password_reset' ? 'Parol tiklandi (kod orqali)' : r.ok ? 'Kirdi' : "Noto'g'ri parol")}</td>
                   </tr>
                 ))}
                 {(data.items || []).length === 0 && <tr><td colSpan={5} className="ac-muted">{t("Yozuvlar yo'q")}</td></tr>}

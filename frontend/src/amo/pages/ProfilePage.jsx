@@ -234,6 +234,7 @@ export default function ProfilePage() {
                   ) : (
                     <>
                       <span>{t("Bildirishnomalarni Telegram'da olish:")}</span>
+                      <span className="ac-muted" style={{ width: '100%' }}>🔐 {t("Parolni tiklash uchun Telegram'ni ulab qo'ying")}</span>
                       {tg.url
                         ? <a className="ac-btn ac-btn--plain ac-import-btn" href={tg.url} target="_blank" rel="noreferrer">{t("Telegram'ga ulash")}</a>
                         : <span className="ac-muted">{t("botga yuboring")}: <b>/start {tg.code}</b></span>}

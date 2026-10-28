@@ -11,10 +11,12 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { SetupDto } from './dto/setup.dto';
+import { ForgotPasswordDto, ResetPasswordByCodeDto } from './dto/password-reset.dto';
+import { PasswordResetService } from './password-reset.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(private readonly auth: AuthService, private readonly pwReset: PasswordResetService) {}
 
   @Public()
   @Post('login')
@@ -23,6 +25,26 @@ export class AuthController {
     // "Лог авторизаций" uchun IP va brauzer
     const ua = String(req?.headers?.['user-agent'] || '').slice(0, 300);
     return this.auth.login(dto.email, dto.password, { ip: clientIp(req), ua });
+  }
+
+  /**
+   * «Parolni unutdim»: har doim bir xil javob (foydalanuvchi bor-yo'qligi oshkor qilinmaydi). Ommaviy — JWT/obuna/IP oq ro'yxat
+   * guard'laridan @Public orqali ochiq (obuna tugagan bo'lsa ham ishlaydi).
+   */
+  @Public()
+  @Post('forgot')
+  @HttpCode(200)
+  forgot(@Body() dto: ForgotPasswordDto, @Req() req: { ip?: string; headers?: Record<string, unknown> }) {
+    return this.pwReset.forgot(dto.email, clientIp(req) || '-');
+  }
+
+  /** Kod + yangi parol: muvaffaqiyatda barcha sessiyalar yopiladi (keyin oddiy login). */
+  @Public()
+  @Post('reset')
+  @HttpCode(200)
+  reset(@Body() dto: ResetPasswordByCodeDto, @Req() req: { ip?: string; headers?: Record<string, unknown> }) {
+    const ua = String(req?.headers?.['user-agent'] || '').slice(0, 300);
+    return this.pwReset.reset(dto.email, dto.code, dto.newPassword, { ip: clientIp(req) || '-', ua });
   }
 
   /** Avtorizatsiya jurnali (amoCRM "Лог авторизаций") — faqat rollarni boshqaradiganlar */

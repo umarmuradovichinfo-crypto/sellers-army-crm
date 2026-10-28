@@ -112,7 +112,7 @@ export class AuthService {
       items: rows.map((r) => {
         let d: { ip?: string; ua?: string } = {};
         try { d = JSON.parse(r.dataJson || '{}'); } catch { /* */ }
-        return { at: r.createdAt.toISOString(), email: r.actorName, name: r.actorId ? name.get(r.actorId) || null : null, ok: r.text === 'ok', ip: d.ip || '', ua: d.ua || '' };
+        return { at: r.createdAt.toISOString(), email: r.actorName, name: r.actorId ? name.get(r.actorId) || null : null, ok: r.text === 'ok' || r.text === 'password_reset', kind: r.text === 'password_reset' ? 'password_reset' : 'login', ip: d.ip || '', ua: d.ua || '' };
       }),
     };
   }
