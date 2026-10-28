@@ -437,12 +437,12 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
       const v2 = await this.rights.visibleLeadIds(userId, [...new Set(ms.map((r) => r.leadId).filter(Boolean) as string[])]);
       missedCount = ms.filter((r) => r.userId === userId || (r.leadId && (!v2 || v2.has(r.leadId)))).length;
     }
-    const own = await this.ownProvider();
+    const recs = await this.recMap(rows, await this.ownProvider());
     return {
       calls: rows.map((c) => ({
         ...c,
         leadName: c.leadId ? nameMap.get(c.leadId) || null : null,
-        hasRecording: this.hasRec(c, own),
+        hasRecording: recs.get(c.id) || false,
       })),
       missedCount,
     };
@@ -450,10 +450,15 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
 
   private async ownProvider() { return (await this.cfg.get()).provider === 'own'; }
   /**
-   * Yozuv bormi: o'z stansiyamizda — faqat yozuv fayli topilib saqlangan havola (recordUrl) bo'lsa; OnlinePBX'da — uuid bo'yicha ham olinadi.
+   * Yozuv bormi: o'z stansiyamizda — saqlangan havola (recordUrl) bo'lsa VA fayl hali diskda bo'lsa (saqlash muddati o'tib o'chirilgan bo'lsa —
+   * «yozuv mavjud emas»); OnlinePBX'da — uuid bo'yicha ham olinadi.
    */
-  private hasRec(c: { externalId: string | null; recordUrl: string | null }, own: boolean) {
-    return own ? !!c.recordUrl : !!(c.externalId || c.recordUrl);
+  private async recMap(rows: { id: string; externalId: string | null; recordUrl: string | null }[], own: boolean): Promise<Map<string, boolean>> {
+    const out = new Map<string, boolean>();
+    await Promise.all(rows.map(async (c) => {
+      out.set(c.id, own ? !!c.recordUrl && (await this.own.hasRecordingFile(c.recordUrl).catch(() => false)) : !!(c.externalId || c.recordUrl));
+    }));
+    return out;
   }
 
   /** Hisobot davri: noto'g'ri sana / from>to / juda uzun davr — 400. */
@@ -530,19 +535,20 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     const talk = list.reduce((a, r) => a + r.talkSec, 0);
     const roundedMin = list.reduce((a, r) => a + (r.talkSec > 0 ? Math.ceil(r.talkSec / 60) : 0), 0);
     const total = list.reduce((a, r) => a + r.durationSec, 0);
-    const RESULT: [RegExp, string][] = [[/busy|занят/, 'Band'], [/reject|отклон/, 'Rad etildi'], [/fail|congestion/, 'Xato'], [/cancel|no.?answer|не отвеч/, 'Javob berilmadi']];
-    const own = await this.ownProvider();
+    const RESULT: [RegExp, string][] = [[/voicemail/, 'Ovozli pochta'], [/busy|занят/, 'Band'], [/reject|отклон/, 'Rad etildi'], [/fail|congestion/, 'Xato'], [/cancel|no.?answer|не отвеч/, 'Javob berilmadi']];
+    const page = list.slice(0, Math.min(Number(q.limit) || 200, 500));
+    const recs = await this.recMap(page, await this.ownProvider());
     return {
       range: { from: new Date(fromMs + TZ).toISOString().slice(0, 10), to: new Date(toMs - 86_400_000 + TZ).toISOString().slice(0, 10) },
       truncated,
       tiles,
-      calls: list.slice(0, Math.min(Number(q.limit) || 200, 500)).map((r) => {
+      calls: page.map((r) => {
         const u = r.userId ? uMap.get(r.userId) : undefined;
         return {
           id: r.id, kind: isInternal(r) ? 'internal' : r.direction, status: r.status, at: r.startedAt.toISOString(), phone: r.phone,
           userName: u?.name || null, ext: u?.extension || null, leadId: r.leadId, leadName: r.leadId ? lMap.get(r.leadId) || null : null,
           ringSec: Math.max(0, r.durationSec - r.talkSec), talkSec: r.talkSec, rating: r.rating,
-          result: r.hangup ? (RESULT.find(([re]) => re.test(r.hangup!))?.[1] || null) : null, hasRecording: this.hasRec(r, own),
+          result: r.hangup ? (RESULT.find(([re]) => re.test(r.hangup!))?.[1] || null) : null, hasRecording: recs.get(r.id) || false,
         };
       }),
       totals: { count: list.length, talkSec: talk, roundedMinutes: roundedMin, totalSec: total },
@@ -612,8 +618,8 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     await this.syncHistory({ minutes: 15 }).catch(() => {}); // har pollда OnlinePBX'dan tortamiz (throttle ~2.5s)
     const calls = await this.prisma.callLog.findMany({ where: { leadId }, orderBy: { startedAt: 'desc' }, take: 100 });
     // hasRecording — yozuvni server orqali olib bo'ladimi (uuid yoki havola bor)
-    const own = await this.ownProvider();
-    return { calls: calls.map((c) => ({ ...c, hasRecording: this.hasRec(c, own) })) };
+    const recs = await this.recMap(calls, await this.ownProvider());
+    return { calls: calls.map((c) => ({ ...c, hasRecording: recs.get(c.id) || false })) };
   }
 
   // ── Qo'ng'iroq yozuvini server orqali olib berish (chatda ijro uchun) ──

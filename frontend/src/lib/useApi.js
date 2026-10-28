@@ -47,6 +47,21 @@ function cacheGet(key) {
 }
 function cacheSet(key, val) { _cache.set(key, val); lsSet(key, val) }
 
+// useApi'siz yuklovchilar uchun (masalan bitim kartochkasi): keshdan o'qish/yozish
+export const cacheRead = (key) => (cacheHas(key) ? cacheGet(key) : undefined)
+const LRU_MAX = 30 // bitim kartochkalari: oxirgi 30 tasi localStorage'da (kvota to'lmasin)
+export const cacheWrite = (key, val) => {
+  if (val == null) return
+  cacheSet(key, val)
+  if (!key.startsWith('lead:')) return
+  try {
+    const idx = JSON.parse(localStorage.getItem(PREFIX + 'lead-index') || '[]').filter((k) => k !== key)
+    idx.push(key)
+    while (idx.length > LRU_MAX) { const old = idx.shift(); _cache.delete(old); lsDel(old) }
+    localStorage.setItem(PREFIX + 'lead-index', JSON.stringify(idx))
+  } catch { /* */ }
+}
+
 // Butun keshni yoki bitta kalitni tozalash (masalan logout/boshqa userga o'tishda).
 export function invalidateCache(key) {
   if (key == null) { epoch++; _cache.clear(); lsClearAll() }

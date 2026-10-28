@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { crmService } from '../../services/crm.service'
 import { api } from '../../lib/apiClient'
-import { useApi } from '../../lib/useApi'
+import { cacheRead, cacheWrite, useApi } from '../../lib/useApi'
 import { useAuth } from '../../context/AuthContext'
 import { Ico } from '../AmoIcons'
 import { DotsMenu, useOutside } from '../TopBar'
@@ -891,7 +891,9 @@ export default function LeadCard() {
       if (rid !== idRef.current) return
       const l = r.lead
       const stageAct = (l.activity || []).find((a) => a.type === 'stage' || a.type === 'won' || a.type === 'lost')
-      setLead({ ...l, stageSince: stageAct?.at || l.createdAt })
+      const full = { ...l, stageSince: stageAct?.at || l.createdAt }
+      setLead(full)
+      cacheWrite(`lead:${id}`, full) // keyingi ochilishda darrov ko'rinsin, fonda yangilanadi
       setLoadErr(null)
     } catch (e) { if (rid === idRef.current) setLoadErr(e) }
   }
@@ -930,7 +932,7 @@ export default function LeadCard() {
     setDraft({}); setContactEdits({}); setTab('main')
     const pid = sp.get('pipeline') || ''
     if (isNew) setLead({ id: null, n: '', stage: '', pipelineId: pid, tags: [], custom: {}, value: 0, assigneeId: user?.id, activity: [], notes: [] })
-    else { setLead(null); setLoadErr(null); setFeed({ calls: [], tasks: [], messages: [], canReply: false }); loadLead() }
+    else { setLead(cacheRead(`lead:${id}`) ?? null); setLoadErr(null); setFeed({ calls: [], tasks: [], messages: [], canReply: false }); loadLead() }
     loadFeed()
     ;(async () => {
       const [main, fl, mem] = await Promise.all([crmService.getPipeline(), crmService.listFields('lead'), crmService.listMembers()])

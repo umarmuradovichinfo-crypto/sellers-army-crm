@@ -120,7 +120,9 @@ export function normalizeConfig(type: ModuleType, raw: Cfg = {}): Normalized {
       const holidays = (Array.isArray(c.holidays) ? c.holidays : []).map((h: unknown) => str(h, 10)).filter((h: string) => /^\d{4}-\d{2}-\d{2}$/.test(h)).slice(0, 400);
       const workTo = num(c.workTo), offTo = num(c.offTo), holidayTo = num(c.holidayTo);
       const tz = str(c.timezone, 10) || 'UTC+5';
-      if (!/^UTC[+-]\d{1,2}$/.test(tz)) bad("Vaqt mintaqasi 'UTC+5' ko'rinishida bo'lishi kerak");
+      // Asterisk'da Etc/GMT-14 … Etc/GMT+12 bor; boshqasi jimgina UTC bo'lib qolardi
+      const tzm = /^UTC([+-])(\d{1,2})$/.exec(tz);
+      if (!tzm || (tzm[1] === '+' ? Number(tzm[2]) > 14 : Number(tzm[2]) > 12)) bad("Vaqt mintaqasi 'UTC+5' ko'rinishida bo'lishi kerak (UTC-12 … UTC+14)");
       return { config: { timezone: tz, type: 'weekly', days, holidays, workTo, offTo, holidayTo }, targets: [workTo, offTo, holidayTo].filter(Boolean), members: [] };
     }
     case 'greeting': {

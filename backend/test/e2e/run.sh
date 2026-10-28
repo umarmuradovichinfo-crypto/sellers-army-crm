@@ -21,6 +21,8 @@ export PUBLIC_URL="http://localhost:${PORT}"
 # Asterisk sozlamasini qo'llash sinovi uchun vaqtinchalik papkalar (AMI yo'q — qayta yuklash o'tkazib yuboriladi)
 rm -rf /tmp/crm-e2e-asterisk
 export ASTERISK_CONF_DIR="/tmp/crm-e2e-asterisk/conf" ASTERISK_SOUNDS_DIR="/tmp/crm-e2e-asterisk/sounds"
+# yozuvlar papkasi (saqlash muddati / «yozuv mavjud emas» sinovi)
+export ASTERISK_RECORDINGS_DIR="/tmp/crm-e2e-asterisk/rec"; mkdir -p "$ASTERISK_RECORDINGS_DIR"
 # Obuna litsenziyasi sinovi uchun test sirri (faqat lokal test bazasi)
 export LICENSE_ALLOW_UNBOUND=1 LICENSE_SECRET="e2e-license-secret" BILLING_CARD_NUMBER="8600 0000 0000 0000" BILLING_CARD_HOLDER="TEST HOLDER" BILLING_TELEGRAM="@test_admin"
 

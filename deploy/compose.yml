@@ -47,8 +47,9 @@ services:
       - "10000-10200:10000-10200/udp"
     volumes:
       - ./asterisk-data/etc:/etc/asterisk
-      - ./asterisk-data/sounds/custom:/var/lib/asterisk/sounds/custom # CRM ASTERISK_SOUNDS_DIR/custom/<id> ga yozadi
-      - ./asterisk-data/recordings:/var/spool/asterisk/monitor
+      - ./asterisk-data/sounds:/var/lib/asterisk/sounds # standart ovozlar (init.sh: sounds/ru) + CRM audio (ASTERISK_SOUNDS_DIR/custom/<id>)
+      - ./asterisk-data/recordings:/var/spool/asterisk/monitor # suhbat yozuvlari va ovozli pochta (<id>-vm.wav)
+      - ./asterisk-data/log:/var/log/asterisk # security.log — fail2ban (deploy/fail2ban) shu yerni kuzatadi
     networks: [crm-net]
 
 networks:

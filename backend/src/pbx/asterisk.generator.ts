@@ -1,6 +1,6 @@
 // Modullardan Asterisk sozlamasini hosil qiladi: pjsip.conf (xodimlar + trunklar), extensions.conf (qo'ng'iroq oqimi), queues.conf.
-// DIQQAT: haqiqiy Asterisk'da hali sinalmagan (PLAN 45, 3-bosqich) — matn tuzilishi testlar bilan tekshiriladi, ishlashi serverda sinaladi
-// (ro'yxat: docs/amo-clone/PBX.md → «Haqiqiy serverda tekshirish kerak»).
+// Haqiqiy Asterisk 23 (Docker, scripts/pbx-live) da sinalgan: ichki/kiruvchi/chiquvchi, IVR (DTMF), ovozli pochta, vaqt qoidasi, NAT, WebRTC.
+// Matn tuzilishi e2e testlarda (97*-pbx-*.test.mjs) tekshiriladi; haqiqiy operator trunki — serverda (docs/amo-clone/SERVER-DAY.md).
 import { normalizeConfig, type ModuleType, DAYS } from './pbx-schema';
 import { EXT_RE, phoneKey } from './phone';
 
@@ -10,6 +10,11 @@ export interface GenOptions {
   blacklist?: string[]; outgoing?: { rules: OutRule[] }; sipSecrets?: Record<string, string>; wssHost?: string;
   /** Suhbatlarni yozib olish (MixMonitor): fayl `<dir>/<uuid>.wav` — CRM shu papkadan (ASTERISK_RECORDINGS_DIR) o'qiydi. */
   recording?: { enabled: boolean; dir?: string };
+  /**
+   * NAT (server ichki IP + tashqi IP, yoki Docker): tashqi IP/domen SIP va SDP'ga yoziladi (`external_*`), `local_net` dagi manzillarga — yo'q.
+   * Faqat berilganda yoziladi (env PBX_EXTERNAL_IP / PBX_LOCAL_NET).
+   */
+  nat?: { externalAddress?: string; localNets?: string[] };
 }
 export interface GenResult { pjsip: string; extensions: string; queues: string }
 
@@ -47,6 +52,35 @@ function maskRe(mask: string): string {
   }
   return /[.!]$/.test(m) ? `${out}$` : out;
 }
+/** IPv4, IPv6 yoki domen nomi (NAT tashqi manzili). */
+export function isHostAddress(v: string): boolean {
+  const s = String(v || '');
+  if (!s || s.length > 253) return false;
+  if (/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(s)) return s.split('.').every((x) => Number(x) <= 255);
+  if (s.includes(':')) return /^[0-9A-Fa-f:.]{2,45}$/.test(s) && (s.match(/::/g) || []).length <= 1;
+  return /^(?=.{1,253}$)([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$/.test(s) && !/^[\d.]+$/.test(s);
+}
+/** Tarmoq (local_net): `10.0.0.0/8`, `192.168.1.0/255.255.255.0`, `fd00::/8` yoki bitta IP. */
+export function isLocalNet(v: string): boolean {
+  const [ip, mask, ...rest] = String(v || '').split('/');
+  if (rest.length || !ip) return false;
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(ip) && ip.split('.').every((x) => Number(x) <= 255);
+  const v6 = !v4 && /^[0-9A-Fa-f:]{2,39}$/.test(ip) && ip.includes(':') && (ip.match(/::/g) || []).length <= 1;
+  if (!v4 && !v6) return false;
+  if (mask === undefined) return true;
+  if (/^\d{1,3}$/.test(mask)) return Number(mask) <= (v4 ? 32 : 128);
+  return v4 && /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(mask) && mask.split('.').every((x) => Number(x) <= 255);
+}
+/**
+ * NAT sozlamasi (env): PBX_EXTERNAL_IP — serverning tashqi IP/domeni; PBX_LOCAL_NET — ichki tarmoqlar (vergul bilan). Tashqi manzil berilib,
+ * ichki tarmoq berilmasa — Docker va localhost (`127.0.0.0/8`, `172.16.0.0/12`) ichki hisoblanadi.
+ */
+export function natFromEnv(env: Record<string, string | undefined> = process.env) {
+  const externalAddress = String(env.PBX_EXTERNAL_IP || '').trim();
+  const nets = String(env.PBX_LOCAL_NET || '').split(/[,\s]+/).map((x) => x.trim()).filter(Boolean);
+  if (!externalAddress && !nets.length) return undefined;
+  return { externalAddress, localNets: nets.length ? nets : externalAddress ? ['127.0.0.0/8', '172.16.0.0/12'] : [] };
+}
 const DAY_AST: Record<string, string> = { mon: 'mon', tue: 'tue', wed: 'wed', thu: 'thu', fri: 'fri', sat: 'sat', sun: 'sun' };
 
 /** Ikkinchi himoya qatlami: konfiguratsiyaga tushadigan har qanday qiymatda qator uzilishi/nazorat belgisi bo'lsa — to'xtatamiz. */
@@ -81,11 +115,27 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
   if (rec && !/^\/[\w./-]+$/.test(rec)) throw new GeneratorError('Yozuvlar papkasi noto`g`ri');
   // MixMonitor: fayl nomi CRM qo'ng'iroq identifikatori (Originate'dagi CRM_UUID) yoki kanal UNIQUEID — CDR bilan bir xil
   const mix = rec ? [` same => n,MixMonitor(${rec}/\${IF($["\${CRM_UUID}" != ""]?\${CRM_UUID}:\${UNIQUEID})}.wav,b)`] : [];
+  // Ovozli pochta xabari: yozuv sozlamasi o'chiq bo'lsa ham o'sha papkaga `<id>-vm.wav` (CRM jurnalida «Ovozli pochta» va tinglash)
+  const vmDir = val(opt.recording?.dir || '/var/spool/asterisk/monitor', 'recording.dir').replace(/\/+$/, '');
+  if (!/^\/[\w./-]+$/.test(vmDir) || vmDir.includes('..')) throw new GeneratorError('Yozuvlar papkasi noto`g`ri');
+  // NAT: faqat berilganda; qiymatlar oq ro'yxat bilan tekshiriladi (qator uzilishi/`;` bo'lsa — konfiguratsiyaga tushmaydi)
+  const natLines: string[] = [];
+  const natExt = opt.nat?.externalAddress ? String(opt.nat.externalAddress).trim() : '';
+  if (natExt) {
+    if (!isHostAddress(natExt)) throw new GeneratorError(`Tashqi manzil (PBX_EXTERNAL_IP) noto'g'ri: ${natExt.slice(0, 60).replace(/[\x00-\x1f]/g, '?')}`);
+    natLines.push(`external_media_address=${natExt}`, `external_signaling_address=${natExt}`);
+  }
+  for (const n of opt.nat?.localNets || []) {
+    const x = String(n).trim();
+    if (!x) continue;
+    if (!isLocalNet(x)) throw new GeneratorError(`Ichki tarmoq (PBX_LOCAL_NET) noto'g'ri: ${x.slice(0, 60).replace(/[\x00-\x1f]/g, '?')}`);
+    natLines.push(`local_net=${x}`);
+  }
 
   // ── pjsip.conf ──
   const pj: string[] = [
     '; Avtomatik hosil qilingan (CRM → Telefoniya). Qo\'lda tahrirlamang.',
-    '[transport-udp]', 'type=transport', 'protocol=udp', 'bind=0.0.0.0:5060', '',
+    '[transport-udp]', 'type=transport', 'protocol=udp', 'bind=0.0.0.0:5060', ...natLines, '',
     // brauzer telefoni: Asterisk ichkarida oddiy WebSocket (8088); TLS (wss://<domen>/ws) ni Caddy tugatadi — sertifikatni qo'lda sozlash shart emas
     '[transport-ws]', 'type=transport', 'protocol=ws', 'bind=0.0.0.0', '',
   ];
@@ -104,7 +154,9 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
     );
     if (web) {
       pj.push(
-        `[${id}-web]`, 'type=endpoint', `context=from-internal`, 'disallow=all', 'allow=opus,ulaw,alaw', `auth=${id}-web`, `aors=${id}-web`, `callerid="${name}" <${id}>`,
+        // opus YO'Q: andrius/asterisk (va ko'p tasvirlar) da codec_opus yo'q — brauzer opus tanlasa, stol telefoni (ulaw) bilan ko'prik
+        // «No path to translate» bilan uziladi (jonli sinovda 100-web → 101 shunday uzildi). Brauzerlar PCMU/PCMA ni qo'llaydi.
+        `[${id}-web]`, 'type=endpoint', `context=from-internal`, 'disallow=all', 'allow=ulaw,alaw', `auth=${id}-web`, `aors=${id}-web`, `callerid="${name}" <${id}>`,
         'webrtc=yes', 'direct_media=no', 'rtp_symmetric=yes', 'force_rport=yes', 'rewrite_contact=yes', '',
         `[${id}-web]`, 'type=auth', 'auth_type=userpass', `username=${id}-web`, `password=${val(secrets[id] || 'CHANGE_ME', `${id} SIP paroli`)}`, '',
         `[${id}-web]`, 'type=aor', 'max_contacts=3', 'remove_existing=yes', 'qualify_frequency=30', '',
@@ -163,21 +215,29 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
         lines.push(`exten => s,1,UserEvent(CrmRing,Caller: \${CALLERID(num)},Called: ${(c.members as { ext: string }[])[0]?.ext || m.number},Uuid: \${UNIQUEID})`, ` same => n,Queue(q${ctx(m.number)},t,,,${c.queueSec ?? 180})`, ` same => n,${go(c.forwardTo)}`);
         break;
       case 'timerule': {
-        // GUMON: tunni kesib o'tuvchi oraliq (22:00-02:00) GotoIfTime'da bitta qator bilan ishlashi haqiqiy serverda tekshirilishi kerak
+        // Tunni kesib o'tuvchi oraliq (masalan dush 22:00–06:00): GotoIfTime'da vaqt va hafta kuni ALOHIDA tekshiriladi — `22:00-06:00,mon`
+        // dushanba 00:00–06:00 va 22:00–24:00 ni beradi (jonli Asterisk 23 da tasdiqlangan), seshanba 00:00–06:00 ni EMAS. Shuning uchun ikkiga
+        // bo'linadi: `22:00-23:59,mon` + `00:00-06:00,tue`. from = to — butun kun.
         const tz = tzName(c.timezone);
         lines.push('exten => s,1,NoOp(Vaqt qoidasi)');
         for (const h of c.holidays as string[]) lines.push(` same => n,GotoIf($["\${STRFTIME(\${EPOCH},${tz},%Y-%m-%d)}" = "${h}"]?holiday)`);
-        for (const d of DAYS) {
+        DAYS.forEach((d, i) => {
           const x = c.days[d];
-          if (x?.on) lines.push(` same => n,GotoIfTime(${x.from}-${x.to},${DAY_AST[d]},*,*,${tz}?work)`);
-        }
+          if (!x?.on) return;
+          const next = DAY_AST[DAYS[(i + 1) % 7]];
+          const ranges: [string, string][] = x.from === x.to ? [['00:00-23:59', DAY_AST[d]]] : x.from < x.to ? [[`${x.from}-${x.to}`, DAY_AST[d]]] : [[`${x.from}-23:59`, DAY_AST[d]], [`00:00-${x.to}`, next]];
+          for (const [t, dd] of ranges) lines.push(` same => n,GotoIfTime(${t},${dd},*,*,${tz}?work)`);
+        });
         lines.push(` same => n,${go(c.offTo)}`, ` same => n(work),${go(c.workTo)}`, ` same => n(holiday),${go(c.holidayTo || c.offTo)}`);
         break;
       }
       case 'greeting': {
         const delay = c.delaySec ?? 5;
-        // GUMON: audio (mp3/wav) 8 kHz'ga transkodlanishi kerak bo'lishi mumkin — haqiqiy serverda tekshirish kerak
-        lines.push('exten => s,1,Answer()', ' same => n,Set(CRM_TRIES=0)', ` same => n(menu),Background(${snd(c.audioId, 'silence/1')})`, delay > 0 ? ` same => n,WaitExten(${delay})` : ' same => n,Goto(t,1)');
+        // Menyu tugmasi ichki raqam boshlanishi bilan bir xil bo'lsa (1 va 101) Asterisk keyingi raqamni kutadi (standart 5 s) — jonli sinovda
+        // «1» bosilgach 5 s jimlik bo'ldi. Raqamlar orasidagi kutish 2 s ga tushiriladi (ichki raqamni terishga yetarli).
+        const menuKeys = (c.menu as { key: string; to: string }[]).filter((k) => exists.has(k.to)).map((k) => k.key);
+        const ambiguous = !!c.allowExt && users.some((u) => menuKeys.some((k) => u.number.startsWith(k)));
+        lines.push('exten => s,1,Answer()', ' same => n,Set(CRM_TRIES=0)', ...(ambiguous ? [' same => n,Set(TIMEOUT(digit)=2)'] : []), ` same => n(menu),Background(${snd(c.audioId, 'silence/1')})`, delay > 0 ? ` same => n,WaitExten(${delay})` : ' same => n,Goto(t,1)');
         for (const k of c.menu as { key: string; to: string }[]) if (exists.has(k.to)) lines.push(`exten => ${k.key},1,Goto(${ctx(k.to)},s,1)`);
         if (c.allowExt) for (const u of users) lines.push(`exten => ${u.number},1,Goto(${ctx(u.number)},s,1)`);
         // noto'g'ri tugma: 3 marta qayta eshittiriladi, keyin «keyingi qadam» (cheksiz aylanish yo'q)
@@ -185,7 +245,11 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
         break;
       }
       case 'voicemail':
-        lines.push('exten => s,1,Answer()', ` same => n,Playback(${snd(c.audioBefore, 'vm-intro')})`, ` same => n,Record(/var/spool/asterisk/voicemail/${enc(m.number)}/\${UNIQUEID}.wav,${c.silenceSec ?? 5},${c.recordSec ?? 15},k)`, ` same => n,Playback(${snd(c.audioAfter, 'vm-goodbye')})`, ` same => n,${go(c.forwardTo)}`);
+        // Fayl nomi — qo'ng'iroq identifikatori (CDR UniqueID / CRM_UUID, MixMonitor bilan bir xil) + `-vm`: CRM CDR kelganda shu faylni topib,
+        // qo'ng'iroqni «Ovozli pochta» deb belgilaydi va yozuvni jurnalda tinglatadi. CDR userfield'ga ham `vm:1` (diagnostika uchun).
+        lines.push('exten => s,1,Answer()', ' same => n,Set(CRM_VM=${IF($["${CRM_UUID}" != ""]?${CRM_UUID}:${UNIQUEID})})',
+          ` same => n,Playback(${snd(c.audioBefore, 'vm-intro')})`, ' same => n,Set(CDR(userfield)=${CDR(userfield)} vm:1)',
+          ` same => n,Record(${vmDir}/\${CRM_VM}-vm.wav,${c.silenceSec ?? 5},${c.recordSec ?? 15},k)`, ` same => n,Playback(${snd(c.audioAfter, 'vm-goodbye')})`, ` same => n,${go(c.forwardTo)}`);
         break;
       case 'http': {
         const url = val(c.url || '', `${m.number} url`);
@@ -211,7 +275,7 @@ export function generateAsterisk(mods: GenModule[], opt: GenOptions = {}): GenRe
   ex.push('[from-internal]');
   // ichki qo'ng'iroqlar ham yoziladi (MixMonitor — sozlamada yoqilgan bo'lsa)
   for (const u of users) ex.push(`exten => ${u.number},1,NoOp(Ichki)`, ...mix, ` same => n,Goto(${ctx(u.number)},s,1)`);
-  for (const m of on) if (['group', 'queue', 'greeting', 'voicemail', 'alias', 'http'].includes(m.type)) ex.push(`exten => ${m.number},1,NoOp(Ichki)`, ...mix, ` same => n,Goto(${ctx(m.number)},s,1)`);
+  for (const m of on) if (['group', 'queue', 'greeting', 'voicemail', 'alias', 'http', 'timerule', 'numrule'].includes(m.type)) ex.push(`exten => ${m.number},1,NoOp(Ichki)`, ...mix, ` same => n,Goto(${ctx(m.number)},s,1)`);
   // Chiquvchi qoidalar: tartib bo'yicha birinchi mos qoida (maska + «kimga ruxsat» ro'yxati). Faqat ko'rsatilgan xodimlar o'sha trunkdan chiqadi;
   // mos qoida bo'lmasa — rad (Hangup 21). Click-to-call (Originate) kanali ham xodim endpoint'i bo'lgani uchun xuddi shu tekshiruvdan o'tadi.
   const rules = (opt.outgoing?.rules || []).filter((r) => r.trunk && exists.has(r.trunk) && on.some((m) => m.type === 'trunk' && m.number === r.trunk));

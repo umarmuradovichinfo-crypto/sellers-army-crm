@@ -139,12 +139,20 @@ export class OwnPbxProvider implements PbxProvider, OnModuleInit, OnModuleDestro
     for (const l of this.listeners) { try { l(body); } catch (err) { this.logger.warn('CDR: ' + (err as Error).message); } }
   }
 
-  /** Yozuv fayli haqiqatan bormi (MixMonitor yozgan). */
-  private async recordingExists(uuid: string) {
+  /**
+   * Yozuv fayllari: `<id>.wav|mp3` (MixMonitor — butun suhbat) va `<id>-vm.wav` (ovozli pochta xabari, Record).
+   * `vm` — ovozli pochta xabari qoldirilgan; `rec` — tinglash mumkin bo'lgan biror fayl bor (saqlash muddati o'tib o'chirilgan bo'lsa — yo'q).
+   */
+  private async recordingInfo(uuid: string): Promise<{ rec: boolean; vm: boolean }> {
     const dir = process.env.ASTERISK_RECORDINGS_DIR;
-    if (!dir || !/^[\w.-]{6,64}$/.test(uuid)) return false;
-    for (const ext of ['wav', 'mp3']) { try { const st = await fs.stat(join(dir, `${uuid}.${ext}`)); if (st.size > 44) return true; } catch { /* */ } }
-    return false;
+    if (!dir || !/^[\w.-]{6,64}$/.test(uuid) || uuid.includes('..')) return { rec: false, vm: false };
+    const has = async (f: string) => { try { return (await fs.stat(join(dir, f))).size > 44; } catch { return false; } };
+    const [w, m, v] = await Promise.all([has(`${uuid}.wav`), has(`${uuid}.mp3`), has(`${uuid}-vm.wav`)]);
+    return { rec: w || m || v, vm: v };
+  }
+  /** Jurnal uchun: saqlangan havola (`own:<id>`) bo'yicha fayl hali diskda bormi. */
+  async hasRecordingFile(uuidOrUrl: string): Promise<boolean> {
+    return (await this.recordingInfo(String(uuidOrUrl || '').replace(/^own:/, ''))).rec;
   }
 
   private onCdr(e: AmiMsg) {
@@ -157,7 +165,10 @@ export class OwnPbxProvider implements PbxProvider, OnModuleInit, OnModuleDestro
     const ms = Number(process.env.ASTERISK_CDR_MERGE_MS ?? 1500);
     const timer = setTimeout(() => {
       this.cdrBuf.delete(uuid);
-      this.recordingExists(uuid).then((rec) => this.emit(rec ? { ...merged, download_url: `own:${uuid}` } : merged)).catch(() => this.emit(merged));
+      // ovozli pochta xabari qoldirilgan (operator javob bermagan) — natija «voicemail» (CRM jurnalida «Ovozli pochta»)
+      this.recordingInfo(uuid).then(({ rec, vm }) => this.emit({
+        ...merged, ...(rec ? { download_url: `own:${uuid}` } : {}), ...(vm && merged.hangup_cause !== 'normal_clearing' ? { hangup_cause: 'voicemail' } : {}),
+      })).catch(() => this.emit(merged));
     }, Number.isFinite(ms) ? ms : 1500);
     timer.unref?.();
     this.cdrBuf.set(uuid, { body: merged, timer });
@@ -250,11 +261,14 @@ export class OwnPbxProvider implements PbxProvider, OnModuleInit, OnModuleDestro
     const id = String(uuidOrUrl).replace(/^own:/, '');
     const dir = process.env.ASTERISK_RECORDINGS_DIR;
     if (!dir || !/^[\w.-]{6,64}$/.test(id) || id.includes('..')) return null;
-    for (const [ext, ct] of [['wav', 'audio/wav'], ['mp3', 'audio/mpeg']] as const) {
+    // butun suhbat yozuvi (MixMonitor) bo'lsa — u (ovozli pochta xabari ham ichida); bo'lmasa — faqat ovozli pochta xabari
+    for (const [ext, ct] of [['.wav', 'audio/wav'], ['.mp3', 'audio/mpeg'], ['-vm.wav', 'audio/wav']] as const) {
       try {
-        const p = join(dir, `${id}.${ext}`);
+        const p = join(dir, `${id}${ext}`);
         const st = await fs.stat(p);
         if (st.size > 50 * 1024 * 1024) return null;
+        // MixMonitor `b` (faqat ulanganda) — operator javob bermagan qo'ng'iroqda bo'sh (44 bayt sarlavha) fayl qoladi: keyingisini (-vm) olamiz
+        if (st.size <= 44) continue;
         return { buffer: await fs.readFile(p), contentType: ct };
       } catch { /* keyingisi */ }
     }

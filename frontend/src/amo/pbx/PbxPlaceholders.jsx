@@ -38,6 +38,15 @@ export function PbxRecord() {
   const { data: rec, setData: setRec } = useApi(() => pbxService.recording().catch(() => null), [], 'pbx:recording')
   const on = rec ? rec.enabled !== false : true
   const toggle = async () => { try { setRec(await pbxService.saveRecording({ enabled: !on })) } catch { /* */ } }
+  // Saqlash muddati: N kundan eski yozuvlar har sutkada o'chiriladi (0 — o'chirilmaydi)
+  const [days, setDays] = useState(null)
+  const [keepMsg, setKeepMsg] = useState('')
+  const keep = days ?? (rec?.keepDays ?? 90)
+  const saveKeep = async () => {
+    const n = Number(keep)
+    if (!Number.isInteger(n) || n < 0 || n > 3650) { setKeepMsg(t("pbx§0 dan 3650 gacha butun son kiriting")); return }
+    try { setRec(await pbxService.saveRecording({ keepDays: n })); setDays(null); setKeepMsg(t('pbx§Saqlandi')) } catch (e) { setKeepMsg(e?.message || t("pbx§Saqlab bo'lmadi")) }
+  }
   return (
     <div className="pbxr">
       <Link className="pbxr__help" to="/pbx/calls">{t('pbx§Yozuv qanday yoqiladi?')}</Link>
@@ -46,6 +55,16 @@ export function PbxRecord() {
           <h4>{t('pbx§Suhbatlarni yozib olish')}<button type="button" className={`pbxr__sw${on ? '' : ' off'}`} onClick={toggle} aria-pressed={on} title={on ? t('pbx§Yozuv yoqilgan') : t('pbx§Yozuv o\'chiq')} /></h4>
           <p>{t("pbx§Yozuvlarni qo'ng'iroqlar jurnalidan")} <Link to="/pbx/calls">{t('pbx§tinglash')}</Link> {t('pbx§mumkin. Stansiya serveri ulangach yozuv avtomatik yoqiladi.')}</p>
           <Link className="pbxr__btn" to="/pbx/license">{t('pbx§Litsenziyani uzaytirish')}</Link>
+        </div>
+        <div className="pbxr__card">
+          <h4>{t('pbx§Saqlash muddati')}</h4>
+          <p>{t("pbx§Yozuvlar shuncha kundan keyin avtomatik o'chiriladi (0 — o'chirilmaydi). Qo'ng'iroq jurnalda qoladi, yozuv «mavjud emas» bo'ladi.")}</p>
+          <label className="pbxr__keep">
+            <input type="number" min="0" max="3650" step="1" value={keep} onChange={(e) => { setDays(e.target.value); setKeepMsg('') }} aria-label={t('pbx§Saqlash muddati')} />
+            <span>{t('pbx§kun')}</span>
+          </label>
+          {keepMsg && <p className="pbxr__msg">{keepMsg}</p>}
+          <button type="button" className="pbxr__btn" disabled={days === null} onClick={saveKeep}>{t('pbx§Saqlash')}</button>
         </div>
         <div className="pbxr__card">
           <h4>{t('pbx§Stereoyozuv')}</h4>

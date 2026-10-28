@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- Brauzer telefoni jonli sinovi: frontend/src/lib/webrtcPhone.js (JsSIP) ning o'zi (esbuild bilan to'plangan phone.js) → Asterisk WebRTC. -->
+<meta charset="utf-8">
+<script src="phone.js"></script>
+<script>
+const q = new URLSearchParams(location.hash.slice(1));
+const log = (...a) => console.log('PHONE', ...a);
+const done = (r) => { console.log('RESULT ' + JSON.stringify(r)); };
+const phone = CRMPhone.phone;
+const r = { registered: false, call: null, events: [] };
+phone.on('state', (s) => { r.events.push('state:' + s); log('state', s); if (s === 'registered' && !r.call) { r.registered = true; r.call = 'dialing'; phone.call(q.get('to')); } });
+phone.on('error', (e) => { r.events.push('error:' + e); log('error', e); });
+phone.on('ended', (e) => { r.events.push('ended:' + JSON.stringify(e)); });
+phone.on('active', async () => {
+  if (r.call === 'active') return;
+  r.call = 'active'; r.events.push('active');
+  await new Promise((s) => setTimeout(s, Number(q.get('talk') || 6) * 1000));
+  const pc = phone.session && phone.session.connection;
+  const st = { };
+  if (pc) {
+    const rep = await pc.getStats();
+    rep.forEach((x) => {
+      if (x.type === 'inbound-rtp' && x.kind === 'audio') Object.assign(st, { inPackets: x.packetsReceived, inBytes: x.bytesReceived, audioLevel: x.audioLevel, codecId: x.codecId });
+      if (x.type === 'outbound-rtp' && x.kind === 'audio') Object.assign(st, { outPackets: x.packetsSent, outBytes: x.bytesSent });
+      if (x.type === 'transport') Object.assign(st, { dtlsState: x.dtlsState, iceState: x.iceState, srtpCipher: x.srtpCipher, tlsVersion: x.tlsVersion, selectedPair: x.selectedCandidatePairId });
+      if (x.type === 'codec') st.codecs = [...(st.codecs || []), x.mimeType];
+    });
+    rep.forEach((x) => { if (x.id === st.selectedPair) { const l = rep.get(x.localCandidateId), m = rep.get(x.remoteCandidateId); st.pair = `${l && l.address}:${l && l.port} (${l && l.candidateType}) -> ${m && m.address}:${m && m.port} (${m && m.candidateType})`; } });
+    st.remoteSdpCrypto = /a=fingerprint/.test(pc.remoteDescription && pc.remoteDescription.sdp) ? 'dtls-fingerprint' : 'none';
+    st.remoteIce = ((pc.remoteDescription && pc.remoteDescription.sdp) || '').split('\n').filter((l) => l.startsWith('a=candidate')).map((l) => l.trim());
+  }
+  r.stats = st;
+  phone.hangup();
+  setTimeout(() => { done(r); phone.stop(); }, 1500);
+});
+// ICE yig'ish vaqtini o'lchash (JsSIP INVITE'ni yig'ish tugagach yuboradi)
+const t0 = Date.now();
+const origCall = phone.call.bind(phone);
+phone.call = (n) => { const ok = origCall(n); const s = phone.session; if (s) { s.on('icecandidate', (e) => log('ice', Date.now() - t0, e.candidate && e.candidate.candidate)); s.on('sending', () => { r.inviteAfterMs = Date.now() - t0; log('INVITE yuborildi', r.inviteAfterMs, 'ms'); }); s.on('failed', (e) => log('failed', e.cause)); } return ok; };
+phone.start({ wss: q.get('ws'), uri: q.get('uri'), password: q.get('pw'), displayName: 'Sinov' });
+setTimeout(() => { if (r.call !== 'active') done(r); }, Number(q.get('timeout') || 40) * 1000);
+</script>

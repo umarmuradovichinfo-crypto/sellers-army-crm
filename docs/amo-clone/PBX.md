@@ -30,7 +30,10 @@ Operator (SIP trunk) kim bo'ladi — shartlari/narxi aniqlanmaguncha 3–5-bosqi
 ## Haqiqiy serverda tekshirish kerak (soxta AMI bilan sinab bo'lmaydi)
 Kod testlari matn tuzilishini tekshiradi; quyidagilar faqat haqiqiy Asterisk (20/22) bilan tasdiqlanadi:
 - **Audio transkodlash**: kutubxonadagi mp3/wav fayllar `custom/<id>` sifatida ko'chiriladi; Asterisk 8 kHz mono (wav/ulaw/gsm) kutadi — mp3 uchun `format_mp3` yoki oldindan `sox`/`ffmpeg` bilan 8 kHz'ga o'girish kerak bo'lishi mumkin.
-- **Vaqt qoidasi tunni kesib o'tsa** (masalan 22:00–02:00): `GotoIfTime(22:00-02:00,…)` bitta qator bilan to'g'ri ishlashi va kun almashishi (sat 23:00 → sun 01:00) tekshirilsin.
+- ~~Vaqt qoidasi tunni kesib o'tsa~~ — **28.10 jonli Asterisk 23 da tekshirildi**: `GotoIfTime(22:00-06:00,mon)` o'sha kunning o'zida aylanadi (dush 00–06 + 22–24), seshanba ertalabni bermaydi. Generator endi ikkiga bo'ladi: `22:00-23:59,mon` + `00:00-06:00,tue`. `Etc/GMT-5` = UTC+5 (`IFTIME` bilan tasdiqlangan).
+- **28.10 jonli sinov topilmalari** (tuzatildi): brauzer telefoni `allow=opus` — `codec_opus` yo'q, stol telefoni bilan ko'prik «No path to translate» bilan uzilardi (endi ulaw/alaw);
+  JsSIP ICE yig'ishni ~40 s kutardi (stun:<domen>:3478 yo'q) — endi 1 s; IVR menyu tugmasi ichki raqam boshi bilan bir xil bo'lsa 5 s jimlik (endi 2 s);
+  `andrius/asterisk` tasvirida ovoz fayllari yo'q (init.sh endi core-sounds-ru o'rnatadi); ovozli pochta xabari CRM'ga ko'rinmasdi (endi `<id>-vm.wav`, jurnalda «Ovozli pochta»).
 - **Originate `ChannelId`** = CRM uuid → CDR `UniqueID` shu bo'lishi; `CDR(userfield)=crm:<uuid>` Cdr AMI hodisasida `UserField` sifatida kelishi (cdr_manager.conf).
 - **Bir qo'ng'iroq — bir nechta CDR** (IVR Answer + Dial): `DestinationChannel` bo'sh ANSWERED qismi «operator javob bermadi» deb hisoblanadi; CDR'lar 1,5 s ichida birlashtiriladi (ASTERISK_CDR_MERGE_MS).
 - **CDR StartTime** GMT (UTC) da keladi (`cdr_manager.conf: usegmtime = yes`, haqiqiy Asterisk 23 da tekshirilgan); CRM `ASTERISK_TZ` standarti `+00:00`.

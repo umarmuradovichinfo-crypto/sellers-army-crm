@@ -29,12 +29,15 @@ PUBLIC_URL=https://$NAME.$DOMAIN
 SETUP_TOKEN=$SETUP_TOKEN
 LICENSE_SECRET=$LICENSE_SECRET
 $( [ "$PBX" = 1 ] && printf "ASTERISK_AMI_HOST=asterisk\nASTERISK_AMI_PORT=5038\nASTERISK_AMI_USER=crm\nASTERISK_AMI_SECRET=%s\nASTERISK_CONF_DIR=/asterisk/etc\nASTERISK_SOUNDS_DIR=/asterisk/sounds\nASTERISK_RECORDINGS_DIR=/asterisk/recordings\nPBX_SIP_HOST=%s\n" "${AMI_SECRET:?AMI_SECRET kerak (deploy/.env)}" "${PBX_SIP_HOST:?PBX_SIP_HOST kerak (deploy/.env)}" )
+$( [ "$PBX" = 1 ] && [ -n "${PBX_EXTERNAL_IP:-}" ] && printf "PBX_EXTERNAL_IP=%s\n" "$PBX_EXTERNAL_IP" )
+$( [ "$PBX" = 1 ] && [ -n "${PBX_LOCAL_NET:-}" ] && printf "PBX_LOCAL_NET=%s\n" "$PBX_LOCAL_NET" )
 BILLING_CARD_NUMBER=$BILLING_CARD_NUMBER
 BILLING_CARD_HOLDER=$BILLING_CARD_HOLDER
 BILLING_TELEGRAM=$BILLING_TELEGRAM
 BILLING_ENFORCE=1
 ENV
 umask 022
+# yozuvlar papkasi yozish ruxsati bilan ulanadi: saqlash muddati o'tgan yozuvlarni CRM o'chiradi (Telefoniya → Suhbatlarni yozib olish)
 cat > "$DIR/compose.yml" <<YML
 name: crm-$NAME
 services:
@@ -45,7 +48,7 @@ services:
     env_file: .env
     mem_limit: 512m
     networks: [crm-net]
-$( [ "$PBX" = 1 ] && printf '    volumes:\n      - ../../asterisk-data/etc:/asterisk/etc\n      - ../../asterisk-data/sounds:/asterisk/sounds\n      - ../../asterisk-data/recordings:/asterisk/recordings:ro\n' )
+$( [ "$PBX" = 1 ] && printf '    volumes:\n      - ../../asterisk-data/etc:/asterisk/etc\n      - ../../asterisk-data/sounds:/asterisk/sounds\n      - ../../asterisk-data/recordings:/asterisk/recordings\n' )
 networks:
   crm-net:
     external: true

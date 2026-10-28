@@ -8,7 +8,11 @@
 - CRM `ASTERISK_CONF_DIR` papkasiga shu uch faylni yozadi, so'ng AMI orqali `module reload res_pjsip.so`, `dialplan reload`, `queue reload all` bajaradi
   (Telefoniya → ATS sozlamalari → Diagnostika → «Stansiyaga qo'llash»).
 - Audio fayllar `ASTERISK_SOUNDS_DIR/custom/<id>.wav` ga ko'chiriladi (Asterisk MP3 uchun `format_mp3` moduli kerak; eng ishonchlisi — WAV 8 kHz mono).
-- Yozuvlar `ASTERISK_RECORDINGS_DIR/<uniqueid>.wav` (dialplan MixMonitor) — CRM ularni «Qo'ng'iroqlar jurnali»da tinglatadi.
+- Yozuvlar `ASTERISK_RECORDINGS_DIR/<uniqueid>.wav` (dialplan MixMonitor) va ovozli pochta `<uniqueid>-vm.wav` — CRM ularni «Qo'ng'iroqlar jurnali»da tinglatadi;
+  saqlash muddati (standart 90 kun) o'tganlarini CRM o'zi o'chiradi (Telefoniya → Suhbatlarni yozib olish).
+- Standart ovozlar (`beep`, `vm-intro`, `silence/1`…): `init.sh` Asterisk core-sounds paketini `sounds/ru` ga yuklaydi va `defaultlanguage = ru` qo'yadi
+  (`ASTERISK_SOUNDS_LANG=en|none`). Tasvirning o'zida ovoz fayli yo'q.
+- NAT: `PBX_EXTERNAL_IP`/`PBX_LOCAL_NET` (CRM env) → pjsip transport; brauzer telefoni uchun `ice-nat.sh` (docs/amo-clone/SERVER-DAY.md → NAT).
 
 ## CRM o'zgaruvchilari (mijoz konteyneri .env)
 ```
@@ -20,6 +24,8 @@ ASTERISK_CONF_DIR=/asterisk/etc
 ASTERISK_SOUNDS_DIR=/asterisk/sounds
 ASTERISK_RECORDINGS_DIR=/asterisk/recordings
 PBX_SIP_HOST=sip.sizning-domen.uz   # telefonlar ro'yxatdan o'tadigan manzil
+PBX_EXTERNAL_IP=203.0.113.10        # (ixtiyoriy) server tashqi IP — NAT: pjsip external_* (Docker'da kerak)
+PBX_LOCAL_NET=172.16.0.0/12         # (ixtiyoriy) ichki tarmoqlar, vergul bilan; standart 127.0.0.0/8,172.16.0.0/12
 ```
 CRM konteyneriga `asterisk/etc`, `asterisk/sounds`, `asterisk/recordings` papkalarini ulang (compose `volumes`), Telefoniya sozlamasida provayderni «own» ga o'tkazing.
 
@@ -31,6 +37,8 @@ CRM konteyneriga `asterisk/etc`, `asterisk/sounds`, `asterisk/recordings` papkal
 5. Trunk (operator) ma'lumotlarini kiriting, tashqi qo'ng'iroqni sinang.
 
 ## Xavfsizlik
-- SIP portini (5060/udp) va RTP (10000–10200/udp) faqat kerak bo'lsa oching; kuchli parollar (CRM o'zi hosil qiladi); `fail2ban` Asterisk jurnalini kuzatsin.
+- SIP portini (5060/udp) va RTP (10000–10200/udp) faqat kerak bo'lsa oching; kuchli parollar (CRM o'zi hosil qiladi).
+- fail2ban: `etc/logger.conf` → `security.log` (asterisk-data/log); filtr va jail — `deploy/fail2ban/` (harden.sh o'rnatadi, DOCKER-USER zanjirida bloklaydi).
+  Filtrni tekshirish: `python3 deploy/fail2ban/test-filter.py`.
 - AMI (5038) internetga ochilmaydi — faqat `crm-net` ichida.
 - Toll-fraud: chiquvchi qoidalarda faqat kerakli mamlakat prefikslarini qoldiring.

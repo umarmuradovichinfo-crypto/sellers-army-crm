@@ -108,21 +108,21 @@ export default function IntegrationsPage() {
   const pipelines = pipe.data?.pipelines || []
   const members = mem.data?.members || []
 
-  // Boshlang'ich holatlar (O'rnatilganlar tabi uchun)
+  // Boshlang'ich holatlar (O'rnatilganlar tabi uchun): keshdan darrov, fonda yangilanadi
+  const cPbx = useApi(() => crmService.getPbxConfig(), [], 'amo:int:pbx')
+  const cFb = useApi(() => facebookService.getConfig(), [], 'amo:int:facebook')
+  const cTg = useApi(() => crmService.chatStatus(), [], 'amo:int:telegram')
+  const cForms = useApi(() => crmService.listForms(), [], 'amo:int:forms')
+  useEffect(() => { if (cPbx.data) setOn('pbx')(!!cPbx.data.enabled) }, [cPbx.data]) // eslint-disable-line
   useEffect(() => {
-    let alive = true
-    const safe = (p, fn) => p.then((r) => { if (alive) fn(r) }).catch(() => {})
-    Promise.all([
-      safe(crmService.getPbxConfig(), (c) => setOn('pbx')(!!c.enabled)),
-      safe(facebookService.getConfig(), (c) => {
-        const any = !!c.enabled && (c.pages || []).length > 0
-        setOn('facebook')(any); setOn('messenger')(any); setOn('instagram')((c.pages || []).some((p) => p.igId))
-      }),
-      safe(crmService.chatStatus(), (c) => setOn('telegram')(!!c.telegram)),
-      safe(crmService.listForms(), (r) => setOn('forms')((r.forms || []).length > 0)),
-    ]).then(() => { if (alive) setReady(true) })
-    return () => { alive = false }
-  }, []) // eslint-disable-line
+    const c = cFb.data
+    if (!c) return
+    const any = !!c.enabled && (c.pages || []).length > 0
+    setOn('facebook')(any); setOn('messenger')(any); setOn('instagram')((c.pages || []).some((p) => p.igId))
+  }, [cFb.data]) // eslint-disable-line
+  useEffect(() => { if (cTg.data) setOn('telegram')(!!cTg.data.telegram) }, [cTg.data]) // eslint-disable-line
+  useEffect(() => { if (cForms.data) setOn('forms')((cForms.data.forms || []).length > 0) }, [cForms.data]) // eslint-disable-line
+  useEffect(() => { if (!ready && !cPbx.loading && !cFb.loading && !cTg.loading && !cForms.loading) setReady(true) }, [cPbx.loading, cFb.loading, cTg.loading, cForms.loading]) // eslint-disable-line
 
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase()

@@ -7,7 +7,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { OwnPbxProvider } from '../onlinepbx/own-pbx.provider';
 import { PrismaService } from '../prisma/prisma.service';
-import { GeneratorError, generateAsterisk, type GenModule } from './asterisk.generator';
+import { GeneratorError, generateAsterisk, natFromEnv, type GenModule } from './asterisk.generator';
 import { DEVICES, MAC_RE, generateDeviceConfig, type CfgLine, type Device } from './configurator';
 import { MODULE_TYPES, NUMBER_BASE, NUMBER_RE, SchemaError, USER_NUMBER_RE, cleanName, normalizeConfig, type ModuleType } from './pbx-schema';
 import { EXT_RE, phoneKey } from './phone';
@@ -254,7 +254,7 @@ export class PbxService {
     });
     const bl = (await this.prisma.pbxBlacklist.findMany({ select: { number: true } })).map((b) => b.number);
     try {
-      const out = generateAsterisk(mods, { blacklist: bl, outgoing: await this.outgoing(), sipSecrets: withSecrets ? secrets : {}, recording: await this.recording() });
+      const out = generateAsterisk(mods, { blacklist: bl, outgoing: await this.outgoing(), sipSecrets: withSecrets ? secrets : {}, recording: await this.recording(), nat: natFromEnv() });
       return { ...out, missing };
     } catch (e) {
       if (e instanceof GeneratorError || e instanceof SchemaError) throw new BadRequestException({ error: 'BAD_CONFIG', message: e.message });
@@ -408,13 +408,26 @@ export class PbxService {
     return m;
   }
   async outgoing() { return this.setting<{ rules: any[] }>(OUTGOING_KEY, { rules: [] }); }
-  /** Suhbatlarni yozib olish (MixMonitor) — standart yoqilgan; papka Asterisk serveridagi yo'l (CRM uni ASTERISK_RECORDINGS_DIR orqali o'qiydi). */
-  async recording() { return this.setting<{ enabled: boolean; dir: string }>(RECORDING_KEY, { enabled: true, dir: '/var/spool/asterisk/monitor' }); }
-  async saveRecording(dto: { enabled?: boolean; dir?: string }) {
+  /**
+   * Suhbatlarni yozib olish (MixMonitor) — standart yoqilgan; papka Asterisk serveridagi yo'l (CRM uni ASTERISK_RECORDINGS_DIR orqali o'qiydi).
+   * keepDays — yozuvlar N kundan keyin o'chiriladi (standart 90; 0 — o'chirilmaydi). Tozalashni RecordingRetentionService bajaradi.
+   */
+  async recording() {
+    const r = await this.setting<{ enabled?: boolean; dir?: string; keepDays?: number }>(RECORDING_KEY, {});
+    const k = Number(r.keepDays);
+    return { enabled: r.enabled !== false, dir: r.dir || '/var/spool/asterisk/monitor', keepDays: Number.isInteger(k) && k >= 0 && k <= 3650 ? k : 90 };
+  }
+  async saveRecording(dto: { enabled?: boolean; dir?: string; keepDays?: unknown }) {
     const cur = await this.recording();
     const dir = String(dto.dir ?? cur.dir).trim();
     if (!/^\/[\w./-]{1,200}$/.test(dir) || dir.includes('..')) throw new BadRequestException({ error: 'BAD_DIR', message: "Papka mutlaq yo'l bo'lsin (masalan /var/spool/asterisk/monitor)" });
-    const v = { enabled: dto.enabled === undefined ? cur.enabled : !!dto.enabled, dir };
+    let keepDays = cur.keepDays;
+    if (dto.keepDays !== undefined && dto.keepDays !== null && dto.keepDays !== '') {
+      const k = Number(dto.keepDays);
+      if (!Number.isInteger(k) || k < 0 || k > 3650) throw new BadRequestException({ error: 'BAD_KEEP_DAYS', message: "Saqlash muddati 0–3650 kun (0 — o'chirilmaydi)" });
+      keepDays = k;
+    }
+    const v = { enabled: dto.enabled === undefined ? cur.enabled : !!dto.enabled, dir, keepDays };
     await this.saveSetting(RECORDING_KEY, v);
     return v;
   }

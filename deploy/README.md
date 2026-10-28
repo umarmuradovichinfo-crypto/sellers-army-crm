@@ -11,7 +11,7 @@ Mijoz manzili: `https://<nom>.<DOMEN>`. ~15–20 mijozgacha bitta server yetadi.
 1. VPS oling (Hetzner CX33 / Contabo / Netcup). Ubuntu 24.04. SSH kalit bilan kiring.
 2. DNS: `*.crm.example.uz` (yoki o'z domeningiz) → server IP (A yozuvi, wildcard).
 3. Serverda (root): `curl -fsSL https://raw.githubusercontent.com/<repo>/amo-clone/deploy/harden.sh | bash` yoki repo'ni klonlab `deploy/harden.sh` ni yurgizing
-   (Docker, devor, fail2ban, avto-yangilanish). Parol bilan SSH'ni SSH kalit ishlashini tekshirgach o'zingiz o'chiring.
+   (Docker, devor, fail2ban — SSH va Asterisk SIP (`deploy/fail2ban/`, jail `asterisk-crm`), avto-yangilanish). Parol bilan SSH'ni SSH kalit ishlashini tekshirgach o'zingiz o'chiring.
 4. `git clone <repo> /opt/crm && cd /opt/crm && git checkout amo-clone`
 5. `cp deploy/.env.example deploy/.env` va to'ldiring (DOMAIN, ACME_EMAIL, POSTGRES_PASSWORD, LICENSE_SECRET, karta, Telegram, AGE_PUBLIC_KEY, RCLONE_REMOTE).
    `LICENSE_SECRET` macOS Keychain'da («crm-license-secret», `security find-generic-password -s crm-license-secret -w`) — serverga SSH orqali stdin bilan uzatiladi, faylga/chatga ochiq yozilmaydi. Qolgan sirlarni `openssl rand -hex 32` bilan yarating, **chatga yozmang**, repoga qo'shmang (`deploy/.gitignore` himoya qiladi).

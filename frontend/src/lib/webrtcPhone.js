@@ -65,6 +65,15 @@ class WebRtcPhone {
     const peer = (session.remote_identity && session.remote_identity.uri && session.remote_identity.uri.user) || ''
 
     session.on('peerconnection', (e) => this.attachRemote(e.peerconnection))
+    // JsSIP INVITE/200 OK ni ICE yig'ish TUGAGACH yuboradi. STUN server javob bermasa (o'z stansiyamizda stun:<domen>:3478 yo'q) Chrome
+    // ~40 s kutadi — jonli sinovda INVITE 39,9 s dan keyin ketdi. Birinchi nomzoddan 1 s keyin yig'ishni yakunlaymiz (host/srflx ulguradi).
+    let iceTimer = null
+    session.on('icecandidate', (e) => {
+      if (iceTimer) return
+      iceTimer = setTimeout(() => { try { e.ready() } catch { /* sessiya tugagan */ } }, 1000)
+    })
+    session.on('ended', () => clearTimeout(iceTimer))
+    session.on('failed', () => clearTimeout(iceTimer))
     session.on('accepted', () => this.emit('active', { dir, peer }))
     session.on('confirmed', () => { this.attachFromSession(); this.emit('active', { dir, peer }) })
     session.on('ended', () => { this.session = null; this.emit('ended', { peer }) })

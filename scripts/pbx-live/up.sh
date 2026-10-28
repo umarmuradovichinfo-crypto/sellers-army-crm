@@ -6,7 +6,10 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 W="$HOME/.crm-live"
 SECRET=livesecret123
 rm -rf "$W"; mkdir -p "$W"
-AMI_SECRET=$SECRET AMI_PERMIT="0.0.0.0/0.0.0.0" "$ROOT/deploy/asterisk/init.sh" "$W" >/dev/null
+# standart ovozlar (ru, ~10 MB) bir marta yuklanib keshda saqlanadi
+C="$HOME/.crm-live-cache"; mkdir -p "$C"
+[ -s "$C/sounds-ru.tgz" ] || curl -fsSL --retry 3 -o "$C/sounds-ru.tgz" https://downloads.asterisk.org/pub/telephony/sounds/asterisk-core-sounds-ru-ulaw-current.tar.gz
+SOUNDS_TGZ="$C/sounds-ru.tgz" AMI_SECRET=$SECRET AMI_PERMIT="0.0.0.0/0.0.0.0" "$ROOT/deploy/asterisk/init.sh" "$W" >/dev/null
 mv "$W/recordings" "$W/rec"
 python3 - <<'PY'
 import wave,math,struct,os
@@ -18,7 +21,7 @@ chmod a+r "$W/rec/tone.wav"
 docker image inspect crm-ast-test >/dev/null 2>&1 || docker build -q -t crm-ast-test "$ROOT/scripts/pbx-live" >/dev/null
 docker rm -f crm-ast-live >/dev/null 2>&1 || true
 docker run -d --name crm-ast-live -p 127.0.0.1:5038:5038 -p 5060:5060/udp -p 127.0.0.1:8088:8088 -p 10000-10100:10000-10100/udp \
-  -v "$W/etc:/etc/asterisk" -v "$W/sounds/custom:/var/lib/asterisk/sounds/custom" -v "$W/rec:/var/spool/asterisk/monitor" crm-ast-test >/dev/null
+  -v "$W/etc:/etc/asterisk" -v "$W/sounds:/var/lib/asterisk/sounds" -v "$W/rec:/var/spool/asterisk/monitor" -v "$W/log:/var/log/asterisk" crm-ast-test >/dev/null
 for i in $(seq 1 30); do docker exec crm-ast-live asterisk -rx "core show version" >/dev/null 2>&1 && break; sleep 1; done
 docker exec crm-ast-live asterisk -rx "core show version"
 

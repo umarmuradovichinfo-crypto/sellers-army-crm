@@ -1,0 +1,18 @@
+# fail2ban «jail»: Asterisk SIP parol tanlashdan himoya (deploy/harden.sh → /etc/fail2ban/jail.d/asterisk-crm.local).
+# __LOGPATH__ ni harden.sh haqiqiy yo'lga almashtiradi (standart /opt/crm/deploy/asterisk-data/log/security.log).
+#
+# Asterisk Docker konteynerida: e'lon qilingan portlarga (5060/udp, RTP) trafik INPUT emas, FORWARD → DOCKER-USER zanjiridan o'tadi —
+# shuning uchun bloklash DOCKER-USER ga qo'yiladi (INPUT'ga qo'yilsa hujumchi to'xtamaydi). allports — SIP + RTP + boshqa hamma portlar.
+# ignoreip: localhost va Docker ichki tarmog'i (Caddy/CRM konteynerlari) — hech qachon bloklanmaydi.
+[asterisk-crm]
+enabled   = true
+filter    = asterisk-crm
+logpath   = __LOGPATH__
+backend   = polling
+maxretry  = 10
+findtime  = 10m
+bantime   = 1h
+bantime.increment = true
+bantime.maxtime   = 1w
+ignoreip  = 127.0.0.1/8 ::1 172.16.0.0/12
+action    = iptables-allports[name=asterisk-crm, chain=DOCKER-USER, protocol=all]

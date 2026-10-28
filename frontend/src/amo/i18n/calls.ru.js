@@ -22,6 +22,7 @@ addRu({
   "calls§Mijoz telefoni": "Телефон клиента",
   "calls§Natija": "Результат",
   "calls§O'tkazib yuborilgan": "Пропущенные",
+  "calls§Ovozli pochta": "Голосовая почта",
   "calls§Qayta qo'ng'iroq qilinmagan": "Не перезвонили",
   "calls§Qo'llash": "Применить",
   "calls§Qo'ng'iroq davomiyligi, soniya": "Длительность звонка, сек",

@@ -5,12 +5,13 @@ import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { AutoRecallService } from './autorecall.service';
 import { CallbackService } from './callback.service';
 import { PbxService } from './pbx.service';
+import { RecordingRetentionService } from './recording-retention.service';
 
 // «Настройка АТС» (o'z stansiyamiz): faqat telefoniya sozlamasi huquqi bilan
 @Controller('pbx')
 @RequirePermissions('crm.settings')
 export class PbxController {
-  constructor(private readonly s: PbxService, private readonly cb: CallbackService, private readonly recall: AutoRecallService) {}
+  constructor(private readonly s: PbxService, private readonly cb: CallbackService, private readonly recall: AutoRecallService, private readonly retention: RecordingRetentionService) {}
 
   @Get('modules') list(@Query('type') type?: string) { return this.s.list(type); }
   @Get('modules/next-number') next(@Query('type') type: string) { return this.s.nextNumber(type); }
@@ -52,5 +53,7 @@ export class PbxController {
   @Get('outgoing') outgoing() { return this.s.outgoing(); }
   @Get('recording') recording() { return this.s.recording(); }
   @Put('recording') saveRecording(@Body() dto: any) { return this.s.saveRecording(dto); }
+  /** Saqlash muddatini darhol qo'llash (kunlik fon vazifasini kutmasdan). */
+  @Post('recording/cleanup') recordingCleanup() { return this.retention.cleanup(); }
   @Put('outgoing') saveOutgoing(@Body() dto: any) { return this.s.saveOutgoing(dto); }
 }

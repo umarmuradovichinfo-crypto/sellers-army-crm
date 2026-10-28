@@ -8,7 +8,7 @@ const prov = process.argv[2] || execSync("docker inspect -f '{{range .NetworkSet
 const T = await admin();
 const mods = (await ok('GET', '/pbx/modules?type=trunk', undefined, T)).modules || [];
 let tr = mods.find((m) => m.number === '0552233');
-const config = { server: prov, login: '0552233', password: 'trunkpass', forwardTo: '10' };
+const config = { server: prov, login: '0552233', password: 'trunkpass', forwardTo: process.env.FORWARD || '10' };
 if (!tr) tr = (await ok('POST', '/pbx/modules', { type: 'trunk', number: '0552233', name: 'Provayder', config }, T)).module;
 else await ok('PUT', `/pbx/modules/${tr.id}`, { config }, T);
 await ok('PUT', '/pbx/outgoing', { rules: [{ name: 'Hammasi', mask: '', trunk: '0552233', externalNumber: '', users: [] }] }, T);

@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 P="$HOME/.crm-prov"
 rm -rf "$P"; mkdir -p "$P"
-AMI_SECRET=provsecret AMI_PERMIT="0.0.0.0/0.0.0.0" "$ROOT/deploy/asterisk/init.sh" "$P" >/dev/null
+ASTERISK_SOUNDS_LANG=none AMI_SECRET=provsecret AMI_PERMIT="0.0.0.0/0.0.0.0" "$ROOT/deploy/asterisk/init.sh" "$P" >/dev/null
 cat > "$P/etc/pjsip.conf" <<'CFG'
 [transport-udp]
 type=transport
