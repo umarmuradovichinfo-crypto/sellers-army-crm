@@ -633,3 +633,16 @@
 .pbxx .pbxch__on { color: #1f8a4d; font-size: 13px; }
 .pbxx .pbxch__off { color: #92989b; font-size: 13px; }
 .pbxx .pbxch__links { display: flex; gap: 12px; flex-wrap: wrap; }
+/* AI-menejer */
+.pbxx .pbxai__st--done { background: #e3f6ea; color: #1f8a4d; }
+.pbxx .pbxai__st--failed { background: #fde8e7; color: #c9372c; }
+.pbxx .pbxai__st--processing, .pbxx .pbxai__st--pending { background: #fff3dc; color: #a26a00; }
+.pbxx .pbxai__reason { color: #92989b; }
+.pbxx .pbxai { padding: 8px 4px 4px; max-width: 900px; }
+.pbxx .pbxai h5 { margin: 12px 0 4px; font-size: 13px; }
+.pbxx .pbxai ul { margin: 0; padding-left: 18px; }
+.pbxx .pbxai__sum { margin: 0 0 8px; line-height: 1.45; }
+.pbxx .pbxai__meta { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: #4e4963; }
+.pbxx .pbxai__kw { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pbxx .pbxai__kw span { background: #eef0f5; border-radius: 10px; padding: 1px 8px; font-size: 12px; }
+.pbxx .pbxai__tr { white-space: pre-wrap; background: #fafbfd; border: 1px solid #e3e6ef; border-radius: 6px; padding: 10px; max-height: 320px; overflow: auto; font-size: 13px; line-height: 1.5; }

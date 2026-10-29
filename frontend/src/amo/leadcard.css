@@ -312,3 +312,12 @@ a.ac-field__link:hover { color: var(--palette-link-primary); }
 .ac-feed__team.mine { margin-left: auto; background: rgba(76, 139, 247, .18); }
 .ac-feed__team-head { font-size: 12px; color: var(--palette-text-secondary-dark); margin-bottom: 3px; }
 .ac-feed__team-text { white-space: pre-wrap; word-break: break-word; }
+/* «AI-menejer» xulosasi qo'ng'iroq yozuvi ostida */
+.ac-note__ai { margin-top: 6px; padding: 8px 10px; border-left: 3px solid #8a6cf0; background: #f7f5ff; border-radius: 4px; font-size: 13px; line-height: 1.45; }
+.ac-note__aihead { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; margin-bottom: 2px; }
+.ac-note__aisteps { color: #4e4963; margin-top: 2px; }
+.ac-note__ai .ac-note__listen { margin-top: 4px; }
+.ac-note__aitr { white-space: pre-wrap; margin-top: 6px; max-height: 240px; overflow: auto; background: #fff; border: 1px solid #e6e3f3; border-radius: 4px; padding: 6px 8px; }
+:root[data-color-scheme="dark"] .ac-note__ai { background: rgba(138, 108, 240, 0.12); }
+:root[data-color-scheme="dark"] .ac-note__aisteps { color: inherit; opacity: 0.85; }
+:root[data-color-scheme="dark"] .ac-note__aitr { background: transparent; border-color: rgba(255, 255, 255, 0.14); }

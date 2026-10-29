@@ -28,6 +28,9 @@ export ASTERISK_RECORDINGS_DIR="/tmp/crm-e2e-asterisk/rec"; mkdir -p "$ASTERISK_
 # Ovoz sintezi: sinov provayderi (kalitsiz, tarmoqsiz) va kichik sutkalik limit (limit sinovi uchun)
 export PBX_TTS_MOCK=1 PBX_TTS_DAILY=12
 unset AZURE_TTS_KEY AZURE_TTS_REGION GOOGLE_TTS_API_KEY ESPEAK_BIN || true
+# «ИИ-менеджер»: sinov STT va sinov tahlil (tarmoqsiz, kalitsiz); fon sikli o'chiq — testlar POST /pbx/ai/tick bilan boshqaradi
+export PBX_STT_MOCK=1 PBX_AI_MOCK=1 PBX_AI_TICK_MS=0
+unset OPENAI_API_KEY DEEPGRAM_API_KEY AZURE_STT_KEY AZURE_STT_REGION AZURE_STT_ENDPOINT || true
 # Obuna litsenziyasi sinovi uchun test sirri (faqat lokal test bazasi)
 export LICENSE_ALLOW_UNBOUND=1 LICENSE_SECRET="e2e-license-secret" BILLING_CARD_NUMBER="8600 0000 0000 0000" BILLING_CARD_HOLDER="TEST HOLDER" BILLING_TELEGRAM="@test_admin"
 

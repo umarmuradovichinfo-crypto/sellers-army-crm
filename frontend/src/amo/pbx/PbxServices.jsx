@@ -350,3 +350,178 @@ function InformerSettings() {
     </div>
   )
 }
+
+// ── AI-menejer (OnlinePBX «ИИ-менеджер»): yozuv → matn (STT) → Claude xulosasi → bitim lentasi ──
+const AI_ST = { pending: 'pbx§Navbatda', processing: 'pbx§Tahlil qilinmoqda', done: 'pbx§Tayyor', failed: 'pbx§Xato', skipped: "pbx§O'tkazib yuborildi" }
+const AI_REASON = { short: 'pbx§Qisqa suhbat', internal: "pbx§Ichki qo'ng'iroq", no_recording: "pbx§Yozuv yo'q", too_long: 'pbx§20 daqiqadan uzun', empty: 'pbx§Nutq aniqlanmadi' }
+const AI_SENT = { positive: ['pbx§Ijobiy', '#1f8a4d'], neutral: ['pbx§Neytral', '#4e4963'], negative: ['pbx§Salbiy', '#c9372c'] }
+const AI_LANGS = [['auto', 'pbx§Avtomatik aniqlash'], ['uz', "pbx§O'zbekcha"], ['ru', 'pbx§Ruscha'], ['en', 'pbx§Inglizcha']]
+const STT_NAMES = { openai: 'OpenAI Whisper', deepgram: 'Deepgram', azure: 'Azure Speech', mock: 'Sinov (mock)' }
+const STT_ENV = { openai: 'OPENAI_API_KEY', deepgram: 'DEEPGRAM_API_KEY', azure: 'AZURE_STT_KEY + AZURE_STT_REGION', mock: 'PBX_STT_MOCK=1' }
+
+export function AiPage() {
+  const t = useT()
+  const [tab, setTab] = useState('calls')
+  return (
+    <div className="pbxs__page pbxs__page--wide">
+      <h3 className="pbxs__title">{t('pbx§AI-menejer')}</h3>
+      <Tabs tabs={[['calls', "pbx§Qo'ng'iroqlar"], ['set', 'pbx§Sozlamalar'], ['desc', 'pbx§Tavsif']]} tab={tab} setTab={setTab} />
+      {tab === 'set' && <AiSettings />}
+      {tab === 'calls' && <AiCalls />}
+      {tab === 'desc' && (
+        <div className="pbxs__body">
+          <p>{t("pbx§Sun'iy intellekt qo'ng'iroqlarni tahlil qiladi, suhbat mazmunini yozib oladi va mijoz kartochkasiga xulosa qo'shadi.")}</p>
+          <ul>
+            <li>{t("pbx§Yozuv matnga o'giriladi (o'zbek, rus, ingliz; til avtomatik aniqlanadi)")}</li>
+            <li>{t("pbx§Xulosa, mijoz kayfiyati, e'tirozlar, keyingi qadamlar va operator ishi bahosi (1–10)")}</li>
+            <li>{t("pbx§Bitim lentasiga «AI xulosa» izohi (bir marta), ixtiyoriy — tavsiya etilgan vazifa")}</li>
+            <li>{t("pbx§Kunlik limit va token hisobi; transkripsiyalar saqlash muddatidan keyin avtomatik o'chiriladi")}</li>
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AiSettings() {
+  const t = useT()
+  const { data, setData } = useApi(() => pbxService.ai(), [], 'pbx:ai')
+  const [c, setC] = useState(null)
+  const [msg, setMsg] = useState(null)
+  const baseRef = useRef(null)
+  useEffect(() => {
+    if (!data) return
+    if (!c || JSON.stringify(c) === JSON.stringify(baseRef.current)) setC(data.settings)
+    baseRef.current = data.settings
+  }, [data]) // eslint-disable-line
+  if (!c || !data) return <div className="ac-pbx__empty" />
+  const set = (k, v) => setC({ ...c, [k]: v })
+  const save = async () => {
+    setMsg(null)
+    try {
+      const r = await pbxService.saveAi({ ...c, minTalkSec: Number(c.minTalkSec), dailyLimit: Number(c.dailyLimit), retainDays: Number(c.retainDays) })
+      setData(r); setC(r.settings); setMsg({ ok: true, text: t('pbx§Saqlandi') })
+    } catch (e) { setMsg({ ok: false, text: e?.message || t("pbx§Saqlab bo'lmadi") }) }
+  }
+  const runNow = async () => {
+    setMsg(null)
+    try { const r = await pbxService.aiTick(); setMsg({ ok: true, text: r.disabled ? t("pbx§AI-menejer o'chirilgan") : `${t('pbx§Navbatga qo\'shildi')}: ${r.enqueued} · ${t('pbx§Tahlil qilindi')}: ${r.processed}` }); setData(await pbxService.ai()) } catch (e) { setMsg({ ok: false, text: e?.message || '' }) }
+  }
+  const active = data.stt?.active
+  const s7 = data.stats7 || {}
+  return (
+    <div className="pbxq">
+      <div className="pbxch__list">
+        <div className="pbxch__item"><b>{t('pbx§Nutqni matnga o\'girish (STT)')}</b>{active ? <span className="pbxch__on">{t('pbx§Ulangan')}: {STT_NAMES[active] || active}</span> : <span className="pbxch__off">{t('pbx§Ulanmagan')}</span>}</div>
+        <div className="pbxch__item"><b>{t('pbx§Tahlil (Claude)')}</b>{data.analysis?.configured ? <span className="pbxch__on">{t('pbx§Ulangan')}{data.analysis.mock ? ' (mock)' : ''}</span> : <span className="pbxch__off">{t("pbx§Ulanmagan — faqat transkripsiya saqlanadi")}</span>}</div>
+      </div>
+      {!active && <p className="ac-pbx__muted">{t('pbx§Serverda kalitlardan birini o\'rnating')}: OPENAI_API_KEY · DEEPGRAM_API_KEY · AZURE_STT_KEY + AZURE_STT_REGION. {t('pbx§Tahlil uchun')}: ANTHROPIC_API_KEY.</p>}
+      <Field label={t('pbx§Yoqilgan')}><input type="checkbox" checked={!!c.enabled} onChange={(e) => set('enabled', e.target.checked)} /></Field>
+      <Field label={t('pbx§Suhbat tili')}>
+        <select className="ac-select" value={c.language} onChange={(e) => set('language', e.target.value)}>{AI_LANGS.map(([k, l]) => <option key={k} value={k}>{t(l)}</option>)}</select>
+      </Field>
+      <Field label={t('pbx§STT provayderi')}>
+        <select className="ac-select" value={c.sttProvider} onChange={(e) => set('sttProvider', e.target.value)}>
+          <option value="auto">{t('pbx§Avtomatik (ulanganidan birinchisi)')}</option>
+          {(data.stt?.providers || []).map((p) => <option key={p.id} value={p.id}>{STT_NAMES[p.id] || p.id} — {p.available ? t('pbx§ulangan') : `${t('pbx§ulanmagan')} (${STT_ENV[p.id]})`}</option>)}
+        </select>
+      </Field>
+      <Field label={t('pbx§Minimal suhbat (soniya)')} hint={t("pbx§Bundan qisqa qo'ng'iroqlar tahlil qilinmaydi")}><input className="ac-input" type="number" min="5" max="600" value={c.minTalkSec} onChange={(e) => set('minTalkSec', e.target.value)} /></Field>
+      <Field label={t('pbx§Kunlik limit (tahlil soni)')}><input className="ac-input" type="number" min="1" max="5000" value={c.dailyLimit} onChange={(e) => set('dailyLimit', e.target.value)} /></Field>
+      <Field label={t('pbx§Bitim lentasiga xulosa yozish')}><input type="checkbox" checked={!!c.autoNote} onChange={(e) => set('autoNote', e.target.checked)} /></Field>
+      <Field label={t('pbx§Tavsiya etilgan vazifani yaratish')}><input type="checkbox" checked={!!c.autoTask} onChange={(e) => set('autoTask', e.target.checked)} /></Field>
+      <Field label={t('pbx§Transkripsiyani saqlash muddati (kun)')} hint={t("pbx§Muddat o'tgach matn va tahlil o'chiriladi (shaxsiy ma'lumot)")}><input className="ac-input" type="number" min="7" max="365" value={c.retainDays} onChange={(e) => set('retainDays', e.target.value)} /></Field>
+      <div className="ac-pbx__actions">
+        <button type="button" className="ac-btn ac-btn--blue" onClick={save}>{t('pbx§Saqlash')}</button>
+        <button type="button" className="ac-btn" onClick={runNow}>{t('pbx§Hozir ishga tushirish')}</button>
+      </div>
+      {msg && <div className={msg.ok ? 'ac-pbx__ok' : 'ac-pbx__err'}>{msg.text}</div>}
+      <h4>{t("pbx§So'nggi 7 kun")}</h4>
+      <div className="ac-cr__kpis">
+        <div><b>{data.usage?.today ?? 0}/{data.usage?.dailyLimit ?? c.dailyLimit}</b><span>{t('pbx§Bugun tahlillar')}</span></div>
+        <div><b>{s7.done ?? 0}</b><span>{t('pbx§Tahlil qilindi')}</span></div>
+        <div><b>{s7.failed ?? 0}</b><span>{t('pbx§Xato')}</span></div>
+        <div><b>{s7.audioMin ?? 0}</b><span>{t('pbx§Audio, daqiqa')}</span></div>
+        <div><b>{(s7.tokensIn ?? 0).toLocaleString('ru-RU')} / {(s7.tokensOut ?? 0).toLocaleString('ru-RU')}</b><span>{t('pbx§Tokenlar (kirish / chiqish)')}</span></div>
+      </div>
+      <p className="ac-pbx__muted">{t("pbx§Fon ishchisi har 30 soniyada yakunlangan qo'ng'iroqlarni oladi (bir vaqtda 2 tagacha, xatoda 2 marta qayta urinadi). Audio 20 daqiqa va 25 MB gacha.")}</p>
+    </div>
+  )
+}
+
+function AiSentiment({ s }) {
+  const t = useT()
+  if (!s || !AI_SENT[s]) return <span>—</span>
+  return <span style={{ color: AI_SENT[s][1], fontWeight: 500 }}>{t(AI_SENT[s][0])}</span>
+}
+
+function AiCalls() {
+  const t = useT()
+  const [status, setStatus] = useState('')
+  const [open, setOpen] = useState(null)
+  const { data, error } = useApi(() => pbxService.aiCalls({ status, limit: 200 }), [status], `pbx:ai-calls:${status}`, 15000)
+  const list = data?.calls || []
+  return (
+    <>
+      <div className="pbxinf__filter">
+        {[['', 'pbx§Hammasi'], ...Object.entries(AI_ST)].map(([k, l]) => <button key={k} type="button" className={status === k ? 'on' : ''} onClick={() => { setStatus(k); setOpen(null) }}>{t(l)}</button>)}
+      </div>
+      {error && !data && <div className="ac-pbx__err">{t("pbx§Yuklab bo'lmadi")}</div>}
+      {data && list.length === 0 ? <div className="ac-pbx__empty">{t("pbx§Hali tahlil qilingan qo'ng'iroq yo'q. Sozlamalar tabida AI-menejerni yoqing.")}</div> : (
+        <div className="ac-cl__tablewrap">
+          <table className="ac-cl__table">
+            <thead><tr><th>{t('pbx§Vaqt')}</th><th>{t('pbx§Mijoz')}</th><th>{t('pbx§Xodim')}</th><th>{t('pbx§Holat')}</th><th>{t('pbx§Kayfiyat')}</th><th>{t('pbx§Ball')}</th></tr></thead>
+            <tbody>{list.map((r) => (
+              <React.Fragment key={r.callLogId}>
+                <tr className="pbxinf__row" onClick={() => setOpen(open === r.callLogId ? null : r.callLogId)}>
+                  <td>{fmt(r.at)}</td>
+                  <td>{r.direction === 'in' ? '↙' : '↗'} {r.leadId ? <Link to={`/leads/${r.leadId}`} onClick={(e) => e.stopPropagation()}>{r.leadName || r.phone}</Link> : r.phone}</td>
+                  <td>{r.ext ? `${r.ext} ` : ''}{r.userName || '—'}</td>
+                  <td><span className={`pbxinf__st pbxai__st--${r.status}`}>{t(AI_ST[r.status] || r.status)}</span>{r.reason ? <small className="pbxai__reason"> {t(AI_REASON[r.reason] || r.reason)}</small> : null}{r.purged ? <small className="pbxai__reason"> {t("pbx§matn o'chirilgan")}</small> : null}</td>
+                  <td><AiSentiment s={r.sentiment} /></td>
+                  <td>{r.score != null ? `${r.score}/10` : '—'}</td>
+                </tr>
+                {open === r.callLogId && <tr><td colSpan={6}><AiDetail id={r.callLogId} /></td></tr>}
+              </React.Fragment>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+    </>
+  )
+}
+
+export function AiDetail({ id }) {
+  const t = useT()
+  const { data, setData, error } = useApi(() => pbxService.aiCall(id), [id], `pbx:ai-call:${id}`)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+  if (error && !data) return <div className="ac-pbx__err">{error.status === 403 ? t("pbx§Ruxsat yo'q") : t("pbx§Yuklab bo'lmadi")}</div>
+  if (!data) return <div className="ac-pbx__empty" />
+  const a = data.analysis
+  const rerun = async () => {
+    setBusy(true); setMsg(null)
+    try { setData(await pbxService.aiRun(id)) } catch (e) { setMsg(e?.message || t('pbx§Xato')) } finally { setBusy(false) }
+  }
+  return (
+    <div className="pbxai">
+      {data.error && <div className="ac-pbx__err">{data.error}</div>}
+      {a ? (
+        <>
+          <p className="pbxai__sum">{a.summary}</p>
+          <div className="pbxai__meta"><span>{t('pbx§Kayfiyat')}: <AiSentiment s={a.sentiment} /></span><span>{t('pbx§Operator bahosi')}: <b>{a.score}/10</b></span>{a.intent && <span>{t('pbx§Maqsad')}: {a.intent}</span>}</div>
+          {a.objections?.length > 0 && <><h5>{t("pbx§E'tirozlar")}</h5><ul>{a.objections.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
+          {a.nextSteps?.length > 0 && <><h5>{t('pbx§Keyingi qadamlar')}</h5><ul>{a.nextSteps.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
+          {a.suggestedTask && <p className="ac-pbx__muted">{t('pbx§Tavsiya etilgan vazifa')}: {a.suggestedTask.title} (+{a.suggestedTask.dueInDays} {t('pbx§kun')})</p>}
+          {a.keywords?.length > 0 && <div className="pbxai__kw">{a.keywords.map((k) => <span key={k}>{k}</span>)}</div>}
+        </>
+      ) : data.status === 'done' && !data.purged ? <p className="ac-pbx__muted">{t("pbx§Tahlil o'chiq (Claude ulanmagan) — faqat transkripsiya")}</p> : null}
+      {data.purged && <p className="ac-pbx__muted">{t("pbx§Saqlash muddati o'tgani uchun matn o'chirilgan")}</p>}
+      {data.transcript && <><h5>{t('pbx§Transkripsiya')}{data.lang ? ` (${data.lang})` : ''}</h5><div className="pbxai__tr">{data.transcript}</div></>}
+      <div className="ac-pbx__actions">
+        <button type="button" className="ac-btn" disabled={busy || data.status === 'processing'} onClick={rerun}>{busy ? t('pbx§Tahlil qilinmoqda') : t('pbx§Qayta tahlil')}</button>
+      </div>
+      {msg && <div className="ac-pbx__err">{msg}</div>}
+    </div>
+  )
+}

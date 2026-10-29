@@ -86,7 +86,7 @@ export default function CallsPage() {
                         <td className="pbxc__stars">{[1, 2, 3, 4, 5].map((n) => <i key={n} className={c.rating >= n ? 'on' : ''} />)}</td>
                         <td>{c.result ? t(`calls§${c.result}`) : ''}</td>
                         <td>{c.leadId ? 'CRM' : ''}</td>
-                        <td className="pbxc__act">{c.hasRecording ? <>{play[c.id] === undefined && <button type="button" title={t('calls§Yozuvni tinglash')} onClick={() => listen(c.id)}>▶</button>}<button type="button" title={t('calls§Yuklab olish')} onClick={() => dl(c.id)}>⤓</button></> : null}</td>
+                        <td className="pbxc__act">{c.ai?.status === 'done' && <span className={`pbxc__ai pbxc__ai--${c.ai.sentiment || 'neutral'}`} title={`${t('calls§AI tahlil')}${c.ai.score != null ? `: ${c.ai.score}/10` : ''}`}>AI</span>}{c.hasRecording ? <>{play[c.id] === undefined && <button type="button" title={t('calls§Yozuvni tinglash')} onClick={() => listen(c.id)}>▶</button>}<button type="button" title={t('calls§Yuklab olish')} onClick={() => dl(c.id)}>⤓</button></> : null}</td>
                       </tr>
                       {play[c.id] && <tr><td colSpan={11}>{play[c.id] === 'err' ? t('calls§Yozuv topilmadi') : <audio controls autoPlay src={play[c.id]} style={{ width: '100%' }} />}</td></tr>}
                     </React.Fragment>

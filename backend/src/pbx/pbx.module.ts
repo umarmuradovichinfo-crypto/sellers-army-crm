@@ -10,6 +10,8 @@ import { PbxService } from './pbx.service';
 import { RecordingRetentionService } from './recording-retention.service';
 import { InformerService } from './informer/informer.service';
 import { TtsService } from './tts/tts.service';
+import { PbxAiController } from './ai/ai.controller';
+import { PbxAiService } from './ai/ai.service';
 
-@Module({ imports: [CrmModule, OnlinePbxModule], controllers: [PbxController, CallbackController], providers: [PbxService, CallbackService, AutoRecallService, RecordingRetentionService, TtsService, InformerService], exports: [PbxService] })
+@Module({ imports: [CrmModule, OnlinePbxModule], controllers: [PbxController, CallbackController, PbxAiController], providers: [PbxService, CallbackService, AutoRecallService, RecordingRetentionService, TtsService, InformerService, PbxAiService], exports: [PbxService] })
 export class PbxAdminModule {}

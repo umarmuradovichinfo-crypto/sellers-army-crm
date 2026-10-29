@@ -4,8 +4,8 @@ import PbxShell, { AtsLayout, ServicesLayout } from './PbxShell'
 import { AudioLibrary, Blacklist, CallbackSettings, AutoRecallSettings, Diagnostic, Incoming, Music, Outgoing } from '../pages/PbxPage'
 import CallsPage from '../pages/CallsPage'
 import CallReportsPage from '../pages/CallReportsPage'
-import { PbxChats, PbxConfigurator, PbxHome, PbxIntegration, PbxLicense, PbxRecord, PbxStatistic, ServiceInfo, TopTabs } from './PbxPlaceholders'
-import { InformerPage, QualityPage } from './PbxServices'
+import { PbxChats, PbxConfigurator, PbxHome, PbxIntegration, PbxLicense, PbxRecord, PbxStatistic, TopTabs } from './PbxPlaceholders'
+import { AiPage, InformerPage, QualityPage } from './PbxServices'
 
 const S = (props) => <PbxShell {...props} />
 
@@ -30,7 +30,7 @@ export default function PbxRoutes() {
       <Route path="/reports/:kind" element={<S><TopTabs first="pbx§Hisobotlar" desc={REP_DESC}><CallReportsPage /></TopTabs></S>} />
       <Route path="/services/autorecall" element={<S><ServicesLayout><AutoRecallSettings /></ServicesLayout></S>} />
       <Route path="/services/callback" element={<S><ServicesLayout><CallbackSettings /></ServicesLayout></S>} />
-      <Route path="/services/ai" element={<S><ServicesLayout><ServiceInfo title="pbx§AI-menejer" text="pbx§Sun'iy intellekt qo'ng'iroqlarni tahlil qiladi, suhbat mazmunini yozib oladi va mijoz kartochkasiga xulosa qo'shadi." /></ServicesLayout></S>} />
+      <Route path="/services/ai" element={<S><ServicesLayout free><AiPage /></ServicesLayout></S>} />
       <Route path="/services/record" element={<S><ServicesLayout free><PbxRecord /></ServicesLayout></S>} />
       <Route path="/services/quality" element={<S><ServicesLayout free><QualityPage /></ServicesLayout></S>} />
       <Route path="/services/informer" element={<S><ServicesLayout free><InformerPage /></ServicesLayout></S>} />

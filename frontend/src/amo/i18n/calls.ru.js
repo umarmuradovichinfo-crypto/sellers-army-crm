@@ -57,4 +57,5 @@ addRu({
   "calls§30 kun": "30 дней",
   "calls§Yuklab olish": "Скачать",
   "Qo'ng'iroqlar jurnali": "Журнал звонков",
+  "calls§AI tahlil": "AI-анализ",
 })

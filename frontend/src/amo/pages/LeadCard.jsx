@@ -431,9 +431,32 @@ export function CallNote({ c }) {
           {audio && <a href={audio} download={`call-${c.id}.mp3`} style={{ textDecoration: 'underline' }}>{t('Yuklab olish')}</a>}
         </div>
         <div className="ac-note__text" style={{ marginTop: 2 }}>{okText}</div>
+        {c.ai?.status === 'done' && c.ai.summary && <CallAi c={c} />}
         {audio && <audio src={audio} controls autoPlay />}
         {err && <div className="ac-muted" style={{ fontSize: 13 }}>{t('Yozuv topilmadi')}</div>}
       </div>
+    </div>
+  )
+}
+
+// «AI-menejer» xulosasi (qo'ng'iroq yozuvi tahlili); transkripsiya so'ralganda yuklanadi
+const AI_SENT = { positive: ['Ijobiy', '#1f8a4d'], neutral: ['Neytral', '#6b6f80'], negative: ['Salbiy', '#c9372c'] }
+function CallAi({ c }) {
+  const t = useT()
+  const [open, setOpen] = useState(false)
+  const [full, setFull] = useState(null)
+  const toggle = async () => {
+    setOpen((v) => !v)
+    if (!full) { try { setFull(await api.get(`/pbx/ai/calls/${encodeURIComponent(c.id)}`)) } catch { setFull({ failed: true }) } }
+  }
+  const s = AI_SENT[c.ai.sentiment]
+  return (
+    <div className="ac-note__ai">
+      <div className="ac-note__aihead"><b>{t('AI xulosa')}</b>{s && <span style={{ color: s[1] }}>{t(s[0])}</span>}{c.ai.score != null && <span>{t('Operator bahosi')}: {c.ai.score}/10</span>}</div>
+      <div>{c.ai.summary}</div>
+      {c.ai.nextSteps?.length > 0 && <div className="ac-note__aisteps">{t('Keyingi qadamlar')}: {c.ai.nextSteps.join('; ')}</div>}
+      <button type="button" className="ac-note__listen" onClick={toggle}>{t(open ? 'Transkripsiyani yashirish' : 'Transkripsiya')}</button>
+      {open && full && (full.transcript ? <div className="ac-note__aitr">{full.transcript}</div> : <div className="ac-muted" style={{ fontSize: 13 }}>{t('Transkripsiya mavjud emas')}</div>)}
     </div>
   )
 }

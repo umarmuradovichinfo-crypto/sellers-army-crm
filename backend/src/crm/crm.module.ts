@@ -75,6 +75,6 @@ import { ReminderService } from './reminder.service';
     ChatService,
     TelegramClient,
   ],
-  exports: [ChatService, NotificationService, ActivityService, CrmFormsService, AutomationService, PipelineSettingsService, TelegramClient],
+  exports: [ChatService, NotificationService, ActivityService, CrmFormsService, AutomationService, PipelineSettingsService, TelegramClient, CrmService],
 })
 export class CrmModule {}

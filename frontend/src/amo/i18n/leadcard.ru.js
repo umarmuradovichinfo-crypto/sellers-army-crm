@@ -160,4 +160,13 @@ addRu({
   "Chiquvchi qo'ng'iroq": 'Исходящий звонок',
   'Kontaktlar': 'Контакты',
   'Kompaniyalar': 'Компании',
+  "AI xulosa": "AI-резюме",
+  "Ijobiy": "Позитивный",
+  "Neytral": "Нейтральный",
+  "Salbiy": "Негативный",
+  "Operator bahosi": "Оценка оператора",
+  "Keyingi qadamlar": "Следующие шаги",
+  "Transkripsiya": "Расшифровка",
+  "Transkripsiyani yashirish": "Скрыть расшифровку",
+  "Transkripsiya mavjud emas": "Расшифровка недоступна",
 })

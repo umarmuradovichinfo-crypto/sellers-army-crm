@@ -213,12 +213,41 @@ model CallLog {
   externalId  String?  @unique // provayder qo'ng'iroq uuid (OnlinePBX uuid / Asterisk CRM_UUID yoki UniqueID); NULL lar cheklanmaydi
   handled     Boolean  @default(false) // kiruvchi oyna ko'rsatildimi
   startedAt   DateTime @default(now())
+  ai          CallAi?
 
   @@index([leadId])
   @@index([direction, status])
   @@index([startedAt])
   @@index([phone])
   @@map("call_logs")
+}
+
+// «ИИ-менеджер»: qo'ng'iroq yozuvi matni (STT) va Claude tahlili. Transkripsiya — shaxsiy ma'lumot: retainDays dan keyin tozalanadi (purgedAt).
+model CallAi {
+  id            String    @id @default(cuid())
+  callLogId     String    @unique
+  call          CallLog   @relation(fields: [callLogId], references: [id], onDelete: Cascade)
+  status        String    @default("pending") // pending | processing | done | failed | skipped
+  reason        String? // skipped sababi: short | internal | no_recording | too_long | empty
+  transcript    String?
+  analysisJson  String?
+  lang          String?
+  sttProvider   String?
+  audioSec      Int?
+  costTokensIn  Int       @default(0)
+  costTokensOut Int       @default(0)
+  attempts      Int       @default(0)
+  nextAt        DateTime?
+  error         String?
+  noteAt        DateTime? // bitim lentasiga «AI xulosa» yozilgan vaqt (takror yozilmaydi)
+  taskId        String? // avto-vazifa (bir marta)
+  purgedAt      DateTime? // saqlash muddati o'tib matn/tahlil o'chirilgan
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("call_ai")
 }
 
 // Sayt «Callback» vidjeti so'rovlari — sutkalik cheklovlar (raqam/kalit bo'yicha) bazada hisoblanadi (bir nechta nusxada ham to'g'ri).

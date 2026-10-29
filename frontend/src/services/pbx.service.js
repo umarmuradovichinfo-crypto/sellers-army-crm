@@ -45,4 +45,11 @@ export const pbxService = {
   informerRemove: (id) => api.delete(`/pbx/informer/${id}`),
   informerNumbers: (id, text) => api.post(`/pbx/informer/${id}/numbers`, { text }),
   informerAction: (id, action) => api.post(`/pbx/informer/${id}/${action}`, {}),
+  // «ИИ-менеджер»: qo'ng'iroq yozuvi → matn → AI xulosa
+  ai: () => api.get('/pbx/ai'),
+  saveAi: (body) => api.put('/pbx/ai', body),
+  aiTick: () => api.post('/pbx/ai/tick', {}),
+  aiCalls: (params = {}) => api.get(`/pbx/ai/calls?${new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null))}`),
+  aiCall: (id) => api.get(`/pbx/ai/calls/${encodeURIComponent(id)}`),
+  aiRun: (id, body) => api.post(`/pbx/ai/calls/${encodeURIComponent(id)}/run`, body || {}),
 }

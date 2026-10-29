@@ -452,6 +452,19 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  /** «ИИ-менеджер» qisqa natijasi (qo'ng'iroqlar ko'rinishi chaqiruvchida tekshirilgan). Transkripsiya bu yerda qaytarilmaydi. */
+  private async aiBrief(ids: string[]) {
+    const out = new Map<string, { status: string; summary: string | null; sentiment: string | null; score: number | null; nextSteps: string[]; purged: boolean }>();
+    if (!ids.length) return out;
+    const rows = await this.prisma.callAi.findMany({ where: { callLogId: { in: ids } }, select: { callLogId: true, status: true, analysisJson: true, purgedAt: true } }).catch(() => []);
+    for (const r of rows) {
+      let a: any = null;
+      try { a = r.analysisJson ? JSON.parse(r.analysisJson) : null; } catch { /* */ }
+      out.set(r.callLogId, { status: r.status, summary: a?.summary || null, sentiment: a?.sentiment || null, score: a?.score ?? null, nextSteps: Array.isArray(a?.nextSteps) ? a.nextSteps.slice(0, 6) : [], purged: !!r.purgedAt });
+    }
+    return out;
+  }
+
   private async ownProvider() { return (await this.cfg.get()).provider === 'own'; }
   /**
    * Yozuv bormi: o'z stansiyamizda — saqlangan havola (recordUrl) bo'lsa VA fayl hali diskda bo'lsa (saqlash muddati o'tib o'chirilgan bo'lsa —
@@ -542,6 +555,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     const RESULT: [RegExp, string][] = [[/voicemail/, 'Ovozli pochta'], [/busy|занят/, 'Band'], [/reject|отклон/, 'Rad etildi'], [/fail|congestion/, 'Xato'], [/cancel|no.?answer|не отвеч/, 'Javob berilmadi']];
     const page = list.slice(0, Math.min(Number(q.limit) || 200, 500));
     const recs = await this.recMap(page, await this.ownProvider());
+    const ai = await this.aiBrief(page.map((r) => r.id));
     return {
       range: { from: new Date(fromMs + TZ).toISOString().slice(0, 10), to: new Date(toMs - 86_400_000 + TZ).toISOString().slice(0, 10) },
       truncated,
@@ -553,6 +567,7 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
           userName: u?.name || null, ext: u?.extension || null, leadId: r.leadId, leadName: r.leadId ? lMap.get(r.leadId) || null : null,
           ringSec: Math.max(0, r.durationSec - r.talkSec), talkSec: r.talkSec, rating: r.rating,
           result: r.hangup ? (RESULT.find(([re]) => re.test(r.hangup!))?.[1] || null) : null, hasRecording: recs.get(r.id) || false,
+          ai: ai.has(r.id) ? { status: ai.get(r.id)!.status, sentiment: ai.get(r.id)!.sentiment, score: ai.get(r.id)!.score } : null,
         };
       }),
       totals: { count: list.length, talkSec: talk, roundedMinutes: roundedMin, totalSec: total },
@@ -643,7 +658,8 @@ export class CallsService implements OnModuleInit, OnModuleDestroy {
     const calls = await this.prisma.callLog.findMany({ where: { leadId }, orderBy: { startedAt: 'desc' }, take: 100 });
     // hasRecording — yozuvni server orqali olib bo'ladimi (uuid yoki havola bor)
     const recs = await this.recMap(calls, await this.ownProvider());
-    return { calls: calls.map((c) => ({ ...c, hasRecording: recs.get(c.id) || false })) };
+    const ai = await this.aiBrief(calls.map((c) => c.id));
+    return { calls: calls.map((c) => ({ ...c, hasRecording: recs.get(c.id) || false, ai: ai.get(c.id) || null })) };
   }
 
   // ── Qo'ng'iroq yozuvini server orqali olib berish (chatda ijro uchun) ──
