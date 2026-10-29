@@ -47,6 +47,17 @@ describe('Telegram webhook', () => {
     const conv = await ok('GET', '/crm/conversations', undefined, T, 200);
     assert.ok(JSON.stringify(conv).includes('narxi qancha'), 'xabar suhbatlarda yo`q');
   });
+
+  test("«/start» (kodsiz): bot salomlashadi, bitim yaratilmaydi; keyingi oddiy xabar — bitim", async () => {
+    const chatId = Math.floor(Math.random() * 1e9) + 5000;
+    const hdr = { headers: { 'x-telegram-bot-api-secret-token': secret } };
+    const r = await req('POST', '/telegram/webhook', update(chatId, '/start'), null, hdr);
+    assert.equal(r.data?.welcome, true, JSON.stringify(r.data));
+    const list = await ok('GET', `/crm/leads?search=${chatId}`, undefined, T, 200);
+    assert.ok(!list.leads.some((l) => JSON.stringify(l).includes('/start')), '/start bitim yaratdi');
+    const bad = await req('POST', '/telegram/webhook', update(chatId, '/start abcdef0123'), null, hdr);
+    assert.equal(bad.data?.welcome, true);
+  });
 });
 
 describe('Ommaviy forma', () => {

@@ -371,6 +371,15 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     // «/start <kod>» — xodim Telegram'ni CRM bildirishnomalariga ulayapti (mijoz xabari emas)
     const startM = /^\/start(?:@\w+)?\s+([a-f0-9]{10})\s*$/.exec(text.trim());
     if (startM && chat.type === 'private' && (await this.notif.tgConsume(startM[1], chatId))) return { ok: true, linked: true };
+    // Oddiy «/start» (kodsiz) yoki noto'g'ri/eskirgan kod: bitim yaratilmaydi — bot salomlashadi (mijoz keyin yozadigan xabari bitim bo'ladi)
+    if (chat.type === 'private' && /^\/start(?:@\w+)?(?:\s+\S+)?\s*$/i.test(text.trim())) {
+      const badCode = /^\/start(?:@\w+)?\s+\S+/i.test(text.trim());
+      const welcome = badCode
+        ? "Kod noto'g'ri yoki eskirgan. CRM'da Profil → «Telegram'ga ulash» ni qayta oching va yangi kod oling."
+        : "Assalomu alaykum! 👋 Clon CRM botiga xush kelibsiz.\nSavolingizni yozing — operatorimiz tez orada javob beradi.\n\nXodim bo'lsangiz: CRM → Profil → «Telegram'ga ulash» orqali kod olib, botga «/start <kod>» yuboring.";
+      this.tg.sendMessage(chatId, welcome).catch(() => undefined);
+      return { ok: true, welcome: true };
+    }
     const from = msg.from || {};
     const name = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || chat.title || 'Telegram foydalanuvchi';
 
